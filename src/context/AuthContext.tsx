@@ -21,7 +21,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
     case 'LOGIN_START':
     case 'REGISTER_START':
       return { ...state, isLoading: true };
-    
+
     case 'LOGIN_SUCCESS':
     case 'REGISTER_SUCCESS':
       return {
@@ -30,7 +30,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         isAuthenticated: true,
         isLoading: false,
       };
-    
+
     case 'LOGIN_FAILURE':
     case 'REGISTER_FAILURE':
       return {
@@ -39,7 +39,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         isAuthenticated: false,
         isLoading: false,
       };
-    
+
     case 'LOGOUT':
       return {
         ...state,
@@ -47,7 +47,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         isAuthenticated: false,
         isLoading: false,
       };
-    
+
     default:
       return state;
   }
@@ -74,11 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (credentials: LoginCredentials) => {
     dispatch({ type: 'LOGIN_START' });
-    
+
     try {
       // Mock API call - thay thế bằng API thực tế
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Mock user data
       const user: User = {
         id: '1',
@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: credentials.email === 'admin@example.com' ? 'admin' : 'user',
         createdAt: new Date(),
       };
-      
+
       localStorage.setItem('user', JSON.stringify(user));
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
     } catch (error) {
@@ -98,19 +98,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (userData: RegisterData) => {
     dispatch({ type: 'REGISTER_START' });
-    
+
     try {
       // Mock API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const email = userData.email || `${userData.phone}@wanderoo.vn`;
+
       const user: User = {
         id: Date.now().toString(),
-        email: userData.email,
+        email,
         name: userData.name,
         role: 'user',
         createdAt: new Date(),
       };
-      
+
       localStorage.setItem('user', JSON.stringify(user));
       dispatch({ type: 'REGISTER_SUCCESS', payload: user });
     } catch (error) {

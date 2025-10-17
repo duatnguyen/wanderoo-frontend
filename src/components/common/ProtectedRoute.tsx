@@ -1,10 +1,10 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthCtx } from '../../app/providers/AuthProvider';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'user';
+  requiredRole?: 'ADMIN' | 'USER';
   redirectTo?: string;
 }
 
@@ -13,7 +13,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole,
   redirectTo = '/login' 
 }) => {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { state } = useAuthCtx();
+  const { isAuth: isAuthenticated, user, loading: isLoading } = state;
 
   // Hiển thị loading khi đang kiểm tra auth
   if (isLoading) {

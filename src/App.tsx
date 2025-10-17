@@ -1,84 +1,54 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+// src/App.tsx
+import { Suspense } from "react";
+import { RouterProvider } from "react-router-dom";
+import { ConfigProvider, App as AntdApp, theme } from "antd";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Components
-import ProtectedRoute from './components/common/ProtectedRoute';
-import PublicRoute from './components/common/PublicRoute';
+import { router } from "./app/router";             // createBrowserRouter(...)
+import { AuthProvider } from "./app/providers/AuthProvider";
+import Loading from "./components/common/Loading";
 
-// Layouts
-import AdminLayout from './layouts/AdminLayout';
-import UserLayout from './layouts/UserLayout';
+// (tuỳ chọn) cấu hình React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { refetchOnWindowFocus: false, staleTime: 30_000 },
+    mutations: { retry: 0 },
+  },
+});
 
-// Pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UserHome from './pages/user/UserHome';
-import Profile from './pages/user/Profile';
-
-import './App.css';
-
-function App() {
-  return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            {/* Public Routes */}
-            <Route 
-              path="/login" 
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              } 
-            />
-            
-            <Route 
-              path="/register" 
-              element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              } 
-            />
-            
-            {/* Admin Routes */}
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute requiredRole="admin">
-                  <AdminLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="users" element={<div>Quản lý Users - Coming soon</div>} />
-              <Route path="settings" element={<div>Cài đặt Admin - Coming soon</div>} />
-            </Route>
-            
-            {/* User Routes */}
-            <Route 
-              path="/user" 
-              element={
-                <ProtectedRoute requiredRole="user">
-                  <UserLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="home" element={<UserHome />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="settings" element={<div>Cài đặt User - Coming soon</div>} />
-            </Route>
-            
-            {/* Default Redirects */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
-  );
+// ErrorBoundary đơn giản
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+  // Bạn có thể dùng lib như `react-error-boundary` để handle đẹp hơn:
+  // return (
+  //   <RBErrorBoundary FallbackComponent={Fallback}>
+  //     {children}
+  //   </RBErrorBoundary>
+  // );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: theme.defaultAlgorithm,
+        token: {
+          colorPrimary: "#1677ff",
+          borderRadius: 8,
+        },
+      }}
+    >
+      <AntdApp>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ErrorBoundary>
+              <Suspense fallback={<Loading />}>
+                <RouterProvider router={router} />
+              </Suspense>
+            </ErrorBoundary>
+          </AuthProvider>
+        </QueryClientProvider>
+      </AntdApp>
+    </ConfigProvider>
+  );
+}

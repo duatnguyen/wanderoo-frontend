@@ -1,9 +1,10 @@
 import React from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuthCtx } from '../app/providers/AuthProvider';
 
 const UserLayout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { state, logout } = useAuthCtx();
+  const { user } = state;
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -22,7 +23,7 @@ const UserLayout: React.FC = () => {
                 Wanderoo
               </Link>
             </div>
-            
+
             <nav className="flex items-center space-x-6">
               <Link
                 to="/user/home"

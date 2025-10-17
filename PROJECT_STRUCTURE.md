@@ -7,20 +7,79 @@
 ## Cấu trúc thư mục
 
 ```
-src/
-├── components/           # Components tái sử dụng
-│   ├── admin/           # Components dành cho Admin
-│   ├── user/            # Components dành cho User
-│   └── common/          # Components chung
-├── pages/               # Các trang của ứng dụng
-│   ├── auth/            # Trang đăng nhập/đăng ký
-│   ├── admin/           # Trang dành cho Admin
-│   └── user/            # Trang dành cho User
-├── layouts/             # Layout components
-├── context/             # React Context (Authentication)
-├── types/               # TypeScript type definitions
-├── hooks/               # Custom React hooks
-└── utils/               # Utility functions
+wanderoo-frontend/
+├── public/                     # Static assets
+├── src/
+│   ├── App.tsx                # Main App component
+│   ├── main.tsx               # Entry point
+│   ├── vite-env.d.ts          # Vite type definitions
+│   ├── app/                   # App configuration
+│   │   ├── providers/         # Context providers
+│   │   │   ├── AuthProvider.tsx
+│   │   │   └── QueryProvider.tsx
+│   │   └── router/            # Routing configuration
+│   │       ├── index.tsx      # Main router
+│   │       ├── routes.admin.tsx
+│   │       ├── routes.user.tsx
+│   │       └── guards/        # Route guards
+│   │           ├── AuthGuard.tsx
+│   │           └── RoleGuard.tsx
+│   ├── assets/                # Static assets
+│   │   └── images/
+│   │       ├── banner/
+│   │       └── logo/
+│   ├── components/            # Reusable components
+│   │   ├── admin/            # Admin-specific components
+│   │   │   └── AdminSidebar.tsx
+│   │   └── common/           # Shared components
+│   │       ├── index.ts
+│   │       ├── Loading.tsx
+│   │       ├── ProtectedRoute.tsx
+│   │       └── PublicRoute.tsx
+│   ├── context/              # Legacy context (deprecated)
+│   │   └── AuthContext.tsx
+│   ├── hooks/                # Custom React hooks
+│   │   ├── useAuth.ts
+│   │   └── useTitle.ts
+│   ├── layouts/              # Layout components
+│   │   ├── AdminLayout.tsx
+│   │   └── UserLayout.tsx
+│   ├── pages/                # Page components
+│   │   ├── admin/           # Admin pages
+│   │   │   └── AdminDashboard.tsx
+│   │   ├── auth/            # Authentication pages
+│   │   │   ├── AuthPage.css
+│   │   │   ├── Login.tsx
+│   │   │   └── Register.tsx
+│   │   └── user/            # User pages
+│   │       ├── Profile.tsx
+│   │       └── UserHome.tsx
+│   ├── services/             # API services
+│   │   ├── api.ts           # Base API configuration
+│   │   ├── auth.api.ts      # Authentication APIs
+│   │   ├── admin.api.ts     # Admin APIs
+│   │   └── user.api.ts      # User APIs
+│   ├── styles/              # Global styles
+│   │   └── index.css
+│   ├── types/               # TypeScript definitions
+│   │   ├── index.ts         # Type exports
+│   │   ├── auth.ts          # Auth types
+│   │   ├── admin.ts         # Admin types
+│   │   └── user.ts          # User types
+│   └── utils/               # Utility functions
+│       ├── constants.ts     # App constants
+│       └── storage.ts       # Local storage utilities
+├── Dockerfile               # Docker configuration
+├── eslint.config.js         # ESLint configuration
+├── index.html               # HTML template
+├── package.json             # Dependencies and scripts
+├── postcss.config.js        # PostCSS configuration
+├── tailwind.config.js       # TailwindCSS configuration
+├── tsconfig.json            # TypeScript configuration
+├── tsconfig.app.json        # App-specific TS config
+├── tsconfig.node.json       # Node-specific TS config
+├── vite.config.ts           # Vite configuration
+└── PROJECT_STRUCTURE.md     # This file
 ```
 
 ## Tính năng chính
@@ -85,12 +144,14 @@ npm run build
 
 ## Công nghệ sử dụng
 
-- **React 18**: Frontend framework
-- **TypeScript**: Type safety
-- **React Router DOM**: Routing
-- **Tailwind CSS**: Styling
-- **Vite**: Build tool
-- **Context API**: State management
+- **React 19.1.1**: Frontend framework
+- **TypeScript 5.8.3**: Type safety
+- **React Router DOM 7.9.1**: Routing
+- **Tailwind CSS 4.1.14**: Utility-first CSS framework
+- **Ant Design 5.27.3**: UI component library
+- **Vite 7.1.2**: Fast build tool
+- **React Query (@tanstack/react-query)**: Server state management
+- **Context API**: Local state management
 
 ## Cấu trúc Routing
 
@@ -119,20 +180,20 @@ npm run build
 
 ### Thêm trang mới
 
-1. Tạo component trong `src/pages/[role]/`
-2. Import và thêm route trong `App.tsx`
-3. Cập nhật navigation trong layout tương ứng
+1. Tạo component trong `src/pages/admin/` hoặc `src/pages/user/`
+2. Import và thêm route trong `src/app/router/index.tsx`
+3. Cập nhật navigation trong layout tương ứng (`AdminLayout.tsx` hoặc `UserLayout.tsx`)
 
 ### Thêm API calls
 
-1. Tạo service trong `src/utils/`
+1. Tạo service trong `src/services/`
 2. Sử dụng trong components hoặc custom hooks
 3. Cập nhật types trong `src/types/`
 
 ### Thêm components
 
-1. Tạo trong `src/components/[role]/`
-2. Export từ index file nếu cần
+1. Tạo trong `src/components/admin/` hoặc `src/components/common/`
+2. Export từ `src/components/common/index.ts` nếu là component chung
 3. Import và sử dụng trong pages
 
 ## Best Practices
@@ -175,6 +236,5 @@ This project is licensed under the MIT License.
 
 ## Contact
 
-- Developer: [Your Name]
-- Email: [your-email@example.com]
-- Project Link: https://github.com/yourusername/wanderoo-frontend
+- Developer: duatnguyen
+- Project Link: https://github.com/duatnguyen/wanderoo-frontend
