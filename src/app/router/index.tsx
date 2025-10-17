@@ -45,7 +45,7 @@ export const router = createBrowserRouter([
             </Suspense>
         ),
     },
-    
+
     // Test route
     {
         path: "/test",

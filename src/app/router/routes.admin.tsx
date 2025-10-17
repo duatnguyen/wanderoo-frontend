@@ -170,8 +170,9 @@ export const adminRoutes: RouteObject[] = [
         path: "settings/security",
         element: <LazyWrapper><AdminSettings /></LazyWrapper>,
     },
+    
     {
         path: "*",
         element: <LazyWrapper><AdminDashboard /></LazyWrapper>,
-    },
+    }
 ];

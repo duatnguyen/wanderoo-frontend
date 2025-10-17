@@ -8,6 +8,9 @@ import { router } from "./app/router";             // createBrowserRouter(...)
 import { AuthProvider } from "./app/providers/AuthProvider";
 import Loading from "./components/common/Loading";
 
+
+import { ThemeProvider } from "@/components/theme-provider"
+
 // (tuỳ chọn) cấu hình React Query
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,36 +22,24 @@ const queryClient = new QueryClient({
 // ErrorBoundary đơn giản
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
-  // Bạn có thể dùng lib như `react-error-boundary` để handle đẹp hơn:
-  // return (
-  //   <RBErrorBoundary FallbackComponent={Fallback}>
-  //     {children}
-  //   </RBErrorBoundary>
-  // );
 }
 
 export default function App() {
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: theme.defaultAlgorithm,
-        token: {
-          colorPrimary: "#1677ff",
-          borderRadius: 8,
-        },
-      }}
-    >
-      <AntdApp>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <ErrorBoundary>
-              <Suspense fallback={<Loading />}>
-                <RouterProvider router={router} />
-              </Suspense>
-            </ErrorBoundary>
-          </AuthProvider>
-        </QueryClientProvider>
-      </AntdApp>
-    </ConfigProvider>
+    <ThemeProvider>
+      <ConfigProvider>
+        <AntdApp>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <ErrorBoundary>
+                <Suspense fallback={<Loading />}>
+                  <RouterProvider router={router} />
+                </Suspense>
+              </ErrorBoundary>
+            </AuthProvider>
+          </QueryClientProvider>
+        </AntdApp>
+      </ConfigProvider>
+    </ThemeProvider>
   );
 }
