@@ -166,43 +166,39 @@ const AdminOrders: React.FC = () => {
         onTabChange={setActiveTab}
       />
 
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Tìm kiếm đơn hàng..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                Chủ sở hữu
-              </Button>
-              <Button variant="outline" size="sm">
-                Kênh nhận
-              </Button>
-              <Button variant="outline" size="sm">
-                Dòng phẩm
-              </Button>
-              <Button variant="outline" size="sm">
-                Đã thanh toán
-              </Button>
-              <Button variant="outline" size="sm">
-                Tất cả nghiệp tình/khách
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Orders Table */}
       <Card>
         <CardContent className="p-0">
+          <CardContent className="mb-4">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Tìm kiếm đơn hàng..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  Chủ sở hữu
+                </Button>
+                <Button variant="outline" size="sm">
+                  Kênh nhận
+                </Button>
+                <Button variant="outline" size="sm">
+                  Dòng phẩm
+                </Button>
+                <Button variant="outline" size="sm">
+                  Đã thanh toán
+                </Button>
+                <Button variant="outline" size="sm">
+                  Tất cả nghiệp tình/khách
+                </Button>
+              </div>
+            </div>
+          </CardContent>
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50 dark:bg-gray-800">
