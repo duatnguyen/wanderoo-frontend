@@ -14,7 +14,7 @@ const AdminLayout: React.FC = () => {
       <AppSidebar />
       <SidebarInset className="flex flex-1 flex-col sidebar-inset">
         <SiteHeader />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-5">
           <Outlet />
         </main>
       </SidebarInset>

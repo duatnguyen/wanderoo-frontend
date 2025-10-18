@@ -1,5 +1,6 @@
+// src/components/common/TabMenu.tsx
 import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 
 export interface TabItem {
     id: string;
@@ -8,16 +9,43 @@ export interface TabItem {
     color?: string;
 }
 
-interface OrderTabMenuProps {
+interface TabMenuProps {
     tabs: TabItem[];
     activeTab: string;
     onTabChange: (tabId: string) => void;
     className?: string;
+    variant?: 'card' | 'underline';
 }
 
-export function OrderTabMenu({ tabs, activeTab, onTabChange }: OrderTabMenuProps) {
+export function TabMenu({ tabs, activeTab, onTabChange, className, variant = 'card' }: TabMenuProps) {
+    if (variant === 'underline') {
+        return (
+            <div className={cn("flex space-x-4 border-b border-gray-200 dark:border-gray-700", className)}>
+                {tabs.map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => onTabChange(tab.id)}
+                        className={cn(
+                            "pb-2 px-1 text-sm font-medium border-b-2 transition-colors",
+                            activeTab === tab.id
+                                ? "border-orange-500 text-orange-600"
+                                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                        )}
+                    >
+                        {tab.label}
+                        {tab.count !== undefined && tab.count > 0 && (
+                            <span className="ml-1 text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                {tab.count}
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </div>
+        );
+    }
+
     return (
-        <div className="border rounded-lg">
+        <div className={cn("border rounded-lg", className)}>
             <CardContent className="p-0">
                 <div className="flex items-center justify-between gap-2 bg-card dark:bg-card rounded-lg overflow-hidden p-2">
                     {tabs.map((tab) => (
@@ -55,36 +83,6 @@ export function OrderTabMenu({ tabs, activeTab, onTabChange }: OrderTabMenuProps
     );
 }
 
-// Default tabs data cho đơn hàng
-export const orderTabs: TabItem[] = [
-    {
-        id: 'all',
-        label: 'Tất cả',
-        count: 100
-    },
-    {
-        id: 'pending',
-        label: 'Chờ xác nhận',
-        count: 15
-    },
-    {
-        id: 'confirmed',
-        label: 'Đã xác nhận',
-        count: 25
-    },
-    {
-        id: 'shipping',
-        label: 'Đang giao',
-        count: 30
-    },
-    {
-        id: 'completed',
-        label: 'Đã hoàn thành',
-        count: 20
-    },
-    {
-        id: 'returned',
-        label: 'Trả hàng/Hoàn tiền/Hủy',
-        count: 10
-    }
-];
+// Export for backward compatibility
+export { TabMenu as OrderTabMenu };
+export type { TabMenuProps as OrderTabMenuProps };
