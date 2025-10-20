@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 
 export interface TabItem {
     id: string;

@@ -246,7 +246,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     };
 
     return (
-        <aside className="w-64 shrink-0 bg-[#0F2D52] text-white">
+        <aside className="w-64 shrink-0 bg-[#18345C] text-white">
             <div className="flex h-full flex-col px-6 pb-8 pt-10">
                 <div className="flex flex-col items-center gap-4 text-center">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm">

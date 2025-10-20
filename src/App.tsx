@@ -1,7 +1,6 @@
 // src/App.tsx
 import { Suspense } from "react";
 import { RouterProvider } from "react-router-dom";
-import { ConfigProvider, App as AntdApp } from "antd";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { router } from "./app/router";             // createBrowserRouter(...)
@@ -24,8 +23,6 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <ConfigProvider>
-      <AntdApp>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <ErrorBoundary>
@@ -35,7 +32,5 @@ export default function App() {
             </ErrorBoundary>
           </AuthProvider>
         </QueryClientProvider>
-      </AntdApp>
-    </ConfigProvider>
   );
 }
