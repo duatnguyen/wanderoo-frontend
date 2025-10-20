@@ -4,7 +4,8 @@ import { Search, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { OrderTabMenu, orderTabs } from '@/components/admin/OrderTabMenu';
+import { OrderTabMenu } from '@/components/admin/OrderTabMenu';
+import { orderTabs } from '@/components/admin/orderTabs';
 import {
   Table,
   TableBody,
@@ -105,30 +106,30 @@ const AdminOrders: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Chờ xác nhận':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        return 'bg-yellow-100 text-yellow-800';
       case 'Đã xác nhận':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-blue-100 text-blue-800';
       case 'Đang giao':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
+        return 'bg-purple-100 text-purple-800';
       case 'Đã hoàn thành':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-green-100 text-green-800';
       case 'Đã hủy':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case 'Đã thanh toán':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-green-100 text-green-800';
       case 'Chưa thanh toán':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        return 'bg-yellow-100 text-yellow-800';
       case 'Đã hoàn tiền':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-blue-100 text-blue-800';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -151,8 +152,8 @@ const AdminOrders: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản lý đơn hàng</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Tất cả sản phẩm</p>
+          <h1 className="text-2xl font-bold text-gray-900">Quản lý đơn hàng</h1>
+          <p className="text-sm text-gray-500">Tất cả sản phẩm</p>
         </div>
         <Button className="bg-red-500 hover:bg-red-600 text-white">
           Tạo đơn hàng
@@ -205,7 +206,7 @@ const AdminOrders: React.FC = () => {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50 dark:bg-gray-800">
+              <TableRow className="bg-gray-50">
                 <TableHead className="w-12">
                   <input type="checkbox" className="rounded" />
                 </TableHead>
@@ -220,7 +221,7 @@ const AdminOrders: React.FC = () => {
             </TableHeader>
             <TableBody>
               {filteredOrders.map((order) => (
-                <TableRow key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                <TableRow key={order.id} className="hover:bg-gray-50">
                   <TableCell>
                     <input type="checkbox" className="rounded" />
                   </TableCell>

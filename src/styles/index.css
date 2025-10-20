@@ -49,13 +49,14 @@ body {
 
 /* Custom Wanderoo Sidebar Styling */
 .sidebar-wanderoo {
-  --sidebar-background: #18345C;
+  --sidebar: #18345C;
   --sidebar-foreground: rgba(255, 255, 255, 0.9);
   --sidebar-primary: #FF6F3C;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: rgba(255, 255, 255, 0.1);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #FF6F3C;
 }
 
 /* Sidebar Menu Button Styling - Compact */

@@ -58,7 +58,7 @@ export function AppSidebar() {
     const mainNavItems = adminNavSections[0]?.items.map(item => ({
         title: item.label,
         url: item.path || '#',
-        icon: (props: any) => item.icon(props),
+        icon: (props: { className?: string }) => item.icon(props),
         isActive: item.activeMatch
             ? location.pathname.startsWith(item.activeMatch)
             : item.defaultActive
@@ -67,7 +67,7 @@ export function AppSidebar() {
     const channelNavItems = adminNavSections[1]?.items.map(item => ({
         title: item.label,
         url: item.path || '#',
-        icon: (props: any) => item.icon(props),
+        icon: (props: { className?: string }) => item.icon(props),
         isActive: item.activeMatch
             ? location.pathname.startsWith(item.activeMatch)
             : item.defaultActive
@@ -80,7 +80,7 @@ export function AppSidebar() {
     };
 
     return (
-        <Sidebar variant="inset" className="bg-sidebar">
+        <Sidebar variant="inset" className="bg-sidebar sidebar-wanderoo">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>

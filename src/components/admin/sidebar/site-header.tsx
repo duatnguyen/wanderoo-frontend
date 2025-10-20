@@ -10,11 +10,11 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ className }: SiteHeaderProps) {
     return (
-        <header className={`border-b backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/60 header-wanderoo dark:border-gray-800 rounded-t-[10px] ${className || ''}`}>
+        <header className={`border-b backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/60 header-wanderoo rounded-t-[10px] ${className || ''}`}>
             <div className="flex h-16 items-center gap-4 px-6">
                 {/* Sidebar Trigger */}
-                <SidebarTrigger className="-ml-1 text-black hover:bg-black/10 dark:text-white dark:hover:bg-white/10" />
-                <Separator orientation="vertical" className="h-6 dark:bg-gray-700" />
+                <SidebarTrigger className="-ml-1 text-black hover:bg-black/10" />
+                <Separator orientation="vertical" className="h-6" />
 
                 {/* Page Title & Greeting */}
                 <div className="flex flex-1 items-center gap-4">
@@ -24,7 +24,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                         <Input
                             type="search"
                             placeholder="Tìm kiếm..."
-                            className="pl-9 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:placeholder-gray-400"
+                            className="pl-9"
                         />
                     </div>
                 </div>
@@ -35,7 +35,7 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="h-9 w-9 p-0 hover:bg-accent/50 dark:hover:bg-gray-700/50 dark:text-gray-300 relative"
+                        className="h-9 w-9 p-0 hover:bg-accent/50 relative"
                     >
                         <Bell className="h-4 w-4" />
                         <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
