@@ -3,7 +3,6 @@ import { Search, User, Bell, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { ModeToggle } from "../../mode-toggle";
 
 interface SiteHeaderProps {
     className?: string;
@@ -42,8 +41,6 @@ export function SiteHeader({ className }: SiteHeaderProps) {
                         <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
                         <span className="sr-only">Thông báo</span>
                     </Button>
-                    {/* Theme Toggle */}
-                    <ModeToggle />
                 </div>
             </div>
         </header>
