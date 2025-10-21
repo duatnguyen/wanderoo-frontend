@@ -1,17 +1,17 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuthCtx } from '../../app/providers/AuthProvider';
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAuthCtx } from "../../app/providers/AuthProvider";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'ADMIN' | 'USER';
+  requiredRole?: "ADMIN" | "USER";
   redirectTo?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
   requiredRole,
-  redirectTo = '/login' 
+  redirectTo = "/login",
 }) => {
   const { state } = useAuthCtx();
   const { isAuth: isAuthenticated, user, loading: isLoading } = state;
@@ -33,7 +33,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Kiểm tra quyền truy cập nếu có yêu cầu role cụ thể
   if (requiredRole && user.role !== requiredRole) {
     // Redirect admin về admin dashboard, user về user home
-    const defaultRedirect = user.role === 'admin' ? '/admin/dashboard' : '/user/home';
+    const defaultRedirect =
+      user.role === "admin" ? "/admin/dashboard" : "/user/home";
     return <Navigate to={defaultRedirect} replace />;
   }
 

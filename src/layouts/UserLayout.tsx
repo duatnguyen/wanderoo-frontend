@@ -1,6 +1,6 @@
-import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { useAuthCtx } from '../app/providers/AuthProvider';
+import React from "react";
+import { Outlet, Link, useNavigate } from "react-router-dom";
+import { useAuthCtx } from "../app/providers/AuthProvider";
 
 const UserLayout: React.FC = () => {
   const { state, logout } = useAuthCtx();
@@ -9,7 +9,7 @@ const UserLayout: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
@@ -52,9 +52,7 @@ const UserLayout: React.FC = () => {
                     {user?.name?.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <span className="text-sm">
-                  {user?.name}
-                </span>
+                <span className="text-sm">{user?.name}</span>
               </div>
               <button
                 onClick={handleLogout}

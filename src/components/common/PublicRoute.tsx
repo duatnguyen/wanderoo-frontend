@@ -1,16 +1,13 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuthCtx } from '../../app/providers/AuthProvider';
+import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAuthCtx } from "../../app/providers/AuthProvider";
 
 interface PublicRouteProps {
   children: React.ReactNode;
   redirectTo?: string;
 }
 
-const PublicRoute: React.FC<PublicRouteProps> = ({ 
-  children, 
-  redirectTo 
-}) => {
+const PublicRoute: React.FC<PublicRouteProps> = ({ children, redirectTo }) => {
   const { state } = useAuthCtx();
   const { isAuth: isAuthenticated, user, loading: isLoading } = state;
 
@@ -28,9 +25,10 @@ const PublicRoute: React.FC<PublicRouteProps> = ({
     if (redirectTo) {
       return <Navigate to={redirectTo} replace />;
     }
-    
+
     // Redirect về trang tương ứng với role
-    const defaultRedirect = user.role === 'admin' ? '/admin/dashboard' : '/user/home';
+    const defaultRedirect =
+      user.role === "admin" ? "/admin/dashboard" : "/user/home";
     return <Navigate to={defaultRedirect} replace />;
   }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -16,47 +16,43 @@ interface Review {
   customerName: string;
   rating: number;
   comment: string;
-  status: 'approved' | 'pending' | 'rejected';
+  status: "approved" | "pending" | "rejected";
   date: string;
 }
 
 const AdminCustomerReviews = () => {
-  document.title = 'Đánh giá sản phẩm | Wanderoo';
-  
+  document.title = "Đánh giá sản phẩm | Wanderoo";
+
   const [reviews] = useState<Review[]>([
     {
-      id: '1',
-      productName: 'Áo thun nam',
-      customerName: 'Nguyễn Văn A',
+      id: "1",
+      productName: "Áo thun nam",
+      customerName: "Nguyễn Văn A",
       rating: 5,
-      comment: 'Sản phẩm rất tốt, chất lượng cao',
-      status: 'approved',
-      date: '2025-10-21'
+      comment: "Sản phẩm rất tốt, chất lượng cao",
+      status: "approved",
+      date: "2025-10-21",
     },
     // Add more sample reviews here
   ]);
 
-  const getStatusBadge = (status: Review['status']) => {
+  const getStatusBadge = (status: Review["status"]) => {
     const variants = {
-      approved: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      rejected: 'bg-red-100 text-red-800'
+      approved: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      rejected: "bg-red-100 text-red-800",
     };
     const labels = {
-      approved: 'Đã duyệt',
-      pending: 'Chờ duyệt',
-      rejected: 'Từ chối'
+      approved: "Đã duyệt",
+      pending: "Chờ duyệt",
+      rejected: "Từ chối",
     };
-    
-    return (
-      <Badge className={variants[status]}>
-        {labels[status]}
-      </Badge>
-    );
+
+    return <Badge className={variants[status]}>{labels[status]}</Badge>;
   };
 
   const renderStars = (rating: number) => {
-    return '⭐'.repeat(rating);
+    return "⭐".repeat(rating);
   };
 
   return (
@@ -85,18 +81,28 @@ const AdminCustomerReviews = () => {
           <TableBody>
             {reviews.map((review) => (
               <TableRow key={review.id}>
-                <TableCell className="font-medium">{review.productName}</TableCell>
+                <TableCell className="font-medium">
+                  {review.productName}
+                </TableCell>
                 <TableCell>{review.customerName}</TableCell>
                 <TableCell>{renderStars(review.rating)}</TableCell>
-                <TableCell className="max-w-xs truncate">{review.comment}</TableCell>
+                <TableCell className="max-w-xs truncate">
+                  {review.comment}
+                </TableCell>
                 <TableCell>{getStatusBadge(review.status)}</TableCell>
                 <TableCell>{review.date}</TableCell>
                 <TableCell>
                   <div className="space-x-2">
-                    {review.status === 'pending' && (
+                    {review.status === "pending" && (
                       <>
-                        <Button variant="outline" size="sm">Duyệt</Button>
-                        <Button variant="outline" size="sm" className="text-red-600">
+                        <Button variant="outline" size="sm">
+                          Duyệt
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600"
+                        >
                           Từ chối
                         </Button>
                       </>

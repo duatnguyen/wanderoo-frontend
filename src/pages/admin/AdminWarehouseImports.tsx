@@ -1,5 +1,5 @@
 const AdminWarehouseImports = () => {
-  document.title = 'Kiểm kho | Wanderoo';
+  document.title = "Kiểm kho | Wanderoo";
 
   return (
     <div className="container mx-auto p-4">

@@ -1,5 +1,5 @@
 const AdminWarehouseSupplier = () => {
-  document.title = 'Chuyển kho | Wanderoo';
+  document.title = "Chuyển kho | Wanderoo";
 
   return (
     <div className="container mx-auto p-4">

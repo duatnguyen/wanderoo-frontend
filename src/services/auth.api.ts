@@ -1,5 +1,5 @@
 // src/services/auth.api.ts - Authentication API calls
-import { getToken } from '../utils/storage';
+import { getToken } from "../utils/storage";
 
 // Types
 export interface LoginCredentials {
@@ -18,7 +18,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'USER';
+  role: "ADMIN" | "USER";
   avatar?: string;
   createdAt: string;
 }
@@ -29,49 +29,53 @@ export interface LoginResponse {
 }
 
 // Authentication APIs
-export const authLogin = async (credentials: LoginCredentials): Promise<LoginResponse> => {
+export const authLogin = async (
+  credentials: LoginCredentials,
+): Promise<LoginResponse> => {
   // Mock implementation - thay thế bằng API call thực tế
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       // Demo accounts
       const demoAccounts = [
         {
-          email: 'admin@example.com',
-          password: 'password',
+          email: "admin@example.com",
+          password: "password",
           user: {
-            id: '1',
-            email: 'admin@example.com',
-            name: 'Admin User',
-            role: 'ADMIN' as const,
-            avatar: '',
+            id: "1",
+            email: "admin@example.com",
+            name: "Admin User",
+            role: "ADMIN" as const,
+            avatar: "",
             createdAt: new Date().toISOString(),
-          }
+          },
         },
         {
-          email: 'user@example.com',
-          password: 'password',
+          email: "user@example.com",
+          password: "password",
           user: {
-            id: '2',
-            email: 'user@example.com',
-            name: 'Regular User',
-            role: 'USER' as const,
-            avatar: '',
+            id: "2",
+            email: "user@example.com",
+            name: "Regular User",
+            role: "USER" as const,
+            avatar: "",
             createdAt: new Date().toISOString(),
-          }
-        }
+          },
+        },
       ];
 
       const account = demoAccounts.find(
-        acc => acc.email === credentials.email && acc.password === credentials.password
+        (acc) =>
+          acc.email === credentials.email &&
+          acc.password === credentials.password,
       );
 
       if (account) {
         resolve({
           token: `demo-token-${account.user.id}-${Date.now()}`,
-          user: account.user
+          user: account.user,
         });
       } else {
-        reject(new Error('Invalid credentials'));
+        reject(new Error("Invalid credentials"));
       }
     }, 1000); // Simulate network delay
   });
@@ -83,7 +87,9 @@ export const authLogin = async (credentials: LoginCredentials): Promise<LoginRes
   // });
 };
 
-export const authRegister = async (userData: RegisterData): Promise<LoginResponse> => {
+export const authRegister = async (
+  userData: RegisterData,
+): Promise<LoginResponse> => {
   // Mock implementation
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -93,10 +99,10 @@ export const authRegister = async (userData: RegisterData): Promise<LoginRespons
           id: `new-${Date.now()}`,
           email: userData.email,
           name: userData.name,
-          role: 'USER',
-          avatar: '',
+          role: "USER",
+          avatar: "",
           createdAt: new Date().toISOString(),
-        }
+        },
       });
     }, 1000);
   });
@@ -111,33 +117,33 @@ export const authRegister = async (userData: RegisterData): Promise<LoginRespons
 export const authMe = async (): Promise<AuthUser> => {
   const token = getToken();
   if (!token) {
-    throw new Error('No token found');
+    throw new Error("No token found");
   }
 
   // Mock implementation - extract user info from token
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       // In real app, decode JWT or call API
-      if (token.includes('demo-token-1')) {
+      if (token.includes("demo-token-1")) {
         resolve({
-          id: '1',
-          email: 'admin@example.com',
-          name: 'Admin User',
-          role: 'ADMIN',
-          avatar: '',
+          id: "1",
+          email: "admin@example.com",
+          name: "Admin User",
+          role: "ADMIN",
+          avatar: "",
           createdAt: new Date().toISOString(),
         });
-      } else if (token.includes('demo-token-2')) {
+      } else if (token.includes("demo-token-2")) {
         resolve({
-          id: '2',
-          email: 'user@example.com',
-          name: 'Regular User',
-          role: 'USER',
-          avatar: '',
+          id: "2",
+          email: "user@example.com",
+          name: "Regular User",
+          role: "USER",
+          avatar: "",
           createdAt: new Date().toISOString(),
         });
       } else {
-        reject(new Error('Invalid token'));
+        reject(new Error("Invalid token"));
       }
     }, 500);
   });

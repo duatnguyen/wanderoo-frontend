@@ -1,7 +1,7 @@
-import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import AdminSidebar from '../components/admin/AdminSidebar';
-import { SiteHeader } from '../components/admin/sidebar/site-header';
+import React from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import AdminSidebar from "../components/admin/AdminSidebar";
+import { SiteHeader } from "../components/admin/sidebar/site-header";
 
 const AdminLayout: React.FC = () => {
   const location = useLocation();

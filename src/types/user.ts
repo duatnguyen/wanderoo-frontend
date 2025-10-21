@@ -11,7 +11,7 @@ export interface UserProfile {
 
 export interface UserPreferences {
   language: string;
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
   notifications: {
     email: boolean;
     push: boolean;
