@@ -40,7 +40,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     const baseClasses =
         'flex items-center gap-3 rounded-xl px-5 py-3 text-sm font-medium tracking-wide transition-colors duration-200';
     const activeClasses = 'bg-[#E04D30] text-white';
-    const inactiveClasses = 'text-white hover:text-white hover:bg-[#18345C]';
+    const inactiveClasses = 'text-white hover:text-white hover:bg-[#172b46]';
     const submenuClasses = 'ml-[35px] pl-4';
     const submenuActiveClasses = 'text-white underline';
     const submenuInactiveClasses = 'text-white/70';

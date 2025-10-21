@@ -125,19 +125,19 @@ export const adminNavSections: AdminNavSection[] = [
             {
                 label: 'Đơn hàng',
                 icon: icons.orders,
-                activeMatch: '/admin/orders',
+                activeMatch: '/admin/orders/all',
                 submenu: [
                     {
                         label: 'Tất cả đơn hàng',
-                        path: '/admin/orders',
+                        path: '/admin/orders/all',
                         icon: icons.orders,
-                        activeMatch: '/admin/orders',
+                        activeMatch: '/admin/orders/all',
                     },
                     {
                         label: 'Trả hàng/Hoàn tiền/Hủy',
-                        path: '/admin/orders/',
+                        path: '/admin/orders/otherstatus',
                         icon: icons.orders,
-                        activeMatch: '/admin/orders/return',
+                        activeMatch: '/admin/orders/otherstatus',
                     },
                 ],
             },
@@ -150,19 +150,19 @@ export const adminNavSections: AdminNavSection[] = [
             {
                 label: 'Sản phẩm',
                 icon: icons.products,
-                activeMatch: '/admin/products',
+                activeMatch: '/admin/products/all',
                 submenu: [
                     {
                         label: 'Danh sách sản phẩm',
-                        path: '/admin/products',
+                        path: '/admin/products/all',
                         icon: icons.products,
-                        activeMatch: '/admin/products',
+                        activeMatch: '/admin/products/all',
                     },
                     {
                         label: 'Thêm sản phẩm',
-                        path: '/admin/products/add',
+                        path: '/admin/products/new',
                         icon: icons.products,
-                        activeMatch: '/admin/products/add',
+                        activeMatch: '/admin/products/new',
                     },
                     {
                         label: 'Danh mục sản phẩm',
@@ -174,15 +174,47 @@ export const adminNavSections: AdminNavSection[] = [
             },
             {
                 label: 'Quản lý kho',
-                path: '/admin/warehouse',
                 icon: icons.warehouse,
-                activeMatch: '/admin/warehouse',
+                activeMatch: '/admin/warehouse/imports',
+                submenu: [
+                    {
+                        label: 'Nhập hàng',
+                        path: '/admin/warehouse/imports',
+                        icon: icons.warehouse,
+                        activeMatch: '/admin/warehouse/imports',
+                    },
+                    {
+                        label: 'Trả hàng nhập',
+                        path: '/admin/warehouse/returnsimport',
+                        icon: icons.warehouse,
+                        activeMatch: '/admin/warehouse/returnsimport',
+                    },
+                    {
+                        label: 'Nhà cung cấp',
+                        path: '/admin/warehouse/supplier',
+                        icon: icons.warehouse,
+                        activeMatch: '/admin/warehouse/supplier',
+                    },
+                ],
             },
             {
                 label: 'Khách hàng',
-                path: '/admin/customers',
                 icon: icons.customers,
-                activeMatch: '/admin/customers',
+                activeMatch: '/admin/customers/allcustomers',
+                submenu: [
+                    {
+                        label: 'Danh sách khách hàng',
+                        path: '/admin/customers/allcustomers',
+                        icon: icons.customers,
+                        activeMatch: '/admin/customers/allcustomers',
+                    },
+                    {
+                        label: 'Đánh giá',
+                        path: '/admin/customers/reviews',
+                        icon: icons.customers,
+                        activeMatch: '/admin/customers/reviews',
+                    },
+                ],
             },
             {
                 label: 'Sổ quỹ',

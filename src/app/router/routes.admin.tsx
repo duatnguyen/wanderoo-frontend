@@ -10,7 +10,6 @@ const AdminOrders = lazy(() => import("../../pages/admin/AdminOrders"));
 const AdminOrderDetail = lazy(() => import("../../pages/admin/AdminOrderDetail"));
 const AdminSettings = lazy(() => import("../../pages/admin/AdminSettings"));
 const AdminShipping = lazy(() => import("../../pages/admin/AdminShipping"));
-const AdminWarehouse = lazy(() => import("../../pages/admin/AdminWarehouse"));
 const AdminCustomers = lazy(() => import("../../pages/admin/AdminCustomers"));
 const AdminAccounting = lazy(() => import("../../pages/admin/AdminAccounting"));
 const AdminStaff = lazy(() => import("../../pages/admin/AdminStaff"));
@@ -18,7 +17,13 @@ const AdminReports = lazy(() => import("../../pages/admin/AdminReports"));
 const AdminDiscounts = lazy(() => import("../../pages/admin/AdminDiscounts"));
 const AdminWebsite = lazy(() => import("../../pages/admin/AdminWebsite"));
 const AdminPOS = lazy(() => import("../../pages/admin/AdminPOS"));
-
+const AdminWarehouseReturnsImport = lazy(() => import("../../pages/admin/AdminWarehouseReturnsImport"));
+const AdminWarehouseImports = lazy(() => import("../../pages/admin/AdminWarehouseImports"));
+const AdminCustomerReviews = lazy(() => import("../../pages/admin/AdminCustomerReviews"));
+const AdminWarehouseSupplier = lazy(()=> import("../../pages/admin/AdminWarehouseSupplier"));
+const AdminOrderOtherStatus = lazy(()=> import("../../pages/admin/AdminOrderOtherStatus"));
+const AdminProductsCategories = lazy(() => import("../../pages/admin/AdminProductsCategories"));
+const AdminProductsNew = lazy(() => import("../../pages/admin/AdminProductsNew"));
 // Wrapper component for lazy loading
 const LazyWrapper = ({ children }: { children: React.ReactElement }) => (
     <Suspense fallback={<Loading />}>
@@ -36,12 +41,16 @@ export const adminRoutes: RouteObject[] = [
         element: <LazyWrapper><AdminDashboard /></LazyWrapper>,
     },
     {
-        path: "orders",
+        path: "orders/all",
         element: <LazyWrapper><AdminOrders /></LazyWrapper>,
     },
     {
         path: "orders/:orderId",
         element: <LazyWrapper><AdminOrderDetail /></LazyWrapper>,
+    },
+    {
+        path: "orders/otherstatus",
+        element: <LazyWrapper><AdminOrderOtherStatus /></LazyWrapper>,
     },
     {
         path: "shipping",
@@ -56,36 +65,36 @@ export const adminRoutes: RouteObject[] = [
         element: <LazyWrapper><AdminShipping /></LazyWrapper>,
     },
     {
-        path: "products",
-        element: <LazyWrapper><AdminProducts /></LazyWrapper>,
-    },
-    {
-        path: "products/categories",
+        path: "products/all",
         element: <LazyWrapper><AdminProducts /></LazyWrapper>,
     },
     {
         path: "products/new",
-        element: <LazyWrapper><AdminProducts /></LazyWrapper>,
+        element: <LazyWrapper><AdminProductsNew /></LazyWrapper>,
+    },
+    {
+        path: "products/categories",
+        element: <LazyWrapper><AdminProductsCategories /></LazyWrapper>,
     },
     {
         path: "products/:productId/edit",
         element: <LazyWrapper><AdminProducts /></LazyWrapper>,
     },
     {
-        path: "warehouse",
-        element: <LazyWrapper><AdminWarehouse /></LazyWrapper>,
-    },
-    {
-        path: "warehouse/inventory",
-        element: <LazyWrapper><AdminWarehouse /></LazyWrapper>,
+        path: "warehouse/supplier",
+        element: <LazyWrapper><AdminWarehouseSupplier /></LazyWrapper>,
     },
     {
         path: "warehouse/import",
-        element: <LazyWrapper><AdminWarehouse /></LazyWrapper>,
+        element: <LazyWrapper><AdminWarehouseImports /></LazyWrapper>,
     },
     {
-        path: "warehouse/export",
-        element: <LazyWrapper><AdminWarehouse /></LazyWrapper>,
+        path: "warehouse/returnsimport",
+        element: <LazyWrapper><AdminWarehouseReturnsImport /></LazyWrapper>,
+    },
+    {
+        path: "warehouse/imports",
+        element: <LazyWrapper><AdminWarehouseImports /></LazyWrapper>,
     },
     {
         path: "customers",
@@ -94,6 +103,10 @@ export const adminRoutes: RouteObject[] = [
     {
         path: "customers/:customerId",
         element: <LazyWrapper><AdminCustomers /></LazyWrapper>,
+    },
+    {
+        path: "customers/reviews",
+        element: <LazyWrapper><AdminCustomerReviews /></LazyWrapper>,
     },
     {
         path: "accounting",
@@ -171,7 +184,7 @@ export const adminRoutes: RouteObject[] = [
         path: "settings/security",
         element: <LazyWrapper><AdminSettings /></LazyWrapper>,
     },
-    
+
     {
         path: "*",
         element: <LazyWrapper><AdminDashboard /></LazyWrapper>,
