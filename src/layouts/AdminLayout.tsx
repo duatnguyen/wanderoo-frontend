@@ -1,24 +1,21 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { AppSidebar } from '../components/admin/AppSidebar';
+import { Outlet, useLocation } from 'react-router-dom';
+import AdminSidebar from '../components/admin/AdminSidebar';
 import { SiteHeader } from '../components/admin/sidebar/site-header';
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
-
 
 const AdminLayout: React.FC = () => {
+  const location = useLocation();
+
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="flex flex-1 flex-col sidebar-inset">
+    <div className="flex min-h-screen">
+      <AdminSidebar activePath={location.pathname} />
+      <div className="flex flex-1 flex-col">
         <SiteHeader />
-        <main className="flex-1 overflow-auto p-5">
+        <main className="flex-1 overflow-auto p-6 bg-gray-50">
           <Outlet />
         </main>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </div>
   );
 };
 

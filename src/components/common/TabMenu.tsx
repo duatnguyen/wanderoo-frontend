@@ -20,7 +20,7 @@ interface TabMenuProps {
 export function TabMenu({ tabs, activeTab, onTabChange, className, variant = 'card' }: TabMenuProps) {
     if (variant === 'underline') {
         return (
-            <div className={cn("flex space-x-4 border-b border-gray-200 dark:border-gray-700", className)}>
+            <div className={cn("flex space-x-4 border-b border-gray-200 border-gray-700", className)}>
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
@@ -29,7 +29,7 @@ export function TabMenu({ tabs, activeTab, onTabChange, className, variant = 'ca
                             "pb-2 px-1 text-sm font-medium border-b-2 transition-colors",
                             activeTab === tab.id
                                 ? "border-orange-500 text-orange-600"
-                                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                                : "border-transparent text-gray-500 hover:text-gray-700 text-gray-400 hover:text-gray-300"
                         )}
                     >
                         {tab.label}
@@ -47,17 +47,17 @@ export function TabMenu({ tabs, activeTab, onTabChange, className, variant = 'ca
     return (
         <div className={cn("border rounded-lg", className)}>
             <CardContent className="p-0">
-                <div className="flex items-center justify-between gap-2 bg-card dark:bg-card rounded-lg overflow-hidden p-2">
+                <div className="flex items-center justify-between gap-2 bg-card bg-card rounded-lg overflow-hidden p-2">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => onTabChange(tab.id)}
                             className={cn(
                                 "px-3 py-1 text-sm font-medium text-center transition-all duration-200 relative whitespace-nowrap rounded-md",
-                                "hover:bg-gray-100 dark:hover:bg-gray-700",
+                                "hover:bg-gray-100 hover:bg-gray-700",
                                 activeTab === tab.id
-                                    ? "text-white bg-black dark:text-black dark:bg-white"
-                                    : "text-gray-600 dark:text-gray-400"
+                                    ? "text-white bg-black text-black bg-white"
+                                    : "text-gray-600 text-gray-400"
                             )}
                         >
                             <span className="flex items-center justify-center gap-1.5">
@@ -67,8 +67,8 @@ export function TabMenu({ tabs, activeTab, onTabChange, className, variant = 'ca
                                         className={cn(
                                             "inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-medium min-w-[18px] h-4",
                                             activeTab === tab.id
-                                                ? "bg-white text-black dark:bg-black dark:text-white"
-                                                : "bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300"
+                                                ? "bg-white text-black bg-black text-white"
+                                                : "bg-gray-200 bg-gray-600 text-gray-600 text-gray-300"
                                         )}
                                     >
                                         {tab.count}

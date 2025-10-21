@@ -74,13 +74,13 @@ export function CustomerOrderCard({ order, onViewDetails }: CustomerOrderCardPro
                                 {order.customer.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium text-gray-900 dark:text-white">
+                        <span className="font-medium text-gray-900 text-white">
                             {order.customer}
                         </span>
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-500">Mã đơn hàng:</span>
-                        <span className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                        <span className="text-sm font-mono bg-gray-100 bg-gray-700 px-2 py-1 rounded">
                             {order.id}
                         </span>
                     </div>
@@ -90,14 +90,14 @@ export function CustomerOrderCard({ order, onViewDetails }: CustomerOrderCardPro
                 <div className="mb-4">
                     <div className="space-y-3">
                         {order.products.map((product) => (
-                            <div key={product.id} className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div key={product.id} className="flex gap-3 p-3 bg-gray-50 bg-gray-800 rounded-lg">
                                 <img
                                     src={product.image}
                                     alt={product.name}
                                     className="w-12 h-12 rounded-lg object-cover bg-gray-100 flex-shrink-0"
                                 />
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-sm text-gray-900 dark:text-white line-clamp-2 leading-tight">
+                                    <h4 className="font-medium text-sm text-gray-900 text-white line-clamp-2 leading-tight">
                                         {product.name}
                                     </h4>
                                     <div className="flex items-center justify-between mt-1">
@@ -114,9 +114,9 @@ export function CustomerOrderCard({ order, onViewDetails }: CustomerOrderCardPro
                     </div>
 
                     {/* Total Price */}
-                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="mt-3 p-3 bg-blue-50 bg-blue-900/20 rounded-lg">
                         <div className="flex items-center justify-between">
-                            <span className="font-medium text-gray-900 dark:text-white">
+                            <span className="font-medium text-gray-900 text-white">
                                 Tổng cộng:
                             </span>
                             <span className="text-lg font-bold text-blue-600">

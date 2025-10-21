@@ -115,7 +115,7 @@ const AdminOrderDetail: React.FC = () => {
                 >
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-2xl font-bold text-gray-900 ">
                     Chi tiết đơn hàng {currentOrder.id}
                 </h1>
             </div>
@@ -149,8 +149,8 @@ const AdminOrderDetail: React.FC = () => {
                         <div className="flex items-start gap-3">
                             <Package className="h-5 w-5 text-gray-600 mt-1" />
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Mã đơn hàng</p>
-                                <p className="font-semibold text-gray-900 dark:text-white">{currentOrder.id}</p>
+                                <p className="text-sm text-gray-600 ">Mã đơn hàng</p>
+                                <p className="font-semibold text-gray-900 ">{currentOrder.id}</p>
                             </div>
                         </div>
 
@@ -158,9 +158,9 @@ const AdminOrderDetail: React.FC = () => {
                         <div className="flex items-start gap-3">
                             <MapPin className="h-5 w-5 text-gray-600 mt-1" />
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Địa chỉ nhận hàng</p>
-                                <p className="font-medium text-gray-900 dark:text-white">{currentOrder.shipping.address}</p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{currentOrder.shipping.district}</p>
+                                <p className="text-sm text-gray-600 ">Địa chỉ nhận hàng</p>
+                                <p className="font-medium text-gray-900 ">{currentOrder.shipping.address}</p>
+                                <p className="text-sm text-gray-600 ">{currentOrder.shipping.district}</p>
                             </div>
                         </div>
 
@@ -168,8 +168,8 @@ const AdminOrderDetail: React.FC = () => {
                         <div className="flex items-start gap-3">
                             <Truck className="h-5 w-5 text-gray-600 mt-1" />
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Thông tin vận chuyển</p>
-                                <p className="font-medium text-gray-900 dark:text-white">{currentOrder.shipping.method}</p>
+                                <p className="text-sm text-gray-600 ">Thông tin vận chuyển</p>
+                                <p className="font-medium text-gray-900 ">{currentOrder.shipping.method}</p>
                             </div>
                         </div>
                     </div>
@@ -178,13 +178,13 @@ const AdminOrderDetail: React.FC = () => {
 
                     {/* Timeline */}
                     <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Lịch sử đơn hàng</h3>
+                        <h3 className="font-semibold text-gray-900  mb-4">Lịch sử đơn hàng</h3>
                         {currentOrder.timeline.map((item, index) => (
                             <div key={index} className="flex items-center gap-3">
                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                 <div>
                                     <p className="font-medium text-green-600">{item.status}</p>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">{item.date}</p>
+                                    <p className="text-sm text-gray-600 ">{item.date}</p>
                                 </div>
                                 <Button variant="ghost" size="sm" className="ml-auto text-gray-600">
                                     Mở rộng ↓
@@ -202,7 +202,7 @@ const AdminOrderDetail: React.FC = () => {
                                 {currentOrder.customer.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium text-gray-900 dark:text-white">{currentOrder.customer.name}</span>
+                        <span className="font-medium text-gray-900 ">{currentOrder.customer.name}</span>
                     </div>
                 </CardContent>
             </Card>
@@ -220,11 +220,11 @@ const AdminOrderDetail: React.FC = () => {
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b">
-                                    <th className="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-400">STT</th>
-                                    <th className="text-left py-3 text-sm font-medium text-gray-600 dark:text-gray-400">Sản phẩm</th>
-                                    <th className="text-center py-3 text-sm font-medium text-gray-600 dark:text-gray-400">Đơn giá</th>
-                                    <th className="text-center py-3 text-sm font-medium text-gray-600 dark:text-gray-400">Số lượng</th>
-                                    <th className="text-right py-3 text-sm font-medium text-gray-600 dark:text-gray-400">Thành tiền</th>
+                                    <th className="text-left py-3 text-sm font-medium text-gray-600 ">STT</th>
+                                    <th className="text-left py-3 text-sm font-medium text-gray-600 ">Sản phẩm</th>
+                                    <th className="text-center py-3 text-sm font-medium text-gray-600 ">Đơn giá</th>
+                                    <th className="text-center py-3 text-sm font-medium text-gray-600 ">Số lượng</th>
+                                    <th className="text-right py-3 text-sm font-medium text-gray-600 ">Thành tiền</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -256,18 +256,18 @@ const AdminOrderDetail: React.FC = () => {
                     <div>
                         {/* Doanh thu đơn hàng */}
                         <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Doanh thu đơn hàng</h4>
+                            <h4 className="font-semibold text-gray-900  mb-4">Doanh thu đơn hàng</h4>
                             <div className="space-y-2">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">Tổng tiền sản phẩm:</span>
+                                    <span className="text-gray-600 ">Tổng tiền sản phẩm:</span>
                                     <span className="font-medium">{formatCurrency(currentOrder.summary.subtotal)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">Tổng phí vận chuyển:</span>
+                                    <span className="text-gray-600 ">Tổng phí vận chuyển:</span>
                                     <span className="font-medium">{formatCurrency(currentOrder.summary.shipping)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">Phí phụ:</span>
+                                    <span className="text-gray-600 ">Phí phụ:</span>
                                     <span className="font-medium">{formatCurrency(currentOrder.summary.fee)}</span>
                                 </div>
                                 <Separator />
@@ -292,15 +292,15 @@ const AdminOrderDetail: React.FC = () => {
                 <CardContent>
                     <div className="space-y-2">
                         <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Tổng tiền sản phẩm:</span>
+                            <span className="text-gray-600 ">Tổng tiền sản phẩm:</span>
                             <span className="font-medium">{formatCurrency(currentOrder.payment.subtotal)}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Phí vận chuyển:</span>
+                            <span className="text-gray-600 ">Phí vận chuyển:</span>
                             <span className="font-medium">{formatCurrency(currentOrder.payment.shipping)}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-400">Mã giảm giá của shop:</span>
+                            <span className="text-gray-600 ">Mã giảm giá của shop:</span>
                             <span className="font-medium">-{formatCurrency(currentOrder.payment.discount)}</span>
                         </div>
                         <Separator />

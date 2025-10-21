@@ -83,15 +83,15 @@ const AdminDiscounts: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Đang diễn ra':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-green-100 text-green-800 ';
       case 'Sắp diễn ra':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-blue-100 text-blue-800 ';
       case 'Đã kết thúc':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        return 'bg-gray-100 text-gray-800 ';
       case 'Tạm dừng':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        return 'bg-yellow-100 text-yellow-800';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        return 'bg-gray-100 text-gray-800 ';
     }
   };
 
@@ -100,20 +100,20 @@ const AdminDiscounts: React.FC = () => {
       {/* Voucher Creation Options */}
       <Card className="p-4">
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Tạo voucher</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <h3 className="text-lg font-medium text-gray-900 ">Tạo voucher</h3>
+          <p className="text-sm text-gray-600 ">
             Chọn một trong những loại voucher bên dưới để tạo cho hoạt động kinh doanh cửa hàng của bạn
           </p>
 
-          <h4 className="text-md font-medium text-gray-900 dark:text-white">Cài thiết tỷ lệ chuyển đổi</h4>
+          <h4 className="text-md font-medium text-gray-900 ">Cài thiết tỷ lệ chuyển đổi</h4>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Voucher toàn shop */}
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
                 <Gift className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher toàn shop</h5>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <h5 className="font-medium text-gray-900  mb-2">Voucher toàn shop</h5>
+                <p className="text-sm text-gray-600 ">
                   Voucher áp dụng cho tất cả sản phẩm trong cửa hàng của bạn
                 </p>
                 <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
@@ -126,8 +126,8 @@ const AdminDiscounts: React.FC = () => {
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
                 <ShoppingCart className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher sản phẩm</h5>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <h5 className="font-medium text-gray-900  mb-2">Voucher sản phẩm</h5>
+                <p className="text-sm text-gray-600 ">
                   Voucher áp dụng cho những sản phẩm cụ thể đã được tạo trước
                 </p>
                 <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
@@ -137,15 +137,15 @@ const AdminDiscounts: React.FC = () => {
             </Card>
           </div>
 
-          <h4 className="text-md font-medium text-gray-900 dark:text-white">Tập trung vào nhóm khách hàng mục tiêu</h4>
+          <h4 className="text-md font-medium text-gray-900 ">Tập trung vào nhóm khách hàng mục tiêu</h4>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Voucher khách hàng mới */}
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
                 <Users className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher khách hàng mới</h5>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <h5 className="font-medium text-gray-900  mb-2">Voucher khách hàng mới</h5>
+                <p className="text-sm text-gray-600 ">
                   Voucher nhằm thu hút khách hàng mới và khi khách hàng ở tỉnh thành khác có thể
                 </p>
                 <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
@@ -158,8 +158,8 @@ const AdminDiscounts: React.FC = () => {
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
                 <Star className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher khách hàng mua lại</h5>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <h5 className="font-medium text-gray-900  mb-2">Voucher khách hàng mua lại</h5>
+                <p className="text-sm text-gray-600 ">
                   Voucher nhằm thu hút khách hàng cũ quay lại mua hàng tại của hàng
                 </p>
                 <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
@@ -169,15 +169,15 @@ const AdminDiscounts: React.FC = () => {
             </Card>
           </div>
 
-          <h4 className="text-md font-medium text-gray-900 dark:text-white">Tập trung vào kênh hiển thị rộng rãi</h4>
+          <h4 className="text-md font-medium text-gray-900 ">Tập trung vào kênh hiển thị rộng rãi</h4>
 
           <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             {/* Voucher rộng tú */}
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
                 <Gift className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher rộng tú</h5>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <h5 className="font-medium text-gray-900  mb-2">Voucher rộng tú</h5>
+                <p className="text-sm text-gray-600 ">
                   Voucher phân phối rộng để mọi người có thể cùng sử dụng nó để mua sắm tại của bạn
                 </p>
                 <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
@@ -192,8 +192,8 @@ const AdminDiscounts: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản lý mã giảm giá</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Tạo và quản lý các voucher khuyến mãi</p>
+          <h1 className="text-2xl font-bold text-gray-900 ">Quản lý mã giảm giá</h1>
+          <p className="text-sm text-gray-500  mt-1">Tạo và quản lý các voucher khuyến mãi</p>
         </div>
         <Button className="bg-orange-500 hover:bg-orange-600 text-white">
           <Plus className="h-4 w-4 mr-2" />
@@ -238,7 +238,7 @@ const AdminDiscounts: React.FC = () => {
           </CardContent>
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50 dark:bg-gray-800">
+              <TableRow className="bg-gray-50 ">
                 <TableHead className="w-12">
                   <input type="checkbox" className="rounded" />
                 </TableHead>
@@ -255,33 +255,33 @@ const AdminDiscounts: React.FC = () => {
             </TableHeader>
             <TableBody>
               {mockVouchers.map((voucher) => (
-                <TableRow key={voucher.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                <TableRow key={voucher.id} className="hover:bg-gray-50 ">
                   <TableCell>
                     <input type="checkbox" className="rounded" />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <Gift className="w-10 h-10 p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 rounded-lg flex-shrink-0" />
+                      <Gift className="w-10 h-10 p-2 bg-orange-100 text-orange-600 rounded-lg flex-shrink-0" />
                       <div>
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">{voucher.id}</p>
+                        <p className="font-medium text-sm text-gray-900 ">{voucher.id}</p>
                         <p className="text-xs text-gray-500">{voucher.name}</p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{voucher.type}</span>
+                    <span className="text-sm text-gray-600 ">{voucher.type}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{voucher.productCount}</span>
+                    <span className="text-sm text-gray-600 ">{voucher.productCount}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{voucher.discountValue}</span>
+                    <span className="text-sm text-gray-600 ">{voucher.discountValue}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{voucher.usageLimit}</span>
+                    <span className="text-sm text-gray-600 ">{voucher.usageLimit}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{voucher.used}</span>
+                    <span className="text-sm text-gray-600 ">{voucher.used}</span>
                   </TableCell>
                   <TableCell>
                     <Badge className={`text-xs px-2 py-1 ${getStatusColor(voucher.status)}`}>
@@ -290,7 +290,7 @@ const AdminDiscounts: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{voucher.expiry}</p>
+                      <p className="text-sm text-gray-600 ">{voucher.expiry}</p>
                       <p className="text-xs text-gray-500">{voucher.createdDate}</p>
                     </div>
                   </TableCell>
