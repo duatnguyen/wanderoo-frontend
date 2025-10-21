@@ -17,6 +17,7 @@ const AdminReports = lazy(() => import("../../pages/admin/AdminReports"));
 const AdminDiscounts = lazy(() => import("../../pages/admin/AdminDiscounts"));
 const AdminWebsite = lazy(() => import("../../pages/admin/AdminWebsite"));
 const AdminPOS = lazy(() => import("../../pages/admin/AdminPOS"));
+const AdminOrdersReturn = lazy(() => import("../../pages/admin/AdminOrdersReturn"));
 
 // Wrapper component for lazy loading
 const LazyWrapper = ({ children }: { children: React.ReactElement }) => (
@@ -41,6 +42,10 @@ export const adminRoutes: RouteObject[] = [
     {
         path: "orders/:orderId",
         element: <LazyWrapper><AdminOrders /></LazyWrapper>,
+    },
+    {
+        path: "orders/return",
+        element: <LazyWrapper><AdminOrdersReturn /></LazyWrapper>,
     },
     {
         path: "shipping",
