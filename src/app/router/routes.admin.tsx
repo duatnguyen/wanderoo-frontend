@@ -7,6 +7,7 @@ import Loading from "../../components/common/Loading";
 const AdminDashboard = lazy(() => import("../../pages/admin/AdminDashboard"));
 const AdminProducts = lazy(() => import("../../pages/admin/AdminProducts"));
 const AdminOrders = lazy(() => import("../../pages/admin/AdminOrders"));
+const AdminOrderDetail = lazy(() => import("../../pages/admin/AdminOrderDetail"));
 const AdminSettings = lazy(() => import("../../pages/admin/AdminSettings"));
 const AdminShipping = lazy(() => import("../../pages/admin/AdminShipping"));
 const AdminWarehouse = lazy(() => import("../../pages/admin/AdminWarehouse"));
@@ -40,7 +41,7 @@ export const adminRoutes: RouteObject[] = [
     },
     {
         path: "orders/:orderId",
-        element: <LazyWrapper><AdminOrders /></LazyWrapper>,
+        element: <LazyWrapper><AdminOrderDetail /></LazyWrapper>,
     },
     {
         path: "shipping",
