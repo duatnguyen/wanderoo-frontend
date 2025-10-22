@@ -1,21 +1,10 @@
 // src/pages/admin/AdminOrders.tsx
-import React, { useState } from "react";
-import {
-  Search,
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Trash2,
-  Grid3X3,
-  List,
-} from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { MoreHorizontal, Eye, Edit, Trash2, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { FormInput } from "@/components/ui/form-input";
-import { Badge } from "@/components/ui/badge";
-import { TabMenu } from "@/components/common";
-import type { TabItem } from "@/components/common";
-import { CustomerOrderCard } from "@/components/admin/CustomerOrderCard";
+import { TabMenuAccount, ChipStatus } from "@/components/common";
+import type { TabMenuAccountItem, ChipStatusVariant } from "@/components/common";
 import {
   Table,
   TableBody,
@@ -191,20 +180,21 @@ const mockOrders = [
 ];
 
 // Order tabs data
-const orderTabs: TabItem[] = [
-  { id: "all", label: "Tất cả", count: 7 },
-  { id: "pending", label: "Chờ xác nhận", count: 2 },
-  { id: "confirmed", label: "Đã xác nhận", count: 1 },
-  { id: "shipping", label: "Đang giao", count: 1 },
-  { id: "completed", label: "Đã hoàn thành", count: 2 },
-  { id: "returned", label: "Đã hủy", count: 1 },
+const orderTabs: TabMenuAccountItem[] = [
+  { id: "all", label: "Tất cả" },
+  { id: "pending", label: "Chờ xác nhận" },
+  { id: "confirmed", label: "Đã xác nhận" },
+  { id: "shipping", label: "Đang giao" },
+  { id: "completed", label: "Đã hoàn thành" },
+  { id: "returned", label: "Đã hủy" },
 ];
 
 const AdminOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [orders] = useState(mockOrders);
   const [activeTab, setActiveTab] = useState("all");
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   // Handle view order detail
@@ -212,145 +202,245 @@ const AdminOrders: React.FC = () => {
     navigate(`/admin/orders/${orderId}`);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): ChipStatusVariant => {
     switch (status) {
       case "Chờ xác nhận":
-        return "bg-yellow-100 text-yellow-800 ";
+        return "pending";
       case "Đã xác nhận":
-        return "bg-blue-100 text-blue-800 ";
+        return "confirmed";
       case "Đang giao":
-        return "bg-purple-100 text-purple-800 ";
+        return "shipping";
       case "Đã hoàn thành":
-        return "bg-green-100 text-green-800 ";
+        return "completed";
       case "Đã hủy":
-        return "bg-red-100 text-red-800 ";
+        return "cancelled";
       default:
-        return "bg-gray-100 text-gray-800 ";
+        return "pending";
     }
   };
 
-  const getPaymentStatusColor = (status: string) => {
+  const getPaymentStatusVariant = (status: string): ChipStatusVariant => {
     switch (status) {
       case "Đã thanh toán":
-        return "bg-green-100 text-green-800 ";
+        return "paid";
       case "Chưa thanh toán":
-        return "bg-yellow-100 text-yellow-800 ";
+        return "unpaid";
       case "Đã hoàn tiền":
-        return "bg-blue-100 text-blue-800 ";
+        return "refunded";
       default:
-        return "bg-gray-100 text-gray-800 ";
+        return "unpaid";
     }
   };
 
   // Filter orders by active tab and search term
-  const filteredOrders = orders.filter((order) => {
-    // Filter by tab
-    const matchesTab = activeTab === "all" || order.tabStatus === activeTab;
+  const filteredOrders = useMemo(() => {
+    const result = orders.filter((order) => {
+      // Filter by tab
+      const matchesTab = activeTab === "all" || order.tabStatus === activeTab;
 
-    // Filter by search term - search in all products
-    const matchesSearch =
-      searchTerm === "" ||
-      order.products.some((product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()),
-      ) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchTerm.toLowerCase());
+      // Filter by search term - search in all products
+      const matchesSearch =
+        searchTerm === "" ||
+        order.products.some((product) =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()),
+        ) ||
+        order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesTab && matchesSearch;
-  });
+      return matchesTab && matchesSearch;
+    });
+    
+    // Reset to page 1 when filters change
+    if (currentPage > 1) {
+      setCurrentPage(1);
+    }
+    return result;
+  }, [orders, activeTab, searchTerm, currentPage]);
+
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * 10;
+    const endIndex = startIndex + 10;
+    return filteredOrders.slice(startIndex, endIndex);
+  }, [filteredOrders, currentPage]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      // Select all items on current page
+      const newSelected = new Set(selectedOrders);
+      paginatedOrders.forEach((order) => newSelected.add(order.id));
+      setSelectedOrders(newSelected);
+    } else {
+      // Deselect all items on current page
+      const newSelected = new Set(selectedOrders);
+      paginatedOrders.forEach((order) => newSelected.delete(order.id));
+      setSelectedOrders(newSelected);
+    }
+  };
+
+  const handleSelectItem = (orderId: string, checked: boolean) => {
+    const newSelected = new Set(selectedOrders);
+    if (checked) {
+      newSelected.add(orderId);
+    } else {
+      newSelected.delete(orderId);
+    }
+    setSelectedOrders(newSelected);
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    const totalPages = Math.ceil(filteredOrders.length / 10);
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handleBulkAction = (action: string) => {
+    console.log(`${action} selected orders:`, Array.from(selectedOrders));
+    // TODO: Implement bulk actions
+    setSelectedOrders(new Set());
+  };
 
   return (
-    <div className="space-y-4 p-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 ">
-            Quản lý đơn hàng
-          </h1>
-          <p className="text-sm text-gray-500 ">Tất cả sản phẩm</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === "table" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-          >
-            <List className="h-4 w-4 mr-1" />
-            Bảng
-          </Button>
-          <Button
-            variant={viewMode === "card" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("card")}
-          >
-            <Grid3X3 className="h-4 w-4 mr-1" />
-            Card
-          </Button>
-        </div>
-      </div>
-
+    <div className="flex flex-col gap-[22px] items-center px-[50px] py-[32px] w-full">
       {/* Tab Menu */}
-      <TabMenu
+      <TabMenuAccount
         tabs={orderTabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        variant="card"
       />
 
-      {/* Orders Table or Cards */}
-      {viewMode === "table" ? (
+      {/* Orders Table */}
+      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[24px] py-[24px] rounded-[24px] w-full">
+        <div className="flex items-center justify-between w-full">
+          <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+            Danh sách đơn hàng
+          </h2>
+        </div>
+
+        {/* Search */}
+        <div className="flex gap-[10px] items-center w-full">
+          <div className="bg-white border border-[#e04d30] flex items-center justify-between px-[16px] py-[8px] rounded-[12px] w-[500px]">
+            <div className="flex items-center gap-[8px] relative flex-1">
+              <span className="text-[10px] font-medium text-[#888888] leading-[1.4]">
+                {searchTerm ? "" : "Tìm kiếm"}
+              </span>
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="absolute left-0 top-0 w-full h-full bg-transparent border-0 outline-none px-[16px] py-[8px] text-sm"
+                placeholder=""
+              />
+            </div>
+            <div className="w-6 h-6 relative">
+              <Search className="w-6 h-6 text-[#888888]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
         <Card>
           <CardContent className="p-0">
-            <CardContent className="mb-4">
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <FormInput
-                    placeholder="Tìm kiếm đơn hàng..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    Chủ sở hữu
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Kênh nhận
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Dòng phẩm
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Đã thanh toán
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Tất cả nghiệp tình/khách
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50 ">
+                <TableRow className="bg-gray-50">
                   <TableHead className="w-12">
-                    <input type="checkbox" className="rounded" />
+                    <input
+                      type="checkbox"
+                      className="w-[30px] h-[30px]"
+                      checked={paginatedOrders.length > 0 && paginatedOrders.every((order) => selectedOrders.has(order.id))}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
                   </TableHead>
-                  <TableHead>Sản phẩm</TableHead>
-                  <TableHead>Tình trạng hàng</TableHead>
-                  <TableHead>Nguyên đơn</TableHead>
-                  <TableHead>BVQC</TableHead>
-                  <TableHead>Tình trạng tt/lỗi</TableHead>
-                  <TableHead>Trạng thái thanh toán</TableHead>
-                  <TableHead>Thao tác</TableHead>
+                  <TableHead>
+                    {selectedOrders.size > 0 ? (
+                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                        Đã chọn {selectedOrders.size} đơn hàng
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                        Tên sản phẩm
+                      </span>
+                    )}
+                  </TableHead>
+                  <TableHead>
+                    {selectedOrders.size === 0 && (
+                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                        Tổng đơn hàng
+                      </span>
+                    )}
+                  </TableHead>
+                  <TableHead>
+                    {selectedOrders.size === 0 && (
+                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                        Nguồn đơn
+                      </span>
+                    )}
+                  </TableHead>
+                  <TableHead>
+                    {selectedOrders.size === 0 && (
+                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                        ĐVVC
+                      </span>
+                    )}
+                  </TableHead>
+                  <TableHead>
+                    {selectedOrders.size === 0 && (
+                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                        Trạng thái xử lý
+                      </span>
+                    )}
+                  </TableHead>
+                  <TableHead>
+                    {selectedOrders.size === 0 && (
+                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                        Trạng thái thanh toán
+                      </span>
+                    )}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {selectedOrders.size > 0 ? (
+                      <div className="flex gap-[6px] items-center justify-end">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleBulkAction("cancel")}
+                        >
+                          Hủy đơn hàng
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleBulkAction("confirm")}
+                        >
+                          Xác nhận đơn hàng
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                        Thao tác
+                      </span>
+                    )}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.id} className="hover:bg-gray-50 ">
+                {paginatedOrders.map((order) => (
+                  <TableRow 
+                    key={order.id} 
+                    className={`hover:bg-gray-50 ${selectedOrders.has(order.id) ? 'bg-blue-50' : ''}`}
+                  >
                     <TableCell>
-                      <input type="checkbox" className="rounded" />
+                      <input
+                        type="checkbox"
+                        className="w-[30px] h-[30px]"
+                        checked={selectedOrders.has(order.id)}
+                        onChange={(e) => handleSelectItem(order.id, e.target.checked)}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -373,34 +463,30 @@ const AdminOrders: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <Badge className="text-xs px-2 py-1 bg-purple-100 text-purple-800">
-                          300.000đ
-                        </Badge>
+                        <ChipStatus variant="completed" className="text-xs px-2 py-1">
+                          {order.totalPrice}
+                        </ChipStatus>
                         <p className="text-xs text-blue-600 mt-1">Thêm mới</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-xs">
+                      <ChipStatus variant="completed" className="text-xs">
                         {order.category}
-                      </Badge>
+                      </ChipStatus>
                     </TableCell>
                     <TableCell className="text-center">--</TableCell>
                     <TableCell>
-                      <Badge
-                        className={`text-xs px-2 py-1 ${getStatusColor(order.status)}`}
-                      >
+                      <ChipStatus variant={getStatusVariant(order.status)} className="text-xs px-2 py-1">
                         {order.status}
-                      </Badge>
+                      </ChipStatus>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        className={`text-xs px-2 py-1 ${getPaymentStatusColor(order.paymentStatus)}`}
-                      >
+                      <ChipStatus variant={getPaymentStatusVariant(order.paymentStatus)} className="text-xs px-2 py-1">
                         {order.paymentStatus}
-                      </Badge>
+                      </ChipStatus>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 justify-end">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -446,71 +532,46 @@ const AdminOrders: React.FC = () => {
             </Table>
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-4">
-          {/* Search and Filters for Card View */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <FormInput
-                    placeholder="Tìm kiếm đơn hàng..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    Chủ sở hữu
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Kênh nhận
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Dòng phẩm
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Đã thanh toán
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Tất cả nghiệp tình/khách
-                  </Button>
+
+        {/* Pagination */}
+        <div className="bg-white border border-[#e7e7e7] flex h-[48px] items-center justify-between px-[30px] py-[10px] rounded-[12px] w-full">
+          <div className="flex gap-[3px] items-start">
+            <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#737373]">
+              <p className="leading-[1.5]">
+                Đang hiển thị {Math.min((currentPage - 1) * 10 + 1, filteredOrders.length)} - {Math.min(currentPage * 10, filteredOrders.length)} trong tổng {Math.ceil(filteredOrders.length / 10)} trang
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-[16px] items-start">
+            <div className="flex gap-[13px] items-center">
+              <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#454545]">
+                <p className="leading-[1.5]">Trang số</p>
+              </div>
+              <div className="flex gap-[2px] items-center pl-[8px] pr-[6px] py-[4px] rounded-[8px]">
+                <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#454545]">
+                  <p className="leading-[1.5]">{currentPage}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Card Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {filteredOrders.map((order) => (
-              <CustomerOrderCard
-                key={order.id}
-                order={order}
-                onViewDetails={handleViewOrderDetail}
-              />
-            ))}
+            </div>
+            <div className="flex gap-[6px] items-start">
+              <div 
+                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
+                  currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                onClick={handlePrevPage}
+              >
+                <ChevronLeft className="w-[20px] h-[20px] text-[#d1d1d1]" />
+              </div>
+              <div 
+                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
+                  currentPage >= Math.ceil(filteredOrders.length / 10) ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                onClick={handleNextPage}
+              >
+                <ChevronRight className="w-[20px] h-[20px] text-[#454545]" />
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Pagination */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          Hiển thị 1-{filteredOrders.length} trong tổng số {orders.length} đơn
-          hàng
-        </p>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled>
-            Trước
-          </Button>
-          <Button size="sm">
-            1
-          </Button>
-          <Button variant="outline" size="sm">
-            Tiếp
-          </Button>
         </div>
       </div>
     </div>

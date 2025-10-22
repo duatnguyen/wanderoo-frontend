@@ -58,7 +58,7 @@ export function TabMenu({
   return (
     <div className={cn("border rounded-lg", className)}>
       <CardContent className="p-0">
-        <div className="flex items-center justify-between gap-2 bg-card bg-card rounded-lg overflow-hidden p-2">
+        <div className="flex items-center justify-between gap-2 bg-card rounded-lg overflow-hidden p-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
