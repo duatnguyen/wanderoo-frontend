@@ -323,37 +323,37 @@ const AdminOrders: React.FC = () => {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="w-[200px] lg:w-[250px] xl:w-[300px]">
-                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
                       Tên sản phẩm
                     </span>
                   </TableHead>
                   <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
-                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
                       Tổng đơn hàng
                     </span>
                   </TableHead>
                   <TableHead className="w-[80px] lg:w-[100px] xl:w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
                       Nguồn đơn
                     </span>
                   </TableHead>
                   <TableHead className="w-[60px] lg:w-[80px] xl:w-[100px]">
-                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
                       ĐVVC
                     </span>
                   </TableHead>
                   <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
-                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
                       Trạng thái xử lý
                     </span>
                   </TableHead>
                   <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
-                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
                       Trạng thái thanh toán
                     </span>
                   </TableHead>
                   <TableHead className="w-[120px] lg:w-[150px] xl:w-[200px] text-right">
-                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
                       Thao tác
                     </span>
                   </TableHead>
@@ -373,12 +373,12 @@ const AdminOrders: React.FC = () => {
                           className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover bg-gray-100"
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-xs md:text-sm line-clamp-2">
+                          <p className="font-montserrat font-medium text-xs md:text-sm line-clamp-2">
                             {order.products.length === 1
                               ? order.products[0].name
                               : `${order.products[0].name} và ${order.products.length - 1} sản phẩm khác`}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="font-montserrat text-xs text-gray-500">
                             {order.customer}
                           </p>
                         </div>
@@ -438,11 +438,11 @@ const AdminOrders: React.FC = () => {
           </div>
           <div className="flex gap-[16px] items-start">
             <div className="flex gap-[13px] items-center">
-              <div className="flex flex-col font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#454545]">
+              <div className="flex flex-col font-montserrat font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#454545]">
                 <p className="leading-[1.5]">Trang số</p>
               </div>
               <div className="flex gap-[2px] items-center pl-[8px] pr-[6px] py-[4px] rounded-[8px]">
-                <div className="flex flex-col font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#454545]">
+                <div className="flex flex-col font-montserrat font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#454545]">
                   <p className="leading-[1.5]">{currentPage}</p>
                 </div>
               </div>
