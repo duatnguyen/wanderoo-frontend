@@ -10,7 +10,9 @@ interface SiteHeaderProps {
 export function SiteHeader({ className }: SiteHeaderProps) {
   return (
     <header
-      className={`border-b border-gray-200 bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80 header-wanderoo rounded-t-[10px] shadow-sm ${className || ""}`}
+      className={`border-b border-gray-200 bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80 header-wanderoo rounded-t-[10px] shadow-sm ${
+        className || ""
+      }`}
     >
       <div className="flex h-16 items-center gap-4 px-6">
         {/* Left spacer to align with design */}

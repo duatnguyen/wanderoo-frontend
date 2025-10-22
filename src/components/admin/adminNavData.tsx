@@ -351,5 +351,5 @@ export const adminFooterNav: AdminNavSection = {
 };
 
 export const adminNavItems = adminNavSections.flatMap(
-  (section) => section.items,
+  (section) => section.items
 );
