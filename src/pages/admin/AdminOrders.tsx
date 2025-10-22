@@ -1,6 +1,6 @@
 // src/pages/admin/AdminOrders.tsx
 import React, { useState, useMemo } from "react";
-import { MoreHorizontal, Eye, Edit, Trash2, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Eye, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TabMenuAccount, ChipStatus } from "@/components/common";
@@ -13,14 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Card, CardContent } from "@/components/ui/card";
-
 // Mock data dựa trên hình ảnh
 const mockOrders = [
   {
@@ -56,7 +48,7 @@ const mockOrders = [
         image: "/api/placeholder/50/50",
       },
     ],
-    totalPrice: "4.750.000đ",
+    paymentType: "Tiền mặt",
     status: "Đã hoàn thành",
     paymentStatus: "Đã thanh toán",
     category: "POS",
@@ -75,7 +67,7 @@ const mockOrders = [
         image: "/api/placeholder/50/50",
       },
     ],
-    totalPrice: "250.000đ",
+      paymentType: "Tiền mặt",
     status: "Chờ xác nhận",
     paymentStatus: "Chưa thanh toán",
     category: "Thời trang",
@@ -94,7 +86,7 @@ const mockOrders = [
         image: "/api/placeholder/50/50",
       },
     ],
-    totalPrice: "180.000đ",
+      paymentType: "Chuyển khoản",
     status: "Đã xác nhận",
     paymentStatus: "Đã thanh toán",
     category: "Thời trang",
@@ -113,7 +105,7 @@ const mockOrders = [
         image: "/api/placeholder/50/50",
       },
     ],
-    totalPrice: "450.000đ",
+    paymentType: "Chuyển khoản",
     status: "Đang giao",
     paymentStatus: "Đã thanh toán",
     category: "Webstore",
@@ -132,7 +124,7 @@ const mockOrders = [
         image: "/api/placeholder/50/50",
       },
     ],
-    totalPrice: "320.000đ",
+    paymentType: "Chuyển khoản",
     status: "Đã hoàn thành",
     paymentStatus: "Đã thanh toán",
     category: "POS",
@@ -151,7 +143,7 @@ const mockOrders = [
         image: "/api/placeholder/50/50",
       },
     ],
-    totalPrice: "280.000đ",
+    paymentType: "Tiền mặt",
     status: "Đã hủy",
     paymentStatus: "Đã hoàn tiền",
     category: "POS",
@@ -170,7 +162,7 @@ const mockOrders = [
         image: "/api/placeholder/50/50",
       },
     ],
-    totalPrice: "350.000đ",
+    paymentType: "Tiền mặt",
     status: "Chờ xác nhận",
     paymentStatus: "Chưa thanh toán",
     category: "Webstore",
@@ -193,7 +185,6 @@ const AdminOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [orders] = useState(mockOrders);
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
@@ -232,6 +223,17 @@ const AdminOrders: React.FC = () => {
     }
   };
 
+  const getPaymentTypeVariant = (paymentType: string): ChipStatusVariant => {
+    switch (paymentType) {
+      case "Tiền mặt":
+        return "cash";
+      case "Chuyển khoản":
+        return "bank-transfer";
+      default:
+        return "cash";
+    }
+  };
+
   // Filter orders by active tab and search term
   const filteredOrders = useMemo(() => {
     const result = orders.filter((order) => {
@@ -263,29 +265,6 @@ const AdminOrders: React.FC = () => {
     return filteredOrders.slice(startIndex, endIndex);
   }, [filteredOrders, currentPage]);
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      // Select all items on current page
-      const newSelected = new Set(selectedOrders);
-      paginatedOrders.forEach((order) => newSelected.add(order.id));
-      setSelectedOrders(newSelected);
-    } else {
-      // Deselect all items on current page
-      const newSelected = new Set(selectedOrders);
-      paginatedOrders.forEach((order) => newSelected.delete(order.id));
-      setSelectedOrders(newSelected);
-    }
-  };
-
-  const handleSelectItem = (orderId: string, checked: boolean) => {
-    const newSelected = new Set(selectedOrders);
-    if (checked) {
-      newSelected.add(orderId);
-    } else {
-      newSelected.delete(orderId);
-    }
-    setSelectedOrders(newSelected);
-  };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -300,23 +279,17 @@ const AdminOrders: React.FC = () => {
     }
   };
 
-  const handleBulkAction = (action: string) => {
-    console.log(`${action} selected orders:`, Array.from(selectedOrders));
-    // TODO: Implement bulk actions
-    setSelectedOrders(new Set());
-  };
 
   return (
-    <div className="flex flex-col gap-[22px] items-center px-[50px] py-[32px] w-full">
+    <div className="flex flex-col gap-[22px] items-center px-[10px] md:px-[20px] lg:px-[50px] py-[20px] md:py-[32px] w-full">
       {/* Tab Menu */}
       <TabMenuAccount
         tabs={orderTabs}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+        onTabChange={setActiveTab}/>
 
       {/* Orders Table */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[24px] py-[24px] rounded-[24px] w-full">
+      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[10px] md:px-[16px] lg:px-[24px] py-[16px] md:py-[24px] rounded-[24px] w-full">
         <div className="flex items-center justify-between w-full">
           <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
             Danh sách đơn hàng
@@ -325,7 +298,7 @@ const AdminOrders: React.FC = () => {
 
         {/* Search */}
         <div className="flex gap-[10px] items-center w-full">
-          <div className="bg-white border border-[#e04d30] flex items-center justify-between px-[16px] py-[8px] rounded-[12px] w-[500px]">
+          <div className="bg-white border border-[#e04d30] flex items-center justify-between px-[12px] md:px-[16px] py-[8px] rounded-[12px] w-full max-w-[500px]">
             <div className="flex items-center gap-[8px] relative flex-1">
               <span className="text-[10px] font-medium text-[#888888] leading-[1.4]">
                 {searchTerm ? "" : "Tìm kiếm"}
@@ -333,98 +306,56 @@ const AdminOrders: React.FC = () => {
               <input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="absolute left-0 top-0 w-full h-full bg-transparent border-0 outline-none px-[16px] py-[8px] text-sm"
+                className="absolute left-0 top-0 w-full h-full bg-transparent border-0 outline-none px-[12px] md:px-[16px] py-[8px] text-sm"
                 placeholder=""
               />
             </div>
             <div className="w-6 h-6 relative">
-              <Search className="w-6 h-6 text-[#888888]" />
+              <Search className="w-6 h-6 text-black" />
             </div>
           </div>
         </div>
 
         {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            <Table>
+        <div className="border-[0.5px] border-[#d1d1d1] rounded-[24px] overflow-hidden w-full">
+          <div className="overflow-x-auto">
+            <Table className="table-fixed min-w-[600px] lg:min-w-[800px]">
               <TableHeader>
                 <TableRow className="bg-gray-50">
-                  <TableHead className="w-12">
-                    <input
-                      type="checkbox"
-                      className="w-[30px] h-[30px]"
-                      checked={paginatedOrders.length > 0 && paginatedOrders.every((order) => selectedOrders.has(order.id))}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                    />
+                  <TableHead className="w-[200px] lg:w-[250px] xl:w-[300px]">
+                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                      Tên sản phẩm
+                    </span>
                   </TableHead>
-                  <TableHead>
-                    {selectedOrders.size > 0 ? (
-                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                        Đã chọn {selectedOrders.size} đơn hàng
-                      </span>
-                    ) : (
-                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                        Tên sản phẩm
-                      </span>
-                    )}
+                  <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
+                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                      Tổng đơn hàng
+                    </span>
                   </TableHead>
-                  <TableHead>
-                    {selectedOrders.size === 0 && (
-                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                        Tổng đơn hàng
-                      </span>
-                    )}
+                  <TableHead className="w-[80px] lg:w-[100px] xl:w-[120px]">
+                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                      Nguồn đơn
+                    </span>
                   </TableHead>
-                  <TableHead>
-                    {selectedOrders.size === 0 && (
-                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                        Nguồn đơn
-                      </span>
-                    )}
+                  <TableHead className="w-[60px] lg:w-[80px] xl:w-[100px]">
+                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                      ĐVVC
+                    </span>
                   </TableHead>
-                  <TableHead>
-                    {selectedOrders.size === 0 && (
-                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                        ĐVVC
-                      </span>
-                    )}
+                  <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
+                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                      Trạng thái xử lý
+                    </span>
                   </TableHead>
-                  <TableHead>
-                    {selectedOrders.size === 0 && (
-                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                        Trạng thái xử lý
-                      </span>
-                    )}
+                  <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
+                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                      Trạng thái thanh toán
+                    </span>
                   </TableHead>
-                  <TableHead>
-                    {selectedOrders.size === 0 && (
-                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                        Trạng thái thanh toán
-                      </span>
-                    )}
-                  </TableHead>
-                  <TableHead className="text-right">
-                    {selectedOrders.size > 0 ? (
-                      <div className="flex gap-[6px] items-center justify-end">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleBulkAction("cancel")}
-                        >
-                          Hủy đơn hàng
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleBulkAction("confirm")}
-                        >
-                          Xác nhận đơn hàng
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                        Thao tác
-                      </span>
-                    )}
+                  <TableHead className="w-[120px] lg:w-[150px] xl:w-[200px] text-right">
+                    <span className="font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
+                      Thao tác
+                    </span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -432,25 +363,17 @@ const AdminOrders: React.FC = () => {
                 {paginatedOrders.map((order) => (
                   <TableRow 
                     key={order.id} 
-                    className={`hover:bg-gray-50 ${selectedOrders.has(order.id) ? 'bg-blue-50' : ''}`}
+                    className="hover:bg-gray-50"
                   >
                     <TableCell>
-                      <input
-                        type="checkbox"
-                        className="w-[30px] h-[30px]"
-                        checked={selectedOrders.has(order.id)}
-                        onChange={(e) => handleSelectItem(order.id, e.target.checked)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 md:gap-3">
                         <img
                           src={order.products[0].image}
                           alt={order.products[0].name}
-                          className="w-10 h-10 rounded-lg object-cover bg-gray-100"
+                          className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover bg-gray-100"
                         />
-                        <div>
-                          <p className="font-medium text-sm line-clamp-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-xs md:text-sm line-clamp-2">
                             {order.products.length === 1
                               ? order.products[0].name
                               : `${order.products[0].name} và ${order.products.length - 1} sản phẩm khác`}
@@ -463,10 +386,10 @@ const AdminOrders: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="text-center">
-                        <ChipStatus variant="completed" className="text-xs px-2 py-1">
-                          {order.totalPrice}
+                        <ChipStatus variant={getPaymentTypeVariant(order.paymentType)} className="text-xs px-1 md:px-2 py-1">
+                          {order.paymentType}
                         </ChipStatus>
-                        <p className="text-xs text-blue-600 mt-1">Thêm mới</p>
+                        <p className="text-xs text-blue-600 mt-1">300.000đ</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -474,69 +397,40 @@ const AdminOrders: React.FC = () => {
                         {order.category}
                       </ChipStatus>
                     </TableCell>
-                    <TableCell className="text-center">--</TableCell>
+                    <TableCell className="text-center text-xs md:text-sm">--</TableCell>
                     <TableCell>
-                      <ChipStatus variant={getStatusVariant(order.status)} className="text-xs px-2 py-1">
+                      <ChipStatus variant={getStatusVariant(order.status)} className="text-xs px-1 md:px-2 py-1">
                         {order.status}
                       </ChipStatus>
                     </TableCell>
                     <TableCell>
-                      <ChipStatus variant={getPaymentStatusVariant(order.paymentStatus)} className="text-xs px-2 py-1">
+                      <ChipStatus variant={getPaymentStatusVariant(order.paymentStatus)} className="text-xs px-1 md:px-2 py-1">
                         {order.paymentStatus}
                       </ChipStatus>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2 justify-end">
+                      <div className="flex items-center gap-1 md:gap-2 justify-end">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
                           onClick={() => handleViewOrderDetail(order.id)}
                         >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Chi tiết
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="text-blue-600"
-                              onClick={() => handleViewOrderDetail(order.id)}
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              Xem chi tiết
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Chỉnh sửa
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Xóa
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          <Eye className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                          <span className="hidden sm:inline">Chi tiết</span>
+                        </Button>                    
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
+          </div>      
 
         {/* Pagination */}
-        <div className="bg-white border border-[#e7e7e7] flex h-[48px] items-center justify-between px-[30px] py-[10px] rounded-[12px] w-full">
+        <div className="bg-white border border-[#e7e7e7] flex flex-col sm:flex-row h-auto sm:h-[48px] items-center justify-between px-[15px] md:px-[30px] py-[10px] rounded-[12px] w-full gap-2 sm:gap-0">
           <div className="flex gap-[3px] items-start">
-            <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#737373]">
+            <div className="flex flex-col font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#737373]">
               <p className="leading-[1.5]">
                 Đang hiển thị {Math.min((currentPage - 1) * 10 + 1, filteredOrders.length)} - {Math.min(currentPage * 10, filteredOrders.length)} trong tổng {Math.ceil(filteredOrders.length / 10)} trang
               </p>
@@ -544,11 +438,11 @@ const AdminOrders: React.FC = () => {
           </div>
           <div className="flex gap-[16px] items-start">
             <div className="flex gap-[13px] items-center">
-              <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#454545]">
+              <div className="flex flex-col font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#454545]">
                 <p className="leading-[1.5]">Trang số</p>
               </div>
               <div className="flex gap-[2px] items-center pl-[8px] pr-[6px] py-[4px] rounded-[8px]">
-                <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#454545]">
+                <div className="flex flex-col font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#454545]">
                   <p className="leading-[1.5]">{currentPage}</p>
                 </div>
               </div>
@@ -560,7 +454,7 @@ const AdminOrders: React.FC = () => {
                 }`}
                 onClick={handlePrevPage}
               >
-                <ChevronLeft className="w-[20px] h-[20px] text-[#d1d1d1]" />
+                <ChevronLeft className="w-[16px] h-[16px] md:w-[20px] md:h-[20px] text-[#d1d1d1]" />
               </div>
               <div 
                 className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
@@ -568,12 +462,13 @@ const AdminOrders: React.FC = () => {
                 }`}
                 onClick={handleNextPage}
               >
-                <ChevronRight className="w-[20px] h-[20px] text-[#454545]" />
+                <ChevronRight className="w-[16px] h-[16px] md:w-[20px] md:h-[20px] text-[#454545]" />
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };
