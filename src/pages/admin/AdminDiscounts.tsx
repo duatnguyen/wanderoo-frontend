@@ -13,7 +13,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormInput } from "@/components/ui/form-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabMenu } from "@/components/common";
@@ -271,7 +271,7 @@ const AdminDiscounts: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
+                <FormInput
                   placeholder="Tìm voucher/Mã voucher"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
