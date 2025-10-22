@@ -55,20 +55,51 @@ const mockStaff: Staff[] = [
 
 const AdminStaff: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "disabled"
+  >("all");
   const [staff] = useState<Staff[]>(mockStaff);
+  const [selectedStaff, setSelectedStaff] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
 
   const filtered = useMemo(() => {
     return staff.filter((s) => {
-      const matchesRole = roleFilter === "all" || s.role === roleFilter;
+      const matchesStatus = statusFilter === "all" || s.status === statusFilter;
       const matchesSearch =
         searchTerm === "" ||
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.username.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesRole && matchesSearch;
+      return matchesStatus && matchesSearch;
     });
-  }, [staff, roleFilter, searchTerm]);
+  }, [staff, statusFilter, searchTerm]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedStaff(new Set(filtered.map((s) => s.id)));
+    } else {
+      setSelectedStaff(new Set());
+    }
+  };
+
+  const handleSelectItem = (staffId: string, checked: boolean) => {
+    const newSelected = new Set(selectedStaff);
+    if (checked) {
+      newSelected.add(staffId);
+    } else {
+      newSelected.delete(staffId);
+    }
+    setSelectedStaff(newSelected);
+  };
+
+  const handleActivateSelected = () => {
+    // TODO: Implement activation logic
+    console.log("Activating selected staff:", Array.from(selectedStaff));
+  };
+
+  const handleDeactivateSelected = () => {
+    // TODO: Implement deactivation logic
+    console.log("Deactivating selected staff:", Array.from(selectedStaff));
+  };
 
   return (
     <div className="space-y-4 p-3">
@@ -82,15 +113,6 @@ const AdminStaff: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setRoleFilter("all")}
-            >
-              Tất cả
-            </Button>
-          </div>
           <Button
             onClick={() => navigate("/admin/staff/new")}
             className="bg-[#e04d30] text-white hover:bg-[#d04327]"
@@ -111,51 +133,79 @@ const AdminStaff: React.FC = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Tìm kiếm"
                 />
-                <StatusButton />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant={roleFilter === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setRoleFilter("all")}
-                >
-                  Tất cả
-                </Button>
-                <Button
-                  variant={roleFilter === "Quản lý" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setRoleFilter("Quản lý")}
-                >
-                  Quản lý
-                </Button>
-                <Button
-                  variant={roleFilter === "Nhân viên" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setRoleFilter("Nhân viên")}
-                >
-                  Nhân viên
-                </Button>
+                <StatusButton
+                  status={statusFilter}
+                  onChange={setStatusFilter}
+                />
               </div>
             </div>
           </div>
 
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50 ">
-                <TableHead className="w-12">
-                  <input type="checkbox" className="rounded" />
+              <TableRow
+                className={
+                  selectedStaff.size > 0 ? "bg-neutral-50" : "bg-gray-50"
+                }
+              >
+                <TableHead className="w-[240px]">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={selectedStaff.size === filtered.length}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                    {selectedStaff.size > 0 && (
+                      <span className="font-semibold text-[#272424] text-[14px]">
+                        Đã chọn {selectedStaff.size} tài khoản
+                      </span>
+                    )}
+                  </div>
                 </TableHead>
-                <TableHead>Tài khoản</TableHead>
-                <TableHead>Vai trò</TableHead>
-                <TableHead>Trạng thái</TableHead>
+                <TableHead className="w-[240px]">
+                  {!selectedStaff.size && "Tài khoản"}
+                </TableHead>
+                <TableHead className="w-[200px]">
+                  {!selectedStaff.size && "Vai trò"}
+                </TableHead>
+                <TableHead>
+                  <div className={selectedStaff.size > 0 ? "flex" : ""}>
+                    {selectedStaff.size > 0 ? (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          className="border-2 border-[#E04D30] text-[#E04D30] bg-white hover:bg-white/90 font-bold"
+                          size="sm"
+                          onClick={handleDeactivateSelected}
+                        >
+                          Ngừng kích hoạt
+                        </Button>
+                        <Button
+                          className="bg-[#E04D30] text-white hover:bg-[#d04327] font-bold"
+                          size="sm"
+                          onClick={handleActivateSelected}
+                        >
+                          Kích hoạt
+                        </Button>
+                      </div>
+                    ) : (
+                      "Trạng thái"
+                    )}
+                  </div>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((s) => (
-                <TableRow key={s.id} className="hover:bg-gray-50 ">
+                <TableRow key={s.id} className="hover:bg-gray-50">
                   <TableCell>
-                    <input type="checkbox" className="rounded" />
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={selectedStaff.has(s.id)}
+                      onChange={(e) => handleSelectItem(s.id, e.target.checked)}
+                    />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
