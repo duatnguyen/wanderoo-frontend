@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import CaretDown from "@/components/ui/caret-down";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,18 +45,7 @@ export const StatusButton: React.FC<Readonly<StatusButtonProps>> = ({
           <div className="flex flex-col text-[#E04D30] text-[12px] font-semibold leading-[16.8px] font-montserrat">
             {getLabel(status)}
           </div>
-          <div className="relative w-[11px] h-[5px] overflow-hidden">
-            <div
-              className="absolute"
-              style={{
-                left: 5,
-                top: -0.5,
-                width: 8.51,
-                height: 5.12,
-                background: "#E04D30",
-              }}
-            />
-          </div>
+          <CaretDown className="text-[#E04D30]" />
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent>

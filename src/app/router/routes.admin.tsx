@@ -40,6 +40,9 @@ const AdminProductsCategories = lazy(
 const AdminProductsNew = lazy(
   () => import("../../pages/admin/AdminProductsNew"),
 );
+const AdminStaffNew = lazy(
+  () => import("../../pages/admin/AdminStaffNew"),
+);
 
 export const adminRoutes: RouteObject[] = [
   {
@@ -223,6 +226,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminStaff />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "staff/new",
+    element: (
+      <LazyWrapper>
+        <AdminStaffNew />
       </LazyWrapper>
     ),
   },

@@ -1,6 +1,6 @@
 import { Search, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormInput } from "@/components/ui/form-input";
 import { Separator } from "@/components/ui/separator";
 
 interface SiteHeaderProps {
@@ -29,10 +29,10 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           {/* Search Bar */}
           <div className="relative ml-auto hidden max-w-sm flex-1 lg:block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
+            <FormInput
               type="search"
               placeholder="Tìm kiếm..."
-              className="pl-9 bg-gray-50 border-gray-200 focus:bg-white focus:border-gray-300"
+              className="pl-9 focus:bg-white"
             />
           </div>
         </div>

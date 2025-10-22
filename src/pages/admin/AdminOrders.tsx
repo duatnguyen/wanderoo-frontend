@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormInput } from "@/components/ui/form-input";
 import { Badge } from "@/components/ui/badge";
 import { TabMenu } from "@/components/common";
 import type { TabItem } from "@/components/common";
@@ -305,7 +305,7 @@ const AdminOrders: React.FC = () => {
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
+                  <FormInput
                     placeholder="Tìm kiếm đơn hàng..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -454,7 +454,7 @@ const AdminOrders: React.FC = () => {
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
+                  <FormInput
                     placeholder="Tìm kiếm đơn hàng..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -505,7 +505,7 @@ const AdminOrders: React.FC = () => {
           <Button variant="outline" size="sm" disabled>
             Trước
           </Button>
-          <Button variant="outline" size="sm" className="bg-red-500 text-white">
+          <Button size="sm">
             1
           </Button>
           <Button variant="outline" size="sm">
