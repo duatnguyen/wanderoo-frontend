@@ -4,8 +4,7 @@ import { cn } from "@/lib/utils";
 
 export interface PaginationProps {
   current: number;
-  total: number; // total items
-  pageSize?: number;
+  total: number; // total pages
   onChange?: (page: number) => void;
   className?: string;
 }
@@ -13,14 +12,14 @@ export interface PaginationProps {
 export const Pagination: React.FC<Readonly<PaginationProps>> = ({
   current,
   total,
-  pageSize = 10,
   onChange,
   className,
 }) => {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages = total;
+  const pageSize = 10; // Fixed page size for display calculation
 
-  const start = Math.min(total, (current - 1) * pageSize + 1);
-  const end = Math.min(total, current * pageSize);
+  const start = (current - 1) * pageSize + 1;
+  const end = Math.min(current * pageSize, totalPages * pageSize);
 
   const handlePrev = () => {
     if (current > 1 && onChange) onChange(current - 1);

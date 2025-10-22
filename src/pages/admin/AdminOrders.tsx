@@ -1,18 +1,10 @@
 // src/pages/admin/AdminOrders.tsx
 import React, { useState, useMemo } from "react";
-import { Eye, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { TabMenuAccount, ChipStatus } from "@/components/common";
-import type { TabMenuAccountItem, ChipStatusVariant } from "@/components/common";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TabMenuAccount } from "@/components/common";
+import type { TabMenuAccountItem } from "@/components/common";
+import { Pagination } from "@/components/ui/pagination";
 // Mock data dựa trên hình ảnh
 const mockOrders = [
   {
@@ -70,7 +62,7 @@ const mockOrders = [
       paymentType: "Tiền mặt",
     status: "Chờ xác nhận",
     paymentStatus: "Chưa thanh toán",
-    category: "Thời trang",
+    category: "Website",
     date: "2024-10-17",
     tabStatus: "pending",
   },
@@ -89,7 +81,7 @@ const mockOrders = [
       paymentType: "Chuyển khoản",
     status: "Đã xác nhận",
     paymentStatus: "Đã thanh toán",
-    category: "Thời trang",
+    category: "Website",
     date: "2024-10-17",
     tabStatus: "confirmed",
   },
@@ -193,46 +185,6 @@ const AdminOrders: React.FC = () => {
     navigate(`/admin/orders/${orderId}`);
   };
 
-  const getStatusVariant = (status: string): ChipStatusVariant => {
-    switch (status) {
-      case "Chờ xác nhận":
-        return "pending";
-      case "Đã xác nhận":
-        return "confirmed";
-      case "Đang giao":
-        return "shipping";
-      case "Đã hoàn thành":
-        return "completed";
-      case "Đã hủy":
-        return "cancelled";
-      default:
-        return "pending";
-    }
-  };
-
-  const getPaymentStatusVariant = (status: string): ChipStatusVariant => {
-    switch (status) {
-      case "Đã thanh toán":
-        return "paid";
-      case "Chưa thanh toán":
-        return "unpaid";
-      case "Đã hoàn tiền":
-        return "refunded";
-      default:
-        return "unpaid";
-    }
-  };
-
-  const getPaymentTypeVariant = (paymentType: string): ChipStatusVariant => {
-    switch (paymentType) {
-      case "Tiền mặt":
-        return "cash";
-      case "Chuyển khoản":
-        return "bank-transfer";
-      default:
-        return "cash";
-    }
-  };
 
   // Filter orders by active tab and search term
   const filteredOrders = useMemo(() => {
@@ -266,18 +218,6 @@ const AdminOrders: React.FC = () => {
   }, [filteredOrders, currentPage]);
 
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    const totalPages = Math.ceil(filteredOrders.length / 10);
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
 
 
   return (
@@ -317,158 +257,169 @@ const AdminOrders: React.FC = () => {
         </div>
 
         {/* Table */}
-        <div className="border-[0.5px] border-[#d1d1d1] rounded-[24px] overflow-hidden w-full">
-          <div className="overflow-x-auto">
-            <Table className="table-fixed min-w-[600px] lg:min-w-[800px]">
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="w-[200px] lg:w-[250px] xl:w-[300px]">
-                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
-                      Tên sản phẩm
-                    </span>
-                  </TableHead>
-                  <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
-                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
-                      Tổng đơn hàng
-                    </span>
-                  </TableHead>
-                  <TableHead className="w-[80px] lg:w-[100px] xl:w-[120px]">
-                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
-                      Nguồn đơn
-                    </span>
-                  </TableHead>
-                  <TableHead className="w-[60px] lg:w-[80px] xl:w-[100px]">
-                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
-                      ĐVVC
-                    </span>
-                  </TableHead>
-                  <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
-                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
-                      Trạng thái xử lý
-                    </span>
-                  </TableHead>
-                  <TableHead className="w-[100px] lg:w-[120px] xl:w-[150px]">
-                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
-                      Trạng thái thanh toán
-                    </span>
-                  </TableHead>
-                  <TableHead className="w-[120px] lg:w-[150px] xl:w-[200px] text-right">
-                    <span className="font-montserrat font-semibold text-[#272424] text-[12px] md:text-[14px] leading-[1.5]">
-                      Thao tác
-                    </span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedOrders.map((order) => (
-                  <TableRow 
-                    key={order.id} 
-                    className="hover:bg-gray-50"
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <img
-                          src={order.products[0].image}
-                          alt={order.products[0].name}
-                          className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover bg-gray-100"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-montserrat font-medium text-xs md:text-sm line-clamp-2">
-                            {order.products.length === 1
-                              ? order.products[0].name
-                              : `${order.products[0].name} và ${order.products.length - 1} sản phẩm khác`}
-                          </p>
-                          <p className="font-montserrat text-xs text-gray-500">
-                            {order.customer}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-center">
-                        <ChipStatus variant={getPaymentTypeVariant(order.paymentType)} className="text-xs px-1 md:px-2 py-1">
-                          {order.paymentType}
-                        </ChipStatus>
-                        <p className="text-xs text-blue-600 mt-1">300.000đ</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <ChipStatus variant="completed" className="text-xs">
-                        {order.category}
-                      </ChipStatus>
-                    </TableCell>
-                    <TableCell className="text-center text-xs md:text-sm">--</TableCell>
-                    <TableCell>
-                      <ChipStatus variant={getStatusVariant(order.status)} className="text-xs px-1 md:px-2 py-1">
-                        {order.status}
-                      </ChipStatus>
-                    </TableCell>
-                    <TableCell>
-                      <ChipStatus variant={getPaymentStatusVariant(order.paymentStatus)} className="text-xs px-1 md:px-2 py-1">
-                        {order.paymentStatus}
-                      </ChipStatus>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 md:gap-2 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
-                          onClick={() => handleViewOrderDetail(order.id)}
-                        >
-                          <Eye className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                          <span className="hidden sm:inline">Chi tiết</span>
-                        </Button>                    
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>      
-
-        {/* Pagination */}
-        <div className="bg-white border border-[#e7e7e7] flex flex-col sm:flex-row h-auto sm:h-[48px] items-center justify-between px-[15px] md:px-[30px] py-[10px] rounded-[12px] w-full gap-2 sm:gap-0">
-          <div className="flex gap-[3px] items-start">
-            <div className="flex flex-col font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#737373]">
-              <p className="leading-[1.5]">
-                Đang hiển thị {Math.min((currentPage - 1) * 10 + 1, filteredOrders.length)} - {Math.min(currentPage * 10, filteredOrders.length)} trong tổng {Math.ceil(filteredOrders.length / 10)} trang
+        <div className="bg-white border border-[#d1d1d1] rounded-[16px] overflow-hidden w-full">
+          {/* Table Header */}
+          <div className="bg-[#f6f6f6] flex items-center overflow-hidden rounded-t-[12px]">
+            <div className="bg-[#f6f6f6] flex gap-[10px] items-center px-[12px] py-[14px] w-[500px]">
+              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4]">
+                Tên sản phẩm
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
+              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+                Tổng đơn hàng
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
+              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+                Nguồn đơn
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
+              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+                ĐVVC
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
+              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+                Trạng thái xử lý
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
+              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+                Trạng thái thanh toán
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
+              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+                Thao tác
               </p>
             </div>
           </div>
-          <div className="flex gap-[16px] items-start">
-            <div className="flex gap-[13px] items-center">
-              <div className="flex flex-col font-montserrat font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#454545]">
-                <p className="leading-[1.5]">Trang số</p>
-              </div>
-              <div className="flex gap-[2px] items-center pl-[8px] pr-[6px] py-[4px] rounded-[8px]">
-                <div className="flex flex-col font-montserrat font-normal justify-center leading-[0] text-[10px] md:text-[12px] text-[#454545]">
-                  <p className="leading-[1.5]">{currentPage}</p>
+
+          {/* Table Body */}
+          <div className="border border-[#d1d1d1] border-t-0 rounded-b-[12px]">
+            {paginatedOrders.map((order) => (
+              <div key={order.id} className="border-b border-[#d1d1d1] last:border-b-0">
+                {/* User Header Row */}
+                <div className="flex items-center justify-between px-[16px] py-[12px] border-b border-[#d1d1d1]">
+                  <div className="flex gap-[10px] items-center">
+                    <div className="w-[30px] h-[30px] rounded-[24px] bg-gray-200"></div>
+                    <div className="flex gap-[8px] items-center">
+                      <p className="font-montserrat font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
+                        {order.customer}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-[4px] items-start">
+                    <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4]">
+                      Mã đơn hàng: {order.id}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Product Rows */}
+                {order.products.map((product, productIndex) => (
+                  <div key={product.id} className="flex items-center">
+                    {/* Product Name Column */}
+                    <div className="flex gap-[8px] items-center px-[16px] py-[12px] w-[500px]">
+                      <div className="border-[0.5px] border-[#d1d1d1] rounded-[8px] w-[91px] h-[91px] bg-gray-100"></div>
+                      <div className="flex flex-col gap-[8px] items-start flex-1 px-[12px]">
+                        <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                          {product.name}
+                        </p>
+                        {productIndex === 0 && (
+                          <>
+                            <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                              Size 40
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Other Columns - Only show content for first product */}
+                    {productIndex === 0 ? (
+                      <>
+                        {/* Total Order Column */}
+                        <div className="flex flex-col gap-[4px] items-center justify-center px-[8px] py-[12px] flex-1">
+                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                            {product.price}
+                          </p>
+                          <div className="bg-[#dcd2ff] flex items-center justify-center px-[8px] py-[6px] rounded-[10px]">
+                            <p className="font-montserrat font-bold text-[#7f27ff] text-[12px] leading-normal">
+                              {order.paymentType}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Source Column */}
+                        <div className="flex items-center justify-center px-[8px] py-[12px] flex-1">
+                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                            {order.category}
+                          </p>
+                        </div>
+
+                        {/* Shipping Column */}
+                        <div className="flex items-center justify-center px-[12px] py-[12px] flex-1">
+                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                            .....
+                          </p>
+                        </div>
+
+                        {/* Processing Status Column */}
+                        <div className="flex items-center justify-center px-[12px] py-[12px] flex-1">
+                          <div className="bg-[#b2ffb4] flex items-center justify-center px-[8px] py-[6px] rounded-[10px]">
+                            <p className="font-montserrat font-bold text-[#04910c] text-[12px] leading-normal">
+                              {order.status}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Payment Status Column */}
+                        <div className="flex items-center justify-center px-[12px] py-[12px] flex-1">
+                          <div className="bg-[#b2ffb4] flex items-center justify-center px-[8px] py-[6px] rounded-[10px]">
+                            <p className="font-montserrat font-bold text-[#04910c] text-[12px] leading-normal">
+                              {order.paymentStatus}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Actions Column */}
+                        <div className="flex gap-[8px] items-center justify-center px-[12px] py-[12px] flex-1">
+                          <button 
+                            className="font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
+                            onClick={() => handleViewOrderDetail(order.id)}
+                          >
+                            Xem chi tiết
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      /* Empty columns for subsequent products */
+                      <>
+                        <div className="flex-1"></div>
+                        <div className="flex-1"></div>
+                        <div className="flex-1"></div>
+                        <div className="flex-1"></div>
+                        <div className="flex-1"></div>
+                        <div className="flex-1"></div>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="flex gap-[6px] items-start">
-              <div 
-                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
-                  currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                onClick={handlePrevPage}
-              >
-                <ChevronLeft className="w-[16px] h-[16px] md:w-[20px] md:h-[20px] text-[#d1d1d1]" />
-              </div>
-              <div 
-                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
-                  currentPage >= Math.ceil(filteredOrders.length / 10) ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                onClick={handleNextPage}
-              >
-                <ChevronRight className="w-[16px] h-[16px] md:w-[20px] md:h-[20px] text-[#454545]" />
-              </div>
-            </div>
+            ))}
           </div>
         </div>
+
+        {/* Pagination */}
+        <Pagination
+          current={currentPage}
+          total={Math.ceil(filteredOrders.length / 10)}
+          onChange={setCurrentPage}
+        />
       </div>
-    </div>
     </div>
   );
 };
