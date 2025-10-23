@@ -8,7 +8,6 @@ import AdminLayout from "../../layouts/AdminLayout";
 // Pages
 import Login from "../../pages/auth/Login";
 import Register from "../../pages/auth/Register";
-import TailwindTest from "../../pages/TailwindTest";
 
 // Guards
 import AuthGuard from "./guards/AuthGuard";
@@ -46,15 +45,6 @@ export const router = createBrowserRouter([
     ),
   },
 
-  // Test route
-  {
-    path: "/test",
-    element: (
-      <Suspense fallback={<Loading />}>
-        <TailwindTest />
-      </Suspense>
-    ),
-  },
 
   // Admin routes (protected)
   {
