@@ -31,7 +31,7 @@ export const Pagination: React.FC<Readonly<PaginationProps>> = ({
 
   return (
     <div className={cn(
-      "bg-white border border-[#e7e7e7] rounded-[12px] flex items-center justify-between px-[30px] py-[10px]",
+      "bg-white border border-[#e7e7e7] rounded-[12px] flex items-center justify-between px-[30px] py-[10px] w-full",
       className
     )}>
       {/* Left side - Display info */}

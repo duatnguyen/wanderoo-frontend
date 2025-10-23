@@ -43,6 +43,12 @@ const AdminProductsNew = lazy(
 const AdminStaffNew = lazy(
   () => import("../../pages/admin/AdminStaffNew"),
 );
+const AdminSupplierNew = lazy(
+  () => import("../../pages/admin/AdminSupplierNew"),
+);
+const AdminSupplierDetail = lazy(
+  () => import("../../pages/admin/AdminSupplierDetail"),
+);
 
 export const adminRoutes: RouteObject[] = [
   {
@@ -146,6 +152,22 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminWarehouseSupplier />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/supplier/new",
+    element: (
+      <LazyWrapper>
+        <AdminSupplierNew />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/supplier/:supplierId",
+    element: (
+      <LazyWrapper>
+        <AdminSupplierDetail />
       </LazyWrapper>
     ),
   },
