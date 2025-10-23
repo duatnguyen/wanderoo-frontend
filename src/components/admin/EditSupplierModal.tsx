@@ -1,37 +1,14 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import CityDropdown from "@/components/ui/city-dropdown";
+import DistrictDropdown from "@/components/ui/district-dropdown";
+import WardDropdown from "@/components/ui/ward-dropdown";
 import {
   Sheet,
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
-
-// Mock data for dropdowns
-const wardOptions = [
-  "Phường 1", "Phường 2", "Phường 3", "Phường 4", "Phường 5",
-  "Phường 6", "Phường 7", "Phường 8", "Phường 9", "Phường 10",
-  "Đinh Tiên Hoàng"
-];
-
-const districtOptions = [
-  "Quận 1", "Quận 2", "Quận 3", "Quận 4", "Quận 5",
-  "Quận 6", "Quận 7", "Quận 8", "Quận 9", "Quận 10",
-  "Quận 11", "Quận 12", "Quận Bình Thạnh", "Quận Tân Bình",
-  "Quận Tân Phú", "Quận Phú Nhuận", "Quận Gò Vấp", "Hoàn Kiếm"
-];
-
-const cityOptions = [
-  "TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Hải Phòng", "Cần Thơ",
-  "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu"
-];
 
 interface EditSupplierModalProps {
   isOpen: boolean;
@@ -66,9 +43,9 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
     phone: supplierData.phone,
     email: supplierData.email,
     street: "số 40 Đinh Tiên Hoàng, Hà Nội",
-    ward: "Đinh Tiên Hoàng",
+    city: "Hà Nội",
     district: "Hoàn Kiếm",
-    city: "Hà Nội"
+    ward: "Đinh Tiên Hoàng"
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -80,6 +57,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
   };
+
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -104,13 +82,33 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
       newErrors.street = "Địa chỉ cụ thể là bắt buộc";
     }
 
+    if (!formData.city.trim()) {
+      newErrors.city = "Tỉnh/Thành phố là bắt buộc";
+    }
+
+    if (!formData.district.trim()) {
+      newErrors.district = "Quận/Huyện là bắt buộc";
+    }
+
+    if (!formData.ward.trim()) {
+      newErrors.ward = "Phường/Xã là bắt buộc";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = () => {
     if (validateForm()) {
-      onSave(formData);
+      onSave({
+        supplierName: formData.supplierName,
+        phone: formData.phone,
+        email: formData.email,
+        street: formData.street,
+        ward: formData.ward,
+        district: formData.district,
+        city: formData.city
+      });
       onClose();
     }
   };
@@ -121,9 +119,9 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
       phone: supplierData.phone,
       email: supplierData.email,
       street: "số 40 Đinh Tiên Hoàng, Hà Nội",
-      ward: "Đinh Tiên Hoàng",
+      city: "Hà Nội",
       district: "Hoàn Kiếm",
-      city: "Hà Nội"
+      ward: "Đinh Tiên Hoàng"
     });
     setErrors({});
     onClose();
@@ -204,79 +202,55 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
               </p>
             </div>
 
-            {/* Address Fields */}
+            {/* Tỉnh/Thành phố */}
             <div className="flex flex-col gap-[6px] items-start w-full">
-              {/* Tỉnh/Thành phố */}
-              <div className="flex flex-col gap-[6px] items-start w-full">
-                <div className="flex gap-[4px] items-start">
-                  <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Tỉnh/Thành phố
-                  </p>
-                </div>
-                <Select
-                  value={formData.city}
-                  onValueChange={(value) => handleInputChange("city", value)}
-                >
-                  <SelectTrigger className="bg-white border-[1.6px] border-[#e04d30] h-[52px] px-[16px] rounded-[12px] w-full">
-                    <SelectValue className="text-[10px] font-medium text-[#272424]" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border border-[#e04d30] rounded-[12px] shadow-lg">
-                    {cityOptions.map((city) => (
-                      <SelectItem key={city} value={city} className="text-[10px] font-medium text-[#272424] hover:bg-[#f5f5f5] cursor-pointer">
-                        {city}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex gap-[4px] items-start">
+                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Tỉnh/Thành phố
+                </p>
               </div>
+              <CityDropdown
+                value={formData.city}
+                onValueChange={(value) => handleInputChange("city", value)}
+                error={!!errors.city}
+              />
+              {errors.city && (
+                <span className="text-red-500 text-[12px]">{errors.city}</span>
+              )}
+            </div>
 
-              {/* Phường/Xã */}
-              <div className="flex flex-col gap-[6px] items-start w-full">
-                <div className="flex gap-[4px] items-start">
-                  <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Phường/Xã
-                  </p>
-                </div>
-                <Select
-                  value={formData.ward}
-                  onValueChange={(value) => handleInputChange("ward", value)}
-                >
-                  <SelectTrigger className="bg-white border-[1.6px] border-[#e04d30] h-[52px] px-[16px] rounded-[12px] w-full">
-                    <SelectValue className="text-[10px] font-medium text-[#272424]" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border border-[#e04d30] rounded-[12px] shadow-lg">
-                    {wardOptions.map((ward) => (
-                      <SelectItem key={ward} value={ward} className="text-[10px] font-medium text-[#272424] hover:bg-[#f5f5f5] cursor-pointer">
-                        {ward}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Quận/Huyện */}
+            <div className="flex flex-col gap-[6px] items-start w-full">
+              <div className="flex gap-[4px] items-start">
+                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Quận/Huyện
+                </p>
               </div>
+              <DistrictDropdown
+                value={formData.district}
+                onValueChange={(value) => handleInputChange("district", value)}
+                error={!!errors.district}
+              />
+              {errors.district && (
+                <span className="text-red-500 text-[12px]">{errors.district}</span>
+              )}
+            </div>
 
-              {/* Quận/Huyện */}
-              <div className="flex flex-col gap-[6px] items-start w-full">
-                <div className="flex gap-[4px] items-start">
-                  <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Quận/Huyện
-                  </p>
-                </div>
-                <Select
-                  value={formData.district}
-                  onValueChange={(value) => handleInputChange("district", value)}
-                >
-                  <SelectTrigger className="bg-white border-[1.6px] border-[#e04d30] h-[52px] px-[16px] rounded-[12px] w-full">
-                    <SelectValue className="text-[10px] font-medium text-[#272424]" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border border-[#e04d30] rounded-[12px] shadow-lg">
-                    {districtOptions.map((district) => (
-                      <SelectItem key={district} value={district} className="text-[10px] font-medium text-[#272424] hover:bg-[#f5f5f5] cursor-pointer">
-                        {district}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Phường/Xã */}
+            <div className="flex flex-col gap-[6px] items-start w-full">
+              <div className="flex gap-[4px] items-start">
+                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Phường/Xã
+                </p>
               </div>
+              <WardDropdown
+                value={formData.ward}
+                onValueChange={(value) => handleInputChange("ward", value)}
+                error={!!errors.ward}
+              />
+              {errors.ward && (
+                <span className="text-red-500 text-[12px]">{errors.ward}</span>
+              )}
             </div>
 
             {/* Địa chỉ cụ thể */}
