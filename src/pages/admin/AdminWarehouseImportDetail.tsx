@@ -1,9 +1,7 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Package, ClipboardList, CreditCard, Factory, User } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ChipStatus } from "@/components/ui/chip-status";
 
 type ImportDetail = {
@@ -52,112 +50,207 @@ const AdminWarehouseImportDetail: React.FC = () => {
 
   return (
     <div className="space-y-4 p-3">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="p-2" onClick={() => navigate("/admin/warehouse/imports")}> 
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold text-gray-900">Chi tiết phiếu nhập {detail.importCode}</h1>
+      {/* Header matching Figma design */}
+      <div className="w-full h-full justify-start items-center gap-2 inline-flex">
+        <div className="w-6 h-6 relative">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="p-0 w-6 h-6" 
+            onClick={() => navigate("/admin/warehouse/imports")}
+          > 
+            <ArrowLeft className="h-4 w-4 text-[#454545]" />
+          </Button>
+        </div>
+        <div className="self-stretch flex-col justify-center items-center gap-2.5 inline-flex">
+          <div className="justify-center flex flex-col text-[#272424] text-[24px] font-[700] font-montserrat">
+            {detail.importCode}
+          </div>
+        </div>
+        <div className="self-stretch flex-col justify-center items-center gap-2.5 inline-flex">
+          <div className="justify-center flex flex-col text-[#272424] text-[12px] font-[400] font-montserrat leading-[18px]">
+            {new Date(detail.createdDate).toLocaleDateString("vi-VN")} {new Date(detail.createdDate).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+          <ChipStatus status={detail.status} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-[#f6f6f6] border-[#e7e7e7]">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Package className="h-5 w-5 text-[#1a71f6]" />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">Trạng thái</span>
-              <ChipStatus status={detail.status} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#f6f6f6] border-[#e7e7e7]">
-          <CardContent className="p-4 flex items-center gap-3">
-            <ClipboardList className="h-5 w-5 text-[#e04d30]" />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">Trạng thái nhập</span>
-              <ChipStatus status={detail.importStatus} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#f6f6f6] border-[#e7e7e7]">
-          <CardContent className="p-4 flex items-center gap-3">
-            <CreditCard className="h-5 w-5 text-[#16a34a]" />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">Thanh toán</span>
-              <ChipStatus status={detail.paymentStatus} />
-              <ChipStatus status={detail.paymentMethod} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Table section matching Figma design */}
+      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+        {/* Header with status icon and title */}
+        <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
+          <div className="w-10 h-10 relative overflow-hidden">
+            <div className="w-[37.45px] h-[35px] left-[2.50px] top-[2.50px] absolute bg-[#04910C]"></div>
+          </div>
+          <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
+            Đã nhập kho
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Factory className="h-5 w-5" />
-            Thông tin phiếu nhập
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-gray-600">Mã phiếu nhập</p>
-              <p className="font-semibold text-gray-900">{detail.importCode}</p>
+        {/* Table header */}
+        <div className="self-stretch h-[50px] bg-[#F6F6F6] justify-start items-start inline-flex">
+          <div className="w-[400px] self-stretch px-[14px] overflow-hidden border-l border-[#D1D1D1] justify-start items-center flex">
+            <div className="w-[22px] h-0 transform rotate-[-90deg] origin-top-left">
+                {/* icon place here */}
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Ngày tạo</p>
-              <p className="font-medium text-gray-900">{new Date(detail.createdDate).toLocaleDateString("vi-VN")}</p>
+            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+              Sản phẩm
             </div>
-            <div className="flex items-start gap-2">
-              <User className="h-5 w-5 text-gray-600 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-600">Người tạo</p>
-                <p className="font-medium text-gray-900">{detail.createdBy}</p>
+          </div>
+          <div className="flex-1 self-stretch px-[14px] relative justify-center items-center gap-1 flex">
+            <div className="w-[22px] h-0 left-0 top-[36px] absolute transform rotate-[-90deg] origin-top-left"></div>
+            <div className="w-16 text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+              Số lượng
+            </div>
+          </div>
+          <div className="flex-1 self-stretch px-[14px] relative justify-center items-center gap-1 flex">
+            <div className="w-[22px] h-0 left-0 top-[36px] absolute transform rotate-[-90deg] origin-top-left"></div>
+            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+              Đơn giá trả
+            </div>
+          </div>
+          <div className="flex-1 self-stretch px-[14px] border-r border-[#D1D1D1] justify-end items-center gap-1 flex">
+            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+              Thành tiền
+            </div>
+          </div>
+        </div>
+
+        {/* Table rows */}
+        {detail.items.map((item, index) => (
+          <div 
+            key={item.id} 
+            className={`self-stretch border border-[#D1D1D1] justify-start items-start inline-flex ${
+              index === detail.items.length - 1 ? 'rounded-b-[24px]' : ''
+            }`}
+          >
+            <div className="w-[400px] self-stretch px-3 py-3 justify-start items-center gap-3 flex">
+              <img 
+                className="w-[60px] h-[60px]" 
+                src="https://placehold.co/60x60" 
+                alt={item.name}
+              />
+              <div className="self-stretch justify-start items-start gap-2.5 flex">
+                <div className="text-black text-[10px] font-[500] font-montserrat leading-[14px]">
+                  {item.name}
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Nhà cung cấp</p>
-              <p className="font-medium text-gray-900">{detail.supplier}</p>
+            <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-center gap-2.5 inline-flex">
+              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
+                {item.quantity}
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Tổng số lượng nhập</p>
-              <p className="font-semibold text-gray-900">{detail.totals.items}</p>
+            <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-center gap-2 inline-flex">
+              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
+                {formatCurrency(item.price)}
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Giá trị đơn</p>
-              <p className="font-semibold text-gray-900">{formatCurrency(detail.totals.value)}</p>
+            <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-end gap-2 inline-flex">
+              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
+                {formatCurrency(item.total)}
+              </div>
             </div>
           </div>
+        ))}
+      </div>
 
-          <Separator className="my-6" />
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 text-sm font-medium text-gray-600">STT</th>
-                  <th className="text-left py-3 text-sm font-medium text-gray-600">Sản phẩm</th>
-                  <th className="text-center py-3 text-sm font-medium text-gray-600">Số lượng</th>
-                  <th className="text-right py-3 text-sm font-medium text-gray-600">Đơn giá</th>
-                  <th className="text-right py-3 text-sm font-medium text-gray-600">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.items.map((item, idx) => (
-                  <tr key={item.id} className="border-b">
-                    <td className="py-4">{idx + 1}</td>
-                    <td className="py-4">
-                      <span className="font-medium">{item.name}</span>
-                    </td>
-                    <td className="text-center py-4">{item.quantity}</td>
-                    <td className="text-right py-4">{formatCurrency(item.price)}</td>
-                    <td className="text-right py-4 font-semibold">{formatCurrency(item.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Payment summary section matching Figma design */}
+      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+        {/* Header with payment status */}
+        <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
+          <div className="w-10 h-10 relative overflow-hidden">
+            <div className="w-[37.45px] h-[35px] left-[2.50px] top-[2.50px] absolute bg-[#04910C]">
+                {/* icon place here */}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
+            Đã thanh toán
+          </div>
+        </div>
+
+        {/* Summary row */}
+        <div className="self-stretch h-[50px] bg-[#F6F6F6] border-b border-[#D1D1D1] justify-start items-start inline-flex">
+          <div className="flex-1 self-stretch px-[14px] overflow-hidden border-l border-[#D1D1D1] justify-start items-center flex">
+            <div className="w-[22px] h-0 transform rotate-[-90deg] origin-top-left"></div>
+            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+              Tổng tiền
+            </div>
+          </div>
+          <div className="flex-1 self-stretch relative">
+            <div className="left-[101px] top-[15px] absolute text-center text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+              {detail.totals.items} sản phẩm
+            </div>
+          </div>
+          <div className="flex-1 self-stretch px-[14px] border-r border-[#D1D1D1] justify-end items-center gap-1 flex">
+            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+              {formatCurrency(detail.totals.value)}
+            </div>
+          </div>
+        </div>
+
+        {/* Payment details */}
+        <div className="self-stretch pt-1.5 pb-1.5 rounded-b-[24px] border border-[#D1D1D1] justify-between items-start inline-flex">
+          <div className="flex-1 self-stretch px-3 flex-col justify-center items-start gap-2.5 inline-flex">
+            <div className="justify-start items-start gap-2.5 inline-flex">
+              <div className="text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px]">
+                Tiền cần trả nhà cung cấp
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 self-stretch px-3 flex-col justify-center items-end gap-2 inline-flex">
+            <div className="text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px]">
+              {formatCurrency(detail.totals.value)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Supplier and Staff section matching Figma design */}
+      <div className="w-full h-full justify-start items-start gap-3 inline-flex">
+        {/* Supplier card */}
+        <div className="flex-1 px-6 py-3 bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+          <div className="self-stretch pt-1.5 pb-1.5 rounded-[12px] justify-start items-center gap-2.5 inline-flex">
+            <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
+              Nhà cung cấp
+            </div>
+          </div>
+          <div className="self-stretch justify-start items-center gap-[26px] inline-flex">
+            <img 
+              className="w-[85px] h-[85px] rounded-[12px]" 
+              src="https://placehold.co/85x85" 
+              alt="Supplier"
+            />
+            <div className="self-stretch justify-start items-start gap-2.5 flex">
+              <div className="text-black text-[12px] font-[400] font-montserrat leading-[18px]">
+                {detail.supplier}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Staff card */}
+        <div className="flex-1 px-6 py-3 bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+          <div className="self-stretch pt-1.5 pb-1.5 rounded-[12px] justify-start items-center gap-2.5 inline-flex">
+            <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
+              Nhân viên phụ trách
+            </div>
+          </div>
+          <div className="self-stretch justify-start items-center gap-[26px] inline-flex">
+            <div className="w-[85px] h-[85px] rounded-[12px] border-2 border-dashed border-[#D1D1D1] flex items-center justify-center">
+              <div className="text-[#D1D1D1] text-[12px] font-[400] font-montserrat leading-[18px]">
+                Avatar
+              </div>
+            </div>
+            <div className="self-stretch justify-start items-start gap-2.5 flex">
+              <div className="text-[#272424] text-[12px] font-[400] font-montserrat leading-[18px]">
+                {detail.createdBy}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
     </div>
   );
 };
