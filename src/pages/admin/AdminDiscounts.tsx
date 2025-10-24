@@ -1,5 +1,6 @@
 // src/pages/admin/AdminDiscounts.tsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Eye, Edit, Trash2, Gift, Users, ShoppingCart, Star, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,6 +80,7 @@ const discountTabs: TabItem[] = [
 const AdminDiscounts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const navigate = useNavigate();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -148,7 +150,12 @@ const AdminDiscounts: React.FC = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Voucher nhằm thu hút khách hàng mới và khi khách hàng ở tỉnh thành khác có thể
                 </p>
-                <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
+                  onClick={() => navigate('/admin/discounts/new-customer-voucher')}
+                >
                   Tạo
                 </Button>
               </CardContent>
