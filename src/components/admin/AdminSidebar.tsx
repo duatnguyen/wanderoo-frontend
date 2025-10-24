@@ -18,98 +18,43 @@ export type AdminNavSection = {
 
 const icons: Record<string, IconRenderer> = {
     overview: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M4 5.5a1.5 1.5 0 0 1 1.5-1.5H9a1.5 1.5 0 0 1 1.5 1.5V19a1 1 0 0 1-1 1H5.5A1.5 1.5 0 0 1 4 18.5Z" />
-            <path d="M13.5 9A1.5 1.5 0 0 1 15 7.5h3.5A1.5 1.5 0 0 1 20 9v9.5a1.5 1.5 0 0 1-1.5 1.5H15a1 1 0 0 1-1-1Z" />
-            <path d="M12 8.5v10" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/b0dc912d-1514-4ebc-ba25-beefa90346f1" alt="Tổng quan" />
     ),
     orders: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M4.75 6.75h14.5" />
-            <path d="M4.75 10.75h9.5" />
-            <path d="M4.75 14.75h14.5" />
-            <path d="M4.75 18.75H12" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/6c4c5b8b-a492-4e06-8d61-1c7b0fe33aba" alt="Đơn hàng" />
     ),
     shipping: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M3.5 6.5h11v9.25H3.5Z" />
-            <path d="M14.5 9h3.91A1.6 1.6 0 0 1 19.91 9.9l1.34 3.35v2.5H14.5" />
-            <circle cx="6.5" cy="17.5" r="1.75" />
-            <circle cx="16.75" cy="17.5" r="1.75" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/08c5ecc9-58be-4904-9d4f-cbb661ef96d7" alt="Vận chuyển" />
     ),
     products: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="m3.5 7 8.5-4 8.5 4-8.5 4Z" />
-            <path d="m3.5 7 8.5 4v9.5l-8.5-4Z" />
-            <path d="m20.5 7-8.5 4v9.5l8.5-4Z" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/9b3a8092-6523-4bcb-b7eb-775cfd65d829" alt="Sản phẩm" />
     ),
     warehouse: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M4.5 20.5V6l7.5-3 7.5 3v14.5" />
-            <path d="M9 20.5v-6.5h6V20.5" />
-            <path d="M9 9.5h6" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/f2f197b3-3b06-4473-9a56-11d3c9365ceb" alt="Quản lý kho" />
     ),
     customers: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="8" r="3" />
-            <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/1cf953d5-3b39-4763-a817-97118208680b" alt="Khách hàng" />
     ),
     accounting: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M6 4.5h12v15H6z" />
-            <path d="M9.5 8.5h5" />
-            <path d="M9.5 11.5h5" />
-            <path d="M9.5 14.5h3" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/f040680c-6ab1-4ee2-9ac9-33281ec5da46" alt="Sổ quỹ" />
     ),
     staff: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="7.5" r="2.75" />
-            <path d="M6.5 19.5c0-2.761 2.686-5 5.5-5s5.5 2.239 5.5 5" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/311de5e4-01bd-4063-b3bb-7129d822b2b6" alt="Nhân viên" />
     ),
     reports: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M4.5 6.5h15v13h-15z" />
-            <path d="M8 13.5 10.5 16l5.5-5.5" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/ece67f6c-19af-41aa-97de-0d29b08eea14" alt="Báo cáo" />
     ),
     discounts: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M6 5.5h12L18.5 12 18 18.5H6L5.5 12Z" />
-            <path d="M9 10.5h.01" />
-            <path d="M15 13.5h.01" />
-            <path d="M9 15.5l6-6" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/64c0a84c-5ab6-487e-925d-08f458630c60" alt="Mã giảm giá" />
     ),
     website: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="8.5" />
-            <path d="M3.5 12h17" />
-            <path d="M12 3.5c2.35 2.31 3.75 5.47 3.75 8.5s-1.4 6.19-3.75 8.5c-2.35-2.31-3.75-5.47-3.75-8.5s1.4-6.19 3.75-8.5Z" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/90cf9939-1116-4a88-9356-5f0c5168f924" alt="Website" />
     ),
     pos: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <rect x="4" y="7" width="16" height="11" rx="1.5" />
-            <path d="M8 4h8" />
-            <path d="M10.5 11.5h3" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/55cd6b97-8723-48fd-b9d7-bd5915bd1e06" alt="POS" />
     ),
     settings: ({ className }) => (
-        <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="3" />
-            <path d="m4.75 12.5.5 2 1.75.75 1-.75" />
-            <path d="m19.25 11.5-.5-2-1.75-.75-1 .75" />
-            <path d="m8.5 5.75 2-.5 1.5-1.5 1.5 1.5 2 .5" />
-            <path d="m15.5 18.25-2 .5-1.5 1.5-1.5-1.5-2-.5" />
-        </svg>
+        <img className={className} src="https://www.figma.com/api/mcp/asset/746404dd-f555-4d44-ba3e-eed5630c5442" alt="Cấu hình" />
     ),
 };
 

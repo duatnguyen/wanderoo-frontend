@@ -28,8 +28,8 @@ export function TabMenu({ tabs, activeTab, onTabChange, className, variant = 'ca
                         className={cn(
                             "pb-2 px-1 text-sm font-medium border-b-2 transition-colors",
                             activeTab === tab.id
-                                ? "border-orange-500 text-orange-600"
-                                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                                ? "border-[#E04D30] text-[#E04D30]"
+                                : "border-transparent text-gray-500 hover:text-[#E04D30] dark:text-gray-400 dark:hover:text-[#E04D30]"
                         )}
                     >
                         {tab.label}
@@ -47,16 +47,16 @@ export function TabMenu({ tabs, activeTab, onTabChange, className, variant = 'ca
     return (
         <div className={cn("border rounded-lg", className)}>
             <CardContent className="p-0">
-                <div className="flex items-center justify-between gap-2 bg-card dark:bg-card rounded-lg overflow-hidden p-2">
+                <div className="flex items-center justify-between gap-2 bg-card dark:bg-card rounded-lg overflow-hidden p-2 justify-between">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => onTabChange(tab.id)}
                             className={cn(
-                                "px-3 py-1 text-sm font-medium text-center transition-all duration-200 relative whitespace-nowrap rounded-md",
-                                "hover:bg-gray-100 dark:hover:bg-gray-700",
+                                "px-3 py-1 text-sm font-medium text-center transition-all duration-200 relative whitespace-nowrap rounded-lg",
+                                "hover:bg-[#E04D30]/20",
                                 activeTab === tab.id
-                                    ? "text-white bg-black dark:text-black dark:bg-white"
+                                    ? "text-white bg-[#E04D30]"
                                     : "text-gray-600 dark:text-gray-400"
                             )}
                         >

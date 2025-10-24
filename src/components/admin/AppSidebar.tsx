@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useAuthCtx } from '../../app/providers/AuthProvider';
 import { adminNavSections } from './AdminSidebar';
+import logoSrc from '../../assets/images/logo/logo.png';
 
 export function AppSidebar() {
     const location = useLocation();
@@ -81,37 +82,12 @@ export function AppSidebar() {
 
     return (
         <Sidebar variant="inset" className="bg-sidebar">
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            size="lg"
-                            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                        >
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                                <svg
-                                    className="size-4"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <circle cx="17.5" cy="6.5" r="2.5" fill="currentColor" />
-                                    <path
-                                        d="M3 17l5.5-9 3.5 5 3-4.5L21 17"
-                                        stroke="currentColor"
-                                        strokeWidth="1.6"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="grid flex-1 text-left text-sm leading-tight">
-                                <span className="truncate font-semibold">Wanderoo</span>
-                                <span className="truncate text-xs">Admin Panel</span>
-                            </div>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+            <SidebarHeader className="flex justify-center items-center">
+                <img
+                    src={logoSrc}
+                    alt="Wanderoo Logo"
+                    className="size-30 object-contain"
+                />
             </SidebarHeader>
             <SidebarContent>
                 {/* Main Navigation */}
@@ -143,10 +119,10 @@ export function AppSidebar() {
                                                 align="start"
                                             >
                                                 <DropdownMenuItem>
-                                                    <span>Tạo đơn hàng mới</span>
+                                                    <span>Tất cả</span>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem>
-                                                    <span>Import đơn hàng</span>
+                                                    <span>Trả hàng/Hoàn tiền/Hủy</span>
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>

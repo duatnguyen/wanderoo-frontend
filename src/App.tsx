@@ -1,7 +1,7 @@
 // src/App.tsx
 import { Suspense } from "react";
 import { RouterProvider } from "react-router-dom";
-import { ConfigProvider, App as AntdApp, theme } from "antd";
+import { ConfigProvider, App as AntdApp } from "antd";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { router } from "./app/router";             // createBrowserRouter(...)
