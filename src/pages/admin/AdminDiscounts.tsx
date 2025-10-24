@@ -1,7 +1,7 @@
 // src/pages/admin/AdminDiscounts.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Eye, Edit, Trash2, Gift, Users, ShoppingCart, Star, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Trash2, MoreHorizontal, Gift, Store, Receipt, Ticket, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -113,12 +113,17 @@ const AdminDiscounts: React.FC = () => {
             {/* Voucher toàn shop */}
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
-                <Gift className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <Store className="h-8 w-8 text-orange-500 mx-auto mb-3" />
                 <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher toàn shop</h5>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Voucher áp dụng cho tất cả sản phẩm trong cửa hàng của bạn
                 </p>
-                <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
+                  onClick={() => navigate('/admin/discounts/shop-wide-voucher')}
+                >
                   Tạo
                 </Button>
               </CardContent>
@@ -127,12 +132,17 @@ const AdminDiscounts: React.FC = () => {
             {/* Voucher sản phẩm */}
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
-                <ShoppingCart className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <Receipt className="h-8 w-8 text-orange-500 mx-auto mb-3" />
                 <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher sản phẩm</h5>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Voucher áp dụng cho những sản phẩm cụ thể đã được tạo trước
                 </p>
-                <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
+                  onClick={() => navigate('/admin/discounts/product-voucher')}
+                >
                   Tạo
                 </Button>
               </CardContent>
@@ -145,14 +155,14 @@ const AdminDiscounts: React.FC = () => {
             {/* Voucher khách hàng mới */}
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
-                <Users className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <Ticket className="h-8 w-8 text-orange-500 mx-auto mb-3" />
                 <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher khách hàng mới</h5>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Voucher nhằm thu hút khách hàng mới và khi khách hàng ở tỉnh thành khác có thể
                 </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
                   onClick={() => navigate('/admin/discounts/new-customer-voucher')}
                 >
@@ -164,12 +174,17 @@ const AdminDiscounts: React.FC = () => {
             {/* Voucher khách hàng mua lại */}
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
-                <Star className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <Coins className="h-8 w-8 text-orange-500 mx-auto mb-3" />
                 <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher khách hàng mua lại</h5>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Voucher nhằm thu hút khách hàng cũ quay lại mua hàng tại của hàng
                 </p>
-                <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
+                  onClick={() => navigate('/admin/discounts/returning-customer-voucher')}
+                >
                   Tạo
                 </Button>
               </CardContent>
@@ -182,12 +197,17 @@ const AdminDiscounts: React.FC = () => {
             {/* Voucher rộng tú */}
             <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
               <CardContent className="p-6 text-center">
-                <Gift className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+                <Store className="h-8 w-8 text-orange-500 mx-auto mb-3" />
                 <h5 className="font-medium text-gray-900 dark:text-white mb-2">Voucher rộng tú</h5>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Voucher phân phối rộng để mọi người có thể cùng sử dụng nó để mua sắm tại của bạn
                 </p>
-                <Button variant="outline" size="sm" className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
+                  onClick={() => navigate('/admin/discounts/shop-wide-voucher')}
+                >
                   Tạo
                 </Button>
               </CardContent>
@@ -202,10 +222,6 @@ const AdminDiscounts: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản lý mã giảm giá</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Tạo và quản lý các voucher khuyến mãi</p>
         </div>
-        <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Tạo voucher mới
-        </Button>
       </div>
 
       {/* Filter Tabs */}

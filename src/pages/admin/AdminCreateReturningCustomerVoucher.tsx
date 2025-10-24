@@ -1,7 +1,7 @@
-// src/pages/admin/AdminCreateNewCustomerVoucher.tsx
+// src/pages/admin/AdminCreateReturningCustomerVoucher.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Receipt } from 'lucide-react';
+import { ArrowLeft, Calendar, Receipt, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,9 +17,14 @@ interface VoucherFormData {
   discountValue: number;
   minOrderValue: number;
   maxUsage: number;
+  usagePerPerson: number;
+  displayChannel: 'pos' | 'website' | 'both';
+  targetCustomerType: 'returning' | 'loyal';
+  minPurchaseHistory: number;
+  lastPurchaseDays: number;
 }
 
-const AdminCreateNewCustomerVoucher: React.FC = () => {
+const AdminCreateReturningCustomerVoucher: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<VoucherFormData>({
@@ -31,6 +36,11 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
     discountValue: 0,
     minOrderValue: 0,
     maxUsage: 1,
+    usagePerPerson: 1,
+    displayChannel: 'website',
+    targetCustomerType: 'returning',
+    minPurchaseHistory: 1,
+    lastPurchaseDays: 30,
   });
 
   const handleInputChange = (field: keyof VoucherFormData, value: string | number) => {
@@ -46,7 +56,7 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
 
     try {
       // TODO: Call API to create voucher
-      console.log('Creating voucher:', formData);
+      console.log('Creating returning customer voucher:', formData);
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -61,7 +71,7 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4">
       {/* Header */}
       <div className="flex items-center space-x-4">
         <Button
@@ -73,32 +83,32 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             Tạo mã giảm giá mới
           </h1>
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Thông tin cơ bản */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
               Thông tin cơ bản
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Voucher Type Badge */}
             <div className="flex items-center space-x-3">
-              <div className="bg-red-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                <Receipt className="h-5 w-5" />
-                <span className="font-semibold text-lg">Voucher khách hàng mới</span>
+              <div className="bg-red-500 text-white px-3 py-1.5 rounded-lg flex items-center space-x-2">
+                <Receipt className="h-4 w-4" />
+                <span className="font-semibold text-sm">Voucher khách hàng mua lại</span>
               </div>
             </div>
 
             {/* Form Fields */}
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 gap-4">
               {/* Tên chương trình giảm giá */}
               <div className="space-y-2">
                 <Label htmlFor="programName" className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -156,7 +166,7 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
                     />
                     <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   </div>
-                  <span className="text-gray-500">đến</span>
+                  <span className="text-gray-500 text-sm">-</span>
                   <div className="relative flex-1">
                     <Input
                       type="date"
@@ -169,32 +179,15 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {/* Người mua mục tiêu */}
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-gray-900 dark:text-white">
-                Người mua mục tiêu
-              </Label>
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">Người mua mới</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Khách hàng chưa từng mua sắm tại shop</p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </CardContent>
-        </Card>
-
-        {/* Thiết lập mã giảm giá */}
+        </Card>        {/* Thiết lập mã giảm giá */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
               Thiết lập mã giảm giá
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Loại mã */}
             <div className="space-y-2">
               <div className="flex items-center space-x-4">
@@ -206,7 +199,7 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
             </div>
 
             {/* Loại giảm giá và Mức giảm */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-gray-900 dark:text-white">
                   Loại giảm giá | Mức giảm
@@ -270,26 +263,141 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
                 onChange={(e) => handleInputChange('maxUsage', parseInt(e.target.value) || 1)}
                 className="border-red-500 border-2"
               />
-              <p className="text-xs text-gray-500 text-center">Tổng số mã giảm giá tối đa có thể sử dụng</p>
+              <p className="text-xs text-gray-500">Tổng số mã giảm giá tối đa có thể sử dụng</p>
+            </div>
+
+            {/* Lượt sử dụng tối đa/người */}
+            <div className="space-y-2">
+              <Label htmlFor="usagePerPerson" className="text-sm font-semibold text-gray-900 dark:text-white">
+                Lượt sử dụng tối đa/người
+              </Label>
+              <Input
+                id="usagePerPerson"
+                type="number"
+                min="1"
+                value={formData.usagePerPerson}
+                onChange={(e) => handleInputChange('usagePerPerson', parseInt(e.target.value) || 1)}
+                className="border-red-500 border-2"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Điều kiện áp dụng cho khách hàng */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+              Điều kiện áp dụng cho khách hàng
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Loại khách hàng mục tiêu */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-900 dark:text-white">
+                Loại khách hàng mục tiêu
+              </Label>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Users className="h-5 w-5 text-gray-600" />
+                  <div>
+                    <p className="font-semibold text-gray-900">Khách hàng cũ</p>
+                    <p className="text-sm text-gray-600">Khách hàng đã từng mua sắm tại shop</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Số đơn hàng tối thiểu */}
+            <div className="space-y-2">
+              <Label htmlFor="minPurchaseHistory" className="text-sm font-semibold text-gray-900 dark:text-white">
+                Số đơn hàng tối thiểu
+              </Label>
+              <Input
+                id="minPurchaseHistory"
+                type="number"
+                min="1"
+                value={formData.minPurchaseHistory}
+                onChange={(e) => handleInputChange('minPurchaseHistory', parseInt(e.target.value) || 1)}
+                className="border-red-500 border-2"
+              />
+            </div>
+
+            {/* Khoảng thời gian kể từ lần mua cuối */}
+            <div className="space-y-2">
+              <Label htmlFor="lastPurchaseDays" className="text-sm font-semibold text-gray-900 dark:text-white">
+                Khoảng thời gian kể từ lần mua cuối
+              </Label>
+              <div className="flex items-center space-x-4">
+                <Input
+                  id="lastPurchaseDays"
+                  type="number"
+                  min="1"
+                  value={formData.lastPurchaseDays}
+                  onChange={(e) => handleInputChange('lastPurchaseDays', parseInt(e.target.value) || 1)}
+                  className="border-red-500 border-2"
+                />
+                <span className="text-gray-600">ngày</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Hiển thị mã giảm giá và sản phẩm áp dụng */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-bold text-gray-700 dark:text-gray-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
               Hiển thị mã giảm giá và sản phẩm áp dụng
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Thiết lập hiển thị */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-gray-900 dark:text-white">
                 Thiết lập hiển thị
               </Label>
-              <div className="flex items-center space-x-4">
-                <span className="font-semibold text-sm text-gray-900 dark:text-white">Website</span>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id="pos"
+                    name="displayChannel"
+                    value="pos"
+                    checked={formData.displayChannel === 'pos'}
+                    onChange={(e) => handleInputChange('displayChannel', e.target.value as 'pos' | 'website' | 'both')}
+                    className="w-4 h-4 text-red-500"
+                  />
+                  <Label htmlFor="pos" className="text-sm font-semibold text-gray-900">
+                    POS
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id="website"
+                    name="displayChannel"
+                    value="website"
+                    checked={formData.displayChannel === 'website'}
+                    onChange={(e) => handleInputChange('displayChannel', e.target.value as 'pos' | 'website' | 'both')}
+                    className="w-4 h-4 text-red-500"
+                  />
+                  <Label htmlFor="website" className="text-sm font-semibold text-gray-900">
+                    Website
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id="both"
+                    name="displayChannel"
+                    value="both"
+                    checked={formData.displayChannel === 'both'}
+                    onChange={(e) => handleInputChange('displayChannel', e.target.value as 'pos' | 'website' | 'both')}
+                    className="w-4 h-4 text-red-500"
+                  />
+                  <Label htmlFor="both" className="text-sm font-semibold text-gray-900">
+                    POS + Website
+                  </Label>
+                </div>
               </div>
             </div>
 
@@ -298,9 +406,9 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
               <Label className="text-sm font-semibold text-gray-900 dark:text-white">
                 Sản phẩm được áp dụng
               </Label>
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                <span className="font-semibold text-sm text-gray-900 dark:text-white">Tất cả sản phẩm</span>
-              </div>
+              <span className="text-sm font-semibold text-gray-900">
+                Tất cả sản phẩm
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -328,4 +436,4 @@ const AdminCreateNewCustomerVoucher: React.FC = () => {
   );
 };
 
-export default AdminCreateNewCustomerVoucher;
+export default AdminCreateReturningCustomerVoucher;

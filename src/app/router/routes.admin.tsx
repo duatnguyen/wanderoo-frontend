@@ -19,6 +19,9 @@ const AdminDiscounts = lazy(() => import("../../pages/admin/AdminDiscounts"));
 const AdminWebsite = lazy(() => import("../../pages/admin/AdminWebsite"));
 const AdminPOS = lazy(() => import("../../pages/admin/AdminPOS"));
 const AdminCreateNewCustomerVoucher = lazy(() => import("../../pages/admin/AdminCreateNewCustomerVoucher"));
+const AdminCreateShopWideVoucher = lazy(() => import("../../pages/admin/AdminCreateShopWideVoucher"));
+const AdminCreateProductVoucher = lazy(() => import("../../pages/admin/AdminCreateProductVoucher"));
+const AdminCreateReturningCustomerVoucher = lazy(() => import("../../pages/admin/AdminCreateReturningCustomerVoucher"));
 
 // Wrapper component for lazy loading
 const LazyWrapper = ({ children }: { children: React.ReactElement }) => (
@@ -147,6 +150,18 @@ export const adminRoutes: RouteObject[] = [
     {
         path: "discounts/new-customer-voucher",
         element: <LazyWrapper><AdminCreateNewCustomerVoucher /></LazyWrapper>,
+    },
+    {
+        path: "discounts/shop-wide-voucher",
+        element: <LazyWrapper><AdminCreateShopWideVoucher /></LazyWrapper>,
+    },
+    {
+        path: "discounts/product-voucher",
+        element: <LazyWrapper><AdminCreateProductVoucher /></LazyWrapper>,
+    },
+    {
+        path: "discounts/returning-customer-voucher",
+        element: <LazyWrapper><AdminCreateReturningCustomerVoucher /></LazyWrapper>,
     },
     {
         path: "channels/website",
