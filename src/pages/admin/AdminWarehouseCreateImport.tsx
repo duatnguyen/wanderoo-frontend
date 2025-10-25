@@ -103,7 +103,7 @@ const AdminWarehouseCreateImport = () => {
   );
 
   return (
-    <div className="box-border flex flex-col gap-[10px] items-center px-[50px] py-[32px] relative size-full">
+    <div className="box-border flex flex-col gap-[10px] items-center px-[20px] py-[32px] relative w-full max-w-full overflow-hidden">
       {/* Header */}
       <div className="box-border flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] relative shrink-0 w-full">
         <div className="flex items-center justify-between relative shrink-0 w-full">

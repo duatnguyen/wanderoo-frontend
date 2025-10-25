@@ -193,10 +193,7 @@ const AdminWarehouseImports = () => {
             </div>
           </div>
           <div className="flex gap-[10px] items-center justify-end relative flex-1">
-            <Button
-              onClick={() => navigate("/admin/warehouse/imports/create")}
-              className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]"
-            >
+            <Button className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]">
               <span className="font-bold text-[11px] leading-normal">
                 Tạo phiếu nhập
               </span>

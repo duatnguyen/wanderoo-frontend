@@ -31,6 +31,9 @@ const AdminWarehouseCreateImport = lazy(
 const AdminWarehouseImportDetail = lazy(
   () => import("../../pages/admin/AdminWarehouseImportDetail")
 );
+const AdminWarehouseDetailReturnImport = lazy(
+  () => import("../../pages/admin/AdminWarehouseDetailReturnImport")
+);
 const AdminCustomerReviews = lazy(
   () => import("../../pages/admin/AdminCustomerReviews")
 );
@@ -212,6 +215,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminWarehouseImportDetail />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/returns/:returnId",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseDetailReturnImport />
       </LazyWrapper>
     ),
   },
