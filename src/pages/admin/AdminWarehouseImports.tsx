@@ -116,12 +116,14 @@ const AdminWarehouseImports = () => {
   const filteredImports = useMemo(() => {
     return imports.filter((importItem) => {
       const matchesTab = activeTab === "all" || importItem.status === activeTab;
-      const matchesSearch = 
+      const matchesSearch =
         searchTerm === "" ||
-        importItem.importCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        importItem.importCode
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         importItem.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
         importItem.createdBy.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       return matchesTab && matchesSearch;
     });
   }, [imports, activeTab, searchTerm]);
@@ -162,14 +164,14 @@ const AdminWarehouseImports = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN');
+    return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
   return (
@@ -182,15 +184,22 @@ const AdminWarehouseImports = () => {
               <div className="flex flex-row items-center self-stretch">
                 <div className="flex gap-[8px] h-full items-end justify-center relative">
                   <div className="flex flex-col font-bold justify-center leading-[0] relative text-[#272424] text-[18px]">
-                    <p className="leading-[normal] whitespace-pre font-['Montserrat']">Nhập hàng</p>
+                    <p className="leading-[normal] whitespace-pre font-['Montserrat']">
+                      Nhập hàng
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           <div className="flex gap-[10px] items-center justify-end relative flex-1">
-            <Button className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]">
-              <span className="font-bold text-[11px] leading-normal">Tạo phiếu nhập</span>
+            <Button
+              onClick={() => navigate("/admin/warehouse/imports/create")}
+              className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]"
+            >
+              <span className="font-bold text-[11px] leading-normal">
+                Tạo phiếu nhập
+              </span>
             </Button>
           </div>
         </div>
@@ -238,9 +247,7 @@ const AdminWarehouseImports = () => {
                 <DropdownMenuItem onClick={() => {}}>
                   Đang kích hoạt
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
-                  Đã khóa
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {}}>Đã khóa</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -255,34 +262,54 @@ const AdminWarehouseImports = () => {
               <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex h-full items-center px-[4px] py-[12px] w-[150px] min-w-[150px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">Mã đơn nhập</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                      Mã đơn nhập
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Ngày tạo</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Ngày tạo
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Phương thức thanh toán</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Phương thức thanh toán
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Trạng thái</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Trạng thái
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Trạng thái nhập</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Trạng thái nhập
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Trạng thái thanh toán</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Trạng thái thanh toán
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Nhà cung cấp</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Nhà cung cấp
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Người tạo</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Người tạo
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Số lượng nhập</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Số lượng nhập
+                    </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[130px] min-w-[130px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">Giá trị đơn</span>
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Giá trị đơn
+                    </span>
                   </div>
                 </div>
               </div>
@@ -292,9 +319,13 @@ const AdminWarehouseImports = () => {
                 <div
                   key={importItem.id}
                   className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full ${
-                    index === paginatedImports.length - 1 ? 'border-transparent' : 'border-[#e7e7e7]'
+                    index === paginatedImports.length - 1
+                      ? "border-transparent"
+                      : "border-[#e7e7e7]"
                   } hover:bg-gray-50 cursor-pointer`}
-                  onClick={() => navigate(`/admin/warehouse/imports/${importItem.id}`)}
+                  onClick={() =>
+                    navigate(`/admin/warehouse/imports/${importItem.id}`)
+                  }
                 >
                   <div className="flex items-center w-full">
                     <div className="flex flex-row items-center w-full">

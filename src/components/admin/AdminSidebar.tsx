@@ -28,7 +28,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
             const hasActiveSubmenu = item.submenu.some((subItem) =>
               subItem.activeMatch
                 ? activePath.startsWith(subItem.activeMatch)
-                : false,
+                : false
             );
             if (hasActiveSubmenu) {
               newExpandedItems.add(itemKey);
@@ -45,7 +45,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   }, [activePath]);
 
   const baseClasses =
-    "flex items-center gap-3 rounded-xl px-5 py-3 text-sm font-medium tracking-wide transition-colors duration-200";
+    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium tracking-wide transition-colors duration-200";
   const activeClasses = "bg-[#E04D30] text-white";
   const inactiveClasses = "text-white hover:text-white hover:bg-[#172b46]";
   const submenuClasses = "ml-[35px] pl-4";
@@ -71,7 +71,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const renderNavItem = (
     item: AdminNavItem,
     key: React.Key,
-    isSubmenu: boolean = false,
+    isSubmenu: boolean = false
   ) => {
     const itemKey = `item-${key}`;
     const hasSubmenu = item.submenu && item.submenu.length > 0;
@@ -80,9 +80,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     let isActive = false;
     if (hasSubmenu) {
       isActive = item.submenu!.some((subItem) =>
-        subItem.activeMatch
-          ? activePath.startsWith(subItem.activeMatch)
-          : false,
+        subItem.activeMatch ? activePath.startsWith(subItem.activeMatch) : false
       );
     } else {
       isActive = item.activeMatch
@@ -135,7 +133,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
           {isExpanded && (
             <div className="mt-1 space-y-1">
               {item.submenu!.map((subItem, subIndex) =>
-                renderNavItem(subItem, `${itemKey}-sub-${subIndex}`, true),
+                renderNavItem(subItem, `${itemKey}-sub-${subIndex}`, true)
               )}
             </div>
           )}
@@ -159,13 +157,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   };
 
   return (
-    <aside className="w-[253px] shrink-0 bg-[#18345C] text-white">
+    <aside className="w-[220px] shrink-0 bg-[#18345C] text-white">
       <div className="flex h-full flex-col px-[16px] pb-8 py-[32px]">
         <div className="flex flex-col items-center gap-4 text-center">
           <img
             src={ShopLogo}
             alt="Shop Logo"
-            className="h-[200px] w-full object-contain"
+            className="h-[160px] w-full object-contain"
           />
         </div>
 
@@ -186,7 +184,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
                 ) : null}
                 <div className={listClasses}>
                   {section.items.map((item: AdminNavItem, itemIndex: number) =>
-                    renderNavItem(item, `${sectionKey}-${itemIndex}`),
+                    renderNavItem(item, `${sectionKey}-${itemIndex}`)
                   )}
                 </div>
               </div>
@@ -197,7 +195,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
         <div className="mt-8 border-t border-white/10 pt-6">
           <div className="space-y-1.5">
             {adminFooterNav.items.map((item: AdminNavItem, index: number) =>
-              renderNavItem(item, `footer-${index}`),
+              renderNavItem(item, `footer-${index}`)
             )}
           </div>
         </div>

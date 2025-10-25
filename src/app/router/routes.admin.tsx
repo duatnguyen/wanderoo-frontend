@@ -8,7 +8,7 @@ const AdminDashboard = lazy(() => import("../../pages/admin/AdminDashboard"));
 const AdminProducts = lazy(() => import("../../pages/admin/AdminProducts"));
 const AdminOrders = lazy(() => import("../../pages/admin/AdminOrders"));
 const AdminOrderDetail = lazy(
-  () => import("../../pages/admin/AdminOrderDetail"),
+  () => import("../../pages/admin/AdminOrderDetail")
 );
 const AdminSettings = lazy(() => import("../../pages/admin/AdminSettings"));
 const AdminShipping = lazy(() => import("../../pages/admin/AdminShipping"));
@@ -20,37 +20,38 @@ const AdminDiscounts = lazy(() => import("../../pages/admin/AdminDiscounts"));
 const AdminWebsite = lazy(() => import("../../pages/admin/AdminWebsite"));
 const AdminPOS = lazy(() => import("../../pages/admin/AdminPOS"));
 const AdminWarehouseReturnsImport = lazy(
-  () => import("../../pages/admin/AdminWarehouseReturnsImport"),
+  () => import("../../pages/admin/AdminWarehouseReturnsImport")
 );
 const AdminWarehouseImports = lazy(
-  () => import("../../pages/admin/AdminWarehouseImports"),
+  () => import("../../pages/admin/AdminWarehouseImports")
+);
+const AdminWarehouseCreateImport = lazy(
+  () => import("../../pages/admin/AdminWarehouseCreateImport")
 );
 const AdminWarehouseImportDetail = lazy(
-  () => import("../../pages/admin/AdminWarehouseImportDetail"),
+  () => import("../../pages/admin/AdminWarehouseImportDetail")
 );
 const AdminCustomerReviews = lazy(
-  () => import("../../pages/admin/AdminCustomerReviews"),
+  () => import("../../pages/admin/AdminCustomerReviews")
 );
 const AdminWarehouseSupplier = lazy(
-  () => import("../../pages/admin/AdminWarehouseSupplier"),
+  () => import("../../pages/admin/AdminWarehouseSupplier")
 );
 const AdminOrderOtherStatus = lazy(
-  () => import("../../pages/admin/AdminOrderOtherStatus"),
+  () => import("../../pages/admin/AdminOrderOtherStatus")
 );
 const AdminProductsCategories = lazy(
-  () => import("../../pages/admin/AdminProductsCategories"),
+  () => import("../../pages/admin/AdminProductsCategories")
 );
 const AdminProductsNew = lazy(
-  () => import("../../pages/admin/AdminProductsNew"),
+  () => import("../../pages/admin/AdminProductsNew")
 );
-const AdminStaffNew = lazy(
-  () => import("../../pages/admin/AdminStaffNew"),
-);
+const AdminStaffNew = lazy(() => import("../../pages/admin/AdminStaffNew"));
 const AdminSupplierNew = lazy(
-  () => import("../../pages/admin/AdminSupplierNew"),
+  () => import("../../pages/admin/AdminSupplierNew")
 );
 const AdminSupplierDetail = lazy(
-  () => import("../../pages/admin/AdminSupplierDetail"),
+  () => import("../../pages/admin/AdminSupplierDetail")
 );
 
 export const adminRoutes: RouteObject[] = [
@@ -195,6 +196,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminWarehouseImports />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/imports/create",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseCreateImport />
       </LazyWrapper>
     ),
   },
