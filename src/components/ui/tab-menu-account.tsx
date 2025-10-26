@@ -34,7 +34,7 @@ const TabMenuAccount: React.FC<TabMenuAccountProps> = ({
             onClick={() => onTabChange(tab.id)}
             className={cn(
               "flex gap-[6px] items-center justify-center px-[6px] py-[4px] rounded-[8px] flex-1 min-w-0",
-              "font-bold text-[14px] leading-normal transition-colors",
+              "font-bold text-[14px] leading-[100%] font-montserrat transition-colors",
               isActive
                 ? "bg-[#ffcdc3] text-[#e04d30]"
                 : "text-[#737373] hover:text-[#e04d30] hover:bg-[#ffcdc3]/50"

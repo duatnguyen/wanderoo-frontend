@@ -11,7 +11,7 @@ const AdminLayout: React.FC = () => {
       <AdminSidebar activePath={location.pathname} />
       <div className="flex flex-1 flex-col">
         <SiteHeader />
-        <main className="flex-1 overflow-auto p-6 bg-gray-50">
+        <main className="flex-1 overflow-auto px-[50px] py-[32px] bg-[#F7F7F7]">
           <Outlet />
         </main>
       </div>
