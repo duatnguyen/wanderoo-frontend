@@ -7,6 +7,12 @@ import {
   type AdminNavSection,
 } from "./adminNavData.tsx";
 import ShopLogo from "../../assets/icons/ShopLogo.png";
+import {
+  ProfileIcon,
+  AddressIcon,
+  KeyIcon,
+  ShopIcon,
+} from "./SettingsIcons.tsx";
 
 interface AdminSidebarProps {
   activePath: string;
@@ -164,71 +170,26 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     {
       label: "Hồ sơ",
       path: "/admin/settings/profile",
-      icon: ({ className }: { className?: string }) => (
-        <svg
-          className={className}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <circle cx="12" cy="8" r="3" />
-          <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
-        </svg>
-      ),
+      icon: ({ className }) => <ProfileIcon className={className} />,
       activeMatch: "/admin/settings/profile",
       defaultActive: true,
     },
     {
       label: "Địa chỉ",
       path: "/admin/settings/address",
-      icon: ({ className }: { className?: string }) => (
-        <svg
-          className={className}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M12 21s-8-4.5-8-11.5c0-4.5 3.5-8 8-8s8 3.5 8 8c0 7-8 11.5-8 11.5Z" />
-          <circle cx="12" cy="9.5" r="2.5" />
-        </svg>
-      ),
+      icon: ({ className }) => <AddressIcon className={className} />,
       activeMatch: "/admin/settings/address",
     },
     {
       label: "Đổi mật khẩu",
       path: "/admin/settings/password",
-      icon: ({ className }: { className?: string }) => (
-        <svg
-          className={className}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <rect x="5" y="11" width="14" height="10" rx="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-      ),
+      icon: ({ className }) => <KeyIcon className={className} />,
       activeMatch: "/admin/settings/password",
     },
     {
       label: "Thiết lập shop",
       path: "/admin/settings/shop",
-      icon: ({ className }: { className?: string }) => (
-        <svg
-          className={className}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M3 5h18M5 5c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2" />
-          <rect x="3" y="9" width="18" height="12" rx="2" />
-          <path d="M9 15h6" />
-        </svg>
-      ),
+      icon: ({ className }) => <ShopIcon className={className} />,
       activeMatch: "/admin/settings/shop",
     },
   ];
