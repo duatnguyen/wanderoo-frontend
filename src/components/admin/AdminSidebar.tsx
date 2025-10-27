@@ -16,6 +16,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
 
+  // Check if we're in settings mode based on the path
+  const isSettingsMode = activePath.startsWith("/admin/settings");
+
   // Auto-expand dropdowns when the current path matches any submenu item
   useEffect(() => {
     const newExpandedItems = new Set<string>();
@@ -156,49 +159,142 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     );
   };
 
+  // Settings sidebar navigation items
+  const settingsNavItems: AdminNavItem[] = [
+    {
+      label: "Hồ sơ",
+      path: "/admin/settings/profile",
+      icon: ({ className }: { className?: string }) => (
+        <svg
+          className={className}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <circle cx="12" cy="8" r="3" />
+          <path d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
+        </svg>
+      ),
+      activeMatch: "/admin/settings/profile",
+      defaultActive: true,
+    },
+    {
+      label: "Địa chỉ",
+      path: "/admin/settings/address",
+      icon: ({ className }: { className?: string }) => (
+        <svg
+          className={className}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="M12 21s-8-4.5-8-11.5c0-4.5 3.5-8 8-8s8 3.5 8 8c0 7-8 11.5-8 11.5Z" />
+          <circle cx="12" cy="9.5" r="2.5" />
+        </svg>
+      ),
+      activeMatch: "/admin/settings/address",
+    },
+    {
+      label: "Đổi mật khẩu",
+      path: "/admin/settings/password",
+      icon: ({ className }: { className?: string }) => (
+        <svg
+          className={className}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      ),
+      activeMatch: "/admin/settings/password",
+    },
+    {
+      label: "Thiết lập shop",
+      path: "/admin/settings/shop",
+      icon: ({ className }: { className?: string }) => (
+        <svg
+          className={className}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+        >
+          <path d="M3 5h18M5 5c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2" />
+          <rect x="3" y="9" width="18" height="12" rx="2" />
+          <path d="M9 15h6" />
+        </svg>
+      ),
+      activeMatch: "/admin/settings/shop",
+    },
+  ];
+
   return (
     <aside className="w-[220px] shrink-0 bg-[#18345C] text-white">
       <div className="flex h-full flex-col px-[16px] pb-8 py-[32px]">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <img
-            src={ShopLogo}
-            alt="Shop Logo"
-            className="h-[160px] w-full object-contain"
-          />
-        </div>
-
-        <nav className="flex-1 overflow-y-auto">
-          {adminNavSections.map((section: AdminNavSection, index: number) => {
-            const hasTitle = Boolean(section.title);
-            const sectionKey = section.title ?? index;
-            const wrapperClasses =
-              index === 0 ? "" : "mt-8 border-t border-white/10 pt-6";
-            const listClasses = hasTitle ? "mt-4 space-y-1.5" : "space-y-1.5";
-
-            return (
-              <div key={sectionKey} className={wrapperClasses}>
-                {hasTitle ? (
-                  <p className="px-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/45">
-                    {section.title}
-                  </p>
-                ) : null}
-                <div className={listClasses}>
-                  {section.items.map((item: AdminNavItem, itemIndex: number) =>
-                    renderNavItem(item, `${sectionKey}-${itemIndex}`)
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </nav>
-
-        <div className="mt-8 border-t border-white/10 pt-6">
-          <div className="space-y-1.5">
-            {adminFooterNav.items.map((item: AdminNavItem, index: number) =>
-              renderNavItem(item, `footer-${index}`)
-            )}
+        <Link to="/admin/dashboard">
+          <div className="flex flex-col items-center gap-4 text-center cursor-pointer">
+            <img
+              src={ShopLogo}
+              alt="Shop Logo"
+              className="h-[160px] w-full object-contain"
+            />
           </div>
-        </div>
+        </Link>
+
+        {isSettingsMode ? (
+          <nav className="flex-1 overflow-y-auto">
+            <div className="py-4 space-y-[10px]">
+              {settingsNavItems.map((item, index) =>
+                renderNavItem(item, `settings-${index}`)
+              )}
+            </div>
+          </nav>
+        ) : (
+          <>
+            <nav className="flex-1 overflow-y-auto">
+              {adminNavSections.map(
+                (section: AdminNavSection, index: number) => {
+                  const hasTitle = Boolean(section.title);
+                  const sectionKey = section.title ?? index;
+                  const wrapperClasses =
+                    index === 0 ? "" : "mt-8 border-t border-white/10 pt-6";
+                  const listClasses = hasTitle
+                    ? "mt-4 space-y-1.5"
+                    : "space-y-1.5";
+
+                  return (
+                    <div key={sectionKey} className={wrapperClasses}>
+                      {hasTitle ? (
+                        <p className="px-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/45">
+                          {section.title}
+                        </p>
+                      ) : null}
+                      <div className={listClasses}>
+                        {section.items.map(
+                          (item: AdminNavItem, itemIndex: number) =>
+                            renderNavItem(item, `${sectionKey}-${itemIndex}`)
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+              )}
+            </nav>
+
+            <div className="mt-8 border-t border-white/10 pt-6">
+              <div className="space-y-1.5">
+                {adminFooterNav.items.map((item: AdminNavItem, index: number) =>
+                  renderNavItem(item, `footer-${index}`)
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </aside>
   );

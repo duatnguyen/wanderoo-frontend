@@ -1,36 +1,75 @@
 // src/pages/admin/AdminSettings.tsx
-import React from "react";
+import React, { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const AdminSettings: React.FC = () => {
-  return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Cấu hình hệ thống</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Cài đặt chung
-          </h3>
-          <p className="text-gray-500">
-            Thông tin cửa hàng, múi giờ, ngôn ngữ.
-          </p>
+  const location = useLocation();
+  const navigate = useNavigate();
+  const path = location.pathname;
+
+  // Redirect to profile if on base settings route
+  useEffect(() => {
+    if (path === "/admin/settings") {
+      navigate("/admin/settings/profile", { replace: true });
+    }
+  }, [path, navigate]);
+
+  // Determine which page to show based on the path
+  const getPageContent = () => {
+    if (path.includes("/profile")) {
+      return (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Hồ sơ</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <p className="text-gray-500">Trang hồ sơ người dùng</p>
+          </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Tích hợp</h3>
-          <p className="text-gray-500">Cấu hình các dịch vụ bên thứ ba.</p>
+      );
+    } else if (path.includes("/address")) {
+      return (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Địa chỉ</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <p className="text-gray-500">Trang quản lý địa chỉ</p>
+          </div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Bảo mật</h3>
-          <p className="text-gray-500">Cài đặt bảo mật và phân quyền.</p>
+      );
+    } else if (path.includes("/password")) {
+      return (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Đổi mật khẩu
+          </h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <p className="text-gray-500">Trang đổi mật khẩu</p>
+          </div>
         </div>
+      );
+    } else if (path.includes("/shop")) {
+      return (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Thiết lập shop
+          </h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <p className="text-gray-500">Trang thiết lập shop</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Default to profile page if no match (shouldn't happen due to redirect)
+    return (
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Hồ sơ</h2>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Thanh toán
-          </h3>
-          <p className="text-gray-500">Cấu hình các phương thức thanh toán.</p>
+          <p className="text-gray-500">Trang hồ sơ người dùng</p>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  return <div className="space-y-6">{getPageContent()}</div>;
 };
 
 export default AdminSettings;

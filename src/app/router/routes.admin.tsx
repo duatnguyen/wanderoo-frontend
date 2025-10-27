@@ -387,7 +387,7 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "settings/general",
+    path: "settings/profile",
     element: (
       <LazyWrapper>
         <AdminSettings />
@@ -395,7 +395,7 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "settings/integrations",
+    path: "settings/address",
     element: (
       <LazyWrapper>
         <AdminSettings />
@@ -403,7 +403,15 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "settings/security",
+    path: "settings/password",
+    element: (
+      <LazyWrapper>
+        <AdminSettings />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "settings/shop",
     element: (
       <LazyWrapper>
         <AdminSettings />

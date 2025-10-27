@@ -24,7 +24,9 @@ export function SiteHeader({ className }: SiteHeaderProps) {
           >
             <Avatar className="h-8 w-8">
               <AvatarImage src="/api/placeholder/32/32" alt="User Avatar" />
-              <AvatarFallback className="text-xs font-medium">AD</AvatarFallback>
+              <AvatarFallback className="text-xs font-medium">
+                AD
+              </AvatarFallback>
             </Avatar>
             <span className="sr-only">Tài khoản người dùng</span>
           </Button>
