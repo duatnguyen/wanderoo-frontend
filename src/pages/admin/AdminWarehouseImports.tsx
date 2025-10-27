@@ -175,31 +175,17 @@ const AdminWarehouseImports = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden p-[10px] w-full">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden p-[10px] w-full gap-1">
       {/* Header */}
-      <div className="flex flex-col gap-[4px] h-[32px] items-start justify-center px-0 py-[4px] relative w-full flex-shrink-0">
-        <div className="flex gap-[20px] items-center relative w-full">
-          <div className="flex gap-[6px] items-center relative">
-            <div className="flex gap-[3px] items-center justify-center relative">
-              <div className="flex flex-row items-center self-stretch">
-                <div className="flex gap-[8px] h-full items-end justify-center relative">
-                  <div className="flex flex-col font-bold justify-center leading-[0] relative text-[#272424] text-[18px]">
-                    <p className="leading-[normal] whitespace-pre font-['Montserrat']">
-                      Nhập hàng
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-[10px] items-center justify-end relative flex-1">
-            <Button className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]">
-              <span className="font-bold text-[11px] leading-normal">
-                Tạo phiếu nhập
-              </span>
-            </Button>
-          </div>
-        </div>
+      <div className="flex items-center justify-between py-[4px] px-0 h-[32px] w-full mb-2">
+        <h1 className="font-bold text-[18px] text-[#272424] font-['Montserrat']">
+          Nhập hàng
+        </h1>
+        <Button className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]">
+          <span className="font-bold text-[11px] leading-normal">
+            Tạo phiếu nhập
+          </span>
+        </Button>
       </div>
 
       {/* Main Content */}
@@ -254,7 +240,7 @@ const AdminWarehouseImports = () => {
         <div className="flex flex-col items-start px-[15px] py-0 relative rounded-[16px] w-full">
           {/* Table Container with Scroll */}
           <div className="w-full overflow-x-auto">
-            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full min-w-[1600px]">
+            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-fit">
               {/* Table Header */}
               <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
                 <div className="flex flex-row items-center w-full">

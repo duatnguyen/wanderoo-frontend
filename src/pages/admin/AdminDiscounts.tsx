@@ -352,7 +352,9 @@ const AdminDiscounts: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Badge
-                      className={`text-xs px-2 py-1 ${getStatusColor(voucher.status)}`}
+                      className={`text-xs px-2 py-1 ${getStatusColor(
+                        voucher.status
+                      )}`}
                     >
                       {voucher.status}
                     </Badge>
