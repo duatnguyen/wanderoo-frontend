@@ -196,7 +196,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
 
   return (
     <aside className="w-[220px] shrink-0 bg-[#18345C] text-white">
-      <div className="flex h-full flex-col px-[16px] pb-8 py-[32px]">
+      <div className="flex h-full flex-col px-[16px] pb-8">
         <Link to="/admin/dashboard">
           <div className="flex flex-col items-center gap-4 text-center cursor-pointer">
             <img
@@ -208,7 +208,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
         </Link>
 
         {isSettingsMode ? (
-          <nav className="flex-1 overflow-y-auto">
+          <nav className="flex-1 overflow-y-auto admin-sidebar-scroll">
             <div className="py-4 space-y-[10px]">
               {settingsNavItems.map((item, index) =>
                 renderNavItem(item, `settings-${index}`)
@@ -217,7 +217,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
           </nav>
         ) : (
           <>
-            <nav className="flex-1 overflow-y-auto">
+            <nav className="flex-1 overflow-y-auto admin-sidebar-scroll">
               {adminNavSections.map(
                 (section: AdminNavSection, index: number) => {
                   const hasTitle = Boolean(section.title);
