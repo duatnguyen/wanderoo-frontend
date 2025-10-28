@@ -62,7 +62,8 @@ const AdminShipping: React.FC = () => {
     {
       id: "fast",
       name: "Nhanh",
-      description: "Phương thức vận chuyển chuyên nghiệp, nhanh chóng và đáng tin cậy",
+      description:
+        "Phương thức vận chuyển chuyên nghiệp, nhanh chóng và đáng tin cậy",
       isEnabled: true,
       isExpanded: false,
     },
@@ -81,7 +82,7 @@ const AdminShipping: React.FC = () => {
   };
 
   const handleUpdate = (addressId: string) => {
-    const address = addresses.find(addr => addr.id === addressId);
+    const address = addresses.find((addr) => addr.id === addressId);
     if (address) {
       setEditingAddress(address);
       setShowAddressForm(true);
@@ -116,8 +117,8 @@ const AdminShipping: React.FC = () => {
   };
 
   const handleToggleShipping = (methodId: string) => {
-    setShippingMethods(prev =>
-      prev.map(method =>
+    setShippingMethods((prev) =>
+      prev.map((method) =>
         method.id === methodId
           ? { ...method, isEnabled: !method.isEnabled }
           : method
@@ -126,8 +127,8 @@ const AdminShipping: React.FC = () => {
   };
 
   const handleToggleExpand = (methodId: string) => {
-    setShippingMethods(prev =>
-      prev.map(method =>
+    setShippingMethods((prev) =>
+      prev.map((method) =>
         method.id === methodId
           ? { ...method, isExpanded: !method.isExpanded }
           : method
@@ -137,6 +138,13 @@ const AdminShipping: React.FC = () => {
 
   return (
     <div className="flex flex-col gap-[10px] items-start p-[32px] w-full">
+      {/* Header */}
+      <div className="w-full mb-4">
+        <h1 className="text-[24px] font-bold text-[#272424] font-montserrat leading-[100%]">
+          Vận chuyển
+        </h1>
+      </div>
+
       {/* Tab Menu */}
       <TabMenuAccount
         tabs={tabs}
@@ -150,70 +158,29 @@ const AdminShipping: React.FC = () => {
         /* Address Cards */
         <div className="flex flex-col gap-[10px] items-start w-full">
           {/* Add New Address Button */}
-          <Button onClick={handleAddNewAddress}>
-            Thêm địa chỉ mới
-          </Button>
-          
+          <Button onClick={handleAddNewAddress}>Thêm địa chỉ mới</Button>
+
           <div className="bg-white border border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full">
-          {addresses.map((address, index) => (
-            <div
-              key={address.id}
-              className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${
-                index === 0 ? "border-b border-[#d1d1d1]" : ""
-              }`}
-            >
-              {/* Header with name, phone and update button */}
-              <div className="flex items-center justify-between w-full">
-                <div className="flex gap-[2px] items-center text-[16px]">
-                  <span className="font-semibold text-[#272424] leading-[1.4]">
-                    {address.name}
-                  </span>
-                  <span className="font-normal text-black leading-[1.4]">|</span>
-                  <span className="font-normal text-[#272424] leading-[1.4]">
-                    {address.phone}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleUpdate(address.id)}
-                  className="font-semibold text-[#1a71f6] text-[16px] leading-[1.4] cursor-pointer"
-                >
-                  Cập nhật
-                </button>
-              </div>
-
-              {/* Address and set default button */}
-              <div className="flex items-center justify-between w-full">
-                <span className="font-normal text-[#272424] text-[16px] leading-[1.4]">
-                  {address.address}
-                </span>
-                <button
-                  onClick={() => handleSetDefault(address.id)}
-                  className="bg-white border border-[#e04d30] flex gap-[4px] items-center px-[8px] py-[6px] rounded-[10px] opacity-40"
-                >
-                  <span className="font-medium text-[#e04d30] text-[14px] leading-[1.4]">
-                    Thiết lập địa chỉ mặc định
-                  </span>
-                </button>
-              </div>
-
-              {/* Default address chip */}
-              {address.isDefault && (
-                <div className="bg-[#b2ffb4] flex gap-[10px] items-start px-[8px] py-[6px] rounded-[10px]">
-                  <span className="font-semibold text-[#04910c] text-[14px] leading-[1.4]">
-                    Địa chỉ mặc định
-                  </span>
-                </div>
-              )}
-
-              {/* Action buttons for non-default addresses */}
-              {!address.isDefault && (
-                <div className="flex gap-[24px] items-center justify-center">
-                  <button
-                    onClick={() => handleDelete(address.id)}
-                    className="font-semibold text-[#1a71f6] text-[16px] leading-[1.4] cursor-pointer"
-                  >
-                    Xóa
-                  </button>
+            {addresses.map((address, index) => (
+              <div
+                key={address.id}
+                className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${
+                  index === 0 ? "border-b border-[#d1d1d1]" : ""
+                }`}
+              >
+                {/* Header with name, phone and update button */}
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex gap-[2px] items-center text-[16px]">
+                    <span className="font-semibold text-[#272424] leading-[1.4]">
+                      {address.name}
+                    </span>
+                    <span className="font-normal text-black leading-[1.4]">
+                      |
+                    </span>
+                    <span className="font-normal text-[#272424] leading-[1.4]">
+                      {address.phone}
+                    </span>
+                  </div>
                   <button
                     onClick={() => handleUpdate(address.id)}
                     className="font-semibold text-[#1a71f6] text-[16px] leading-[1.4] cursor-pointer"
@@ -221,9 +188,50 @@ const AdminShipping: React.FC = () => {
                     Cập nhật
                   </button>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Address and set default button */}
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-normal text-[#272424] text-[16px] leading-[1.4]">
+                    {address.address}
+                  </span>
+                  <button
+                    onClick={() => handleSetDefault(address.id)}
+                    className="bg-white border border-[#e04d30] flex gap-[4px] items-center px-[8px] py-[6px] rounded-[10px] opacity-40"
+                  >
+                    <span className="font-medium text-[#e04d30] text-[14px] leading-[1.4]">
+                      Thiết lập địa chỉ mặc định
+                    </span>
+                  </button>
+                </div>
+
+                {/* Default address chip */}
+                {address.isDefault && (
+                  <div className="bg-[#b2ffb4] flex gap-[10px] items-start px-[8px] py-[6px] rounded-[10px]">
+                    <span className="font-semibold text-[#04910c] text-[14px] leading-[1.4]">
+                      Địa chỉ mặc định
+                    </span>
+                  </div>
+                )}
+
+                {/* Action buttons for non-default addresses */}
+                {!address.isDefault && (
+                  <div className="flex gap-[24px] items-center justify-center">
+                    <button
+                      onClick={() => handleDelete(address.id)}
+                      className="font-semibold text-[#1a71f6] text-[16px] leading-[1.4] cursor-pointer"
+                    >
+                      Xóa
+                    </button>
+                    <button
+                      onClick={() => handleUpdate(address.id)}
+                      className="font-semibold text-[#1a71f6] text-[16px] leading-[1.4] cursor-pointer"
+                    >
+                      Cập nhật
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       ) : (
@@ -274,14 +282,16 @@ const AdminShipping: React.FC = () => {
                     >
                       <div
                         className={`absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow-md transform transition-transform duration-200 ${
-                          method.isEnabled ? "translate-x-[24px]" : "translate-x-[2px]"
+                          method.isEnabled
+                            ? "translate-x-[24px]"
+                            : "translate-x-[2px]"
                         }`}
                       />
                     </div>
                   </div>
                 </div>
               )}
-          </div>
+            </div>
           ))}
         </div>
       )}
@@ -292,12 +302,16 @@ const AdminShipping: React.FC = () => {
           <div className="relative w-full max-w-[600px] mx-4">
             <AddressForm
               title={editingAddress ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới"}
-              initialData={editingAddress ? {
-                fullName: editingAddress.name,
-                phone: editingAddress.phone,
-                detailAddress: editingAddress.address,
-                isDefault: editingAddress.isDefault,
-              } : undefined}
+              initialData={
+                editingAddress
+                  ? {
+                      fullName: editingAddress.name,
+                      phone: editingAddress.phone,
+                      detailAddress: editingAddress.address,
+                      isDefault: editingAddress.isDefault,
+                    }
+                  : undefined
+              }
               onSubmit={handleAddressFormSubmit}
               onCancel={handleAddressFormCancel}
             />
