@@ -131,51 +131,43 @@ const AdminWarehouseReturnsImport = () => {
   };
 
   return (
-    <div className="box-border flex flex-col gap-[10px] items-start px-[20px] py-[32px] relative w-full max-w-full overflow-hidden">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden p-[10px] w-full gap-1">
       {/* Header */}
-      <div className="box-border flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] relative shrink-0 w-full">
-        <div className="flex items-center justify-between relative shrink-0 w-full">
-          <div className="flex gap-[8px] items-center relative shrink-0">
-            <div className="flex gap-[4px] items-center justify-center relative shrink-0">
-              <div className="flex flex-row items-center self-stretch">
-                <div className="flex gap-[10px] h-full items-end justify-center relative shrink-0">
-                  <h1 className="font-['Montserrat'] font-bold text-[24px] text-[#272424] leading-normal">
-                    Danh sách đơn trả hàng nhập
-                  </h1>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-[10px] items-center relative shrink-0">
-            <Button
-              onClick={() => navigate("/admin/warehouse/returns/create")}
-              variant="default"
-            >
-              Tạo đơn trả hàng nhập
-            </Button>
-          </div>
-        </div>
+      <div className="flex items-center justify-between py-[4px] px-0 h-[32px] w-full mb-2">
+        <h1 className="font-bold text-[18px] text-[#272424] font-['Montserrat']">
+          Danh sách đơn trả hàng nhập
+        </h1>
+        <Button
+          onClick={() => navigate("/admin/warehouse/returns/create")}
+          className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]"
+        >
+          <span className="font-bold text-[11px] leading-normal">
+            Tạo đơn trả hàng nhập
+          </span>
+        </Button>
       </div>
 
       {/* Main Content */}
-      <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[15px] items-start px-[24px] py-[16px] relative rounded-[25px] shrink-0 w-full">
+      <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-[1100px] gap-1 flex-1 overflow-hidden">
         {/* Search and Filter Section */}
-        <div className="flex flex-col gap-[10px] items-start relative shrink-0 w-full">
-          <div className="flex gap-[38px] items-start relative shrink-0">
-            <SearchBar
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm kiếm"
-              className="w-[500px]"
-            />
+        <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full">
+          <div className="flex gap-[8px] items-center justify-left relative w-full">
+            <div className="flex flex-row items-center self-stretch">
+              <SearchBar
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm kiếm"
+                className="w-[500px]"
+              />
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="bg-white border-2 border-[#e04d30] box-border flex gap-[6px] items-center justify-center px-[24px] py-[12px] rounded-[12px] cursor-pointer">
-                  <span className="font-['Montserrat'] font-semibold text-[#e04d30] text-[12px] leading-[1.4]">
+                <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer">
+                  <span className="text-[#e04d30] text-[11px] font-semibold leading-[1.4]">
                     Trạng thái hoàn hàng
                   </span>
                   <CaretDown className="text-[#e04d30]" />
-                </button>
+                </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={() => {}}>
@@ -192,169 +184,142 @@ const AdminWarehouseReturnsImport = () => {
           </div>
         </div>
 
-        {/* Table Section with Horizontal Scroll */}
-        <div className="bg-white border border-[#e7e7e7] box-border flex flex-col items-start relative rounded-[16px] shrink-0 w-full">
+        {/* Table Section */}
+        <div className="flex flex-col items-start px-[15px] py-0 relative rounded-[16px] w-full">
+          {/* Table Container with Scroll */}
           <div className="w-full overflow-x-auto">
-            <div className="min-w-[1400px]">
+            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-fit">
               {/* Table Header */}
-              <div className="flex flex-col gap-[10px] items-start relative rounded-[24px] shrink-0 w-full">
-                <div className="flex items-center relative shrink-0 w-full">
-                  <div className="flex flex-row items-center self-stretch">
-                    <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] h-full items-center justify-center pb-[17px] pt-[16px] px-[16px] relative rounded-tl-[12px] shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Mã đơn trả
-                      </p>
-                    </div>
+              <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
+                <div className="flex flex-row items-center w-full">
+                  <div className="flex h-full items-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                      Mã đơn trả
+                    </span>
                   </div>
-                  <div className="flex flex-row items-center self-stretch">
-                    <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] h-full items-center justify-center pb-[17px] pt-[16px] px-[16px] relative shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Mã đơn nhập
-                      </p>
-                    </div>
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Mã đơn nhập
+                    </span>
                   </div>
-                  <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                    <div className="basis-0 bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px pb-[17px] pt-[16px] px-[16px] relative shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Ngày tạo
-                      </p>
-                    </div>
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Ngày tạo
+                    </span>
                   </div>
-                  <div className="basis-0 bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] grow items-center justify-center min-h-px min-w-px pb-[17px] pt-[16px] px-[16px] relative shrink-0">
-                    <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
                       Phương thức thanh toán
-                    </p>
+                    </span>
                   </div>
-                  <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                    <div className="basis-0 bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px pb-[17px] pt-[16px] px-[16px] relative shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Trạng thái hoàn hàng
-                      </p>
-                    </div>
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Trạng thái hoàn hàng
+                    </span>
                   </div>
-                  <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                    <div className="basis-0 bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px pb-[17px] pt-[16px] px-[16px] relative shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Trạng thái hoàn tiền
-                      </p>
-                    </div>
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Trạng thái hoàn tiền
+                    </span>
                   </div>
-                  <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                    <div className="basis-0 bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px pb-[17px] pt-[16px] px-[16px] relative shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Nhà cung cấp
-                      </p>
-                    </div>
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Nhà cung cấp
+                    </span>
                   </div>
-                  <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                    <div className="basis-0 bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px pb-[17px] pt-[16px] px-[16px] relative shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Người tạo
-                      </p>
-                    </div>
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Người tạo
+                    </span>
                   </div>
-                  <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                    <div className="basis-0 bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px pb-[17px] pt-[16px] px-[16px] relative shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Số lượng trả
-                      </p>
-                    </div>
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Số lượng trả
+                    </span>
                   </div>
-                  <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                    <div className="basis-0 bg-[#f6f6f6] border-b border-[#e7e7e7] box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px pb-[17px] pt-[16px] px-[16px] relative rounded-tr-[12px] shrink-0">
-                      <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[#272424] text-[12px] text-center">
-                        Giá trị đơn
-                      </p>
+                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[130px] min-w-[130px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                      Giá trị đơn
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table Body */}
+              {paginatedReturns.map((returnItem, index) => (
+                <div
+                  key={returnItem.id}
+                  className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full ${
+                    index === paginatedReturns.length - 1
+                      ? "border-transparent"
+                      : "border-[#e7e7e7]"
+                  } hover:bg-gray-50 cursor-pointer`}
+                  onClick={() =>
+                    navigate(`/admin/warehouse/returns/${returnItem.id}`)
+                  }
+                >
+                  <div className="flex items-center w-full">
+                    <div className="flex flex-row items-center w-full">
+                      <div className="flex h-full items-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                        <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-left">
+                          {returnItem.returnCode}
+                        </span>
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                        <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-center">
+                          {returnItem.importCode}
+                        </span>
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
+                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                          {formatDate(returnItem.createdDate)}
+                        </span>
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                        {getPaymentMethodChip(returnItem.paymentMethod)}
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                        {getReturnStatusChip(returnItem.returnStatus)}
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                        {getRefundStatusChip(returnItem.refundStatus)}
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
+                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                          {returnItem.supplier}
+                        </span>
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                          {returnItem.createdBy}
+                        </span>
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                          {returnItem.returnQuantity}
+                        </span>
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[130px] min-w-[130px]">
+                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                          {formatCurrency(returnItem.totalValue)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Table Body */}
-                {paginatedReturns.map((returnItem) => (
-                  <div
-                    key={returnItem.id}
-                    className="flex items-center relative shrink-0 w-full hover:bg-gray-50 cursor-pointer"
-                    onClick={() =>
-                      navigate(`/admin/warehouse/returns/${returnItem.id}`)
-                    }
-                  >
-                    <div className="flex flex-row items-center self-stretch">
-                      <div className="box-border flex gap-[10px] h-full items-center justify-center p-[16px] relative shrink-0 w-[99px]">
-                        <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[12px] text-[#1a71f6] text-center">
-                          {returnItem.returnCode}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-row items-center self-stretch">
-                      <div className="box-border flex gap-[10px] h-full items-center justify-center p-[16px] relative shrink-0 w-[114px]">
-                        <p className="font-['Montserrat'] font-semibold leading-[1.4] text-[12px] text-[#1a71f6] text-center">
-                          {returnItem.importCode}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                      <div className="basis-0 box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px p-[16px] relative shrink-0">
-                        <p className="font-['Montserrat'] font-normal leading-[1.5] text-[#272424] text-[12px] text-center">
-                          {formatDate(returnItem.createdDate)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                      <div className="basis-0 box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px p-[16px] relative shrink-0">
-                        {getPaymentMethodChip(returnItem.paymentMethod)}
-                      </div>
-                    </div>
-                    <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                      <div className="basis-0 box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px p-[16px] relative shrink-0">
-                        {getReturnStatusChip(returnItem.returnStatus)}
-                      </div>
-                    </div>
-                    <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                      <div className="basis-0 box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px p-[16px] relative shrink-0">
-                        {getRefundStatusChip(returnItem.refundStatus)}
-                      </div>
-                    </div>
-                    <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                      <div className="basis-0 box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px p-[16px] relative shrink-0">
-                        <p className="font-['Montserrat'] font-normal leading-[1.5] text-[#272424] text-[12px] text-center">
-                          {returnItem.supplier}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                      <div className="basis-0 box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px p-[16px] relative shrink-0">
-                        <p className="font-['Montserrat'] font-normal leading-[1.5] text-[#272424] text-[12px] text-center">
-                          {returnItem.createdBy}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                      <div className="basis-0 box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px p-[16px] relative shrink-0">
-                        <p className="font-['Montserrat'] font-normal leading-[1.5] text-[#272424] text-[12px] text-center">
-                          {returnItem.returnQuantity}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                      <div className="basis-0 box-border flex gap-[10px] grow h-full items-center justify-center min-h-px min-w-px p-[16px] relative shrink-0">
-                        <p className="font-['Montserrat'] font-normal leading-[1.5] text-[#272424] text-[12px] text-center">
-                          {formatCurrency(returnItem.totalValue)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Pagination */}
-        <Pagination
-          current={currentPage}
-          total={totalPages}
-          onChange={setCurrentPage}
-        />
+        <div className="px-[15px] py-[8px] w-full flex-shrink-0">
+          <Pagination
+            current={currentPage}
+            total={totalPages}
+            onChange={setCurrentPage}
+          />
+        </div>
       </div>
     </div>
   );

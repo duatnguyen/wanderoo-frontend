@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
+import PajamasTodoDoneIcon from "@/assets/icons/social/pajamas_todo-done.svg";
 
 interface ReturnImportDetail {
   id: string;
@@ -121,8 +122,12 @@ const AdminWarehouseDetailReturnImport = () => {
       <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
         {/* Header with status icon and title */}
         <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
-          <div className="w-10 h-10 relative overflow-hidden">
-            <div className="w-[37.45px] h-[35px] left-[2.50px] top-[2.50px] absolute bg-[#04910C]"></div>
+          <div className="w-10 h-10 relative">
+            <img
+              src={PajamasTodoDoneIcon}
+              alt="Success icon"
+              className="w-full h-full"
+            />
           </div>
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
             Đã hoàn trả
@@ -133,7 +138,7 @@ const AdminWarehouseDetailReturnImport = () => {
         <div className="self-stretch h-[50px] bg-[#F6F6F6] justify-start items-start inline-flex">
           <div className="w-[400px] self-stretch px-[14px] overflow-hidden border-l border-[#D1D1D1] justify-start items-center flex">
             <div className="w-[22px] h-0 transform rotate-[-90deg] origin-top-left">
-              {/* icon place here */}
+              {" "}
             </div>
             <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
               Sản phẩm
@@ -201,10 +206,12 @@ const AdminWarehouseDetailReturnImport = () => {
       <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
         {/* Header with refund status */}
         <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
-          <div className="w-10 h-10 relative overflow-hidden">
-            <div className="w-[37.45px] h-[35px] left-[2.50px] top-[2.50px] absolute bg-[#04910C]">
-              {/* icon place here */}
-            </div>
+          <div className="w-10 h-10 relative">
+            <img
+              src={PajamasTodoDoneIcon}
+              alt="Success icon"
+              className="w-full h-full"
+            />
           </div>
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
             Đã nhận hoàn tiền

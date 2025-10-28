@@ -15,15 +15,18 @@ export type ChipStatusKey =
   | "disabled"
   | "default";
 
-const CHIP_STYLES: Record<ChipStatusKey, { bg: string; text: string; label: string }> = {
+const CHIP_STYLES: Record<
+  ChipStatusKey,
+  { bg: string; text: string; label: string }
+> = {
   processing: { bg: "#cce5ff", text: "#004085", label: "Đang giao dịch" },
   completed: { bg: "#b2ffb4", text: "#04910c", label: "Hoàn thành" },
   not_imported: { bg: "#ffdcdc", text: "#eb2b0b", label: "Chưa nhập" },
   imported: { bg: "#b2ffb4", text: "#04910c", label: "Đã nhập" },
   paid: { bg: "#b2ffb4", text: "#04910c", label: "Đã thanh toán" },
-  unpaid: { bg: "#ffdcdc", text: "#eb2b0b", label: "Chưa thanh toán" },
-  cash: { bg: "#fff3cd", text: "#856404", label: "Tiền mặt" },
-  transfer: { bg: "#cce5ff", text: "#004085", label: "Chuyển khoản" },
+  unpaid: { bg: "#FFDCDC", text: "#FF0000", label: "Chưa thanh toán" },
+  cash: { bg: "#DCD2FF", text: "#7F27FF", label: "Tiền mặt" },
+  transfer: { bg: "#FFF5C5", text: "#E27D00", label: "Chuyển khoản" },
   active: { bg: "#b2ffb4", text: "#04910c", label: "Đang kích hoạt" },
   disabled: { bg: "#ffdcdc", text: "#eb2b0b", label: "Đã khóa" },
   default: { bg: "#f1f5f9", text: "#0f172a", label: "Trạng thái" },
@@ -58,5 +61,3 @@ export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
 };
 
 export default ChipStatus;
-
-
