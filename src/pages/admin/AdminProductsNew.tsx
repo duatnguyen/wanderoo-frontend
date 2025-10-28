@@ -9,6 +9,7 @@ import {
 } from "../../components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { Icon } from "../../components/icons";
+import ImageUpload from "../../components/ui/image-upload";
 
 const AdminProductsNew: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -39,7 +40,6 @@ const AdminProductsNew: React.FC = () => {
   const [images, setImages] = useState<
     Array<{ id: string; url: string; file?: File }>
   >([]);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -164,59 +164,6 @@ const AdminProductsNew: React.FC = () => {
     setCurrentAttribute({ name: "", value: "" });
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    const newImages: Array<{ id: string; url: string; file: File }> = [];
-    const remainingSlots = 9 - images.length;
-
-    for (let i = 0; i < Math.min(files.length, remainingSlots); i++) {
-      const file = files[i];
-
-      // Check file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        alert(`${file.name} vượt quá dung lượng 2MB`);
-        continue;
-      }
-
-      // Check file type
-      if (!file.type.startsWith("image/")) {
-        alert(`${file.name} không phải là file hình ảnh`);
-        continue;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          newImages.push({
-            id: `${Date.now()}-${i}`,
-            url: e.target.result as string,
-            file: file,
-          });
-
-          if (newImages.length === Math.min(files.length, remainingSlots)) {
-            setImages((prev) => [...prev, ...newImages]);
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
-    // Reset input
-    if (event.target) {
-      event.target.value = "";
-    }
-  };
-
-  const handleRemoveImage = (id: string) => {
-    setImages((prev) => prev.filter((img) => img.id !== id));
-  };
-
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
   return (
     <div className="w-full h-full flex flex-col gap-3 px-[50px] py-8">
       {/* Header */}
@@ -231,75 +178,13 @@ const AdminProductsNew: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-[22px] w-full">
         {/* Image Upload Section */}
-        <div className="w-full">
-          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-1">
-                <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                  *
-                </span>
-                <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
-                  Hình ảnh sản phẩm
-                </h2>
-              </div>
-              <p className="text-[10px] font-medium text-[#272424] font-montserrat leading-[140%]">
-                <span className="text-[#eb2b0b]">Note:</span>
-                <span>
-                  {" "}
-                  Kéo thả hoặc thêm ảnh từ URL, tải ảnh lên từ thiết bị (Dung
-                  lượng ảnh tối đa 2MB)
-                </span>
-              </p>
-            </div>
-
-            <div className="flex gap-4 flex-wrap">
-              {/* Display uploaded images */}
-              {images.map((image) => (
-                <div
-                  key={image.id}
-                  className="relative bg-white border-2 border-dashed border-[#e04d30] rounded-[8px] w-[120px] h-[120px] overflow-hidden group"
-                >
-                  <img
-                    src={image.url}
-                    alt="Product"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Remove button */}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(image.id)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    <Icon name="close" size={16} color="white" />
-                  </button>
-                </div>
-              ))}
-
-              {/* Add image button - only show if less than 9 images */}
-              {images.length < 9 && (
-                <div
-                  onClick={handleImageClick}
-                  className="bg-[#ffeeea] border-2 border-dashed border-[#e04d30] rounded-[8px] w-[120px] h-[120px] flex flex-col items-center justify-center gap-2 p-5 cursor-pointer hover:bg-[#ffe4dd] transition-colors"
-                >
-                  <Icon name="image" size={32} />
-                  <p className="text-[10px] font-medium text-[#737373] font-montserrat text-center">
-                    Thêm hình ảnh ({images.length}/9)
-                  </p>
-                </div>
-              )}
-
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-            </div>
-          </div>
-        </div>
+        <ImageUpload
+          images={images}
+          onImagesChange={setImages}
+          maxImages={9}
+          maxSizeInMB={2}
+          required={true}
+        />
 
         {/* Basic Information Section */}
         <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">

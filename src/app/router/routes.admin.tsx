@@ -46,6 +46,9 @@ const AdminOrderOtherStatus = lazy(
 const AdminProductsCategories = lazy(
   () => import("../../pages/admin/AdminProductsCategories")
 );
+const AdminProductsCategoryDetail = lazy(
+  () => import("../../pages/admin/AdminProductsCategoryDetail")
+);
 const AdminProductsNew = lazy(
   () => import("../../pages/admin/AdminProductsNew")
 );
@@ -143,6 +146,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminProductsCategories />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "products/categories/:categoryId",
+    element: (
+      <LazyWrapper>
+        <AdminProductsCategoryDetail />
       </LazyWrapper>
     ),
   },
