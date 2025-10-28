@@ -2,16 +2,18 @@
 
 /* Montserrat Font Faces - Self-hosted for offline support */
 @font-face {
-  font-family: 'Montserrat';
-  src: url('/fonts/montserrat/Montserrat-VariableFont_wght.ttf') format('truetype-variations');
+  font-family: "Montserrat";
+  src: url("/fonts/montserrat/Montserrat-VariableFont_wght.ttf")
+    format("truetype-variations");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Montserrat';
-  src: url('/fonts/montserrat/Montserrat-Italic-VariableFont_wght.ttf') format('truetype-variations');
+  font-family: "Montserrat";
+  src: url("/fonts/montserrat/Montserrat-Italic-VariableFont_wght.ttf")
+    format("truetype-variations");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -19,32 +21,33 @@
 
 /* Fallback static fonts for better browser compatibility */
 @font-face {
-  font-family: 'Montserrat';
-  src: url('/fonts/montserrat/static/Montserrat-Regular.ttf') format('truetype');
+  font-family: "Montserrat";
+  src: url("/fonts/montserrat/static/Montserrat-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Montserrat';
-  src: url('/fonts/montserrat/static/Montserrat-Medium.ttf') format('truetype');
+  font-family: "Montserrat";
+  src: url("/fonts/montserrat/static/Montserrat-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Montserrat';
-  src: url('/fonts/montserrat/static/Montserrat-SemiBold.ttf') format('truetype');
+  font-family: "Montserrat";
+  src: url("/fonts/montserrat/static/Montserrat-SemiBold.ttf")
+    format("truetype");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Montserrat';
-  src: url('/fonts/montserrat/static/Montserrat-Bold.ttf') format('truetype');
+  font-family: "Montserrat";
+  src: url("/fonts/montserrat/static/Montserrat-Bold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -74,7 +77,8 @@
 
 body {
   margin: 0;
-  font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 #root {
@@ -83,18 +87,18 @@ body {
 
 /* Custom Wanderoo Sidebar Styling */
 .sidebar-wanderoo {
-  --sidebar: #18345C;
+  --sidebar: #18345c;
   --sidebar-foreground: rgba(255, 255, 255, 0.9);
-  --sidebar-primary: #FF6F3C;
+  --sidebar-primary: #ff6f3c;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: rgba(255, 255, 255, 0.1);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #FF6F3C;
+  --sidebar-ring: #ff6f3c;
 }
 
 /* Sidebar Menu Button Styling - Modern */
-.sidebar-wanderoo [data-sidebar=menu-button] {
+.sidebar-wanderoo [data-sidebar="menu-button"] {
   @apply text-white/70 hover:text-white hover:bg-white/10;
   @apply rounded-xl px-5 py-3 text-sm font-medium tracking-wide;
   @apply transition-all duration-200;
@@ -102,12 +106,12 @@ body {
   margin-bottom: 4px;
 }
 
-.sidebar-wanderoo [data-sidebar=menu-button][data-active=true] {
+.sidebar-wanderoo [data-sidebar="menu-button"][data-active="true"] {
   @apply bg-[#FF6F3C] text-white;
   @apply shadow-[0_12px_28px_rgba(255,111,60,0.35)];
 }
 
-.sidebar-wanderoo [data-sidebar=menu-button]:hover:not([data-active=true]) {
+.sidebar-wanderoo [data-sidebar="menu-button"]:hover:not([data-active="true"]) {
   @apply bg-white/10 text-white;
 }
 
@@ -115,76 +119,76 @@ body {
 .sidebar-wanderoo {
   height: 100vh;
   max-height: 100vh;
-  background: linear-gradient(180deg, #18345C 0%, #1a3a65 100%);
+  background: linear-gradient(180deg, #18345c 0%, #1a3a65 100%);
 }
 
-.sidebar-wanderoo [data-sidebar=content] {
+.sidebar-wanderoo [data-sidebar="content"] {
   overflow-y: auto !important;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
   padding: 0 24px;
 }
 
-.sidebar-wanderoo [data-sidebar=content]::-webkit-scrollbar {
+.sidebar-wanderoo [data-sidebar="content"]::-webkit-scrollbar {
   width: 4px;
 }
 
-.sidebar-wanderoo [data-sidebar=content]::-webkit-scrollbar-track {
+.sidebar-wanderoo [data-sidebar="content"]::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.sidebar-wanderoo [data-sidebar=content]::-webkit-scrollbar-thumb {
+.sidebar-wanderoo [data-sidebar="content"]::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
   border-radius: 2px;
 }
 
-.sidebar-wanderoo [data-sidebar=content]::-webkit-scrollbar-thumb:hover {
+.sidebar-wanderoo [data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
 }
 
 /* Group Labels */
-.sidebar-wanderoo [data-sidebar=group-label] {
+.sidebar-wanderoo [data-sidebar="group-label"] {
   @apply text-white/45 text-xs font-semibold uppercase tracking-[0.3em] px-2 py-1;
 }
 
 /* Sidebar Header */
-.sidebar-wanderoo [data-sidebar=header] {
+.sidebar-wanderoo [data-sidebar="header"] {
   @apply px-6 pt-10 pb-6;
 }
 
 /* Sidebar Footer */
-.sidebar-wanderoo [data-sidebar=footer] {
+.sidebar-wanderoo [data-sidebar="footer"] {
   @apply px-6 pb-8;
 }
 
 /* Sidebar Groups */
-.sidebar-wanderoo [data-sidebar=group] {
+.sidebar-wanderoo [data-sidebar="group"] {
   @apply px-0;
 }
 
 /* Sidebar Group Content */
-.sidebar-wanderoo [data-sidebar=group-content] {
+.sidebar-wanderoo [data-sidebar="group-content"] {
   @apply px-0;
 }
 
 /* Sidebar Menu */
-.sidebar-wanderoo [data-sidebar=menu] {
+.sidebar-wanderoo [data-sidebar="menu"] {
   @apply space-y-1;
 }
 
 /* Sidebar Menu Item */
-.sidebar-wanderoo [data-sidebar=menu-item] {
+.sidebar-wanderoo [data-sidebar="menu-item"] {
   @apply relative;
 }
 
 /* Sidebar Menu Action */
-.sidebar-wanderoo [data-sidebar=menu-action] {
+.sidebar-wanderoo [data-sidebar="menu-action"] {
   @apply text-white/70 hover:text-white hover:bg-white/10;
   @apply rounded-lg p-1.5 transition-all duration-200;
 }
 
 /* Sidebar Rail */
-.sidebar-wanderoo [data-sidebar=rail] {
+.sidebar-wanderoo [data-sidebar="rail"] {
   @apply bg-white/10;
 }
 
@@ -224,7 +228,6 @@ body {
   --chart-5: 27 87% 67%;
 }
 
-
 @layer base {
   * {
     @apply border-border;
@@ -235,9 +238,63 @@ body {
   }
 }
 
+/* Custom Table Scrollbar Styling - Horizontal Only */
+.table-scroll-horizontal {
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #e5e7eb;
+}
+
+.table-scroll-horizontal::-webkit-scrollbar {
+  height: 8px;
+  width: 0px; /* No vertical scrollbar */
+}
+
+.table-scroll-horizontal::-webkit-scrollbar-track {
+  background: #e5e7eb;
+  border-radius: 4px;
+}
+
+.table-scroll-horizontal::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+}
+
+.table-scroll-horizontal::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Custom Table Scrollbar Styling - Both directions (legacy) */
+.table-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #e5e7eb;
+}
+
+.table-scroll-container::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
+  background: #e5e7eb;
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Corner when both scrollbars are present */
+.table-scroll-container::-webkit-scrollbar-corner {
+  background: #e5e7eb;
+}
+
 /* Fix sidebar layout overlap - use shadcn/ui proper structure */
 @layer components {
-
   /* Ensure SidebarInset has proper peer styling */
   [data-sidebar="content"],
   .sidebar-inset {
@@ -246,16 +303,15 @@ body {
 
   /* When sidebar is expanded (default state) */
   @media (min-width: 768px) {
-
-    .peer[data-state="expanded"]~[data-sidebar="content"],
-    .peer[data-state="expanded"]~.sidebar-inset {
+    .peer[data-state="expanded"] ~ [data-sidebar="content"],
+    .peer[data-state="expanded"] ~ .sidebar-inset {
       margin-left: 16rem;
       /* --sidebar-width */
     }
 
     /* When sidebar is collapsed */
-    .peer[data-state="collapsed"]~[data-sidebar="content"],
-    .peer[data-state="collapsed"]~.sidebar-inset {
+    .peer[data-state="collapsed"] ~ [data-sidebar="content"],
+    .peer[data-state="collapsed"] ~ .sidebar-inset {
       margin-left: 3rem;
       /* --sidebar-width-icon */
     }
