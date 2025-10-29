@@ -16,14 +16,14 @@ export function FormInput({
     <div
       className={cn(
         "bg-white border-2 border-[#e04d30] flex items-center p-[16px] rounded-[12px] w-full",
-        containerClassName,
+        containerClassName
       )}
     >
       <input
         {...props}
         className={cn(
           "border-0 outline-none bg-transparent text-[12px] font-semibold placeholder:text-[#888888] text-[#888888] flex-1",
-          className,
+          className
         )}
       />
       {right ? <div className="ml-2 flex items-center">{right}</div> : null}
@@ -32,5 +32,3 @@ export function FormInput({
 }
 
 export default FormInput;
-
-

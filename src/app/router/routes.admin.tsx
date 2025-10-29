@@ -17,7 +17,9 @@ const AdminAccounting = lazy(() => import("../../pages/admin/AdminAccounting"));
 const AdminStaff = lazy(() => import("../../pages/admin/AdminStaff"));
 const AdminReports = lazy(() => import("../../pages/admin/AdminReports"));
 const AdminDiscounts = lazy(() => import("../../pages/admin/AdminDiscounts"));
-const AdminWebsite = lazy(() => import("../../pages/admin/AdminWebsite"));
+const AdminCreateVoucher = lazy(
+  () => import("../../pages/admin/AdminCreateVoucher")
+);
 const AdminPOS = lazy(() => import("../../pages/admin/AdminPOS"));
 const AdminWarehouseReturnsImport = lazy(
   () => import("../../pages/admin/AdminWarehouseReturnsImport")
@@ -59,6 +61,7 @@ const AdminSupplierNew = lazy(
 const AdminSupplierDetail = lazy(
   () => import("../../pages/admin/AdminSupplierDetail")
 );
+const AdminWebsite = lazy(() => import("../../pages/admin/AdminWebsite"));
 
 export const adminRoutes: RouteObject[] = [
   {
@@ -361,7 +364,7 @@ export const adminRoutes: RouteObject[] = [
     path: "discounts/new",
     element: (
       <LazyWrapper>
-        <AdminDiscounts />
+        <AdminCreateVoucher />
       </LazyWrapper>
     ),
   },

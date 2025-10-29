@@ -1,5 +1,6 @@
 // src/pages/admin/AdminDiscounts.tsx
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
 import TabMenuAccount from "@/components/ui/tab-menu-account";
@@ -116,6 +117,7 @@ const voucherTypes = {
 };
 
 const AdminDiscounts: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
@@ -134,7 +136,7 @@ const AdminDiscounts: React.FC = () => {
 
   const handleCreateVoucher = (type: string) => {
     console.log("Creating voucher of type:", type);
-    // Navigate to create voucher page
+    navigate("/admin/discounts/new");
   };
 
   return (
