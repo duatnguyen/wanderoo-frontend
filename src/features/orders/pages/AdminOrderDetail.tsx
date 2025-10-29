@@ -1,15 +1,12 @@
 // src/pages/admin/AdminOrderDetail.tsx
 import React from "react";
-import { ArrowLeft, MapPin, Truck, CreditCard, Package } from "lucide-react";
+import { ArrowLeft, MapPin, Truck, Wallet, Package } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 
 // Mock data cho order detail
 const orderDetail = {
-  id: "SPS78KQR",
+  id: "8F878Q29",
   status: "Đã hoàn thành",
   source: "Website",
   customer: {
@@ -17,9 +14,9 @@ const orderDetail = {
     avatar: "",
   },
   shipping: {
-    address: "03kcad4-658, Nguyên Thị Thạnh",
-    district: "Xóm *** - Gia Lâm *** Hà Nội Thái Bình",
-    method: "SPX #123FG24QN2",
+    address: "0862684255, Nguyễn Thị Thanh",
+    district: "Xóm *** - thị xã ***-tỉnh Thái Bình",
+    method: "SPX: #123F5124Q412",
   },
   timeline: [
     {
@@ -61,18 +58,26 @@ const orderDetail = {
       total: 750000,
       image: "/api/placeholder/80/80",
     },
+    {
+      id: 5,
+      name: "Gậy chống di chuyển dễ dàng Ryder Straight-Bar Hiki...",
+      price: 400000,
+      quantity: 3,
+      total: 1200000,
+      image: "/api/placeholder/80/80",
+    },
   ],
   summary: {
-    subtotal: 4600000,
+    subtotal: 5800000,
     shipping: 30000,
     fee: 34000,
-    total: 4596000,
+    total: 5796000,
   },
   payment: {
-    subtotal: 4600000,
+    subtotal: 5800000,
     shipping: 0,
     discount: 34000,
-    total: 4566000,
+    total: 5766000,
   },
 };
 
@@ -81,7 +86,7 @@ const AdminOrderDetail: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
 
   const handleBackClick = () => {
-    navigate("/admin/orders");
+    navigate(-1);
   };
 
   // Function to get order data based on orderId
@@ -96,6 +101,23 @@ const AdminOrderDetail: React.FC = () => {
 
   const currentOrder = getOrderData();
 
+  // Get status card styling based on order status
+  const getStatusCardStyle = () => {
+    if (currentOrder.status === "Đang giao") {
+      return {
+        bg: "bg-[#bbe1ff]",
+        text: "text-[#1a71f6]",
+      };
+    }
+    // Default: Đã hoàn thành
+    return {
+      bg: "bg-[#b2ffb4]",
+      text: "text-[#04910c]",
+    };
+  };
+
+  const statusCardStyle = getStatusCardStyle();
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -104,261 +126,356 @@ const AdminOrderDetail: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 p-3">
+    <div className="flex flex-col gap-[10px] items-center w-full">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="p-2"
-          onClick={handleBackClick}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-bold text-gray-900 ">
-          Chi tiết đơn hàng {currentOrder.id}
-        </h1>
+      <div className="flex flex-col gap-[8px] items-start justify-center w-full">
+        <div className="flex gap-[4px] items-center">
+          <button
+            onClick={handleBackClick}
+            className="relative shrink-0 size-[24px] flex items-center justify-center cursor-pointer"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#737373]" />
+          </button>
+          <h1 className="font-montserrat font-bold text-[#272424] text-[24px] leading-[1.5]">
+            Chi tiết đơn hàng
+          </h1>
+        </div>
       </div>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-green-600" />
-              <span className="font-medium text-green-800">
+      <div className="flex gap-[10px] items-center justify-center w-full">
+        <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
+          <div
+            className={`basis-0 ${statusCardStyle.bg} border border-[#d1d1d1] box-border flex gap-[8px] grow h-full items-center min-h-px min-w-px p-[12px] relative rounded-[18px] shrink-0`}
+          >
+            <div className="box-border flex gap-[6px] items-center px-[6px] py-[4px] relative shrink-0">
+              <span
+                className={`font-montserrat font-bold ${statusCardStyle.text} text-[20px] leading-[normal]`}
+              >
                 Trạng thái đơn: {currentOrder.status}
               </span>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-50 border-gray-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Truck className="h-5 w-5 text-gray-600" />
-              <span className="font-medium text-gray-800">
+          </div>
+        </div>
+        <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
+          <div className="basis-0 bg-[#e7e7e7] border border-[#d1d1d1] box-border flex gap-[8px] grow h-full items-center min-h-px min-w-px p-[12px] relative rounded-[18px] shrink-0">
+            <div className="box-border flex gap-[6px] items-center px-[6px] py-[4px] relative shrink-0">
+              <span className="font-montserrat font-bold text-[#272424] text-[20px] leading-[normal]">
                 Nguồn đơn: {currentOrder.source}
               </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Order Info */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Order ID */}
-            <div className="flex items-start gap-3">
-              <Package className="h-5 w-5 text-gray-600 mt-1" />
-              <div>
-                <p className="text-sm text-gray-600 ">Mã đơn hàng</p>
-                <p className="font-semibold text-gray-900 ">
-                  {currentOrder.id}
-                </p>
-              </div>
-            </div>
-
-            {/* Shipping Address */}
-            <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 text-gray-600 mt-1" />
-              <div>
-                <p className="text-sm text-gray-600 ">Địa chỉ nhận hàng</p>
-                <p className="font-medium text-gray-900 ">
-                  {currentOrder.shipping.address}
-                </p>
-                <p className="text-sm text-gray-600 ">
-                  {currentOrder.shipping.district}
-                </p>
-              </div>
-            </div>
-
-            {/* Shipping Method */}
-            <div className="flex items-start gap-3">
-              <Truck className="h-5 w-5 text-gray-600 mt-1" />
-              <div>
-                <p className="text-sm text-gray-600 ">Thông tin vận chuyển</p>
-                <p className="font-medium text-gray-900 ">
-                  {currentOrder.shipping.method}
-                </p>
-              </div>
+      <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[24px] relative rounded-[24px] w-full">
+        <div className="flex flex-row gap-[20px] items-start justify-between w-full">
+          <div className="flex gap-[12px] items-center">
+            <Package className="h-10 w-10 text-[#737373]" />
+            <div className="flex flex-col gap-[5px] items-start">
+              <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
+                Mã đơn hàng
+              </p>
+              <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+                {currentOrder.id}
+              </p>
             </div>
           </div>
+          <div className="flex gap-[18px] items-center">
+            <MapPin className="h-10 w-10 text-[#737373]" />
+            <div className="flex flex-col gap-[5px] items-start">
+              <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
+                Địa chỉ nhận hàng
+              </p>
+              <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+                {currentOrder.shipping.address}
+              </p>
+              <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+                {currentOrder.shipping.district}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-[15px] items-center w-[270px]">
+            <Truck className="h-10 w-10 text-[#737373]" />
+            <div className="flex flex-col gap-[5px] items-start">
+              <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
+                Thông tin vận chuyển
+              </p>
+              <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+                {currentOrder.shipping.method}
+              </p>
+            </div>
+          </div>
+        </div>
 
-          <Separator className="my-6" />
-
-          {/* Timeline */}
-          <div>
-            <h3 className="font-semibold text-gray-900  mb-4">
-              Lịch sử đơn hàng
-            </h3>
-            {currentOrder.timeline.map((item, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div>
-                  <p className="font-medium text-green-600">{item.status}</p>
-                  <p className="text-sm text-gray-600 ">{item.date}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto text-gray-600"
+        {/* Timeline */}
+        <div className="border border-[#e7e7e7] box-border flex h-[77px] items-start justify-between p-[12px] relative rounded-[24px] w-full">
+          <div className="box-border flex gap-[10px] items-start p-[10px] relative shrink-0">
+            <div
+              className={`flex items-center justify-center relative self-stretch shrink-0 ${
+                currentOrder.status === "Đang giao" ? "w-[33px]" : "w-[35px]"
+              }`}
+            >
+              <div className="flex-none h-full rotate-[90deg]">
+                <div
+                  className={`h-full relative ${
+                    currentOrder.status === "Đang giao"
+                      ? "w-[33px]"
+                      : "w-[35px]"
+                  }`}
                 >
-                  Mở rộng ↓
-                </Button>
+                  <div className="absolute inset-[-1px]">
+                    <svg
+                      width={currentOrder.status === "Đang giao" ? "33" : "35"}
+                      height="1"
+                      viewBox={`0 0 ${
+                        currentOrder.status === "Đang giao" ? "33" : "35"
+                      } 1`}
+                      fill="none"
+                      className="stroke-[#737373]"
+                    >
+                      <line
+                        x1="0"
+                        y1="0.5"
+                        x2={currentOrder.status === "Đang giao" ? "33" : "35"}
+                        y2="0.5"
+                        strokeWidth="1"
+                      />
+                    </svg>
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
+            {currentOrder.status === "Đang giao" ? (
+              <div className="flex flex-col font-montserrat font-medium gap-[5px] items-start leading-[normal] text-[10px] text-[#04910c] relative shrink-0">
+                <p className="leading-[1.4]">
+                  {currentOrder.timeline[0].status}
+                </p>
+                <p className="leading-[1.4]">{currentOrder.timeline[0].date}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col font-inter font-bold gap-[5px] items-start leading-[normal] text-[12px] text-[#04910c] relative shrink-0">
+                <p className="leading-[normal]">
+                  {currentOrder.timeline[0].status}
+                </p>
+                <p className="leading-[normal]">
+                  {currentOrder.timeline[0].date}
+                </p>
+              </div>
+            )}
           </div>
+          <div className="box-border flex gap-[10px] items-center justify-center p-[12px] relative rounded-[12px] shrink-0">
+            <span className="font-inter font-bold text-[12px] leading-[normal] text-[#888888]">
+              Mở rộng
+            </span>
+            <div className="relative shrink-0 size-[18px]">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M9 12L5 8M9 12L13 8M9 12V3"
+                  stroke="#888888"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
 
-          <Separator className="my-6" />
-
-          {/* Customer */}
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarFallback className="bg-gray-200">
+      {/* Customer */}
+      <div className="bg-white border-2 border-[#e7e7e7] box-border flex gap-[8px] items-center px-[24px] py-[8px] relative rounded-[24px] w-full">
+        <div className="basis-0 box-border flex gap-[6px] grow items-center min-h-px min-w-px px-[6px] py-[4px] relative shrink-0">
+          <div className="flex gap-[10px] items-center relative shrink-0 w-[205px]">
+            <Avatar className="relative rounded-[24px] size-[54px]">
+              <AvatarFallback className="bg-gray-200 rounded-[24px]">
                 {currentOrder.customer.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <span className="font-medium text-gray-900 ">
-              {currentOrder.customer.name}
-            </span>
+            <div className="flex gap-[8px] items-center relative shrink-0">
+              <span className="font-montserrat font-bold text-[#2a2a2a] text-[12px] leading-[1.5]">
+                {currentOrder.customer.name}
+              </span>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Order Items */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
+      {/* Payment Table */}
+      <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[24px] relative rounded-[24px] w-full">
+        <div className="box-border flex gap-[6px] items-center px-[6px] py-0 relative shrink-0 w-full">
+          <Wallet className="relative shrink-0 size-[24px]" />
+          <h2 className="font-montserrat font-semibold text-[#272424] text-[18px] leading-[1.4]">
             Thông tin thanh toán
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 text-sm font-medium text-gray-600 ">
-                    STT
-                  </th>
-                  <th className="text-left py-3 text-sm font-medium text-gray-600 ">
-                    Sản phẩm
-                  </th>
-                  <th className="text-center py-3 text-sm font-medium text-gray-600 ">
-                    Đơn giá
-                  </th>
-                  <th className="text-center py-3 text-sm font-medium text-gray-600 ">
-                    Số lượng
-                  </th>
-                  <th className="text-right py-3 text-sm font-medium text-gray-600 ">
-                    Thành tiền
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentOrder.items.map((item, index) => (
-                  <tr key={item.id} className="border-b">
-                    <td className="py-4">{index + 1}</td>
-                    <td className="py-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-16 h-16 rounded-lg object-cover bg-gray-100"
-                        />
-                        <span className="font-medium">{item.name}</span>
-                      </div>
-                    </td>
-                    <td className="text-center py-4">
-                      {formatCurrency(item.price)}
-                    </td>
-                    <td className="text-center py-4">{item.quantity}</td>
-                    <td className="text-right py-4 font-semibold">
-                      {formatCurrency(item.total)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          </h2>
+        </div>
+        <div className="flex flex-col items-start relative rounded-[24px] w-full">
+          {/* Table Header */}
+          <div className="flex items-start relative shrink-0 w-full">
+            <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] relative rounded-tl-[12px] self-stretch shrink-0 w-[70px]">
+              <div className="box-border flex gap-[8px] h-full items-center overflow-clip pb-[15px] pt-[14px] px-[14px] relative rounded-[inherit] w-[70px]">
+                <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                  STT
+                </p>
+              </div>
+            </div>
+            <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0 w-[400px]">
+              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                Sản phẩm
+              </p>
+            </div>
+            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-center min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0">
+              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                Đơn giá
+              </p>
+            </div>
+            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-center min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0">
+              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                Số lượng
+              </p>
+            </div>
+            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-end min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative rounded-tr-[16px] self-stretch shrink-0">
+              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                Thành tiền
+              </p>
+            </div>
           </div>
-
-          <Separator className="my-6" />
-
-          {/* Order Summary - Chỉ Doanh thu đơn hàng */}
-          <div>
-            {/* Doanh thu đơn hàng */}
-            <div>
-              <h4 className="font-semibold text-gray-900  mb-4">
-                Doanh thu đơn hàng
-              </h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 ">Tổng tiền sản phẩm:</span>
-                  <span className="font-medium">
+          {/* Table Body */}
+          {currentOrder.items.map((item, index) => (
+            <div
+              key={item.id}
+              className="border-[0px_1px_1px] border-[#e7e7e7] box-border flex items-center relative shrink-0 w-full"
+            >
+              <div className="flex flex-row items-center self-stretch">
+                <div className="box-border flex gap-[8px] h-full items-center p-[14px] relative shrink-0 w-[70px]">
+                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    {index + 1}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row items-center self-stretch">
+                <div className="box-border flex gap-[8px] h-full items-center justify-center p-[14px] relative shrink-0 w-[400px]">
+                  <div className="border-[0.5px] border-[#d1d1d1] relative rounded-[8px] shrink-0 size-[70px]">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[8px] size-full"
+                    />
+                  </div>
+                  <div className="basis-0 flex gap-[8px] grow h-full items-start min-h-px min-w-px relative shrink-0">
+                    <p className="basis-0 font-montserrat font-medium grow leading-[1.4] min-h-px min-w-px relative self-stretch shrink-0 text-[#272424] text-[12px]">
+                      {item.name}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
+                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-center min-h-px min-w-px p-[14px] relative shrink-0">
+                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    {formatCurrency(item.price)}
+                  </p>
+                </div>
+              </div>
+              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
+                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-center min-h-px min-w-px p-[14px] relative shrink-0">
+                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    {item.quantity}
+                  </p>
+                </div>
+              </div>
+              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
+                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-end min-h-px min-w-px p-[14px] relative shrink-0">
+                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    {formatCurrency(item.total)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+          {/* Summary Row */}
+          <div className="border border-[#e7e7e7] box-border flex gap-[40px] items-center justify-end px-[6px] py-0 relative rounded-bl-[16px] rounded-br-[16px] shrink-0 w-full">
+            <div className="box-border flex items-center justify-between px-[6px] py-[12px] relative shrink-0 w-[335px]">
+              <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+                <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                  Tổng tiền sản phẩm
+                </p>
+                <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                  Tổng phí vận chuyển
+                </p>
+                <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                  Phụ phí
+                </p>
+                <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                  Doanh thu đơn hàng
+                </p>
+              </div>
+              <div className="flex flex-row items-center self-stretch">
+                <div className="flex flex-col gap-[4px] h-full items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+                  <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
                     {formatCurrency(currentOrder.summary.subtotal)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 ">Tổng phí vận chuyển:</span>
-                  <span className="font-medium">
+                  </p>
+                  <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
                     {formatCurrency(currentOrder.summary.shipping)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 ">Phí phụ:</span>
-                  <span className="font-medium">
+                  </p>
+                  <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
                     {formatCurrency(currentOrder.summary.fee)}
-                  </span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-semibold">
-                  <span>Doanh thu đơn hàng</span>
-                  <span>{formatCurrency(currentOrder.summary.total)}</span>
+                  </p>
+                  <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                    {formatCurrency(currentOrder.summary.total)}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Payment Information Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
+      <div className="bg-white border-2 border-[#e7e7e7] box-border flex items-start justify-between px-[24px] py-[15px] relative rounded-[24px] w-full">
+        <div className="flex gap-[5px] items-start relative self-stretch shrink-0">
+          <Wallet className="relative shrink-0 size-[24px]" />
+          <p className="font-montserrat font-semibold leading-[1.4] relative shrink-0 text-[#272424] text-[18px] text-nowrap">
             Thanh toán của người mua
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600 ">Tổng tiền sản phẩm:</span>
-              <span className="font-medium">
-                {formatCurrency(currentOrder.payment.subtotal)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 ">Phí vận chuyển:</span>
-              <span className="font-medium">
-                {formatCurrency(currentOrder.payment.shipping)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600 ">Mã giảm giá của shop:</span>
-              <span className="font-medium">
-                -{formatCurrency(currentOrder.payment.discount)}
-              </span>
-            </div>
-            <Separator />
-            <div className="flex justify-between font-semibold">
-              <span>Tổng tiền thanh toán</span>
-              <span>{formatCurrency(currentOrder.payment.total)}</span>
-            </div>
+          </p>
+        </div>
+        <div className="box-border flex items-center justify-between px-[10px] py-[12px] relative shrink-0 w-[347px]">
+          <div className="flex flex-col gap-[4px] h-[72px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+              Tổng tiền sản phẩm
+            </p>
+            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+              Phí vận chuyển
+            </p>
+            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+              Mã giảm giá của shop
+            </p>
+            <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+              Tổng tiền thanh toán
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+              {formatCurrency(currentOrder.payment.subtotal)}
+            </p>
+            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+              {formatCurrency(currentOrder.payment.shipping)}
+            </p>
+            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+              {formatCurrency(currentOrder.payment.discount)}
+            </p>
+            <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+              {formatCurrency(currentOrder.payment.total)}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

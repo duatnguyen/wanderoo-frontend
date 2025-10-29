@@ -252,20 +252,22 @@ const AdminOrders: React.FC = () => {
   }, [filteredOrders, currentPage]);
 
   return (
-    <div className="flex flex-col gap-[22px] items-center w-full">
+    <div className="flex flex-col gap-[22px] items-center w-full min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-start w-full">
+      <div className="flex items-center justify-start w-full shrink-0">
         <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
           Danh sách đơn hàng
         </h2>
       </div>
 
       {/* Tab Menu */}
-      <TabMenuAccount
-        tabs={orderTabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      <div className="w-full shrink-0">
+        <TabMenuAccount
+          tabs={orderTabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+      </div>
 
       {/* Orders Table */}
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[10px] md:px-[16px] lg:px-[24px] py-[16px] md:py-[24px] rounded-[24px] w-full">
@@ -311,65 +313,62 @@ const AdminOrders: React.FC = () => {
         <h1 className="font-bold">101 đơn hàng</h1>
         {/* Table */}
         {/* Table Header */}
-        <div className="bg-white border border-[#d1d1d1] rounded-[16px] overflow-hidden w-full">
-          <div className="flex items-center overflow-hidden w-fit">
-            <div className="bg-[#f6f6f6] flex gap-[10px] items-center px-[12px] py-[14px] w-[500px] shrink-0">
-              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Tên sản phẩm
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[150px] shrink-0">
-              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                Tổng đơn hàng
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[160px] shrink-0">
-              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Nguồn đơn
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[100px] shrink-0">
-              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                ĐVVC
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[200px] shrink-0">
-              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Trạng thái xử lý
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[220px] shrink-0">
-              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                Trạng thái thanh toán
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[160px] shrink-0">
-              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                Thao tác
-              </p>
+        <div className="w-full gap-2 flex flex-col overflow-x-auto">
+          <div className="bg-white w-fit">
+            <div className="flex items-center w-full">
+              <div className="bg-[#f6f6f6] flex items-center px-[12px] py-[14px] w-[500px] rounded-l-2xl">
+                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Tên sản phẩm
+                </p>
+              </div>
+              <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[150px]">
+                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
+                  Tổng đơn hàng
+                </p>
+              </div>
+              <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[160px]">
+                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Nguồn đơn
+                </p>
+              </div>
+              <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[100px]">
+                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  ĐVVC
+                </p>
+              </div>
+              <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[200px]">
+                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Trạng thái xử lý
+                </p>
+              </div>
+              <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[220px]">
+                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
+                  Trạng thái thanh toán
+                </p>
+              </div>
+              <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[160px] rounded-r-2xl">
+                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
+                  Thao tác
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="overflow-hidden w-full">
-          <div className="overflow-x-auto orders-table-scroll">
+          <div>
             {/* Table Body */}
-            <div className="flex flex-col gap-[12px]">
+            <div className="flex flex-col gap-[12px] w-fit">
               {paginatedOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="border border-[#d1d1d1] rounded-[16px] overflow-hidden w-fit"
-                >
+                <div key={order.id} className="min-w-[1400px]">
                   {/* User Header Row */}
-                  <div className="flex items-center justify-between px-[16px] py-[12px] border-b border-[#d1d1d1] min-w-[1400px]">
-                    <div className="flex gap-[10px] items-center">
+                  <div className="flex justify-between px-[16px] py-[12px] border border-[#e7e7e7] bg-gray-50 rounded-t-2xl">
+                    <div className="flex gap-[10px]">
                       <div className="w-[30px] h-[30px] rounded-[24px] bg-gray-200"></div>
-                      <div className="flex gap-[8px] items-center">
+                      <div className="flex items-center gap-[8px]">
                         <p className="font-montserrat font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
                           {order.customer}
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-[4px] items-start">
+                    <div className="flex items-center">
                       <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Mã đơn hàng: {order.id}
                       </p>
@@ -378,11 +377,15 @@ const AdminOrders: React.FC = () => {
 
                   {/* Product Row - Only show first product */}
                   {order.products[0] && (
-                    <div className="flex items-center">
+                    <div className="flex border-b border-x rounded-b-2xl border-[#e7e7e7]">
                       {/* Product Name Column */}
-                      <div className="flex gap-[8px] items-center px-[16px] py-[12px] w-[500px] shrink-0">
-                        <div className="border-[0.5px] border-[#d1d1d1] rounded-[8px] w-[91px] h-[91px] bg-gray-100"></div>
-                        <div className="flex flex-col gap-[8px] items-start flex-1 px-[12px]">
+                      <div className="flex items-center gap-[8px] px-[16px] py-[12px] w-[500px]">
+                        <img
+                          src={order.products[0].image}
+                          alt={order.products[0].name}
+                          className="border border-[#d1d1d1] rounded-[8px] w-[91px] h-[91px] object-cover bg-gray-100"
+                        />
+                        <div className="flex flex-col gap-[8px] flex-1 px-[12px]">
                           <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
                             {order.products[0].name}
                           </p>
@@ -393,7 +396,7 @@ const AdminOrders: React.FC = () => {
                       </div>
 
                       {/* Total Order Column */}
-                      <div className="flex flex-col gap-[4px] items-center justify-center px-[14px] py-[12px] w-[150px] shrink-0">
+                      <div className="flex flex-col items-center gap-[4px] px-[14px] py-[12px] w-[150px]">
                         <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
                           {order.products[0].price}
                         </p>
@@ -404,21 +407,21 @@ const AdminOrders: React.FC = () => {
                       </div>
 
                       {/* Source Column */}
-                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[160px] shrink-0">
+                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[160px]">
                         <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
                           {order.category}
                         </p>
                       </div>
 
                       {/* Shipping Column */}
-                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[100px] shrink-0">
+                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[100px]">
                         <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
                           .....
                         </p>
                       </div>
 
                       {/* Processing Status Column */}
-                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[200px] shrink-0">
+                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[200px]">
                         <ChipStatus
                           status={getProcessingStatus(order.status)}
                           labelOverride={order.status}
@@ -426,7 +429,7 @@ const AdminOrders: React.FC = () => {
                       </div>
 
                       {/* Payment Status Column */}
-                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[220px] shrink-0">
+                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[220px]">
                         <ChipStatus
                           status={getPaymentStatus(order.paymentStatus)}
                           labelOverride={order.paymentStatus}
@@ -434,9 +437,9 @@ const AdminOrders: React.FC = () => {
                       </div>
 
                       {/* Actions Column */}
-                      <div className="flex gap-[8px] items-center justify-center px-[14px] py-[12px] w-[160px] shrink-0">
+                      <div className="flex items-center justify-center gap-[8px] px-[14px] py-[12px] w-[160px]">
                         <button
-                          className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
+                          className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer hover:underline"
                           onClick={() => handleViewOrderDetail(order.id)}
                         >
                           <DetailIcon size={16} color="#1a71f6" />

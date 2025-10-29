@@ -47,7 +47,7 @@ export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
 
   return (
     <div
-      className={cn("rounded-[10px] px-[8px] py-[6px] w-fit", className)}
+      className={cn("rounded-[10px] px-[8px] h-fit py-[6px] w-fit", className)}
       style={{ backgroundColor: styles.bg }}
     >
       <span
