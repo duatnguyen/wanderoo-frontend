@@ -78,17 +78,17 @@ const AdminCreateVoucher: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[10px] px-[20px] md:px-[50px] py-[20px] md:py-[32px] w-full">
+    <div className="flex flex-col w-full">
       {/* Header with Back Button */}
-      <div className="flex flex-col gap-[8px] min-h-[79px] items-start justify-center px-0 py-[10px] w-full">
-        <div className="flex flex-col sm:flex-row gap-[15px] sm:gap-[30px] items-start sm:items-center px-0 py-[4px] w-full">
+      <div className="flex flex-col gap-[8px] min-h-[79px] items-start justify-center w-full">
+        <div className="flex flex-col sm:flex-row gap-[15px] sm:gap-[30px] items-start sm:items-center w-full">
           <button
             onClick={handleBackClick}
             className="flex items-center gap-[8px] text-[#272424] cursor-pointer"
           >
             <Icon name="arrow-left" size={24} color="currentColor" />
           </button>
-          <span className="font-semibold text-[16px]">Quay lại</span>
+          <span className="font-bold text-[24px]">Tạo mã giảm giá mới</span>
         </div>
       </div>
 
