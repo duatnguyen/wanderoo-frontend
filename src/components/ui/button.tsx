@@ -5,17 +5,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 ease-in-out disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
-        default: "bg-[#e04d30] text-white hover:bg-[#d04327] hover:cursor-pointer font-bold text-[12px] leading-normal",
+        default:
+          "bg-[#e04d30] text-white hover:bg-[#d04327] hover:cursor-pointer font-bold text-[12px] leading-normal hover:scale-[1.02] active:scale-[0.98] hover:brightness-110 transition-all duration-300 ease-in-out",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 focus-visible:ring-destructive/40 bg-destructive/60",
         outline:
           "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground bg-input/30 border-input hover:bg-input/50",
         secondary:
-          "bg-white border-2 border-[#e04d30] text-[#e04d30] hover:bg-white/90 hover:cursor-pointer font-bold text-[12px] leading-normal",
+          "bg-white border-2 border-[#e04d30] text-[#e04d30] hover:bg-white/90 hover:cursor-pointer font-bold text-[12px] leading-normal hover:border-[#d04327] hover:text-[#d04327] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 ease-in-out",
         ghost:
           "hover:bg-accent hover:text-accent-foreground hover:bg-accent/50",
         link: "text-primary underline-offset-4 hover:underline",

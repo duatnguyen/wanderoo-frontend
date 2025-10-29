@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
 import {
@@ -131,6 +131,18 @@ const AdminProductsNew: React.FC = () => {
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [priceValues, setPriceValues] = useState<Record<string, string>>({});
   const [applyAllPrice, setApplyAllPrice] = useState("");
+  const [showEditVersionModal, setShowEditVersionModal] = useState(false);
+  const [editingVersion, setEditingVersion] = useState<{
+    id: string;
+    name: string;
+    barcode: string;
+    costPrice: string;
+    sellingPrice: string;
+    inventory: string;
+    available: string;
+    image: string;
+  } | null>(null);
+  const editVersionFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -386,6 +398,92 @@ const AdminProductsNew: React.FC = () => {
     setShowPriceModal(false);
     setPriceValues({});
     setApplyAllPrice("");
+  };
+
+  const handleVersionRowClick = (versionId: string) => {
+    const version = versions.find((v) => v.id === versionId);
+    if (version) {
+      setEditingVersion({
+        id: version.id,
+        name: version.name,
+        barcode: "", // You can add barcode to version state if needed
+        costPrice: "",
+        sellingPrice: version.price || "",
+        inventory: version.inventory || "",
+        available: version.available || "",
+        image: "",
+      });
+      setShowEditVersionModal(true);
+    }
+  };
+
+  const handleEditVersionChange = (field: string, value: string) => {
+    if (editingVersion) {
+      setEditingVersion({
+        ...editingVersion,
+        [field]: value,
+      });
+    }
+  };
+
+  const handleEditVersionImageClick = () => {
+    editVersionFileInputRef.current?.click();
+  };
+
+  const handleEditVersionImageUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !editingVersion) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert(`${file.name} vượt quá dung lượng 2MB`);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      alert(`${file.name} không phải là file hình ảnh`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (result && typeof result === "string" && editingVersion) {
+        setEditingVersion({
+          ...editingVersion,
+          image: result,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const handleEditVersionCancel = () => {
+    setShowEditVersionModal(false);
+    setEditingVersion(null);
+  };
+
+  const handleEditVersionConfirm = () => {
+    if (editingVersion) {
+      // TODO: Save version data
+      console.log("Version data:", editingVersion);
+      setVersions((prev) =>
+        prev.map((v) =>
+          v.id === editingVersion.id
+            ? {
+                ...v,
+                price: editingVersion.sellingPrice,
+                inventory: editingVersion.inventory,
+                available: editingVersion.available,
+              }
+            : v
+        )
+      );
+      setShowEditVersionModal(false);
+      setEditingVersion(null);
+    }
   };
 
   const selectedCount = selectedVersions.size;
@@ -906,17 +1004,20 @@ const AdminProductsNew: React.FC = () => {
               {versions.map((version, index) => (
                 <div
                   key={version.id}
-                  className={`flex items-start ${
+                  className={`flex items-start cursor-pointer hover:bg-gray-50 transition-colors ${
                     index < versions.length - 1
                       ? "border-b border-[#e7e7e7]"
                       : ""
                   }`}
+                  onClick={() => handleVersionRowClick(version.id)}
                 >
                   <div className="w-[400px] flex gap-2 items-center px-3 py-[14px]">
-                    <CustomCheckbox
-                      checked={selectedVersions.has(version.id)}
-                      onChange={() => handleVersionToggle(version.id)}
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedVersions.has(version.id)}
+                        onChange={() => handleVersionToggle(version.id)}
+                      />
+                    </div>
                     <p className="text-[14px] font-medium text-[#272424] font-montserrat leading-[140%]">
                       {version.name}
                     </p>
@@ -1223,6 +1324,197 @@ const AdminProductsNew: React.FC = () => {
                 Huỷ
               </Button>
               <Button onClick={handlePriceConfirm}>Xác nhận</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Version Modal */}
+      {showEditVersionModal && editingVersion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur and dark overlay */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={handleEditVersionCancel}
+          />
+          {/* Modal Content */}
+          <div
+            className="relative z-50 bg-[#f7f7f7] rounded-[24px] w-full max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center px-6 py-3">
+              <h2 className="text-[24px] font-bold text-[#1a1a1b] font-montserrat leading-[150%]">
+                Chỉnh sửa {editingVersion.name}
+              </h2>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-3">
+              <div className="flex gap-5 items-start">
+                {/* Left Column - Form Fields */}
+                <div className="flex-1 flex flex-col gap-4">
+                  {/* Barcode */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1">
+                      <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[150%]">
+                        Mã vạch/barcode
+                      </label>
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle
+                          cx="10"
+                          cy="10"
+                          r="9"
+                          stroke="#272424"
+                          strokeWidth="1.5"
+                        />
+                        <text
+                          x="10"
+                          y="14"
+                          textAnchor="middle"
+                          fontSize="12"
+                          fill="#272424"
+                          fontWeight="bold"
+                        >
+                          i
+                        </text>
+                      </svg>
+                    </div>
+                    <FormInput
+                      placeholder="Nhập mã vạch/barcode"
+                      value={editingVersion.barcode}
+                      onChange={(e) =>
+                        handleEditVersionChange("barcode", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  {/* Cost Price and Selling Price */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                          *
+                        </span>
+                        <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                          Giá vốn
+                        </label>
+                      </div>
+                      <FormInput
+                        placeholder="Nhập giá vốn"
+                        value={editingVersion.costPrice}
+                        onChange={(e) =>
+                          handleEditVersionChange("costPrice", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                          *
+                        </span>
+                        <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                          Giá bán
+                        </label>
+                      </div>
+                      <FormInput
+                        placeholder="Nhập giá bán"
+                        value={editingVersion.sellingPrice}
+                        onChange={(e) =>
+                          handleEditVersionChange(
+                            "sellingPrice",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Inventory and Available */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                          *
+                        </span>
+                        <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                          Tồn kho
+                        </label>
+                      </div>
+                      <FormInput
+                        placeholder="Nhập số lượng tồn kho"
+                        value={editingVersion.inventory}
+                        onChange={(e) =>
+                          handleEditVersionChange("inventory", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                          *
+                        </span>
+                        <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                          Có thể bán
+                        </label>
+                      </div>
+                      <FormInput
+                        placeholder="Nhập số lượng có thể bán"
+                        value={editingVersion.available}
+                        onChange={(e) =>
+                          handleEditVersionChange("available", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Image Upload */}
+                <div className="flex flex-col gap-6 items-center px-4 py-6">
+                  <div className="bg-[#ffeeea] border border-[#e04d30] border-dashed flex flex-col gap-2 items-center justify-center p-5 rounded-[8px] w-[120px] h-[120px]">
+                    {editingVersion.image ? (
+                      <img
+                        src={editingVersion.image}
+                        alt="Version"
+                        className="w-full h-full object-cover rounded-[8px]"
+                      />
+                    ) : (
+                      <>
+                        <Icon name="image" size={32} color="#e04d30" />
+                        <p className="text-[10px] font-medium text-[#737373] font-montserrat leading-[140%] text-center">
+                          Thêm hình ảnh (0/9)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <Button onClick={handleEditVersionImageClick}>
+                    Chọn ảnh
+                  </Button>
+                  <input
+                    ref={editVersionFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditVersionImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-center gap-[10px] px-6 py-3 border-t border-[#e7e7e7]">
+              <Button variant="secondary" onClick={handleEditVersionCancel}>
+                Huỷ
+              </Button>
+              <Button onClick={handleEditVersionConfirm}>Xác nhận</Button>
             </div>
           </div>
         </div>
