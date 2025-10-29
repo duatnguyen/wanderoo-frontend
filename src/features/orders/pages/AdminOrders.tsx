@@ -1,10 +1,20 @@
 // src/pages/admin/AdminOrders.tsx
 import React, { useState, useMemo } from "react";
-import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { TabMenuAccount } from "@/components/common";
 import type { TabMenuAccountItem } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
+import { ChipStatus } from "@/components/ui/chip-status";
+import type { ChipStatusKey } from "@/components/ui/chip-status";
+import { SearchBar } from "@/components/ui/search-bar";
+import { DetailIcon } from "@/components/icons";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CaretDown } from "@/components/ui/caret-down";
 // Mock data dựa trên hình ảnh
 const mockOrders = [
   {
@@ -180,6 +190,31 @@ const AdminOrders: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
+  // Map payment type to chip status
+  const getPaymentTypeStatus = (paymentType: string): ChipStatusKey => {
+    if (paymentType === "Tiền mặt") return "cash";
+    if (paymentType === "Chuyển khoản") return "transfer";
+    return "default";
+  };
+
+  // Map processing status to chip status
+  const getProcessingStatus = (status: string): ChipStatusKey => {
+    if (status === "Đã hoàn thành") return "completed";
+    if (status === "Đang giao") return "processing";
+    if (status === "Chờ xác nhận" || status === "Đã xác nhận")
+      return "processing";
+    if (status === "Đã hủy") return "disabled";
+    return "default";
+  };
+
+  // Map payment status to chip status
+  const getPaymentStatus = (paymentStatus: string): ChipStatusKey => {
+    if (paymentStatus === "Đã thanh toán") return "paid";
+    if (paymentStatus === "Chưa thanh toán" || paymentStatus === "Đã hoàn tiền")
+      return "unpaid";
+    return "default";
+  };
+
   // Handle view order detail
   const handleViewOrderDetail = (orderId: string) => {
     navigate(`/admin/orders/${orderId}`);
@@ -217,7 +252,14 @@ const AdminOrders: React.FC = () => {
   }, [filteredOrders, currentPage]);
 
   return (
-    <div className="flex flex-col gap-[22px] items-center px-[10px] md:px-[20px] lg:px-[50px] py-[20px] md:py-[32px] w-full">
+    <div className="flex flex-col gap-[22px] items-center w-full">
+      {/* Header */}
+      <div className="flex items-center justify-start w-full">
+        <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+          Danh sách đơn hàng
+        </h2>
+      </div>
+
       {/* Tab Menu */}
       <TabMenuAccount
         tabs={orderTabs}
@@ -227,189 +269,185 @@ const AdminOrders: React.FC = () => {
 
       {/* Orders Table */}
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[10px] md:px-[16px] lg:px-[24px] py-[16px] md:py-[24px] rounded-[24px] w-full">
-        <div className="flex items-center justify-between w-full">
-          <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
-            Danh sách đơn hàng
-          </h2>
+        {/* Search and Dropdown Section */}
+        <div className="flex gap-[8px] items-center justify-start w-full">
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm kiếm"
+            className="w-[400px]"
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer">
+                <span className="text-[#e04d30] text-[11px] font-semibold leading-[1.4]">
+                  Trạng thái
+                </span>
+                <CaretDown className="text-[#e04d30]" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => setActiveTab("all")}>
+                Tất cả
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("pending")}>
+                Chờ xác nhận
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("confirmed")}>
+                Đã xác nhận
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("shipping")}>
+                Đang giao
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("completed")}>
+                Đã hoàn thành
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("returned")}>
+                Đã hủy
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        {/* Search */}
-        <div className="flex gap-[10px] items-center w-full">
-          <div className="bg-white border border-[#e04d30] flex items-center justify-between px-[12px] md:px-[16px] py-[8px] rounded-[12px] w-full max-w-[500px]">
-            <div className="flex items-center gap-[8px] relative flex-1">
-              <span className="text-[10px] font-medium text-[#888888] leading-[1.4]">
-                {searchTerm ? "" : "Tìm kiếm"}
-              </span>
-              <input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="absolute left-0 top-0 w-full h-full bg-transparent border-0 outline-none px-[12px] md:px-[16px] py-[8px] text-sm"
-                placeholder=""
-              />
-            </div>
-            <div className="w-6 h-6 relative">
-              <Search className="w-6 h-6 text-black" />
-            </div>
-          </div>
-        </div>
-
+        <h1 className="font-bold">101 đơn hàng</h1>
         {/* Table */}
+        {/* Table Header */}
         <div className="bg-white border border-[#d1d1d1] rounded-[16px] overflow-hidden w-full">
-          {/* Table Header */}
-          <div className="bg-[#f6f6f6] flex items-center overflow-hidden rounded-t-[12px]">
-            <div className="bg-[#f6f6f6] flex gap-[10px] items-center px-[12px] py-[14px] w-[500px]">
-              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4]">
+          <div className="flex items-center overflow-hidden w-fit">
+            <div className="bg-[#f6f6f6] flex gap-[10px] items-center px-[12px] py-[14px] w-[500px] shrink-0">
+              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 Tên sản phẩm
               </p>
             </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
-              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[150px] shrink-0">
+              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
                 Tổng đơn hàng
               </p>
             </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
-              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[160px] shrink-0">
+              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 Nguồn đơn
               </p>
             </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
-              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[100px] shrink-0">
+              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 ĐVVC
               </p>
             </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
-              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[200px] shrink-0">
+              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 Trạng thái xử lý
               </p>
             </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
-              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[220px] shrink-0">
+              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
                 Trạng thái thanh toán
               </p>
             </div>
-            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] flex-1 border-l border-[#d1d1d1]">
-              <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+            <div className="bg-[#f6f6f6] flex items-center justify-center px-[14px] py-[14px] w-[160px] shrink-0">
+              <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
                 Thao tác
               </p>
             </div>
           </div>
-
-          {/* Table Body */}
-          <div className="border border-[#d1d1d1] border-t-0 rounded-b-[12px]">
-            {paginatedOrders.map((order) => (
-              <div
-                key={order.id}
-                className="border-b border-[#d1d1d1] last:border-b-0"
-              >
-                {/* User Header Row */}
-                <div className="flex items-center justify-between px-[16px] py-[12px] border-b border-[#d1d1d1]">
-                  <div className="flex gap-[10px] items-center">
-                    <div className="w-[30px] h-[30px] rounded-[24px] bg-gray-200"></div>
-                    <div className="flex gap-[8px] items-center">
-                      <p className="font-montserrat font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
-                        {order.customer}
+        </div>
+        <div className="overflow-hidden w-full">
+          <div className="overflow-x-auto orders-table-scroll">
+            {/* Table Body */}
+            <div className="flex flex-col gap-[12px]">
+              {paginatedOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="border border-[#d1d1d1] rounded-[16px] overflow-hidden w-fit"
+                >
+                  {/* User Header Row */}
+                  <div className="flex items-center justify-between px-[16px] py-[12px] border-b border-[#d1d1d1] min-w-[1400px]">
+                    <div className="flex gap-[10px] items-center">
+                      <div className="w-[30px] h-[30px] rounded-[24px] bg-gray-200"></div>
+                      <div className="flex gap-[8px] items-center">
+                        <p className="font-montserrat font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
+                          {order.customer}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-[4px] items-start">
+                      <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4]">
+                        Mã đơn hàng: {order.id}
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-[4px] items-start">
-                    <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.4]">
-                      Mã đơn hàng: {order.id}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Product Rows */}
-                {order.products.map((product, productIndex) => (
-                  <div key={product.id} className="flex items-center">
-                    {/* Product Name Column */}
-                    <div className="flex gap-[8px] items-center px-[16px] py-[12px] w-[500px]">
-                      <div className="border-[0.5px] border-[#d1d1d1] rounded-[8px] w-[91px] h-[91px] bg-gray-100"></div>
-                      <div className="flex flex-col gap-[8px] items-start flex-1 px-[12px]">
+                  {/* Product Row - Only show first product */}
+                  {order.products[0] && (
+                    <div className="flex items-center">
+                      {/* Product Name Column */}
+                      <div className="flex gap-[8px] items-center px-[16px] py-[12px] w-[500px] shrink-0">
+                        <div className="border-[0.5px] border-[#d1d1d1] rounded-[8px] w-[91px] h-[91px] bg-gray-100"></div>
+                        <div className="flex flex-col gap-[8px] items-start flex-1 px-[12px]">
+                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                            {order.products[0].name}
+                          </p>
+                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                            Size 40
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Total Order Column */}
+                      <div className="flex flex-col gap-[4px] items-center justify-center px-[14px] py-[12px] w-[150px] shrink-0">
                         <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                          {product.name}
+                          {order.products[0].price}
                         </p>
-                        {productIndex === 0 && (
-                          <>
-                            <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                              Size 40
-                            </p>
-                          </>
-                        )}
+                        <ChipStatus
+                          status={getPaymentTypeStatus(order.paymentType)}
+                          labelOverride={order.paymentType}
+                        />
+                      </div>
+
+                      {/* Source Column */}
+                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[160px] shrink-0">
+                        <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                          {order.category}
+                        </p>
+                      </div>
+
+                      {/* Shipping Column */}
+                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[100px] shrink-0">
+                        <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+                          .....
+                        </p>
+                      </div>
+
+                      {/* Processing Status Column */}
+                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[200px] shrink-0">
+                        <ChipStatus
+                          status={getProcessingStatus(order.status)}
+                          labelOverride={order.status}
+                        />
+                      </div>
+
+                      {/* Payment Status Column */}
+                      <div className="flex items-center justify-center px-[14px] py-[12px] w-[220px] shrink-0">
+                        <ChipStatus
+                          status={getPaymentStatus(order.paymentStatus)}
+                          labelOverride={order.paymentStatus}
+                        />
+                      </div>
+
+                      {/* Actions Column */}
+                      <div className="flex gap-[8px] items-center justify-center px-[14px] py-[12px] w-[160px] shrink-0">
+                        <button
+                          className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
+                          onClick={() => handleViewOrderDetail(order.id)}
+                        >
+                          <DetailIcon size={16} color="#1a71f6" />
+                          Xem chi tiết
+                        </button>
                       </div>
                     </div>
-
-                    {/* Other Columns - Only show content for first product */}
-                    {productIndex === 0 ? (
-                      <>
-                        {/* Total Order Column */}
-                        <div className="flex flex-col gap-[4px] items-center justify-center px-[8px] py-[12px] flex-1">
-                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                            {product.price}
-                          </p>
-                          <div className="bg-[#dcd2ff] flex items-center justify-center px-[8px] py-[6px] rounded-[10px]">
-                            <p className="font-montserrat font-bold text-[#7f27ff] text-[12px] leading-normal">
-                              {order.paymentType}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Source Column */}
-                        <div className="flex items-center justify-center px-[8px] py-[12px] flex-1">
-                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                            {order.category}
-                          </p>
-                        </div>
-
-                        {/* Shipping Column */}
-                        <div className="flex items-center justify-center px-[12px] py-[12px] flex-1">
-                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                            .....
-                          </p>
-                        </div>
-
-                        {/* Processing Status Column */}
-                        <div className="flex items-center justify-center px-[12px] py-[12px] flex-1">
-                          <div className="bg-[#b2ffb4] flex items-center justify-center px-[8px] py-[6px] rounded-[10px]">
-                            <p className="font-montserrat font-bold text-[#04910c] text-[12px] leading-normal">
-                              {order.status}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Payment Status Column */}
-                        <div className="flex items-center justify-center px-[12px] py-[12px] flex-1">
-                          <div className="bg-[#b2ffb4] flex items-center justify-center px-[8px] py-[6px] rounded-[10px]">
-                            <p className="font-montserrat font-bold text-[#04910c] text-[12px] leading-normal">
-                              {order.paymentStatus}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Actions Column */}
-                        <div className="flex gap-[8px] items-center justify-center px-[12px] py-[12px] flex-1">
-                          <button
-                            className="font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
-                            onClick={() => handleViewOrderDetail(order.id)}
-                          >
-                            Xem chi tiết
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      /* Empty columns for subsequent products */
-                      <>
-                        <div className="flex-1"></div>
-                        <div className="flex-1"></div>
-                        <div className="flex-1"></div>
-                        <div className="flex-1"></div>
-                        <div className="flex-1"></div>
-                        <div className="flex-1"></div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

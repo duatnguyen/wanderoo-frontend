@@ -1,0 +1,34 @@
+import React from "react";
+
+interface DetailIconProps {
+  size?: number;
+  className?: string;
+  color?: string;
+}
+
+const DetailIcon: React.FC<DetailIconProps> = ({
+  size = 25,
+  className = "",
+  color = "#272424",
+}) => {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 25 25"
+      fill="none"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M13.9166 3.5H7.91658C6.81201 3.5 5.91658 4.39543 5.91658 5.5V10.5M13.9166 3.5L19.9166 9.5M13.9166 3.5V8.5C13.9166 9.05228 14.3643 9.5 14.9166 9.5H19.9166M19.9166 9.5V19.5C19.9166 20.6046 19.0211 21.5 17.9166 21.5H10.9166C8.70744 21.5 6.91658 19.7091 6.91658 17.5C6.91658 15.2909 8.70744 13.5 10.9166 13.5H13.9166M13.9166 13.5L10.9166 10.5M13.9166 13.5L10.9166 16.5"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};
+
+export default DetailIcon;

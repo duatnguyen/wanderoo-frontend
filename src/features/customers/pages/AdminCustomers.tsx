@@ -131,7 +131,9 @@ const AdminCustomers: React.FC = () => {
     "all" | "active" | "disabled"
   >("all");
   const [customers] = useState<Customer[]>(mockCustomers);
-  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set());
+  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(
+    new Set()
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
@@ -184,7 +186,10 @@ const AdminCustomers: React.FC = () => {
 
   const handleDeactivateSelected = () => {
     // TODO: Implement deactivation logic
-    console.log("Deactivating selected customers:", Array.from(selectedCustomers));
+    console.log(
+      "Deactivating selected customers:",
+      Array.from(selectedCustomers)
+    );
     // Reset selection after action
     setSelectedCustomers(new Set());
   };
@@ -197,9 +202,7 @@ const AdminCustomers: React.FC = () => {
           <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
             Danh sách khách hàng
           </h2>
-          <Button
-            onClick={() => navigate("/admin/customers/new")}
-          >
+          <Button onClick={() => navigate("/admin/customers/new")}>
             Thêm khách hàng
           </Button>
         </div>
@@ -255,7 +258,10 @@ const AdminCustomers: React.FC = () => {
                 <input
                   type="checkbox"
                   className="w-[24px] h-[24px]"
-                  checked={paginatedCustomers.length > 0 && paginatedCustomers.every((c) => selectedCustomers.has(c.id))}
+                  checked={
+                    paginatedCustomers.length > 0 &&
+                    paginatedCustomers.every((c) => selectedCustomers.has(c.id))
+                  }
                   onChange={(e) => handleSelectAll(e.target.checked)}
                 />
                 {selectedCustomers.size > 0 ? (
@@ -292,9 +298,7 @@ const AdminCustomers: React.FC = () => {
               <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
                 {selectedCustomers.size > 0 ? (
                   <div className="flex gap-[6px] items-center">
-                    <Button
-                      onClick={handleDeactivateSelected}
-                    >
+                    <Button onClick={handleDeactivateSelected}>
                       Ngừng kích hoạt
                     </Button>
                   </div>
@@ -312,8 +316,12 @@ const AdminCustomers: React.FC = () => {
             <div
               key={c.id}
               className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full min-w-[1000px] ${
-                index === paginatedCustomers.length - 1 ? 'border-transparent' : 'border-[#e7e7e7]'
-              } ${selectedCustomers.has(c.id) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                index === paginatedCustomers.length - 1
+                  ? "border-transparent"
+                  : "border-[#e7e7e7]"
+              } ${
+                selectedCustomers.has(c.id) ? "bg-blue-50" : "hover:bg-gray-50"
+              }`}
             >
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
@@ -356,21 +364,27 @@ const AdminCustomers: React.FC = () => {
                   </div>
                   <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-[180px] min-w-[180px]">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
-                      {c.totalSpent.toLocaleString('vi-VN')} VNĐ
+                      {c.totalSpent.toLocaleString("vi-VN")} VNĐ
                     </span>
                     <span className="font-medium text-[#737373] text-[11px] leading-[1.3]">
                       {c.totalOrders} đơn hàng
                     </span>
                   </div>
                   <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
-                    <div className={`rounded-[10px] ${
-                      c.status === 'active' ? 'bg-[#b2ffb4]' : 'bg-[#ffdcdc]'
-                    }`}>
+                    <div
+                      className={`rounded-[10px] ${
+                        c.status === "active" ? "bg-[#b2ffb4]" : "bg-[#ffdcdc]"
+                      }`}
+                    >
                       <div className="flex gap-[10px] items-center justify-center px-[8px] py-[6px]">
-                        <span className={`font-semibold text-[12px] leading-[1.4] ${
-                          c.status === 'active' ? 'text-[#04910c]' : 'text-[#eb2b0b]'
-                        }`}>
-                          {c.status === 'active' ? 'Đang kích hoạt' : 'Đã khóa'}
+                        <span
+                          className={`font-semibold text-[12px] leading-[1.4] ${
+                            c.status === "active"
+                              ? "text-[#04910c]"
+                              : "text-[#eb2b0b]"
+                          }`}
+                        >
+                          {c.status === "active" ? "Đang kích hoạt" : "Đã khóa"}
                         </span>
                       </div>
                     </div>

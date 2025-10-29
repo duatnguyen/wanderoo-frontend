@@ -337,6 +337,30 @@ body {
   background: #e5e7eb;
 }
 
+/* Orders Table Scrollbar - Smaller and styled */
+.orders-table-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d1d1 #f6f6f6;
+}
+
+.orders-table-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.orders-table-scroll::-webkit-scrollbar-track {
+  background: #f6f6f6;
+  border-radius: 3px;
+}
+
+.orders-table-scroll::-webkit-scrollbar-thumb {
+  background: #d1d1d1;
+  border-radius: 3px;
+}
+
+.orders-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
 /* Admin Sidebar Scrollbar - Thin and minimal */
 .admin-sidebar-scroll {
   scrollbar-width: thin;

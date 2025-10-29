@@ -1,5 +1,11 @@
 import React from "react";
-import type { AdminStats } from "../../../../types/admin";
+
+type AdminStats = {
+  totalUsers: number;
+  totalRevenue: number;
+  totalOrders: number;
+  totalProducts: number;
+};
 
 const AdminDashboard: React.FC = () => {
   // Mock data - thay thế bằng API call thực tế
