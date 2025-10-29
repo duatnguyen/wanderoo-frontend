@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import FormInput from "@/components/ui/form-input";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import ToggleSwitch from "@/components/ui/toggle-switch";
@@ -62,6 +63,8 @@ const AdminProductsCategories: React.FC = () => {
     null
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -110,7 +113,28 @@ const AdminProductsCategories: React.FC = () => {
   };
 
   const handleAddCategory = () => {
-    console.log("Add new category");
+    setShowAddCategoryModal(true);
+    setNewCategoryName("");
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddCategoryModal(false);
+    setNewCategoryName("");
+  };
+
+  const handleConfirmAddCategory = () => {
+    if (newCategoryName.trim()) {
+      const newCategory: Category = {
+        id: Date.now().toString(),
+        name: newCategoryName.trim(),
+        image: "",
+        subcategoryCount: 0,
+        isActive: true,
+      };
+      setCategories((prev) => [...prev, newCategory]);
+      setShowAddCategoryModal(false);
+      setNewCategoryName("");
+    }
   };
 
   const handleViewDetails = (categoryId: string) => {
@@ -180,7 +204,7 @@ const AdminProductsCategories: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[22px] items-center px-[50px] py-[32px] w-full">
+    <div className="flex flex-col gap-[22px] items-center w-full">
       {/* Header */}
       <div className="flex items-center justify-between w-full">
         <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
@@ -471,6 +495,56 @@ const AdminProductsCategories: React.FC = () => {
         onChange={handleImageUpload}
         className="hidden"
       />
+
+      {/* Add Category Modal */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur and dark overlay */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={handleCloseAddModal}
+          />
+          {/* Modal Content */}
+          <div
+            className="relative z-50 bg-white rounded-[24px] p-[10px] w-full max-w-[400px] shadow-2xl animate-scaleIn flex flex-col gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex flex-col items-start justify-center px-3 py-2">
+              <h2 className="text-[20px] font-bold text-[#272424] font-montserrat leading-normal text-center w-full">
+                Thêm danh mục
+              </h2>
+            </div>
+
+            {/* Form */}
+            <div className="flex flex-col gap-1 items-start justify-center px-3">
+              <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                Tên danh mục
+              </label>
+              <FormInput
+                placeholder="Nhập tên danh mục"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleConfirmAddCategory();
+                  } else if (e.key === "Escape") {
+                    handleCloseAddModal();
+                  }
+                }}
+              />
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex gap-[10px] items-center justify-end px-3">
+              <Button variant="secondary" onClick={handleCloseAddModal}>
+                Huỷ
+              </Button>
+              <Button onClick={handleConfirmAddCategory}>Xác nhận</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
