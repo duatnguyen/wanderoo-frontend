@@ -36,9 +36,9 @@ const AdminStaffNew: React.FC = () => {
   });
 
   const handleInputChange = (field: keyof StaffFormData, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -55,16 +55,16 @@ const AdminStaffNew: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center px-[50px] py-0 w-full">
+    <div className="flex flex-col items-center w-full">
       {/* Header */}
       <div className="flex flex-col gap-[8px] h-[104px] items-start justify-center px-0 py-[10px] w-full">
         <div className="flex gap-[30px] items-center px-0 py-[10px] w-full">
           <div className="flex gap-[8px] items-center">
             <button
               onClick={() => navigate("/admin/staff")}
-              className="w-[24px] h-[24px] flex items-center justify-center cursor-pointer hover:bg-gray-100 rounded"
+              className="w-5 h-5 flex items-center justify-center cursor-pointer hover:bg-gray-100 rounded"
             >
-              <ArrowLeft className="w-[18px] h-[10px] text-[#737373]" />
+              <ArrowLeft className=" text-[#737373]" />
             </button>
             <div className="flex gap-[4px] items-center justify-center">
               <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
@@ -75,7 +75,10 @@ const AdminStaffNew: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-[20px] items-start w-full">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-[20px] items-start w-full"
+      >
         {/* Account Information Section */}
         <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[12px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full">
           <div className="flex items-center w-full">
@@ -148,9 +151,13 @@ const AdminStaffNew: React.FC = () => {
               <FormInput
                 type="date"
                 value={formData.dateOfBirth}
-                onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("dateOfBirth", e.target.value)
+                }
                 className="text-[10px] font-medium text-[#737373]"
-                right={<Calendar className="w-[24px] h-[24px] text-[#454545]" />}
+                right={
+                  <Calendar className="w-[24px] h-[24px] text-[#454545]" />
+                }
               />
             </div>
           </div>
@@ -184,7 +191,9 @@ const AdminStaffNew: React.FC = () => {
                     name="gender"
                     value="female"
                     checked={formData.gender === "female"}
-                    onChange={(e) => handleInputChange("gender", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("gender", e.target.value)
+                    }
                     className="w-[24px] h-[24px]"
                   />
                   <span className="font-bold text-[#272424] text-[12px] leading-[1.5]">
@@ -197,7 +206,9 @@ const AdminStaffNew: React.FC = () => {
                     name="gender"
                     value="male"
                     checked={formData.gender === "male"}
-                    onChange={(e) => handleInputChange("gender", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("gender", e.target.value)
+                    }
                     className="w-[24px] h-[24px]"
                   />
                   <span className="font-bold text-[#272424] text-[12px] leading-[1.5]">
@@ -231,13 +242,21 @@ const AdminStaffNew: React.FC = () => {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleInputChange("role", "Quản lý")}>
+                  <DropdownMenuItem
+                    onClick={() => handleInputChange("role", "Quản lý")}
+                  >
                     Quản lý
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleInputChange("role", "Quản lý hệ thống")}>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      handleInputChange("role", "Quản lý hệ thống")
+                    }
+                  >
                     Quản lý hệ thống
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleInputChange("role", "Nhân viên")}>
+                  <DropdownMenuItem
+                    onClick={() => handleInputChange("role", "Nhân viên")}
+                  >
                     Nhân viên
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -248,18 +267,10 @@ const AdminStaffNew: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex gap-[10px] items-center justify-end w-full">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleCancel}
-          >
+          <Button type="button" variant="secondary" onClick={handleCancel}>
             Huỷ
           </Button>
-          <Button
-            type="submit"
-          >
-            Xác nhận
-          </Button>
+          <Button type="submit">Xác nhận</Button>
         </div>
       </form>
     </div>
