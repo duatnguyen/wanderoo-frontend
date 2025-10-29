@@ -1,11 +1,11 @@
 import React, { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Icon } from "../../components/icons";
+import { Icon } from "@/components/icons";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import CustomCheckbox from "../../components/ui/custom-checkbox";
-import ToggleSwitch from "../../components/ui/toggle-switch";
-import { SearchBar } from "../../components/ui/search-bar";
-import { Button } from "../../components/ui/button";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
+import ToggleSwitch from "@/components/ui/toggle-switch";
+import { SearchBar } from "@/components/ui/search-bar";
+import { Button } from "@/components/ui/button";
 
 interface Product {
   id: string;

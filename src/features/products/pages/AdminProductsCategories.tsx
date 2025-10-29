@@ -1,10 +1,10 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import CustomCheckbox from "../../components/ui/custom-checkbox";
-import ToggleSwitch from "../../components/ui/toggle-switch";
-import { Icon } from "../../components/icons";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
+import ToggleSwitch from "@/components/ui/toggle-switch";
+import { Icon } from "@/components/icons";
 
 interface Category {
   id: string;

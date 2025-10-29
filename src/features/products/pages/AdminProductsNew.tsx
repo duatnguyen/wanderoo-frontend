@@ -1,15 +1,15 @@
 import React, { useState } from "react";
-import { Button } from "../../components/ui/button";
-import FormInput from "../../components/ui/form-input";
+import { Button } from "@/components/ui/button";
+import FormInput from "@/components/ui/form-input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { Icon } from "../../components/icons";
-import ImageUpload from "../../components/ui/image-upload";
+import { Icon } from "@/components/icons";
+import ImageUpload from "@/components/ui/image-upload";
 
 const AdminProductsNew: React.FC = () => {
   const [formData, setFormData] = useState({

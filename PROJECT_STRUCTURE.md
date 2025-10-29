@@ -4,6 +4,8 @@
 
 Đây là một ứng dụng React + TypeScript với cấu trúc phân quyền rõ ràng giữa Admin và User. Ứng dụng sử dụng React Router để quản lý routing và Context API cho quản lý authentication.
 
+**Cấu trúc mới (Feature-based)**: Tất cả admin pages đã được tổ chức theo feature-based structure trong `src/features/` để dễ dàng quản lý và mở rộng theo từng module chức năng.
+
 ## Cấu trúc thư mục
 
 ```
@@ -44,9 +46,60 @@ wanderoo-frontend/
 │   ├── layouts/              # Layout components
 │   │   ├── AdminLayout.tsx
 │   │   └── UserLayout.tsx
-│   ├── pages/                # Page components
-│   │   ├── admin/           # Admin pages
-│   │   │   └── AdminDashboard.tsx
+│   ├── features/            # Feature-based page organization
+│   │   ├── accounting/      # Accounting feature
+│   │   │   └── pages/
+│   │   │       └── AdminAccounting.tsx
+│   │   ├── channels/        # Sales channels (POS, Website)
+│   │   │   └── pages/
+│   │   │       ├── AdminPOS.tsx
+│   │   │       └── AdminWebsite.tsx
+│   │   ├── customers/       # Customer management
+│   │   │   └── pages/
+│   │   │       ├── AdminCustomers.tsx
+│   │   │       └── AdminCustomerReviews.tsx
+│   │   ├── dashboard/       # Dashboard feature
+│   │   │   └── pages/
+│   │   │       └── AdminDashboard.tsx
+│   │   ├── discounts/       # Discount/Voucher management
+│   │   │   └── pages/
+│   │   │       ├── AdminDiscounts.tsx
+│   │   │       └── AdminCreateVoucher.tsx
+│   │   ├── orders/          # Order management
+│   │   │   └── pages/
+│   │   │       ├── AdminOrders.tsx
+│   │   │       ├── AdminOrderDetail.tsx
+│   │   │       └── AdminOrderOtherStatus.tsx
+│   │   ├── products/        # Product management
+│   │   │   └── pages/
+│   │   │       ├── AdminProducts.tsx
+│   │   │       ├── AdminProductsNew.tsx
+│   │   │       ├── AdminProductsCategories.tsx
+│   │   │       └── AdminProductsCategoryDetail.tsx
+│   │   ├── reports/         # Reports and analytics
+│   │   │   └── pages/
+│   │   │       └── AdminReports.tsx
+│   │   ├── settings/        # Settings
+│   │   │   └── pages/
+│   │   │       └── AdminSettings.tsx
+│   │   ├── shipping/        # Shipping management
+│   │   │   └── pages/
+│   │   │       └── AdminShipping.tsx
+│   │   ├── staff/           # Staff management
+│   │   │   └── pages/
+│   │   │       ├── AdminStaff.tsx
+│   │   │       └── AdminStaffNew.tsx
+│   │   └── warehouse/       # Warehouse management
+│   │       └── pages/
+│   │           ├── AdminWarehouseImports.tsx
+│   │           ├── AdminWarehouseReturnsImport.tsx
+│   │           ├── AdminWarehouseCreateImport.tsx
+│   │           ├── AdminWarehouseImportDetail.tsx
+│   │           ├── AdminWarehouseDetailReturnImport.tsx
+│   │           ├── AdminWarehouseSupplier.tsx
+│   │           ├── AdminSupplierNew.tsx
+│   │           └── AdminSupplierDetail.tsx
+│   ├── pages/               # Page components (legacy/auth/user)
 │   │   ├── auth/            # Authentication pages
 │   │   │   ├── AuthPage.css
 │   │   │   ├── Login.tsx
@@ -85,18 +138,21 @@ wanderoo-frontend/
 ## Tính năng chính
 
 ### Authentication System
+
 - **Login/Register**: Hệ thống đăng nhập và đăng ký
 - **Role-based Access Control**: Phân quyền Admin/User
 - **Protected Routes**: Bảo vệ routes theo role
 - **Persistent Session**: Lưu session trong localStorage
 
 ### Admin Panel
+
 - **Dashboard**: Tổng quan thống kê hệ thống
 - **User Management**: Quản lý người dùng (Coming soon)
 - **Settings**: Cài đặt hệ thống (Coming soon)
 - **Sidebar Navigation**: Menu điều hướng dễ sử dụng
 
 ### User Interface
+
 - **Home Dashboard**: Trang chính cho user
 - **Profile Management**: Quản lý thông tin cá nhân
 - **Settings**: Cài đặt cá nhân (Coming soon)
@@ -105,21 +161,26 @@ wanderoo-frontend/
 ## Cài đặt và chạy
 
 ### Yêu cầu hệ thống
+
 - Node.js >= 16.0.0
 - npm hoặc yarn
 
 ### Cài đặt dependencies
+
 ```bash
 npm install
 ```
 
 ### Chạy ứng dụng (Development)
+
 ```bash
 npm run dev
 ```
+
 Ứng dụng sẽ chạy tại: http://localhost:5173/
 
 ### Build cho Production
+
 ```bash
 npm run build
 ```
@@ -127,17 +188,20 @@ npm run build
 ## Hướng dẫn sử dụng
 
 ### 1. Đăng nhập
+
 - Truy cập http://localhost:5173/
 - Sử dụng các tài khoản demo:
   - **Admin**: admin@example.com / password
   - **User**: user@example.com / password
 
 ### 2. Tính năng Admin
+
 - Dashboard với thống kê tổng quan
 - Sidebar menu để điều hướng
 - Giao diện quản trị chuyên nghiệp
 
 ### 3. Tính năng User
+
 - Trang chủ với thông tin cá nhân
 - Quản lý profile
 - Giao diện thân thiện với người dùng
@@ -180,9 +244,12 @@ npm run build
 
 ### Thêm trang mới
 
-1. Tạo component trong `src/pages/admin/` hoặc `src/pages/user/`
-2. Import và thêm route trong `src/app/router/index.tsx`
-3. Cập nhật navigation trong layout tương ứng (`AdminLayout.tsx` hoặc `UserLayout.tsx`)
+1. **Admin Pages**: Tạo component trong `src/features/[feature-name]/pages/`
+   - Ví dụ: `src/features/products/pages/AdminProductsNew.tsx`
+2. Import và thêm route trong `src/app/router/routes.admin.tsx`
+3. Cập nhật navigation trong layout tương ứng (`AdminLayout.tsx`)
+4. **User Pages**: Tạo component trong `src/pages/user/`
+5. Import và thêm route trong `src/app/router/routes.user.tsx`
 
 ### Thêm API calls
 
@@ -207,17 +274,20 @@ npm run build
 ## Deployment
 
 ### Build
+
 ```bash
 npm run build
 ```
 
 ### Deploy lên Vercel
+
 ```bash
 npm install -g vercel
 vercel --prod
 ```
 
 ### Deploy lên Netlify
+
 1. Build project: `npm run build`
 2. Upload folder `dist` lên Netlify
 3. Cấu hình redirects cho SPA

@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import TabMenuAccount from "../../components/ui/tab-menu-account";
-import SearchBar from "../../components/ui/search-bar";
-import CaretDown from "../../components/ui/caret-down";
+import TabMenuAccount from "@/components/ui/tab-menu-account";
+import SearchBar from "@/components/ui/search-bar";
+import CaretDown from "@/components/ui/caret-down";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
 const AdminProducts: React.FC = () => {
   const [activeTab, setActiveTab] = useState("all");
