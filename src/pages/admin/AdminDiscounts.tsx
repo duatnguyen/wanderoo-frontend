@@ -1,415 +1,407 @@
 // src/pages/admin/AdminDiscounts.tsx
 import React, { useState } from "react";
-import {
-  Search,
-  Plus,
-  Eye,
-  Edit,
-  Trash2,
-  Gift,
-  Users,
-  ShoppingCart,
-  Star,
-  MoreHorizontal,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FormInput } from "@/components/ui/form-input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { TabMenu } from "@/components/common";
-import type { TabItem } from "@/components/common";
+import { SearchBar } from "@/components/ui/search-bar";
+import TabMenuAccount from "@/components/ui/tab-menu-account";
+import type { TabItem } from "@/components/ui/tab-menu-account";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  CoinDiscountIcon,
+  CreditCardPercentIcon,
+  ReceiptDiscountIcon,
+  TicketDiscountIcon,
+} from "@/components/icons/discount";
 
-// Mock data cho vouchers
-const mockVouchers = [
+interface Voucher {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  products: string;
+  discount: string;
+  maxUsage: number;
+  used: number;
+  display: string;
+  startDate: string;
+  endDate: string;
+  status: "Đang diễn ra" | "Sắp diễn ra" | "Đã kết thúc";
+}
+
+// Mock data
+const mockVouchers: Voucher[] = [
   {
-    id: "SUMMER2024",
-    name: "Voucher khách hàng mới",
-    type: "Tỷ lệ sản phẩm",
-    productCount: 10,
-    discountValue: "1 point",
-    usageLimit: 10,
+    id: "1",
+    code: "KJAJHSS",
+    name: "KHACH MOI",
+    type: "Voucher khách hàng mới",
+    products: "Tất cả sản phẩm",
+    discount: "5.000đ",
+    maxUsage: 50,
     used: 1,
+    display: "Website",
+    startDate: "12:00 17/3/2023",
+    endDate: "12:00 17/3/2024",
     status: "Đang diễn ra",
-    expiry: "12/02/2025",
-    createdDate: "12/02/2024",
-    actions: "Chưa có",
   },
   {
-    id: "NEWBIE50",
-    name: "Voucher khách hàng mới",
-    type: "Tỷ lệ sản phẩm",
-    productCount: 10,
-    discountValue: "1 point",
-    usageLimit: 10,
+    id: "2",
+    code: "KJAJHSS",
+    name: "KHACH MOI",
+    type: "Voucher khách hàng mới",
+    products: "Tất cả sản phẩm",
+    discount: "5.000đ",
+    maxUsage: 50,
     used: 1,
+    display: "Website",
+    startDate: "12:00 17/3/2023",
+    endDate: "12:00 17/3/2024",
     status: "Đang diễn ra",
-    expiry: "12/02/2025",
-    createdDate: "12/02/2024",
-    actions: "Chưa có",
   },
   {
-    id: "LOYALTY100",
-    name: "Voucher khách hàng mới",
-    type: "Tỷ lệ sản phẩm",
-    productCount: 10,
-    discountValue: "1 point",
-    usageLimit: 10,
+    id: "3",
+    code: "KJAJHSS",
+    name: "KHACH MOI",
+    type: "Voucher khách hàng mới",
+    products: "Tất cả sản phẩm",
+    discount: "5.000đ",
+    maxUsage: 50,
     used: 1,
+    display: "Website",
+    startDate: "12:00 17/3/2023",
+    endDate: "12:00 17/3/2024",
     status: "Đang diễn ra",
-    expiry: "12/02/2025",
-    createdDate: "12/02/2024",
-    actions: "Chưa có",
   },
 ];
 
-// Discount tabs data
+// Tab data
 const discountTabs: TabItem[] = [
-  { id: "all", label: "Tất cả", count: 3 },
-  { id: "ongoing", label: "Đang diễn ra", count: 3 },
-  { id: "upcoming", label: "Sắp diễn ra", count: 0 },
-  { id: "ended", label: "Đã kết thúc", count: 0 },
-  { id: "paused", label: "Tạm dừng hoàn đền", count: 0 },
-  { id: "paused_complete", label: "Tạm dừng hoàn đền", count: 0 },
-  { id: "history", label: "Thao tác", count: 0 },
+  { id: "all", label: "Tất cả" },
+  { id: "ongoing", label: "Đang diễn ra" },
+  { id: "upcoming", label: "Sắp diễn ra" },
+  { id: "ended", label: "Đã kết thúc" },
 ];
+
+// Voucher types configuration
+const voucherTypes = {
+  conversion: [
+    {
+      icon: <CreditCardPercentIcon size={24} color="#292D32" />,
+      title: "Voucher toàn shop",
+      description: "Voucher áp dụng cho tất cả sản phẩm toàn shop của bạn",
+    },
+    {
+      icon: <ReceiptDiscountIcon size={24} color="#292D32" />,
+      title: "Voucher sản phẩm",
+      description: "Voucher áp dụng cho những sản phẩm áp dụng tại shop",
+    },
+  ],
+  targetCustomer: [
+    {
+      icon: <TicketDiscountIcon size={24} color="#292D32" />,
+      title: "Voucher khách hàng mới",
+      description:
+        "Voucher nhằm áp dụng cho khách hàng mới và khách hàng tiềm năng",
+    },
+    {
+      icon: <CoinDiscountIcon size={24} color="#292D32" />,
+      title: "Voucher khách hàng mua lại",
+      description: "Voucher nhằm áp dụng cho khách hàng đã mua hàng tại shop",
+    },
+  ],
+  privateChannel: {
+    icon: <CreditCardPercentIcon size={30} color="#292D32" />,
+    title: "Voucher riêng tư",
+    description:
+      "Voucher nhằm áp dụng cho nhóm khách hàng shop muốn thông qua mã voucher",
+  },
+};
 
 const AdminDiscounts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "Đang diễn ra":
-        return "bg-green-100 text-green-800 ";
+        return "bg-[#b2ffb4] text-[#04910c]";
       case "Sắp diễn ra":
-        return "bg-blue-100 text-blue-800 ";
+        return "bg-[#cce5ff] text-[#0066cc]";
       case "Đã kết thúc":
-        return "bg-gray-100 text-gray-800 ";
-      case "Tạm dừng":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-[#f6f6f6] text-[#737373]";
       default:
-        return "bg-gray-100 text-gray-800 ";
+        return "bg-[#f6f6f6] text-[#737373]";
     }
   };
 
+  const handleCreateVoucher = (type: string) => {
+    console.log("Creating voucher of type:", type);
+    // Navigate to create voucher page
+  };
+
   return (
-    <div className="space-y-4 p-3">
-      {/* Voucher Creation Options */}
-      <Card className="p-4">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900 ">Tạo voucher</h3>
-          <p className="text-sm text-gray-600 ">
-            Chọn một trong những loại voucher bên dưới để tạo cho hoạt động kinh
-            doanh cửa hàng của bạn
-          </p>
-
-          <h4 className="text-md font-medium text-gray-900 ">
-            Cài thiết tỷ lệ chuyển đổi
-          </h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Voucher toàn shop */}
-            <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
-              <CardContent className="p-6 text-center">
-                <Gift className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900  mb-2">
-                  Voucher toàn shop
-                </h5>
-                <p className="text-sm text-gray-600 ">
-                  Voucher áp dụng cho tất cả sản phẩm trong cửa hàng của bạn
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
-                >
-                  Tạo
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Voucher sản phẩm */}
-            <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
-              <CardContent className="p-6 text-center">
-                <ShoppingCart className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900  mb-2">
-                  Voucher sản phẩm
-                </h5>
-                <p className="text-sm text-gray-600 ">
-                  Voucher áp dụng cho những sản phẩm cụ thể đã được tạo trước
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
-                >
-                  Tạo
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          <h4 className="text-md font-medium text-gray-900 ">
-            Tập trung vào nhóm khách hàng mục tiêu
-          </h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Voucher khách hàng mới */}
-            <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
-              <CardContent className="p-6 text-center">
-                <Users className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900  mb-2">
-                  Voucher khách hàng mới
-                </h5>
-                <p className="text-sm text-gray-600 ">
-                  Voucher nhằm thu hút khách hàng mới và khi khách hàng ở tỉnh
-                  thành khác có thể
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
-                >
-                  Tạo
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Voucher khách hàng mua lại */}
-            <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
-              <CardContent className="p-6 text-center">
-                <Star className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900  mb-2">
-                  Voucher khách hàng mua lại
-                </h5>
-                <p className="text-sm text-gray-600 ">
-                  Voucher nhằm thu hút khách hàng cũ quay lại mua hàng tại của
-                  hàng
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
-                >
-                  Tạo
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          <h4 className="text-md font-medium text-gray-900 ">
-            Tập trung vào kênh hiển thị rộng rãi
-          </h4>
-
-          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-            {/* Voucher rộng tú */}
-            <Card className="border-2 border-dashed border-gray-200 hover:border-orange-300 cursor-pointer transition-colors">
-              <CardContent className="p-6 text-center">
-                <Gift className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-                <h5 className="font-medium text-gray-900  mb-2">
-                  Voucher rộng tú
-                </h5>
-                <p className="text-sm text-gray-600 ">
-                  Voucher phân phối rộng để mọi người có thể cùng sử dụng nó để
-                  mua sắm tại của bạn
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 text-orange-600 border-orange-600 hover:bg-orange-50"
-                >
-                  Tạo
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </Card>
-
+    <div className="flex flex-col gap-[10px] px-[50px] py-[32px] w-full">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 ">
-            Quản lý mã giảm giá
+      <div className="flex flex-col gap-[8px] h-[79px] items-start justify-center px-0 py-[10px] w-full">
+        <div className="flex gap-[30px] items-center px-0 py-[4px] w-full">
+          <h1 className="font-bold text-[24px] text-[#272424] leading-[normal]">
+            Danh sách mã giảm giá
           </h1>
-          <p className="text-sm text-gray-500  mt-1">
-            Tạo và quản lý các voucher khuyến mãi
-          </p>
         </div>
-        <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Tạo voucher mới
-        </Button>
       </div>
 
-      {/* Filter Tabs */}
-      <TabMenu
-        tabs={discountTabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        variant="card"
-      />
+      {/* Create Voucher Section */}
+      <div className="bg-white border border-[#d1d1d1] rounded-[24px] p-[24px] flex flex-col w-full">
+        {/* Create Voucher Header */}
+        <div className="flex flex-col gap-[8px] h-[79px] items-start justify-center px-0 py-[10px] w-full">
+          <div className="flex gap-[30px] items-center px-0 py-[4px] w-full">
+            <h2 className="font-bold text-[24px] text-[#272424] leading-[normal]">
+              Tạo voucher
+            </h2>
+          </div>
+          <p className="font-medium text-[10px] text-[#e04d30] leading-[1.4]">
+            Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để
+            thu hút người mua.
+          </p>
+        </div>
 
-      {/* Search and Voucher Table */}
-      <Card>
-        <CardContent className="p-0">
-          <CardContent className="mb-4">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <FormInput
-                  placeholder="Tìm voucher/Mã voucher"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+        {/* Conversion Section */}
+        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full">
+          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[normal]">
+            Cải thiện tỉ lệ chuyển đổi
+          </h3>
+        </div>
+        <div className="flex gap-[60px] items-center justify-center w-full">
+          {voucherTypes.conversion.map((voucher, index) => (
+            <div
+              key={index}
+              className="bg-white border-2 border-[#E04D30] rounded-[24px] px-[22px] py-[19px] flex flex-col gap-[10px] items-start flex-1"
+            >
+              <div className="flex gap-[10px] items-start">
+                <div className="flex items-center justify-center w-[24px] h-[24px]">
+                  {voucher.icon}
+                </div>
+                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
+                  {voucher.title}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  Loại voucher
-                </Button>
-                <Button variant="outline" size="sm">
-                  Trạng thái
-                </Button>
-                <Button variant="outline" size="sm">
-                  Thời gian tạo
+              <p className="font-medium text-[10px] text-[#322f30] leading-[1.4]">
+                {voucher.description}
+              </p>
+              <div className="flex gap-[10px] items-center justify-end w-full">
+                <Button onClick={() => handleCreateVoucher(voucher.title)}>
+                  Tạo
                 </Button>
               </div>
             </div>
-          </CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50 ">
-                <TableHead className="w-12">
-                  <input type="checkbox" className="rounded" />
-                </TableHead>
-                <TableHead>Tên voucher/Mã voucher</TableHead>
-                <TableHead>Loại mã</TableHead>
-                <TableHead>Sản phẩm sử dụng</TableHead>
-                <TableHead>Giảm giá</TableHead>
-                <TableHead>Tổng lượt sử dụng tối đa</TableHead>
-                <TableHead>Đã dùng</TableHead>
-                <TableHead>Hiệu lực</TableHead>
-                <TableHead>Thời gian lưu</TableHead>
-                <TableHead>Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockVouchers.map((voucher) => (
-                <TableRow key={voucher.id} className="hover:bg-gray-50 ">
-                  <TableCell>
-                    <input type="checkbox" className="rounded" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Gift className="w-10 h-10 p-2 bg-orange-100 text-orange-600 rounded-lg flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-sm text-gray-900 ">
-                          {voucher.id}
-                        </p>
-                        <p className="text-xs text-gray-500">{voucher.name}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-gray-600 ">
-                      {voucher.type}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-gray-600 ">
-                      {voucher.productCount}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-gray-600 ">
-                      {voucher.discountValue}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-gray-600 ">
-                      {voucher.usageLimit}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-gray-600 ">
-                      {voucher.used}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={`text-xs px-2 py-1 ${getStatusColor(
+          ))}
+        </div>
+
+        {/* Target Customer Section */}
+        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4">
+          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4]">
+            Tập trung vào nhóm khách hàng mục tiêu
+          </h3>
+        </div>
+        <div className="flex gap-[60px] items-center justify-center w-full">
+          {voucherTypes.targetCustomer.map((voucher, index) => (
+            <div
+              key={index}
+              className="bg-white border-2 border-[#E04D30] rounded-[24px] px-[22px] py-[19px] flex flex-col gap-[10px] items-start flex-1"
+            >
+              <div className="flex gap-[10px] items-start">
+                <div className="flex items-center justify-center w-[24px] h-[24px]">
+                  {voucher.icon}
+                </div>
+                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
+                  {voucher.title}
+                </div>
+              </div>
+              <p className="font-medium text-[10px] text-[#322f30] leading-[1.4]">
+                {voucher.description}
+              </p>
+              <div className="flex gap-[10px] items-center justify-end w-full">
+                <Button onClick={() => handleCreateVoucher(voucher.title)}>
+                  Tạo
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Private Channel Section */}
+        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4">
+          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4]">
+            Tập trung vào kênh hiển thị riêng tư
+          </h3>
+        </div>
+        <div className="flex gap-[60px] items-center justify-center w-full">
+          <div className="bg-white border-2 border-[#E04D30] rounded-[24px] px-[22px] py-[19px] flex flex-col gap-[10px] items-start flex-1">
+            <div className="flex gap-[10px] items-start">
+              <div className="flex items-center justify-center w-[30px] h-[30px]">
+                {voucherTypes.privateChannel.icon}
+              </div>
+              <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
+                {voucherTypes.privateChannel.title}
+              </div>
+            </div>
+            <p className="font-medium text-[10px] text-[#322f30] leading-[1.4]">
+              {voucherTypes.privateChannel.description}
+            </p>
+            <div className="flex gap-[10px] items-center justify-end w-full">
+              <Button
+                onClick={() =>
+                  handleCreateVoucher(voucherTypes.privateChannel.title)
+                }
+              >
+                Tạo
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Menu */}
+      <TabMenuAccount
+        tabs={discountTabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+
+      {/* Search Bar */}
+
+      <SearchBar
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Tìm kiếm mã giảm giá"
+        className="w-[500px]"
+      />
+
+      {/* Voucher Table */}
+      <div className="">
+        <div className="bg-white border border-[#e7e7e7] rounded-[24px] w-full overflow-hidden">
+          {/* Table Header */}
+          <div className="flex items-start w-full">
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[10px] items-center px-[12px] py-[15px] w-[200px] rounded-tl-[12px]">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
+                Tên voucher|Mã voucher
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] flex-1">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
+                Loại mã
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] flex-1">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
+                SP áp dụng
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[100px]">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
+                Giảm giá
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[120px]">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4] text-center">
+                Tổng lượt sử dụng tối đa
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[80px]">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
+                Đã dùng
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[100px]">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
+                Hiển thị
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[150px]">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
+                Thời gian lưu
+              </p>
+            </div>
+            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[100px] rounded-tr-[12px]">
+              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
+                Thao tác
+              </p>
+            </div>
+          </div>
+
+          {/* Table Body */}
+          {mockVouchers.map((voucher) => (
+            <div
+              key={voucher.id}
+              className="flex items-start border-t border-[#d1d1d1] w-full"
+            >
+              <div className="flex gap-[10px] items-center px-[12px] py-[14px] w-[200px]">
+                <div className="flex items-center justify-center w-[24px] h-[24px]">
+                  <CreditCardPercentIcon size={24} color="#292D32" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-col gap-[4px] items-start justify-center">
+                    <div
+                      className={`flex gap-[10px] items-start px-[8px] py-[6px] rounded-[6px] ${getStatusBadgeClass(
                         voucher.status
                       )}`}
                     >
-                      {voucher.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-sm text-gray-600 ">{voucher.expiry}</p>
-                      <p className="text-xs text-gray-500">
-                        {voucher.createdDate}
+                      <p className="font-bold text-[12px] leading-[normal]">
+                        {voucher.status}
                       </p>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Chi tiết
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="text-blue-600">
-                            <Eye className="w-4 h-4 mr-2" />
-                            Xem chi tiết
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Chỉnh sửa
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Xóa
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <div className="font-medium text-[10px] text-[#272424] leading-[1.4]">
+                      <p className="mb-0">{voucher.name}</p>
+                      <p>Mã voucher: {voucher.code}</p>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] flex-1">
+                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
+                  {voucher.type}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] flex-1">
+                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
+                  {voucher.products}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[100px]">
+                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
+                  {voucher.discount}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[120px]">
+                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
+                  {voucher.maxUsage}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[80px]">
+                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
+                  {voucher.used}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[100px]">
+                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
+                  {voucher.display}
+                </p>
+              </div>
+              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[150px]">
+                <div className="font-medium text-[10px] text-[#272424] leading-[1.4] text-center">
+                  <p className="mb-0">{voucher.startDate} -</p>
+                  <p>{voucher.endDate}</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[100px]">
+                <div className="font-semibold text-[12px] text-[#1a71f6] leading-[1.4] cursor-pointer">
+                  <p className="mb-0 hover:opacity-70">Chỉnh sửa</p>
+                  <p className="mb-0 hover:opacity-70">Đơn hàng</p>
+                  <p className="hover:opacity-70">Kết thúc</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

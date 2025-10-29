@@ -14,7 +14,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   className = "",
 }) => {
   return (
-    <div className={`border-2 border-[#e04d30] flex items-center gap-2 px-[12px] py-[8px] rounded-[10px] ${className}`}>
+    <div
+      className={`border-2 bg-white border-[#e04d30] flex items-center gap-2 px-[12px] py-[8px] rounded-[10px] ${className}`}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
@@ -38,5 +40,3 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 };
 
 export default SearchBar;
-
-
