@@ -1,19 +1,25 @@
-"use client";
-
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
-type SheetProps = React.ComponentProps<"div"> & {
+interface SheetProps extends React.ComponentProps<"div"> {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-};
+}
 
-export const Sheet: React.FC<SheetProps> = ({ open = true, onOpenChange, children, ...props }) => {
+export const Sheet: React.FC<SheetProps> = ({
+  open = true,
+  onOpenChange,
+  children,
+  ...props
+}) => {
   React.useEffect(() => {
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && onOpenChange) onOpenChange(false);
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && onOpenChange) {
+        onOpenChange(false);
+      }
     };
-    document.addEventListener("keydown", onEsc);
-    return () => document.removeEventListener("keydown", onEsc);
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
   }, [onOpenChange]);
 
   if (!open) return null;
@@ -26,49 +32,71 @@ export const Sheet: React.FC<SheetProps> = ({ open = true, onOpenChange, childre
     >
       <div className="absolute inset-0 bg-black/50" />
       {/* Prevent click bubbling to backdrop */}
-      <div className="relative z-10 h-full" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="relative z-10 h-full"
+        onClick={(e) => e.stopPropagation()}
+      >
         {children}
       </div>
     </div>
   );
 };
 
-type SheetContentProps = React.ComponentProps<"div"> & {
+interface SheetContentProps extends React.ComponentProps<"div"> {
   side?: "left" | "right" | "top" | "bottom";
-};
+}
 
-export const SheetContent: React.FC<SheetContentProps> = ({ side = "right", className = "", ...props }) => {
-  const sideClasses =
-    side === "left"
-      ? "left-0"
-      : side === "right"
-      ? "right-0"
-      : side === "top"
-      ? "top-0"
-      : "bottom-0";
+export const SheetContent: React.FC<SheetContentProps> = ({
+  side = "right",
+  className,
+  ...props
+}) => {
+  const sideClasses = {
+    left: "left-0",
+    right: "right-0",
+    top: "top-0",
+    bottom: "bottom-0",
+  }[side];
 
   const axisClasses = side === "left" || side === "right" ? "h-full" : "w-full";
 
   return (
     <div
       {...props}
-      className={`bg-white shadow-xl ${axisClasses} w-[400px] max-w-full fixed ${sideClasses} ${className}`}
+      className={cn(
+        "bg-white shadow-xl fixed max-w-full",
+        axisClasses,
+        "w-[400px]",
+        sideClasses,
+        className
+      )}
     />
   );
 };
 
-export const SheetHeader: React.FC<React.ComponentProps<"div">> = ({ className = "", ...props }) => (
-  <div {...props} className={`flex flex-col gap-1 p-4 ${className}`} />
+export const SheetHeader: React.FC<React.ComponentProps<"div">> = ({
+  className,
+  ...props
+}) => <div {...props} className={cn("flex flex-col gap-1 p-4", className)} />;
+
+export const SheetTitle: React.FC<React.ComponentProps<"h2">> = ({
+  className,
+  ...props
+}) => (
+  <h2
+    {...props}
+    className={cn(
+      "text-lg font-semibold leading-none tracking-tight",
+      className
+    )}
+  />
 );
 
-export const SheetTitle: React.FC<React.ComponentProps<"h2">> = ({ className = "", ...props }) => (
-  <h2 {...props} className={`text-lg font-semibold leading-none tracking-tight ${className}`} />
-);
-
-export const SheetDescription: React.FC<React.ComponentProps<"p">> = ({ className = "", ...props }) => (
-  <p {...props} className={`text-sm text-muted-foreground ${className}`} />
+export const SheetDescription: React.FC<React.ComponentProps<"p">> = ({
+  className,
+  ...props
+}) => (
+  <p {...props} className={cn("text-sm text-muted-foreground", className)} />
 );
 
 export default Sheet;
-
-

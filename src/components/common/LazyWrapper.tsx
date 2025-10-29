@@ -1,6 +1,10 @@
-import { Suspense } from "react";
-import Loading from "../../components/common/Loading";
+import React, { Suspense } from "react";
+import Loading from "./Loading";
 
-export const LazyWrapper = ({ children }: { children: React.ReactElement }) => (
+interface LazyWrapperProps {
+  children: React.ReactElement;
+}
+
+export const LazyWrapper: React.FC<LazyWrapperProps> = ({ children }) => (
   <Suspense fallback={<Loading />}>{children}</Suspense>
 );

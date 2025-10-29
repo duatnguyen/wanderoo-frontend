@@ -1,13 +1,16 @@
 import React from "react";
+import { cn } from "@/lib/utils";
 
 interface LoadingProps {
   size?: "sm" | "md" | "lg";
   text?: string;
+  className?: string;
 }
 
 const Loading: React.FC<LoadingProps> = ({
   size = "md",
   text = "Đang tải...",
+  className,
 }) => {
   const sizeClasses = {
     sm: "h-4 w-4",
@@ -16,10 +19,15 @@ const Loading: React.FC<LoadingProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
+    <div
+      className={cn("flex flex-col items-center justify-center p-4", className)}
+    >
       <div
-        className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizeClasses[size]}`}
-      ></div>
+        className={cn(
+          "animate-spin rounded-full border-2 border-gray-300 border-t-blue-600",
+          sizeClasses[size]
+        )}
+      />
       {text && <p className="mt-2 text-sm text-gray-600">{text}</p>}
     </div>
   );

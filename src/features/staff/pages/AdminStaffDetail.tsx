@@ -159,7 +159,7 @@ const AdminStaffDetail: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col items-center px-[50px] py-0 w-full">
+    <div className="flex flex-col items-center w-full">
       {/* Header */}
       <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[20px] w-full">
         <div className="flex gap-[10px] items-center w-full">
