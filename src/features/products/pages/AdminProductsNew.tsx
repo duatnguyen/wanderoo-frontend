@@ -7,9 +7,79 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
 import { ChevronDown } from "lucide-react";
 import { Icon } from "@/components/icons";
 import ImageUpload from "@/components/ui/image-upload";
+
+// Generate all combinations of attribute values (cartesian product)
+const generateCombinations = (
+  arrs: string[][],
+  index: number = 0,
+  current: string[] = []
+): string[][] => {
+  if (index === arrs.length) {
+    return [current];
+  }
+
+  const result: string[][] = [];
+  for (const value of arrs[index]) {
+    result.push(...generateCombinations(arrs, index + 1, [...current, value]));
+  }
+  return result;
+};
+
+// Fake data for versions (6 rows as per Figma design)
+const FAKE_VERSIONS = [
+  {
+    id: "fake-1",
+    combination: ["40", "Xám"],
+    name: "40 / Xám",
+    price: "150000",
+    inventory: "50",
+    available: "45",
+  },
+  {
+    id: "fake-2",
+    combination: ["40", "Xanh đậm"],
+    name: "40 / Xanh đậm",
+    price: "150000",
+    inventory: "30",
+    available: "28",
+  },
+  {
+    id: "fake-3",
+    combination: ["41", "Xám"],
+    name: "41 / Xám",
+    price: "160000",
+    inventory: "45",
+    available: "40",
+  },
+  {
+    id: "fake-4",
+    combination: ["41", "Xanh đậm"],
+    name: "41 / Xanh đậm",
+    price: "160000",
+    inventory: "35",
+    available: "32",
+  },
+  {
+    id: "fake-5",
+    combination: ["42", "Xám"],
+    name: "42 / Xám",
+    price: "170000",
+    inventory: "40",
+    available: "38",
+  },
+  {
+    id: "fake-6",
+    combination: ["42", "Xanh đậm"],
+    name: "42 / Xanh đậm",
+    price: "170000",
+    inventory: "25",
+    available: "22",
+  },
+];
 
 const AdminProductsNew: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -40,6 +110,27 @@ const AdminProductsNew: React.FC = () => {
   const [images, setImages] = useState<
     Array<{ id: string; url: string; file?: File }>
   >([]);
+
+  const [versions, setVersions] = useState<
+    Array<{
+      id: string;
+      combination: string[];
+      name: string;
+      price: string;
+      inventory: string;
+      available: string;
+    }>
+  >([]);
+  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(
+    new Set()
+  );
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>(
+    {}
+  );
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [priceValues, setPriceValues] = useState<Record<string, string>>({});
+  const [applyAllPrice, setApplyAllPrice] = useState("");
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -162,10 +253,145 @@ const AdminProductsNew: React.FC = () => {
     setShowAttributes(false);
     setAttributes([]);
     setCurrentAttribute({ name: "", value: "" });
+    setVersions([]);
+    setSelectedVersions(new Set());
   };
 
+  // Update versions when attributes change
+  React.useEffect(() => {
+    if (
+      attributes.length === 0 ||
+      attributes.some((attr) => attr.values.length === 0)
+    ) {
+      // Show fake versions when no attributes
+      setVersions(FAKE_VERSIONS);
+      return;
+    }
+
+    const valueArrays = attributes.map((attr) => attr.values);
+    const combinations = generateCombinations(valueArrays);
+
+    setVersions((prevVersions) => {
+      const newVersions = combinations.map((combination, index) => {
+        const name = combination.join(" / ");
+        const versionId = `version-${index}`;
+        const existing = prevVersions.find((v) => v.name === name);
+
+        return {
+          id: versionId,
+          combination,
+          name,
+          price: existing?.price || "",
+          inventory: existing?.inventory || "",
+          available: existing?.available || "",
+        };
+      });
+      // Add fake versions to the generated ones
+      return [...newVersions, ...FAKE_VERSIONS];
+    });
+  }, [attributes]);
+
+  const handleVersionToggle = (versionId: string) => {
+    setSelectedVersions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(versionId)) {
+        newSet.delete(versionId);
+      } else {
+        newSet.add(versionId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedVersions(new Set(versions.map((v) => v.id)));
+    } else {
+      setSelectedVersions(new Set());
+    }
+  };
+
+  const handleEditBarcode = () => {
+    // Initialize barcode values for selected versions
+    const initialValues: Record<string, string> = {};
+    selectedVersions.forEach((versionId) => {
+      const version = versions.find((v) => v.id === versionId);
+      if (version) {
+        initialValues[versionId] = ""; // You can set existing barcode here if available
+      }
+    });
+    setBarcodeValues(initialValues);
+    setShowBarcodeModal(true);
+  };
+
+  const handleBarcodeChange = (versionId: string, value: string) => {
+    setBarcodeValues((prev) => ({
+      ...prev,
+      [versionId]: value,
+    }));
+  };
+
+  const handleBarcodeCancel = () => {
+    setShowBarcodeModal(false);
+    setBarcodeValues({});
+  };
+
+  const handleBarcodeConfirm = () => {
+    // TODO: Save barcode values
+    console.log("Barcode values:", barcodeValues);
+    setShowBarcodeModal(false);
+    setBarcodeValues({});
+  };
+
+  const handleEditPrice = () => {
+    // Initialize price values for selected versions
+    const initialValues: Record<string, string> = {};
+    selectedVersions.forEach((versionId) => {
+      const version = versions.find((v) => v.id === versionId);
+      if (version) {
+        initialValues[versionId] = version.price || ""; // Use existing price if available
+      }
+    });
+    setPriceValues(initialValues);
+    setApplyAllPrice("");
+    setShowPriceModal(true);
+  };
+
+  const handlePriceChange = (versionId: string, value: string) => {
+    setPriceValues((prev) => ({
+      ...prev,
+      [versionId]: value,
+    }));
+  };
+
+  const handleApplyAllPrice = () => {
+    if (applyAllPrice) {
+      const updatedValues: Record<string, string> = {};
+      selectedVersions.forEach((versionId) => {
+        updatedValues[versionId] = applyAllPrice;
+      });
+      setPriceValues(updatedValues);
+    }
+  };
+
+  const handlePriceCancel = () => {
+    setShowPriceModal(false);
+    setPriceValues({});
+    setApplyAllPrice("");
+  };
+
+  const handlePriceConfirm = () => {
+    // TODO: Save price values
+    console.log("Price values:", priceValues);
+    setShowPriceModal(false);
+    setPriceValues({});
+    setApplyAllPrice("");
+  };
+
+  const selectedCount = selectedVersions.size;
+
   return (
-    <div className="w-full h-full flex flex-col gap-3 px-[50px] py-8">
+    <div className="w-full h-full flex flex-col gap-3">
       {/* Header */}
       <div className="w-full flex items-center gap-2">
         <button className="flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity">
@@ -597,6 +823,119 @@ const AdminProductsNew: React.FC = () => {
           </div>
         )}
 
+        {/* Version Section - Show when attributes are added */}
+        {showAttributes && attributes.length > 0 && versions.length > 0 && (
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] py-6 flex flex-col gap-4">
+            <div className="flex items-center gap-1 px-6">
+              <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+                Phiên bản
+              </h2>
+            </div>
+
+            {/* Filter Section */}
+            <div className="flex gap-6 items-center px-6">
+              <div className="flex items-center gap-[10px]">
+                <span className="text-[10px] font-medium text-[#272424] font-montserrat leading-[140%]">
+                  Bộ lọc:
+                </span>
+              </div>
+              {attributes.map((attr, index) => (
+                <DropdownMenu key={index}>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1 cursor-pointer hover:opacity-70 transition-opacity">
+                      <span className="text-[10px] font-medium text-[#e04d30] font-montserrat leading-[140%]">
+                        {attr.name}
+                      </span>
+                      <ChevronDown className="w-6 h-6 text-[#322f30]" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {attr.values.map((value, valueIndex) => (
+                      <DropdownMenuItem key={valueIndex}>
+                        {value}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ))}
+            </div>
+
+            {/* Versions Table */}
+            <div className="bg-white rounded-[16px] flex flex-col">
+              {/* Header Row */}
+              <div className="flex items-start border-b border-[#e7e7e7]">
+                <div className="flex-1 flex gap-2 items-center px-3 py-[14px]">
+                  <CustomCheckbox
+                    checked={
+                      versions.length > 0 &&
+                      selectedVersions.size === versions.length
+                    }
+                    onChange={handleSelectAll}
+                  />
+                  <p className="text-[14px] font-bold text-[#272424] font-montserrat">
+                    {selectedCount > 0
+                      ? `Đã chọn ${selectedCount} phiên bản`
+                      : `${versions.length} phiên bản`}
+                  </p>
+                </div>
+                {selectedCount > 0 && (
+                  <div className="flex flex-col gap-2 items-end justify-center p-3">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="border-2 border-[#e04d30] flex items-center gap-[4px] px-[24px] py-[12px] rounded-[12px] cursor-pointer hover:opacity-70 transition-opacity">
+                          <span className="text-[14px] font-semibold text-[#e04d30] font-montserrat leading-[140%]">
+                            Chỉnh sửa
+                          </span>
+                          <ChevronDown className="w-6 h-6 text-[#e04d30]" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={handleEditBarcode}>
+                          Chỉnh sửa mã vạch/barcode
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleEditPrice}>
+                          Chỉnh sửa giá
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+              </div>
+
+              {/* Version Rows */}
+              {versions.map((version, index) => (
+                <div
+                  key={version.id}
+                  className={`flex items-start ${
+                    index < versions.length - 1
+                      ? "border-b border-[#e7e7e7]"
+                      : ""
+                  }`}
+                >
+                  <div className="w-[400px] flex gap-2 items-center px-3 py-[14px]">
+                    <CustomCheckbox
+                      checked={selectedVersions.has(version.id)}
+                      onChange={() => handleVersionToggle(version.id)}
+                    />
+                    <p className="text-[14px] font-medium text-[#272424] font-montserrat leading-[140%]">
+                      {version.name}
+                    </p>
+                  </div>
+                  <div className="flex-1 flex flex-col gap-2 items-end justify-center px-3 py-[14px]">
+                    <p className="text-[12px] font-medium text-[#272424] font-montserrat leading-[140%]">
+                      Giá bán: {version.price || "0"}đ
+                    </p>
+                    <p className="text-[12px] font-medium text-[#272424] font-montserrat leading-[140%]">
+                      Tồn kho : {version.inventory || "0"}, Có thể bán :{" "}
+                      {version.available || "0"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Shipping Section */}
         <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
           <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
@@ -683,6 +1022,211 @@ const AdminProductsNew: React.FC = () => {
           <Button type="submit">Thêm sản phẩm</Button>
         </div>
       </form>
+
+      {/* Barcode Edit Modal */}
+      {showBarcodeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur and dark overlay */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={handleBarcodeCancel}
+          />
+          {/* Modal Content */}
+          <div
+            className="relative z-50 bg-white rounded-[24px] w-full max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-3">
+              <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
+                Chỉnh sửa mã vạch/barcode
+              </h2>
+              <button
+                onClick={handleBarcodeCancel}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="#322f30"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content - Scrollable list */}
+            <div className="flex-1 overflow-y-auto">
+              {Array.from(selectedVersions).map((versionId, index) => {
+                const version = versions.find((v) => v.id === versionId);
+                if (!version) return null;
+
+                return (
+                  <div
+                    key={versionId}
+                    className={`flex items-center justify-between px-6 py-6 ${
+                      index > 0 ? "border-t border-[#d1d1d1]" : ""
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                        {version.name}
+                      </p>
+                    </div>
+                    <div className="w-[315px]">
+                      <FormInput
+                        placeholder="Nhập mã vạch/barcode"
+                        value={barcodeValues[versionId] || ""}
+                        onChange={(e) =>
+                          handleBarcodeChange(versionId, e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-[10px] px-6 py-3 border-t border-[#d1d1d1]">
+              <Button variant="secondary" onClick={handleBarcodeCancel}>
+                Huỷ
+              </Button>
+              <Button onClick={handleBarcodeConfirm}>Xác nhận</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Price Edit Modal */}
+      {showPriceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur and dark overlay */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={handlePriceCancel}
+          />
+          {/* Modal Content */}
+          <div
+            className="relative z-50 bg-white rounded-[24px] w-full max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-3">
+              <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
+                Chỉnh sửa giá bán
+              </h2>
+              <button
+                onClick={handlePriceCancel}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="#322f30"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Apply to All Section */}
+            <div className="flex items-end justify-between px-6 py-3 border-t border-[#d1d1d1]">
+              <div className="flex flex-col gap-1 flex-1">
+                <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                  Áp dụng 1 giá cho tất cả phiên bản
+                </p>
+                <div className="w-full">
+                  <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[52px]">
+                    <input
+                      type="text"
+                      placeholder="0"
+                      value={applyAllPrice}
+                      onChange={(e) => setApplyAllPrice(e.target.value)}
+                      className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                    />
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-px h-6 bg-[#888888]"></div>
+                      <span className="text-[14px] font-semibold text-[#888888] font-montserrat">
+                        đ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <Button onClick={handleApplyAllPrice} className="ml-4 h-[52px]">
+                Áp dụng cho tất cả
+              </Button>
+            </div>
+
+            {/* Content - Scrollable list */}
+            <div className="flex-1 overflow-y-auto">
+              {Array.from(selectedVersions).map((versionId, index) => {
+                const version = versions.find((v) => v.id === versionId);
+                if (!version) return null;
+
+                return (
+                  <div
+                    key={versionId}
+                    className={`flex items-center justify-between px-6 py-6 ${
+                      index > 0 ? "border-t border-[#d1d1d1]" : ""
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                        {version.name}
+                      </p>
+                    </div>
+                    <div className="w-[315px]">
+                      <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[52px]">
+                        <input
+                          type="text"
+                          placeholder="0"
+                          value={priceValues[versionId] || ""}
+                          onChange={(e) =>
+                            handlePriceChange(versionId, e.target.value)
+                          }
+                          className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                        />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-px h-6 bg-[#888888]"></div>
+                          <span className="text-[14px] font-semibold text-[#888888] font-montserrat">
+                            đ
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-[10px] px-6 py-3 border-t border-[#d1d1d1]">
+              <Button variant="secondary" onClick={handlePriceCancel}>
+                Huỷ
+              </Button>
+              <Button onClick={handlePriceConfirm}>Xác nhận</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
