@@ -76,6 +76,9 @@ const AdminProductsNew = lazy(
 const AdminStaffNew = lazy(
   () => import("../../features/staff/pages/AdminStaffNew")
 );
+const AdminStaffDetail = lazy(
+  () => import("../../features/staff/pages/AdminStaffDetail")
+);
 const AdminSupplierNew = lazy(
   () => import("../../features/warehouse/pages/AdminSupplierNew")
 );
@@ -339,7 +342,7 @@ export const adminRoutes: RouteObject[] = [
     path: "staff/:staffId",
     element: (
       <LazyWrapper>
-        <AdminStaff />
+        <AdminStaffDetail />
       </LazyWrapper>
     ),
   },

@@ -297,7 +297,8 @@ const AdminStaff: React.FC = () => {
           {paginatedStaff.map((s, index) => (
             <div
               key={s.id}
-              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[15px] py-0 w-full ${
+              onClick={() => navigate(`/admin/staff/${s.id}`)}
+              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[15px] py-0 w-full cursor-pointer ${
                 index === paginatedStaff.length - 1
                   ? "border-transparent"
                   : "border-[#e7e7e7]"
@@ -306,11 +307,13 @@ const AdminStaff: React.FC = () => {
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[450px]">
-                    <CustomCheckbox
-                      checked={selectedStaff.has(s.id)}
-                      onChange={(checked) => handleSelectItem(s.id, checked)}
-                      className="w-[30px] h-[30px]"
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedStaff.has(s.id)}
+                        onChange={(checked) => handleSelectItem(s.id, checked)}
+                        className="w-[30px] h-[30px]"
+                      />
+                    </div>
                     <div className="w-[70px] h-[70px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
                       <Avatar className="w-full h-full">
                         {s.avatar ? (
