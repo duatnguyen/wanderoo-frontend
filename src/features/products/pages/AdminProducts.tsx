@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import TabMenuAccount from "@/components/ui/tab-menu-account";
 import SearchBar from "@/components/ui/search-bar";
 import CaretDown from "@/components/ui/caret-down";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,16 +33,16 @@ const AdminProducts: React.FC = () => {
     setSearchValue(e.target.value);
   };
 
-  const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedProducts(new Set());
-      setSelectAll(false);
-    } else {
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
       // Select all 9 product IDs
       setSelectedProducts(
         new Set(["1", "2", "3", "4", "5", "6", "7", "8", "9"])
       );
       setSelectAll(true);
+    } else {
+      setSelectedProducts(new Set());
+      setSelectAll(false);
     }
   };
 
@@ -61,10 +63,10 @@ const AdminProducts: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full p-2 sm:p-[10px] gap-1">
+    <div className="flex flex-col w-full gap-1">
       {/* Header */}
       <div className="flex items-center justify-between py-[4px] px-0 min-h-[32px] w-full">
-        <h1 className="font-bold text-base sm:text-[18px] text-[#272424] font-['Montserrat']">
+        <h1 className="font-bold text-base text-[24px] text-[#272424] font-['Montserrat']">
           Danh sách sản phẩm
         </h1>
       </div>
@@ -106,65 +108,34 @@ const AdminProducts: React.FC = () => {
         <div className="flex flex-col items-start px-3 sm:px-[15px] py-0 relative rounded-[16px] w-full">
           {/* Table Container with Scroll */}
           <div className="w-full overflow-x-auto overflow-y-visible table-scroll-horizontal pb-4">
-            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] min-w-[1400px] sm:min-w-[1600px] lg:min-w-[1800px] w-fit">
+            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] min-w-[1400px] sm:min-w-[1600px] lg:min-w-[1800px] w-fit">
               {/* Table Header */}
               {selectedProducts.size > 0 ? (
                 /* Selection Header */
-                <div className="bg-[#f6f6f6] border border-[#d1d1d1] flex items-center px-[12px] py-[14px] rounded-tl-[12px] rounded-tr-[12px] w-full min-h-[68px]">
-                  <div className="flex flex-row items-center gap-[12px] w-full">
-                    {/* Checkbox */}
-                    <div className="flex items-center justify-center px-[12px]">
-                      <div
-                        className="w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] bg-white flex items-center justify-center cursor-pointer"
+                <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full h-[68px]">
+                  <div className="flex flex-row items-center w-full h-full gap-[12px]">
+                    <CustomCheckbox
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      className="w-[24px] h-[24px]"
+                    />
+                    <span className="font-semibold text-[#272424] text-[12px] leading-[1.5]">
+                      Đã chọn {selectedProducts.size} sản phẩm
+                    </span>
+                    <div className="flex gap-[6px] items-center ml-auto">
+                      <Button
+                        variant="secondary"
                         onClick={handleClearSelection}
                       >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 14 14"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M11 3L3 11M3 3L11 11"
-                            stroke="#272424"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-
-                    {/* Count */}
-                    <p className="font-semibold text-[#272424] text-[12px] leading-[1.4] whitespace-nowrap">
-                      {selectedProducts.size} sản phẩm đã được chọn
-                    </p>
-
-                    {/* Buttons */}
-                    <div className="flex items-center gap-[8px]">
-                      {/* Delete Button (Secondary) */}
-                      <button className="bg-white border-2 border-[#e04d30] px-[16px] py-[8px] rounded-[12px]">
-                        <span className="font-bold text-[#e04d30] text-[12px] leading-normal">
-                          Xóa
-                        </span>
-                      </button>
-
-                      {/* Hide Button (Primary) */}
-                      <button className="bg-[#e04d30] px-[16px] py-[8px] rounded-[12px]">
-                        <span className="font-bold text-white text-[12px] leading-normal">
-                          Ẩn
-                        </span>
-                      </button>
-
-                      {/* Dropdown Menu */}
+                        Xóa
+                      </Button>
+                      <Button>Ẩn</Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button className="bg-white border-2 border-[#e04d30] flex items-center gap-[6px] px-[16px] py-[8px] rounded-[12px]">
-                            <span className="font-semibold text-[#e04d30] text-[12px] leading-[1.4]">
-                              Thao tác khác
-                            </span>
-                            <CaretDown className="text-[#e04d30]" />
-                          </button>
+                          <Button variant="secondary">
+                            Thao tác khác
+                            <CaretDown />
+                          </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>
@@ -178,73 +149,61 @@ const AdminProducts: React.FC = () => {
                 </div>
               ) : (
                 /* Normal Header */
-                <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-h-[68px]">
-                  <div className="flex flex-row items-center w-full">
-                    {/* Checkbox Column */}
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                      <div
-                        className="w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer hover:bg-gray-100"
-                        onClick={handleSelectAll}
-                      >
-                        {/* Checkbox */}
-                      </div>
+                <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full h-[68px]">
+                  <div className="flex flex-row items-center w-full h-full">
+                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[60px] min-h-[68px]">
+                      <CustomCheckbox
+                        checked={selectAll}
+                        onChange={handleSelectAll}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
-                    {/* Product Name */}
-                    <div className="flex h-full items-center px-[12px] py-[14px] w-[500px] min-w-[500px]">
+                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[500px] min-h-[68px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Tên sản phẩm
                       </span>
                     </div>
-                    {/* SKU */}
                     <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         SKU sản phẩm
                       </span>
                     </div>
-                    {/* Barcode */}
                     <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Barcode
                       </span>
                     </div>
-                    {/* Inventory */}
                     <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Tồn kho
                       </span>
                     </div>
-                    {/* Available to Sell */}
                     <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Có thể bán
                       </span>
                     </div>
-                    {/* Sold on Website */}
                     <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         SL bán trên website
                       </span>
                     </div>
-                    {/* Sold on POS */}
                     <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         SL bán trên POS
                       </span>
                     </div>
-                    {/* Selling Price */}
                     <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Giá bán
                       </span>
                     </div>
-                    {/* Cost Price */}
                     <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Giá vốn
                       </span>
                     </div>
-                    {/* Actions */}
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
+                    <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Thao tác
                       </span>
@@ -255,36 +214,16 @@ const AdminProducts: React.FC = () => {
 
               {/* Table Body */}
               {/* Sample Product Row */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   {/* Checkbox Column */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("1") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("1");
-                      }}
-                    >
-                      {selectedProducts.has("1") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("1")}
+                        onChange={() => handleProductSelect("1")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   {/* Product Name with Image */}
@@ -570,36 +509,16 @@ const AdminProducts: React.FC = () => {
               </div>
 
               {/* Sample Product Row 2 */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   {/* Checkbox Column */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("2") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("2");
-                      }}
-                    >
-                      {selectedProducts.has("2") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("2")}
+                        onChange={() => handleProductSelect("2")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   {/* Product Name with Image */}
@@ -814,35 +733,15 @@ const AdminProducts: React.FC = () => {
               </div>
 
               {/* Product 3 - Backpack */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("3") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("3");
-                      }}
-                    >
-                      {selectedProducts.has("3") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("3")}
+                        onChange={() => handleProductSelect("3")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
@@ -903,35 +802,15 @@ const AdminProducts: React.FC = () => {
               </div>
 
               {/* Product 4 - T-Shirt */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("4") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("4");
-                      }}
-                    >
-                      {selectedProducts.has("4") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("4")}
+                        onChange={() => handleProductSelect("4")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
@@ -992,35 +871,15 @@ const AdminProducts: React.FC = () => {
               </div>
 
               {/* Product 5 - Water Bottle */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("5") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("5");
-                      }}
-                    >
-                      {selectedProducts.has("5") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("5")}
+                        onChange={() => handleProductSelect("5")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
@@ -1081,35 +940,15 @@ const AdminProducts: React.FC = () => {
               </div>
 
               {/* Product 6 - Sunglasses */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("6") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("6");
-                      }}
-                    >
-                      {selectedProducts.has("6") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("6")}
+                        onChange={() => handleProductSelect("6")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
@@ -1170,35 +1009,15 @@ const AdminProducts: React.FC = () => {
               </div>
 
               {/* Product 7 - Hat */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("7") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("7");
-                      }}
-                    >
-                      {selectedProducts.has("7") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("7")}
+                        onChange={() => handleProductSelect("7")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
@@ -1259,35 +1078,15 @@ const AdminProducts: React.FC = () => {
               </div>
 
               {/* Product 8 - Hiking Socks */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("8") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("8");
-                      }}
-                    >
-                      {selectedProducts.has("8") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("8")}
+                        onChange={() => handleProductSelect("8")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
@@ -1348,35 +1147,15 @@ const AdminProducts: React.FC = () => {
               </div>
 
               {/* Product 9 - Gloves */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-50">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div
-                      className={`w-[24px] h-[24px] border border-[#d1d1d1] rounded-[4px] cursor-pointer flex items-center justify-center ${
-                        selectedProducts.has("9") ? "bg-[#e04d30]" : "bg-white"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProductSelect("9");
-                      }}
-                    >
-                      {selectedProducts.has("9") && (
-                        <svg
-                          width="12"
-                          height="10"
-                          viewBox="0 0 12 10"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M1 5L4.5 8.5L11 1.5"
-                            stroke="white"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("9")}
+                        onChange={() => handleProductSelect("9")}
+                        className="w-[24px] h-[24px]"
+                      />
                     </div>
                   </div>
                   <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">

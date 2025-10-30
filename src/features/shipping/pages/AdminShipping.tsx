@@ -137,7 +137,7 @@ const AdminShipping: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[10px] items-start p-[32px] w-full">
+    <div className="flex flex-col gap-[10px] items-start w-full">
       {/* Header */}
       <div className="w-full mb-4">
         <h1 className="text-[24px] font-bold text-[#272424] font-montserrat leading-[100%]">
