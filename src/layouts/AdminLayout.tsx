@@ -7,7 +7,7 @@ const AdminLayout: React.FC = () => {
   const location = useLocation();
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex w-full min-h-screen">
       <AdminSidebar activePath={location.pathname} />
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <SiteHeader />

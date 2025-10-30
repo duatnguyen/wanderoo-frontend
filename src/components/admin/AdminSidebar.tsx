@@ -61,6 +61,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const submenuActiveClasses = "text-white underline";
   const submenuInactiveClasses = "text-white/70";
 
+  // Settings button (footer) specific classes
+  const footerBaseClasses =
+    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium tracking-wide transition-colors duration-200";
+  const footerActiveClasses = "bg-[#E04D30] text-white";
+  const footerInactiveClasses =
+    "text-white hover:text-white hover:bg-[#172b46]";
+
   const toggleDropdown = (itemKey: string, item: AdminNavItem) => {
     setExpandedItems((prev) => {
       const newSet = new Set(prev);
@@ -80,7 +87,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const renderNavItem = (
     item: AdminNavItem,
     key: React.Key,
-    isSubmenu: boolean = false
+    isSubmenu: boolean = false,
+    isFooter: boolean = false
   ) => {
     const itemKey = `item-${key}`;
     const hasSubmenu = item.submenu && item.submenu.length > 0;
@@ -123,6 +131,11 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     if (isSubmenu) {
       itemClasses = `${baseClasses} ${submenuClasses} ${
         isActive ? submenuActiveClasses : submenuInactiveClasses
+      }`;
+    } else if (isFooter) {
+      // Use footer-specific classes for the Settings button
+      itemClasses = `${footerBaseClasses} ${
+        isActive ? footerActiveClasses : footerInactiveClasses
       }`;
     } else {
       itemClasses = `${baseClasses} ${
@@ -195,8 +208,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   ];
 
   return (
-    <aside className="w-[225px] bg-[#18345C] text-white h-full">
-      <div className="flex h-full flex-col px-[16px] pb-4">
+    <aside className="w-[225px] min-h-screen bg-[#18345C] text-white">
+      <div className="flex flex-1 flex-col px-[16px] pb-4">
         <Link to="/admin/dashboard">
           <div className="flex flex-col items-center text-center cursor-pointer">
             <img
@@ -250,7 +263,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
             <div className="mt-auto border-t border-white/10 pt-4">
               <div className="space-y-1.5">
                 {adminFooterNav.items.map((item: AdminNavItem, index: number) =>
-                  renderNavItem(item, `footer-${index}`)
+                  renderNavItem(item, `footer-${index}`, false, true)
                 )}
               </div>
             </div>

@@ -3,9 +3,10 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search } from "lucide-react";
+import { SearchBar } from "@/components/ui/search-bar";
 import CaretDown from "@/components/ui/caret-down";
 import { Pagination } from "@/components/ui/pagination";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -195,36 +196,25 @@ const AdminCustomers: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[16px] items-center px-[20px] py-[20px] w-full max-w-full overflow-hidden">
+    <div className="flex flex-col gap-[16px] items-center w-full max-w-full overflow-hidden">
       {/* Customers Table */}
+      <div className="flex items-center justify-between w-full">
+        <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+          Danh sách khách hàng
+        </h2>
+        <Button onClick={() => navigate("/admin/customers/new")}>
+          Thêm khách hàng
+        </Button>
+      </div>
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[12px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
-        <div className="flex items-center justify-between w-full">
-          <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
-            Danh sách khách hàng
-          </h2>
-          <Button onClick={() => navigate("/admin/customers/new")}>
-            Thêm khách hàng
-          </Button>
-        </div>
-
         {/* Search and Filter */}
         <div className="flex gap-[8px] items-center w-full">
-          <div className="bg-white border border-[#e04d30] flex items-center justify-between px-[12px] py-[6px] rounded-[8px] flex-1 max-w-[400px]">
-            <div className="flex items-center gap-[8px] relative flex-1">
-              <span className="text-[10px] font-medium text-[#888888] leading-[1.4]">
-                {searchTerm ? "" : "Tìm kiếm"}
-              </span>
-              <input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="absolute left-0 top-0 w-full h-full bg-transparent border-0 outline-none px-[12px] py-[6px] text-sm"
-                placeholder=""
-              />
-            </div>
-            <div className="w-6 h-6 relative">
-              <Search className="w-6 h-6 text-[#888888]" />
-            </div>
-          </div>
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm kiếm"
+            className="w-[400px]"
+          />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -252,57 +242,55 @@ const AdminCustomers: React.FC = () => {
         {/* Table */}
         <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
           {/* Table Header */}
-          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1000px]">
-            <div className="flex flex-row items-center w-full">
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[350px] min-w-[350px]">
-                <input
-                  type="checkbox"
-                  className="w-[24px] h-[24px]"
+          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1000px] h-[58px]">
+            <div className="flex flex-row items-center w-full h-full">
+              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[350px] min-w-[350px] min-h-[58px]">
+                <CustomCheckbox
                   checked={
                     paginatedCustomers.length > 0 &&
                     paginatedCustomers.every((c) => selectedCustomers.has(c.id))
                   }
-                  onChange={(e) => handleSelectAll(e.target.checked)}
+                  onChange={(checked) => handleSelectAll(checked)}
+                  className="w-[30px] h-[30px]"
                 />
                 {selectedCustomers.size > 0 ? (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Đã chọn {selectedCustomers.size} khách hàng
-                  </span>
+                  <div className="flex gap-[6px] items-center">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                      Đã chọn {selectedCustomers.size} khách hàng
+                    </span>
+                    <Button onClick={handleDeactivateSelected}>
+                      Ngừng kích hoạt
+                    </Button>
+                  </div>
                 ) : (
                   <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
                     Khách hàng
                   </span>
                 )}
               </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
+              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[180px] min-w-[180px] min-h-[58px]">
                 {selectedCustomers.size === 0 && (
                   <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
                     Email
                   </span>
                 )}
               </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[130px] min-w-[130px]">
+              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[130px] min-w-[130px] min-h-[58px]">
                 {selectedCustomers.size === 0 && (
                   <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
                     Số điện thoại
                   </span>
                 )}
               </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
+              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[180px] min-w-[180px] min-h-[58px]">
                 {selectedCustomers.size === 0 && (
                   <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
                     Tổng chi tiêu
                   </span>
                 )}
               </div>
-              <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
-                {selectedCustomers.size > 0 ? (
-                  <div className="flex gap-[6px] items-center">
-                    <Button onClick={handleDeactivateSelected}>
-                      Ngừng kích hoạt
-                    </Button>
-                  </div>
-                ) : (
+              <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1 min-h-[58px]">
+                {selectedCustomers.size > 0 ? null : (
                   <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
                     Trạng thái
                   </span>
@@ -326,11 +314,10 @@ const AdminCustomers: React.FC = () => {
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[350px] min-w-[350px]">
-                    <input
-                      type="checkbox"
-                      className="w-[24px] h-[24px]"
+                    <CustomCheckbox
                       checked={selectedCustomers.has(c.id)}
-                      onChange={(e) => handleSelectItem(c.id, e.target.checked)}
+                      onChange={(checked) => handleSelectItem(c.id, checked)}
+                      className="w-[30px] h-[30px]"
                     />
                     <div className="w-[50px] h-[50px] relative overflow-hidden rounded-lg border-2 border-[#d1d1d1]">
                       <Avatar className="w-full h-full">
