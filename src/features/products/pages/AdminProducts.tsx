@@ -35,10 +35,8 @@ const AdminProducts: React.FC = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      // Select all 9 product IDs
-      setSelectedProducts(
-        new Set(["1", "2", "3", "4", "5", "6", "7", "8", "9"])
-      );
+      // Select first 3 product IDs (mock data)
+      setSelectedProducts(new Set(["1", "2", "3"]));
       setSelectAll(true);
     } else {
       setSelectedProducts(new Set());
@@ -100,7 +98,7 @@ const AdminProducts: React.FC = () => {
         {/* Product Count */}
         <div className="px-3 sm:px-[15px] pb-[8px] flex-shrink-0">
           <h2 className="text-sm sm:text-[16px] font-bold text-[#272424] font-['Montserrat']">
-            101 sản phẩm
+            3 sản phẩm
           </h2>
         </div>
 
@@ -114,15 +112,20 @@ const AdminProducts: React.FC = () => {
                 /* Selection Header */
                 <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full h-[68px]">
                   <div className="flex flex-row items-center w-full h-full gap-[12px]">
-                    <CustomCheckbox
-                      checked={selectAll}
-                      onChange={handleSelectAll}
-                      className="w-[24px] h-[24px]"
-                    />
-                    <span className="font-semibold text-[#272424] text-[12px] leading-[1.5]">
+                    <div
+                      className="min-w-[24px] flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <CustomCheckbox
+                        checked={selectAll}
+                        onChange={handleSelectAll}
+                        className="w-[24px] h-[24px]"
+                      />
+                    </div>
+                    <span className="font-semibold text-[#272424] text-[12px] leading-[1.5] whitespace-nowrap">
                       Đã chọn {selectedProducts.size} sản phẩm
                     </span>
-                    <div className="flex gap-[6px] items-center ml-auto">
+                    <div className="flex gap-[6px] items-center">
                       <Button
                         variant="secondary"
                         onClick={handleClearSelection}
@@ -151,12 +154,17 @@ const AdminProducts: React.FC = () => {
                 /* Normal Header */
                 <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full h-[68px]">
                   <div className="flex flex-row items-center w-full h-full">
-                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[60px] min-h-[68px]">
-                      <CustomCheckbox
-                        checked={selectAll}
-                        onChange={handleSelectAll}
-                        className="w-[24px] h-[24px]"
-                      />
+                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[60px] min-w-[60px] min-h-[68px] flex-shrink-0">
+                      <div
+                        className="min-w-[24px] flex-shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <CustomCheckbox
+                          checked={selectAll}
+                          onChange={handleSelectAll}
+                          className="w-[24px] h-[24px]"
+                        />
+                      </div>
                     </div>
                     <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[500px] min-h-[68px]">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
@@ -507,16 +515,14 @@ const AdminProducts: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Sample Product Row 2 */}
               <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   {/* Checkbox Column */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
                     <div onClick={(e) => e.stopPropagation()}>
                       <CustomCheckbox
-                        checked={selectedProducts.has("2")}
-                        onChange={() => handleProductSelect("2")}
+                        checked={selectedProducts.has("1")}
+                        onChange={() => handleProductSelect("1")}
                         className="w-[24px] h-[24px]"
                       />
                     </div>
@@ -527,13 +533,13 @@ const AdminProducts: React.FC = () => {
                       {/* Product Image Placeholder */}
                     </div>
                     <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Áo khoác gió nam cao cấp Windbreaker WB-2024
+                      Giày leo núi nữ cổ thấp Humtto Hiking Shoes 140134B-4
                     </p>
                   </div>
                   {/* SKU */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU02
+                      SKU01
                     </span>
                   </div>
                   {/* Barcode */}
@@ -545,37 +551,37 @@ const AdminProducts: React.FC = () => {
                   {/* Inventory */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      50
+                      0
                     </span>
                   </div>
                   {/* Available to Sell */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      45
+                      0
                     </span>
                   </div>
                   {/* Sold on Website */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      850.000đ
+                      400.000đ
                     </span>
                   </div>
                   {/* Sold on POS */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      15
+                      0
                     </span>
                   </div>
                   {/* Selling Price */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      950.000đ
+                      600.000đ
                     </span>
                   </div>
                   {/* Cost Price */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      650.00đ
+                      400.00đ
                     </span>
                   </div>
                   {/* Actions */}
@@ -589,207 +595,76 @@ const AdminProducts: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Product 2 - Variant Row 1 - Color: Black */}
-              <div className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-100">
+              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
-                  {/* Empty Checkbox Column */}
+                  {/* Checkbox Column */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    {/* No checkbox for variants */}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedProducts.has("1")}
+                        onChange={() => handleProductSelect("1")}
+                        className="w-[24px] h-[24px]"
+                      />
+                    </div>
                   </div>
-                  {/* Variant Name */}
+                  {/* Product Name with Image */}
                   <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] flex-shrink-0">
-                      {/* No image for variants */}
+                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0">
+                      {/* Product Image Placeholder */}
                     </div>
                     <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Color: Black
+                      Giày leo núi nữ cổ thấp Humtto Hiking Shoes 140134B-4
                     </p>
                   </div>
                   {/* SKU */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center whitespace-pre-line">
-                      SKU phân loại:{"\n"}SKU02-BLK
+                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
+                      SKU01
                     </span>
                   </div>
                   {/* Barcode */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195417620
+                      ---
                     </span>
                   </div>
                   {/* Inventory */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      25
+                      0
                     </span>
                   </div>
                   {/* Available to Sell */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      23
+                      0
                     </span>
                   </div>
                   {/* Sold on Website */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      850.000đ
+                      400.000đ
                     </span>
                   </div>
                   {/* Sold on POS */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      7
+                      0
                     </span>
                   </div>
                   {/* Selling Price */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      950.000đ
+                      600.000đ
                     </span>
                   </div>
                   {/* Cost Price */}
                   <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      650.00đ
+                      400.00đ
                     </span>
                   </div>
-                  {/* Empty Actions Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    {/* No actions for variants */}
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 2 - Variant Row 2 - Color: Navy */}
-              <div className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-100">
-                <div className="flex flex-row items-center w-full">
-                  {/* Empty Checkbox Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    {/* No checkbox for variants */}
-                  </div>
-                  {/* Variant Name */}
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] flex-shrink-0">
-                      {/* No image for variants */}
-                    </div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Color: Navy
-                    </p>
-                  </div>
-                  {/* SKU */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center whitespace-pre-line">
-                      SKU phân loại:{"\n"}SKU02-NVY
-                    </span>
-                  </div>
-                  {/* Barcode */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195417621
-                    </span>
-                  </div>
-                  {/* Inventory */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      25
-                    </span>
-                  </div>
-                  {/* Available to Sell */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      22
-                    </span>
-                  </div>
-                  {/* Sold on Website */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      850.000đ
-                    </span>
-                  </div>
-                  {/* Sold on POS */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8
-                    </span>
-                  </div>
-                  {/* Selling Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      950.000đ
-                    </span>
-                  </div>
-                  {/* Cost Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      650.00đ
-                    </span>
-                  </div>
-                  {/* Empty Actions Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    {/* No actions for variants */}
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 3 - Backpack */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("3")}
-                        onChange={() => handleProductSelect("3")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0"></div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Balo du lịch chống nước Osprey Daylite Plus 20L
-                    </p>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU03
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      ---
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      80
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      75
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      1.200.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      35
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      1.500.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      900.00đ
-                    </span>
-                  </div>
+                  {/* Actions */}
                   <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
                     <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
                       Xem thêm
@@ -799,451 +674,6 @@ const AdminProducts: React.FC = () => {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Product 4 - T-Shirt */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("4")}
-                        onChange={() => handleProductSelect("4")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0"></div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Áo thun thể thao nam nữ Columbia Quick Dry
-                    </p>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU04
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195417700
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      120
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      115
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      250.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      48
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      350.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      180.00đ
-                    </span>
-                  </div>
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 5 - Water Bottle */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("5")}
-                        onChange={() => handleProductSelect("5")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0"></div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Bình nước giữ nhiệt Hydro Flask 750ml
-                    </p>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU05
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195417800
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      60
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      58
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      550.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      22
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      680.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      420.00đ
-                    </span>
-                  </div>
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 6 - Sunglasses */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("6")}
-                        onChange={() => handleProductSelect("6")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0"></div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Kính mát thể thao Oakley UV Protection
-                    </p>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU06
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      ---
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      40
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      38
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      1.800.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      12
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      2.200.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      1.300.00đ
-                    </span>
-                  </div>
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 7 - Hat */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("7")}
-                        onChange={() => handleProductSelect("7")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0"></div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Mũ lưỡi trai The North Face Horizon Hat
-                    </p>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU07
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195417900
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      95
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      92
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      320.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      28
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      420.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      240.00đ
-                    </span>
-                  </div>
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 8 - Hiking Socks */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("8")}
-                        onChange={() => handleProductSelect("8")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0"></div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Vớ leo núi Smartwool Merino Wool Hiking
-                    </p>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU08
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195418000
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      150
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      148
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      180.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      65
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      250.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      120.00đ
-                    </span>
-                  </div>
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product 9 - Gloves */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("9")}
-                        onChange={() => handleProductSelect("9")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0"></div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Găng tay leo núi chống lạnh Black Diamond Guide
-                    </p>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU09
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      ---
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      70
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      68
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      480.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      18
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      650.000đ
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      380.00đ
-                    </span>
-                  </div>
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pagination */}
-        <div className="px-3 sm:px-[15px] py-[8px] w-full flex-shrink-0">
-          <div className="w-full bg-white border border-[#e7e7e7] rounded-[12px] min-h-12 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 py-2 gap-2 sm:gap-0">
-            <div className="flex items-center">
-              <p className="text-[10px] sm:text-[12px] font-normal text-[#737373] font-montserrat leading-[150%]">
-                Đang hiển thị 1 - 12 trong tổng 20 trang
-              </p>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <p className="text-[10px] sm:text-[12px] font-normal text-[#272424] font-montserrat leading-[150%]">
-                  Trang số
-                </p>
-                <div className="px-2 py-1 rounded-[8px] bg-gray-100">
-                  <p className="text-[10px] sm:text-[12px] font-normal text-[#272424] font-montserrat leading-[150%]">
-                    1
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="border border-[#b0b0b0] rounded-[8px] p-1">
-                  {/* Left arrow icon */}
-                </button>
-                <button className="border border-[#b0b0b0] rounded-[8px] p-1">
-                  {/* Right arrow icon */}
-                </button>
               </div>
             </div>
           </div>
