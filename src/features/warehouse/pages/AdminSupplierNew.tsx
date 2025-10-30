@@ -7,7 +7,6 @@ import CityDropdown from "@/components/ui/city-dropdown";
 import DistrictDropdown from "@/components/ui/district-dropdown";
 import WardDropdown from "@/components/ui/ward-dropdown";
 
-
 const AdminSupplierNew = () => {
   document.title = "Thêm nhà cung cấp | Wanderoo";
   const navigate = useNavigate();
@@ -21,19 +20,18 @@ const AdminSupplierNew = () => {
     street: "",
     city: "",
     district: "",
-    ward: ""
+    ward: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
-
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -78,7 +76,7 @@ const AdminSupplierNew = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       // TODO: Implement API call to create supplier
       console.log("Creating supplier:", formData);
@@ -92,7 +90,7 @@ const AdminSupplierNew = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[16px] items-center px-[20px] py-[20px] w-full max-w-[1200px] mx-auto">
+    <div className="flex flex-col gap-[16px] items-center w-full max-w-[1200px] mx-auto">
       {/* Header */}
       <div className="flex items-center gap-[12px] w-full">
         <button
@@ -113,7 +111,7 @@ const AdminSupplierNew = () => {
             Thông tin chung
           </h3>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px] w-full">
             {/* Tên nhà cung cấp */}
@@ -123,12 +121,16 @@ const AdminSupplierNew = () => {
               </label>
               <FormInput
                 value={formData.supplierName}
-                onChange={(e) => handleInputChange("supplierName", e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("supplierName", e.target.value)
+                }
                 placeholder="Nhập tên nhà cung cấp"
                 className={errors.supplierName ? "border-red-500" : ""}
               />
               {errors.supplierName && (
-                <span className="text-red-500 text-[12px]">{errors.supplierName}</span>
+                <span className="text-red-500 text-[12px]">
+                  {errors.supplierName}
+                </span>
               )}
             </div>
 
@@ -175,7 +177,7 @@ const AdminSupplierNew = () => {
             Thông tin địa chỉ
           </h3>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px] w-full">
           {/* Địa chỉ đường */}
           <div className="flex flex-col gap-[8px]">
@@ -219,7 +221,9 @@ const AdminSupplierNew = () => {
               error={!!errors.district}
             />
             {errors.district && (
-              <span className="text-red-500 text-[12px]">{errors.district}</span>
+              <span className="text-red-500 text-[12px]">
+                {errors.district}
+              </span>
             )}
           </div>
 
@@ -247,7 +251,7 @@ const AdminSupplierNew = () => {
             Ghi chú
           </h3>
         </div>
-        
+
         <div className="w-full">
           <FormInput
             value={formData.note}

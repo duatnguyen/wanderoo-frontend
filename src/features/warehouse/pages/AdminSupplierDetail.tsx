@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ChipStatus } from "@/components/ui/chip-status";
+import { Pagination } from "@/components/ui/pagination";
 import EditSupplierModal from "@/components/admin/EditSupplierModal";
 
 // Mock data for the supplier detail page
@@ -10,7 +13,7 @@ const mockSupplierData = {
   phone: "+84234245969",
   email: "khonhatquang12348@gmail.com",
   address: "Phường Phố Huế, Quận Hai Bà Trưng, Hà Nội",
-  note: "Viết ghi chú vào đây"
+  note: "Viết ghi chú vào đây",
 };
 
 const mockOrderHistory = [
@@ -18,28 +21,31 @@ const mockOrderHistory = [
     id: "SRT0002",
     type: "Đơn trả",
     date: "27/8/2025  12:30",
-    status1: "Đã hoàn trả",
-    status2: "Đã nhận hoàn tiền",
-    status1Color: "bg-[#b2ffb4] text-[#04910c]",
-    status2Color: "bg-[#b2ffb4] text-[#04910c]"
+    status1: "completed" as const,
+    status1Label: "Đã hoàn trả",
+    status2: "completed" as const,
+    status2Label: "Đã nhận hoàn tiền",
   },
   {
-    id: "SRT0001", 
+    id: "SRT0001",
     type: "Đơn trả",
     date: "27/8/2025  12:30",
-    status1: "Chưa nhập",
-    status2: "Đã thanh toán",
-    status1Color: "bg-[#fec6aa] text-[#eb2b0b]",
-    status2Color: "bg-[#b2ffb4] text-[#04910c]"
-  }
+    status1: "not_imported" as const,
+    status1Label: "Chưa nhập",
+    status2: "paid" as const,
+    status2Label: "Đã thanh toán",
+  },
 ];
 
 const AdminSupplierDetail = () => {
   document.title = "Chi tiết nhà cung cấp | Wanderoo";
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState(mockSupplierData);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const handleBack = () => {
     navigate("/admin/warehouse/supplier");
@@ -60,28 +66,28 @@ const AdminSupplierDetail = () => {
   }) => {
     // TODO: Implement API call to update supplier
     console.log("Updating supplier:", updatedData);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       name: updatedData.supplierName,
       phone: updatedData.phone,
       email: updatedData.email,
-      address: `${updatedData.street}, ${updatedData.ward}, ${updatedData.district}, ${updatedData.city}`
+      address: `${updatedData.street}, ${updatedData.ward}, ${updatedData.district}, ${updatedData.city}`,
     }));
   };
 
   return (
-    <div className="flex flex-col gap-[8px] items-center justify-center px-[20px] py-[20px] w-full max-w-[1200px] mx-auto">
+    <div className="flex flex-col gap-[8px] items-start w-full">
       {/* Header with Back Button */}
-      <div className="flex items-center gap-[12px] w-full mb-[16px]">
+      <div className="flex items-center gap-[8px] py-[10px]">
         <button
           onClick={handleBack}
-          className="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] hover:bg-gray-100 transition-colors"
+          className="flex items-center justify-center w-[32px] h-[32px] hover:bg-gray-100 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-[20px] h-[20px] text-[#272424]" />
         </button>
-        <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
-          Chi tiết nhà cung cấp
-        </h2>
+        <h1 className="font-bold text-[#272424] text-[20px] leading-[1.4]">
+          {formData.name}
+        </h1>
       </div>
 
       {/* Top Section with Supplier Code and Date Filters */}
@@ -95,38 +101,34 @@ const AdminSupplierDetail = () => {
                 Mã NCC: {mockSupplierData.id}
               </p>
             </div>
-            <div className="flex gap-[16px] items-center w-[395px]">
+            <div className="flex gap-[16px] items-center">
               {/* Date Range Input 1 */}
-              <div className="flex-1 bg-white border-[1.6px] border-[#e04d30] rounded-[12px] px-[16px] py-[8px] flex items-center gap-[4px]">
-                <div className="flex-1 flex items-center gap-[8px]">
-                  <p className="font-medium text-[10px] text-[#737373] leading-[1.4]">
-                    /           /
-                  </p>
-                </div>
-                <div className="w-[24px] h-[24px] flex items-center justify-center">
-                  <Calendar className="w-[16px] h-[16px] text-[#737373]" />
-                </div>
+              <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center w-[160px]">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="flex-1 border-0 outline-none bg-transparent text-[12px] font-semibold text-[#737373] w-full"
+                  placeholder="/"
+                />
               </div>
-              
+
               {/* Arrow */}
-              <div className="flex items-center justify-center">
-                <ChevronLeft className="w-[24px] h-[24px] text-[#737373]" />
-              </div>
-              
+              <div className="text-[#737373]">−</div>
+
               {/* Date Range Input 2 */}
-              <div className="flex-1 bg-white border-[1.6px] border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center gap-[4px]">
-                <div className="flex-1 flex items-center gap-[8px]">
-                  <p className="font-medium text-[10px] text-[#737373] leading-[1.4]">
-                    /           /
-                  </p>
-                </div>
-                <div className="w-[24px] h-[24px] flex items-center justify-center">
-                  <Calendar className="w-[16px] h-[16px] text-[#737373]" />
-                </div>
+              <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center w-[160px]">
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="flex-1 border-0 outline-none bg-transparent text-[12px] font-semibold text-[#737373] w-full"
+                  placeholder="/"
+                />
               </div>
             </div>
           </div>
-          
+
           {/* Statistics Cards */}
           <div className="flex items-center justify-between px-[16px] py-[8px]">
             <div className="flex flex-col gap-[8px] items-center">
@@ -168,22 +170,34 @@ const AdminSupplierDetail = () => {
         <div className="flex-1 bg-white border border-[#d1d1d1] rounded-[24px] p-[16px] flex flex-col gap-[15px]">
           {/* Contact Header */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <p className="font-semibold text-[#322f30] text-[14px] leading-[1.4]">
-                Liên hệ
-              </p>
-            </div>
-            <button 
+            <p className="font-semibold text-[#322f30] text-[14px] leading-[1.4]">
+              Liên hệ
+            </p>
+            <button
               onClick={handleEdit}
-              className="flex items-center gap-[6px] px-[6px] py-0 rounded-[12px] hover:bg-gray-100 transition-colors cursor-pointer"
+              className="flex items-center gap-[6px] px-[6px] hover:opacity-80 transition-opacity"
             >
-              <Edit className="w-[16px] h-[16px] text-[#1a71f6]" />
-              <p className="font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M2 14L10 6M10 6H4M10 6V12"
+                  stroke="#1a71f6"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
                 Chỉnh sửa
-              </p>
+              </span>
             </button>
           </div>
-          
+
           {/* Contact Details */}
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -197,7 +211,7 @@ const AdminSupplierDetail = () => {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <p className="font-medium text-[#322f30] text-[10px] leading-[1.4]">
@@ -210,7 +224,7 @@ const AdminSupplierDetail = () => {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <p className="font-medium text-[#322f30] text-[10px] leading-[1.4]">
@@ -236,17 +250,24 @@ const AdminSupplierDetail = () => {
               Lịch sử nhập/Trả hàng
             </p>
           </div>
-          
+
           {/* Table Body */}
           <div className="px-0 py-[8px]">
             {mockOrderHistory.map((order, index) => (
-              <div key={order.id} className={`border-b border-[#d1d1d1] px-[16px] py-[8px] ${index === mockOrderHistory.length - 1 ? 'border-b-0' : ''}`}>
+              <div
+                key={order.id}
+                className={`border-b border-[#d1d1d1] px-[16px] py-[8px] ${
+                  index === mockOrderHistory.length - 1 ? "border-b-0" : ""
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 flex flex-col gap-[4px]">
                     <div className="flex items-center">
                       <p className="text-[12px] text-[#737373] leading-[1.5]">
                         <span>{order.type} </span>
-                        <span className="font-semibold text-[#1a71f6]">{order.id}</span>
+                        <span className="font-semibold text-[#1a71f6]">
+                          {order.id}
+                        </span>
                       </p>
                     </div>
                     <div className="flex items-center">
@@ -256,65 +277,29 @@ const AdminSupplierDetail = () => {
                     </div>
                   </div>
                   <div className="flex gap-[15px] items-center justify-end w-[323px]">
-                    <div className="flex-1 flex items-center justify-end">
-                      <div className={`rounded-[10px] px-[8px] py-[6px] ${order.status1Color}`}>
-                        <p className="font-semibold text-[14px] leading-[1.4]">
-                          {order.status1}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex-1 flex items-center justify-end">
-                      <div className={`rounded-[10px] px-[8px] py-[6px] ${order.status2Color}`}>
-                        <p className="font-semibold text-[14px] leading-[1.4]">
-                          {order.status2}
-                        </p>
-                      </div>
-                    </div>
+                    <ChipStatus
+                      status={order.status1}
+                      labelOverride={order.status1Label}
+                      className="font-bold text-[12px] leading-normal"
+                    />
+                    <ChipStatus
+                      status={order.status2}
+                      labelOverride={order.status2Label}
+                      className="font-bold text-[12px] leading-normal"
+                    />
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          
+
           {/* Pagination */}
-          <div className="flex gap-[10px] items-start px-[16px] py-[8px]">
-            <div className="flex-1 bg-white h-[48px] flex items-center justify-between px-[30px] py-[10px] rounded-[12px]">
-              <div className="flex gap-[3px] items-start">
-                <div className="flex flex-col justify-center">
-                  <p className="font-normal text-[12px] text-[#737373] leading-[1.5]">
-                    Đang hiển thị 1 - 10 trong tổng 1 trang
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-[16px] items-start">
-                <div className="flex gap-[13px] items-center">
-                  <div className="flex flex-col justify-center">
-                    <p className="font-normal text-[12px] text-[#454545] leading-[1.5]">
-                      Trang số
-                    </p>
-                  </div>
-                  <div className="flex gap-[2px] items-center pl-[8px] pr-[6px] py-[4px] rounded-[8px]">
-                    <div className="flex flex-col justify-center">
-                      <p className="font-normal text-[12px] text-[#454545] leading-[1.5]">
-                        1
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-[6px] items-start">
-                  <div className="border border-[#b0b0b0] flex items-start px-[6px] py-[4px] rounded-[8px]">
-                    <div className="w-[20px] h-[20px] flex items-center justify-center">
-                      <ChevronLeft className="w-[8px] h-[8px] text-[#d1d1d1]" />
-                    </div>
-                  </div>
-                  <div className="border border-[#b0b0b0] flex items-start px-[6px] py-[4px] rounded-[8px]">
-                    <div className="w-[20px] h-[20px] flex items-center justify-center">
-                      <ChevronRight className="w-[8px] h-[8px] text-[#d1d1d1]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="px-[16px] py-[8px]">
+            <Pagination
+              current={currentPage}
+              total={1}
+              onChange={setCurrentPage}
+            />
           </div>
         </div>
 
@@ -325,14 +310,22 @@ const AdminSupplierDetail = () => {
               Ghi chú
             </p>
           </div>
-          <div className="flex-1 border border-[#d1d1d1] rounded-[12px] p-[16px]">
-            <div className="flex items-center w-[17px]">
-              <p className="font-normal text-[12px] text-[#737373] leading-[1.5]">
-                {formData.note}
-              </p>
-            </div>
+          <div className="flex-1 border border-[#d1d1d1] rounded-[12px] p-[16px] min-h-[200px]">
+            <p className="font-normal text-[12px] text-[#737373] leading-[1.5]">
+              {formData.note}
+            </p>
           </div>
         </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-[12px] justify-end py-[16px] w-full">
+        <Button variant="secondary" onClick={() => navigate(-1)}>
+          Huỷ
+        </Button>
+        <Button variant="default" onClick={() => console.log("Save clicked")}>
+          Lưu
+        </Button>
       </div>
 
       {/* Edit Supplier Modal */}

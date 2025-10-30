@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { SearchBar } from "@/components/ui/search-bar";
 import CaretDown from "@/components/ui/caret-down";
 import { Pagination } from "@/components/ui/pagination";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
+import { ChipStatus } from "@/components/ui/chip-status";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -134,11 +136,15 @@ const mockSuppliers: Supplier[] = [
 
 const AdminWarehouseSupplier = () => {
   document.title = "Nhà cung cấp | Wanderoo";
-  
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
   const [suppliers] = useState<Supplier[]>(mockSuppliers);
-  const [selectedSuppliers, setSelectedSuppliers] = useState<Set<string>>(new Set());
+  const [selectedSuppliers, setSelectedSuppliers] = useState<Set<string>>(
+    new Set()
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
@@ -180,7 +186,7 @@ const AdminWarehouseSupplier = () => {
     }
   };
 
-  const handleSelectItem = (supplierId: string, checked: boolean) => {
+  const handleSelectItem = (supplierId: string) => (checked: boolean) => {
     const newSelected = new Set(selectedSuppliers);
     if (checked) {
       newSelected.add(supplierId);
@@ -192,49 +198,42 @@ const AdminWarehouseSupplier = () => {
 
   const handlePrimaryAction = () => {
     // TODO: Implement primary action (e.g., activate suppliers)
-    console.log("Primary action on selected suppliers:", Array.from(selectedSuppliers));
+    console.log(
+      "Primary action on selected suppliers:",
+      Array.from(selectedSuppliers)
+    );
     setSelectedSuppliers(new Set());
   };
 
   const handleSecondaryAction = () => {
     // TODO: Implement secondary action (e.g., deactivate suppliers)
-    console.log("Secondary action on selected suppliers:", Array.from(selectedSuppliers));
+    console.log(
+      "Secondary action on selected suppliers:",
+      Array.from(selectedSuppliers)
+    );
     setSelectedSuppliers(new Set());
   };
 
   return (
-    <div className="flex flex-col gap-[16px] items-center px-[20px] py-[20px] w-full max-w-full overflow-hidden">
+    <div className="flex flex-col gap-[16px] items-center w-full max-w-full overflow-hidden">
       {/* Suppliers Table */}
+      <div className="flex items-center justify-between w-full">
+        <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+          Danh sách nhà cung cấp
+        </h2>
+        <Button onClick={() => navigate("/admin/warehouse/supplier/new")}>
+          Thêm nhà cung cấp
+        </Button>
+      </div>
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[12px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
-        <div className="flex items-center justify-between w-full">
-          <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
-            Danh sách nhà cung cấp
-          </h2>
-          <Button
-            onClick={() => navigate("/admin/warehouse/supplier/new")}
-          >
-            Thêm nhà cung cấp
-          </Button>
-        </div>
-
         {/* Search and Filter */}
         <div className="flex gap-[8px] items-center w-full">
-          <div className="bg-white border border-[#e04d30] flex items-center justify-between px-[12px] py-[6px] rounded-[8px] flex-1 max-w-[400px]">
-            <div className="flex items-center gap-[8px] relative flex-1">
-              <span className="text-[10px] font-medium text-[#888888] leading-[1.4]">
-                {searchTerm ? "" : "Tìm kiếm"}
-              </span>
-              <input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="absolute left-0 top-0 w-full h-full bg-transparent border-0 outline-none px-[12px] py-[6px] text-sm"
-                placeholder=""
-              />
-            </div>
-            <div className="w-6 h-6 relative">
-              <Search className="w-6 h-6 text-[#888888]" />
-            </div>
-          </div>
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm kiếm"
+            className="flex-1 max-w-[400px]"
+          />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -262,71 +261,68 @@ const AdminWarehouseSupplier = () => {
         {/* Table */}
         <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
           {/* Table Header */}
-          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1000px]">
+          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1000px] h-[56px]">
             <div className="flex flex-row items-center w-full">
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[200px] min-w-[200px]">
-                <input
-                  type="checkbox"
-                  className="w-[24px] h-[24px]"
-                  checked={paginatedSuppliers.length > 0 && paginatedSuppliers.every((s) => selectedSuppliers.has(s.id))}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
+              <div className="flex gap-[6px] items-center px-[4px] py-[12px] min-w-[24px] flex-shrink-0">
+                <CustomCheckbox
+                  checked={
+                    paginatedSuppliers.length > 0 &&
+                    paginatedSuppliers.every((s) => selectedSuppliers.has(s.id))
+                  }
+                  onChange={handleSelectAll}
                 />
-                {selectedSuppliers.size > 0 ? (
-                  <div className="flex items-center gap-[12px] flex-1">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] whitespace-nowrap">
-                      Đã chọn {selectedSuppliers.size} nhà cung cấp
-                    </span>
-                    <div className="flex gap-[8px]">
-                      <Button
-                        onClick={handlePrimaryAction}
-                        className="bg-[#e04d30] hover:bg-[#c03d26] text-white text-[12px] px-[12px] py-[6px] h-auto"
-                      >
-                        Kích hoạt
-                      </Button>
-                      <Button
-                        onClick={handleSecondaryAction}
-                        variant="outline"
-                        className="border-[#e04d30] text-[#e04d30] hover:bg-[#e04d30] hover:text-white text-[12px] px-[12px] py-[6px] h-auto whitespace-nowrap"
-                      >
-                        Ngừng hoạt động
-                      </Button>
-                    </div>
+              </div>
+              {selectedSuppliers.size > 0 ? (
+                <div className="flex items-center gap-[12px] flex-1 px-[4px]">
+                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] whitespace-nowrap">
+                    Đã chọn {selectedSuppliers.size} nhà cung cấp
+                  </span>
+                  <div className="flex gap-[8px]">
+                    <Button
+                      variant="default"
+                      onClick={handlePrimaryAction}
+                      className="text-[12px] px-[12px] py-[6px] h-auto"
+                    >
+                      Kích hoạt
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={handleSecondaryAction}
+                      className="text-[12px] px-[12px] py-[6px] h-auto whitespace-nowrap"
+                    >
+                      Ngừng hoạt động
+                    </Button>
                   </div>
-                ) : (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Mã nhà cung cấp
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[250px] min-w-[250px]">
-                {selectedSuppliers.size === 0 && (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Tên nhà cung cấp
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[150px] min-w-[150px]">
-                {selectedSuppliers.size === 0 && (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Số điện thoại
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[200px] min-w-[200px]">
-                {selectedSuppliers.size === 0 && (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Email
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
-                {selectedSuppliers.size === 0 && (
-                  <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                    Trạng thái
-                  </span>
-                )}
-              </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-[176px] min-w-[176px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                      Mã nhà cung cấp
+                    </span>
+                  </div>
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-[250px] min-w-[250px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                      Tên nhà cung cấp
+                    </span>
+                  </div>
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-[150px] min-w-[150px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                      Số điện thoại
+                    </span>
+                  </div>
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-[200px] min-w-[200px]">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                      Email
+                    </span>
+                  </div>
+                  <div className="flex gap-[4px] items-center justify-end p-[14px] flex-1">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                      Trạng thái
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -335,20 +331,23 @@ const AdminWarehouseSupplier = () => {
             <div
               key={s.id}
               className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full min-w-[1000px] ${
-                index === paginatedSuppliers.length - 1 ? 'border-transparent' : 'border-[#e7e7e7]'
-              } ${selectedSuppliers.has(s.id) ? 'bg-blue-50' : 'hover:bg-gray-50'} cursor-pointer`}
+                index === paginatedSuppliers.length - 1
+                  ? "border-transparent"
+                  : "border-[#e7e7e7]"
+              } ${
+                selectedSuppliers.has(s.id) ? "bg-blue-50" : "hover:bg-gray-50"
+              } cursor-pointer`}
               onClick={() => navigate(`/admin/warehouse/supplier/${s.id}`)}
             >
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[200px] min-w-[200px]">
-                    <input
-                      type="checkbox"
-                      className="w-[24px] h-[24px]"
-                      checked={selectedSuppliers.has(s.id)}
-                      onChange={(e) => handleSelectItem(s.id, e.target.checked)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={selectedSuppliers.has(s.id)}
+                        onChange={handleSelectItem(s.id)}
+                      />
+                    </div>
                     <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3]">
                       {s.id}
                     </span>
@@ -372,17 +371,15 @@ const AdminWarehouseSupplier = () => {
                     </span>
                   </div>
                   <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
-                    <div className={`rounded-[10px] ${
-                      s.status === 'active' ? 'bg-[#b2ffb4]' : 'bg-[#ffdcdc]'
-                    }`}>
-                      <div className="flex gap-[10px] items-center justify-center px-[8px] py-[6px]">
-                        <span className={`font-semibold text-[12px] leading-[1.4] ${
-                          s.status === 'active' ? 'text-[#04910c]' : 'text-[#eb2b0b]'
-                        }`}>
-                          {s.status === 'active' ? 'Đang hoạt động' : 'Ngừng hoạt động'}
-                        </span>
-                      </div>
-                    </div>
+                    <ChipStatus
+                      status={s.status === "active" ? "active" : "disabled"}
+                      labelOverride={
+                        s.status === "active"
+                          ? "Đang hoạt động"
+                          : "Ngừng hoạt động"
+                      }
+                      className="font-bold text-[12px] leading-normal"
+                    />
                   </div>
                 </div>
               </div>

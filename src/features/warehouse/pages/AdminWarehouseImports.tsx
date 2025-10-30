@@ -175,16 +175,17 @@ const AdminWarehouseImports = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden p-[10px] w-full gap-1">
+    <div className="flex flex-col h-screen max-h-screen w-full gap-1">
       {/* Header */}
       <div className="flex items-center justify-between py-[4px] px-0 h-[32px] w-full mb-2">
-        <h1 className="font-bold text-[18px] text-[#272424] font-['Montserrat']">
+        <h1 className="font-bold text-[24px] text-[#272424] font-['Montserrat']">
           Nhập hàng
         </h1>
-        <Button className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]">
-          <span className="font-bold text-[11px] leading-normal">
-            Tạo phiếu nhập
-          </span>
+        <Button
+          variant={"default"}
+          onClick={() => navigate("/admin/warehouse/imports/create")}
+        >
+          Tạo đơn nhập hàng
         </Button>
       </div>
 

@@ -1,14 +1,9 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FormInput } from "@/components/ui/form-input";
+import FormInput from "@/components/ui/form-input";
 import CityDropdown from "@/components/ui/city-dropdown";
 import DistrictDropdown from "@/components/ui/district-dropdown";
 import WardDropdown from "@/components/ui/ward-dropdown";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
 
 interface EditSupplierModalProps {
   isOpen: boolean;
@@ -127,186 +122,155 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[600px] sm:max-w-[600px] p-0">
-        <div className="bg-white flex flex-col items-start overflow-hidden rounded-[24px] h-full">
-          {/* Header */}
-          <div className="flex gap-[9px] items-center p-[15px] w-full">
-            <SheetTitle className="font-bold text-[#272424] text-[24px] leading-[1.5]">
-              Sửa nhà cung cấp
-            </SheetTitle>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn"
+      style={{
+        backgroundColor: "rgba(255, 255, 255, 0.7)",
+        backdropFilter: "blur(8px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-[24px] p-[32px] w-[500px] max-h-[90vh] overflow-y-auto shadow-2xl animate-scaleIn"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <h2 className="text-[20px] font-bold text-[#272424] mb-[24px]">
+          Sửa nhà cung cấp
+        </h2>
+
+        {/* Form Content */}
+        <div className="flex flex-col gap-[16px]">
+          {/* Tên nhà cung cấp */}
+          <div className="flex flex-col gap-[8px]">
+            <label className="font-medium text-[#272424] text-[14px]">
+              Tên nhà cung cấp
+            </label>
+            <FormInput
+              value={formData.supplierName}
+              onChange={(e) => handleInputChange("supplierName", e.target.value)}
+              placeholder="Kho Nhật Quang"
+            />
+            {errors.supplierName && (
+              <span className="text-red-500 text-[12px]">{errors.supplierName}</span>
+            )}
           </div>
 
-          {/* Form Content */}
-          <div className="flex flex-col gap-[10px] items-start px-[15px] py-0 w-full flex-1 overflow-y-auto">
-            {/* Tên nhà cung cấp */}
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <div className="flex gap-[4px] items-start">
-                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Tên nhà cung cấp
-                </p>
-              </div>
-              <FormInput
-                value={formData.supplierName}
-                onChange={(e) => handleInputChange("supplierName", e.target.value)}
-                placeholder="Kho Nhật Quang"
-                className="text-[#272424] placeholder:text-[#737373]"
+          {/* Số điện thoại */}
+          <div className="flex flex-col gap-[8px]">
+            <label className="font-medium text-[#272424] text-[14px]">
+              Số điện thoại
+            </label>
+            <FormInput
+              value={formData.phone}
+              onChange={(e) => handleInputChange("phone", e.target.value)}
+              placeholder="038482428234"
+            />
+            {errors.phone && (
+              <span className="text-red-500 text-[12px]">{errors.phone}</span>
+            )}
+          </div>
+
+          {/* Email */}
+          <div className="flex flex-col gap-[8px]">
+            <label className="font-medium text-[#272424] text-[14px]">
+              Email
+            </label>
+            <FormInput
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              placeholder="khonhatquang12348@gmail.com"
+            />
+            {errors.email && (
+              <span className="text-red-500 text-[12px]">{errors.email}</span>
+            )}
+          </div>
+
+          {/* Address Section */}
+          <div className="font-bold text-[#272424] text-[16px] leading-normal mt-[8px]">
+            Địa chỉ
+          </div>
+
+          {/* Tỉnh/Thành phố */}
+          <div className="flex flex-col gap-[8px]">
+            <label className="font-medium text-[#272424] text-[14px]">
+              Tỉnh/Thành phố
+            </label>
+            <CityDropdown
+              value={formData.city}
+              onValueChange={(value) => handleInputChange("city", value)}
+              error={!!errors.city}
+            />
+            {errors.city && (
+              <span className="text-red-500 text-[12px]">{errors.city}</span>
+            )}
+          </div>
+
+          {/* Phường/Xã */}
+          <div className="flex flex-col gap-[8px]">
+            <label className="font-medium text-[#272424] text-[14px]">
+              Phường/Xã
+            </label>
+            <WardDropdown
+              value={formData.ward}
+              onValueChange={(value) => handleInputChange("ward", value)}
+              error={!!errors.ward}
+            />
+            {errors.ward && (
+              <span className="text-red-500 text-[12px]">{errors.ward}</span>
+            )}
+          </div>
+
+          {/* Quận/Huyện */}
+          <div className="flex flex-col gap-[8px]">
+            <label className="font-medium text-[#272424] text-[14px]">
+              Quận/Huyện
+            </label>
+            <DistrictDropdown
+              value={formData.district}
+              onValueChange={(value) => handleInputChange("district", value)}
+              error={!!errors.district}
+            />
+            {errors.district && (
+              <span className="text-red-500 text-[12px]">{errors.district}</span>
+            )}
+          </div>
+
+          {/* Địa chỉ cụ thể */}
+          <div className="flex flex-col gap-[8px]">
+            <label className="font-medium text-[#272424] text-[14px]">
+              Địa chỉ cụ thể <span className="text-[#e04d30]">*</span>
+            </label>
+            <div className="border-2 border-[#e04d30] rounded-[12px] w-full">
+              <textarea
+                value={formData.street}
+                onChange={(e) => handleInputChange("street", e.target.value)}
+                placeholder="số 40 Đinh Tiên Hoàng, Hà Nội"
+                className="w-full h-[100px] p-[16px] border-0 outline-none bg-transparent text-[12px] font-semibold text-[#272424] placeholder:text-[#888888] resize-none"
+                rows={3}
               />
-              {errors.supplierName && (
-                <span className="text-red-500 text-[12px]">{errors.supplierName}</span>
-              )}
             </div>
+            {errors.street && (
+              <span className="text-red-500 text-[12px]">{errors.street}</span>
+            )}
+          </div>
 
-            {/* Số điện thoại */}
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <div className="flex gap-[4px] items-start">
-                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Số điện thoại
-                </p>
-              </div>
-              <FormInput
-                value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                placeholder="038482428234"
-                className="text-[#272424] placeholder:text-[#737373]"
-              />
-              {errors.phone && (
-                <span className="text-red-500 text-[12px]">{errors.phone}</span>
-              )}
-            </div>
-
-            {/* Email */}
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <div className="flex gap-[4px] items-start">
-                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Email
-                </p>
-              </div>
-              <FormInput
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="khonhatquang12348@gmail.com"
-                className="text-[#272424] placeholder:text-[#737373]"
-              />
-              {errors.email && (
-                <span className="text-red-500 text-[12px]">{errors.email}</span>
-              )}
-            </div>
-
-            {/* Address Section */}
-            <div className="flex gap-[20px] items-center w-full">
-              <p className="font-bold text-[#272424] text-[20px] leading-normal">
-                Địa chỉ
-              </p>
-            </div>
-
-            {/* Tỉnh/Thành phố */}
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <div className="flex gap-[4px] items-start">
-                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Tỉnh/Thành phố
-                </p>
-              </div>
-              <CityDropdown
-                value={formData.city}
-                onValueChange={(value) => handleInputChange("city", value)}
-                error={!!errors.city}
-              />
-              {errors.city && (
-                <span className="text-red-500 text-[12px]">{errors.city}</span>
-              )}
-            </div>
-
-            {/* Quận/Huyện */}
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <div className="flex gap-[4px] items-start">
-                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Quận/Huyện
-                </p>
-              </div>
-              <DistrictDropdown
-                value={formData.district}
-                onValueChange={(value) => handleInputChange("district", value)}
-                error={!!errors.district}
-              />
-              {errors.district && (
-                <span className="text-red-500 text-[12px]">{errors.district}</span>
-              )}
-            </div>
-
-            {/* Phường/Xã */}
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <div className="flex gap-[4px] items-start">
-                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Phường/Xã
-                </p>
-              </div>
-              <WardDropdown
-                value={formData.ward}
-                onValueChange={(value) => handleInputChange("ward", value)}
-                error={!!errors.ward}
-              />
-              {errors.ward && (
-                <span className="text-red-500 text-[12px]">{errors.ward}</span>
-              )}
-            </div>
-
-            {/* Địa chỉ cụ thể */}
-            <div className="flex flex-col gap-[6px] items-start w-full">
-              <div className="flex flex-col gap-[4px] items-start w-full">
-                <div className="flex font-semibold gap-[4px] items-start leading-[1.4] text-[16px]">
-                  <p className="text-[#272424]">
-                    Địa chỉ cụ thể
-                  </p>
-                  <p className="text-[#eb2b0b]">
-                    *
-                  </p>
-                </div>
-              </div>
-              <div className="border-2 border-[#e04d30] rounded-[12px] w-full">
-                <textarea
-                  value={formData.street}
-                  onChange={(e) => handleInputChange("street", e.target.value)}
-                  placeholder="số 40 Đinh Tiên Hoàng, Hà Nội"
-                  className="w-full h-[100px] p-[16px] border-0 outline-none bg-transparent text-[12px] font-normal text-[#737373] placeholder:text-[#737373] resize-none"
-                  rows={3}
-                />
-              </div>
-              {errors.street && (
-                <span className="text-red-500 text-[12px]">{errors.street}</span>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-[10px] items-center justify-end px-0 py-[12px] w-full">
-              <div className="flex items-center">
-                <Button
-                  variant="outline"
-                  onClick={handleCancel}
-                  className="bg-white border-2 border-[#e04d30] text-[#e04d30] hover:bg-[#e04d30] hover:text-white px-[24px] py-[12px] rounded-[12px]"
-                >
-                  <span className="font-bold text-[12px] leading-normal">
-                    Huỷ
-                  </span>
-                </Button>
-              </div>
-              <div className="flex items-center">
-                <Button
-                  onClick={handleSave}
-                  className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[24px] py-[12px] rounded-[12px]"
-                >
-                  <span className="font-bold text-[12px] leading-normal">
-                    Xác nhận
-                  </span>
-                </Button>
-              </div>
-            </div>
+          {/* Action Buttons */}
+          <div className="flex gap-[12px] justify-end mt-[8px]">
+            <Button variant="secondary" onClick={handleCancel}>
+              Huỷ
+            </Button>
+            <Button variant="default" onClick={handleSave}>
+              Xác nhận
+            </Button>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </div>
   );
 };
 
