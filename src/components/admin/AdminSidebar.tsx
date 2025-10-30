@@ -195,21 +195,21 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   ];
 
   return (
-    <aside className="w-[220px] shrink-0 bg-[#18345C] text-white">
-      <div className="flex h-full flex-col px-[16px] pb-8">
+    <aside className="w-[225px] bg-[#18345C] text-white h-full">
+      <div className="flex h-full flex-col px-[16px] pb-4">
         <Link to="/admin/dashboard">
-          <div className="flex flex-col items-center gap-4 text-center cursor-pointer">
+          <div className="flex flex-col items-center text-center cursor-pointer">
             <img
               src={ShopLogo}
               alt="Shop Logo"
-              className="h-[160px] w-full object-contain"
+              className="h-[160px] w-[160px] object-contain"
             />
           </div>
         </Link>
 
         {isSettingsMode ? (
-          <nav className="flex-1 overflow-y-auto admin-sidebar-scroll">
-            <div className="py-4 space-y-[10px]">
+          <nav className="flex-1">
+            <div className="py-2 ">
               {settingsNavItems.map((item, index) =>
                 renderNavItem(item, `settings-${index}`)
               )}
@@ -217,21 +217,21 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
           </nav>
         ) : (
           <>
-            <nav className="flex-1 overflow-y-auto admin-sidebar-scroll">
+            <nav className="flex-1">
               {adminNavSections.map(
                 (section: AdminNavSection, index: number) => {
                   const hasTitle = Boolean(section.title);
                   const sectionKey = section.title ?? index;
                   const wrapperClasses =
-                    index === 0 ? "" : "mt-8 border-t border-white/10 pt-6";
+                    index === 0 ? "" : "mt-4 border-t border-white/10 pt-4";
                   const listClasses = hasTitle
-                    ? "mt-4 space-y-1.5"
+                    ? "mt-3 space-y-1.5"
                     : "space-y-1.5";
 
                   return (
                     <div key={sectionKey} className={wrapperClasses}>
                       {hasTitle ? (
-                        <p className="px-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/45">
+                        <p className="px-2 text-[12px] font-bold uppercase tracking-[0.3em] text-white/45">
                           {section.title}
                         </p>
                       ) : null}
@@ -247,7 +247,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
               )}
             </nav>
 
-            <div className="mt-8 border-t border-white/10 pt-6">
+            <div className="mt-auto border-t border-white/10 pt-4">
               <div className="space-y-1.5">
                 {adminFooterNav.items.map((item: AdminNavItem, index: number) =>
                   renderNavItem(item, `footer-${index}`)
