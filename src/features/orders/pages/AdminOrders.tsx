@@ -200,24 +200,26 @@ const AdminOrders: React.FC = () => {
   // Map processing status to chip status
   const getProcessingStatus = (status: string): ChipStatusKey => {
     if (status === "Đã hoàn thành") return "completed";
-    if (status === "Đang giao") return "processing";
-    if (status === "Chờ xác nhận" || status === "Đã xác nhận")
-      return "processing";
-    if (status === "Đã hủy") return "disabled";
+    if (status === "Đang giao") return "shipping";
+    if (status === "Chờ xác nhận") return "pending";
+    if (status === "Đã xác nhận") return "pending";
+    if (status === "Đã hủy") return "cancelled";
     return "default";
   };
 
   // Map payment status to chip status
   const getPaymentStatus = (paymentStatus: string): ChipStatusKey => {
     if (paymentStatus === "Đã thanh toán") return "paid";
-    if (paymentStatus === "Chưa thanh toán" || paymentStatus === "Đã hoàn tiền")
-      return "unpaid";
+    if (paymentStatus === "Chưa thanh toán") return "unpaid";
+    if (paymentStatus === "Đã hoàn tiền") return "unpaid";
     return "default";
   };
 
   // Handle view order detail
-  const handleViewOrderDetail = (orderId: string) => {
-    navigate(`/admin/orders/${orderId}`);
+  const handleViewOrderDetail = (orderId: string, orderStatus: string) => {
+    navigate(`/admin/orders/${orderId}`, {
+      state: { status: orderStatus },
+    });
   };
 
   // Filter orders by active tab and search term
@@ -440,7 +442,9 @@ const AdminOrders: React.FC = () => {
                       <div className="flex items-center justify-center gap-[8px] px-[14px] py-[12px] w-[160px]">
                         <button
                           className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer hover:underline"
-                          onClick={() => handleViewOrderDetail(order.id)}
+                          onClick={() =>
+                            handleViewOrderDetail(order.id, order.status)
+                          }
                         >
                           <DetailIcon size={16} color="#1a71f6" />
                           Xem chi tiết

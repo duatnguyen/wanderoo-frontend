@@ -1,14 +1,14 @@
 // src/pages/admin/AdminOrderDetail.tsx
 import React from "react";
 import { ArrowLeft, MapPin, Truck, Wallet, Package } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // Mock data cho order detail
 const orderDetail = {
   id: "8F878Q29",
   status: "Đã hoàn thành",
-  source: "Website",
+  source: "POS", // Changed to POS for testing
   customer: {
     name: "buiminhhang",
     avatar: "",
@@ -83,6 +83,7 @@ const orderDetail = {
 
 const AdminOrderDetail: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { orderId } = useParams<{ orderId: string }>();
 
   const handleBackClick = () => {
@@ -91,29 +92,89 @@ const AdminOrderDetail: React.FC = () => {
 
   // Function to get order data based on orderId
   const getOrderData = () => {
+    // Get status from navigation state if available
+    const statusFromState = (location.state as { status?: string })?.status;
+
     // If orderId matches our mock orders, we could fetch real data here
-    // For now, we'll use the mock data but display the correct orderId
+    // For now, we'll use the mock data but display the correct orderId and status
     return {
       ...orderDetail,
       id: orderId || orderDetail.id,
+      status: statusFromState || orderDetail.status,
     };
   };
 
   const currentOrder = getOrderData();
 
+  // Check if order is from POS
+  const isPOSOrder = currentOrder.source === "POS";
+
+  // Get timeline text based on order status
+  const getTimelineText = () => {
+    switch (currentOrder.status) {
+      case "Đang giao":
+        return {
+          status: "Đơn vị vận chuyển lấy hàng thành công",
+          date: "13:20 12/3/2003",
+        };
+      case "Đã hoàn thành":
+        return {
+          status: "Giao hàng thành công",
+          date: "13:20 12/3/2003",
+        };
+      case "Chờ xác nhận":
+        return {
+          status: "Chờ xác nhận đơn hàng",
+          date: "13:20 12/3/2003",
+        };
+      case "Đã xác nhận":
+        return {
+          status: "Đơn hàng đã được xác nhận",
+          date: "13:20 12/3/2003",
+        };
+      case "Đã hủy":
+        return {
+          status: "Đơn hàng đã bị hủy",
+          date: "13:20 12/3/2003",
+        };
+      default:
+        return {
+          status: currentOrder.timeline[0]?.status || "Chưa có thông tin",
+          date: currentOrder.timeline[0]?.date || "",
+        };
+    }
+  };
+
   // Get status card styling based on order status
   const getStatusCardStyle = () => {
-    if (currentOrder.status === "Đang giao") {
-      return {
-        bg: "bg-[#bbe1ff]",
-        text: "text-[#1a71f6]",
-      };
+    switch (currentOrder.status) {
+      case "Đang giao":
+        return {
+          bg: "bg-[#cce5ff]",
+          text: "text-[#004085]",
+        };
+      case "Đã hoàn thành":
+        return {
+          bg: "bg-[#b2ffb4]",
+          text: "text-[#04910c]",
+        };
+      case "Chờ xác nhận":
+      case "Đã xác nhận":
+        return {
+          bg: "bg-[#e7e7e7]",
+          text: "text-[#737373]",
+        };
+      case "Đã hủy":
+        return {
+          bg: "bg-[#ffdcdc]",
+          text: "text-[#eb2b0b]",
+        };
+      default:
+        return {
+          bg: "bg-[#b2ffb4]",
+          text: "text-[#04910c]",
+        };
     }
-    // Default: Đã hoàn thành
-    return {
-      bg: "bg-[#b2ffb4]",
-      text: "text-[#04910c]",
-    };
   };
 
   const statusCardStyle = getStatusCardStyle();
@@ -169,126 +230,205 @@ const AdminOrderDetail: React.FC = () => {
       </div>
 
       {/* Order Info */}
-      <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[24px] relative rounded-[24px] w-full">
-        <div className="flex flex-row gap-[20px] items-start justify-between w-full">
-          <div className="flex gap-[12px] items-center">
-            <Package className="h-10 w-10 text-[#737373]" />
-            <div className="flex flex-col gap-[5px] items-start">
-              <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
+      {isPOSOrder ? (
+        // POS Order Info - Simpler layout
+        <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[24px] w-full">
+          <div className="flex gap-[12px] items-start">
+            <Package className="h-[24px] w-[24px] text-[#272424]" />
+            <div className="flex flex-col gap-[8px] items-start">
+              <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#272424]">
                 Mã đơn hàng
               </p>
-              <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+              <p className="font-montserrat font-semibold text-[12px] leading-[1.4] text-[#272424]">
                 {currentOrder.id}
               </p>
             </div>
           </div>
-          <div className="flex gap-[18px] items-center">
-            <MapPin className="h-10 w-10 text-[#737373]" />
-            <div className="flex flex-col gap-[5px] items-start">
-              <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
-                Địa chỉ nhận hàng
-              </p>
-              <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
-                {currentOrder.shipping.address}
-              </p>
-              <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
-                {currentOrder.shipping.district}
+          <div className="flex gap-[12px] items-start">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2L2 7L12 12L22 7L12 2Z"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 17L12 22L22 17"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 12L12 17L22 12"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <div className="flex flex-col gap-[8px] items-start">
+              <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#272424]">
+                Tạo bởi Thanh lúc 26/07/2025 15:24
               </p>
             </div>
           </div>
-          <div className="flex gap-[15px] items-center w-[270px]">
-            <Truck className="h-10 w-10 text-[#737373]" />
-            <div className="flex flex-col gap-[5px] items-start">
-              <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
-                Thông tin vận chuyển
-              </p>
-              <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
-                {currentOrder.shipping.method}
+          <div className="flex gap-[12px] items-start">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <div className="flex flex-col gap-[8px] items-start">
+              <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#272424]">
+                Phụ trách bởi Thanh
               </p>
             </div>
           </div>
         </div>
+      ) : (
+        // Website Order Info - Original detailed layout
+        <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[24px] relative rounded-[24px] w-full">
+          <div className="flex flex-row gap-[20px] items-start justify-between w-full">
+            <div className="flex gap-[12px] items-center">
+              <Package className="h-10 w-10 text-[#737373]" />
+              <div className="flex flex-col gap-[5px] items-start">
+                <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
+                  Mã đơn hàng
+                </p>
+                <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+                  {currentOrder.id}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-[18px] items-center">
+              <MapPin className="h-10 w-10 text-[#737373]" />
+              <div className="flex flex-col gap-[5px] items-start">
+                <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
+                  Địa chỉ nhận hàng
+                </p>
+                <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+                  {currentOrder.shipping.address}
+                </p>
+                <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+                  {currentOrder.shipping.district}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-[15px] items-center w-[270px]">
+              <Truck className="h-10 w-10 text-[#737373]" />
+              <div className="flex flex-col gap-[5px] items-start">
+                <p className="font-inter font-bold text-[12px] leading-[normal] text-[#1a1a1b]">
+                  Thông tin vận chuyển
+                </p>
+                <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#1a1a1b]">
+                  {currentOrder.shipping.method}
+                </p>
+              </div>
+            </div>
+          </div>
 
-        {/* Timeline */}
-        <div className="border border-[#e7e7e7] box-border flex h-[77px] items-start justify-between p-[12px] relative rounded-[24px] w-full">
-          <div className="box-border flex gap-[10px] items-start p-[10px] relative shrink-0">
-            <div
-              className={`flex items-center justify-center relative self-stretch shrink-0 ${
-                currentOrder.status === "Đang giao" ? "w-[33px]" : "w-[35px]"
-              }`}
-            >
-              <div className="flex-none h-full rotate-[90deg]">
-                <div
-                  className={`h-full relative ${
-                    currentOrder.status === "Đang giao"
-                      ? "w-[33px]"
-                      : "w-[35px]"
-                  }`}
-                >
-                  <div className="absolute inset-[-1px]">
-                    <svg
-                      width={currentOrder.status === "Đang giao" ? "33" : "35"}
-                      height="1"
-                      viewBox={`0 0 ${
-                        currentOrder.status === "Đang giao" ? "33" : "35"
-                      } 1`}
-                      fill="none"
-                      className="stroke-[#737373]"
-                    >
-                      <line
-                        x1="0"
-                        y1="0.5"
-                        x2={currentOrder.status === "Đang giao" ? "33" : "35"}
-                        y2="0.5"
-                        strokeWidth="1"
-                      />
-                    </svg>
+          {/* Timeline */}
+          <div className="border border-[#e7e7e7] box-border flex h-[77px] items-start justify-between p-[12px] relative rounded-[24px] w-full">
+            <div className="box-border flex gap-[10px] items-start p-[10px] relative shrink-0">
+              <div
+                className={`flex items-center justify-center relative self-stretch shrink-0 ${
+                  currentOrder.status === "Đang giao" ? "w-[33px]" : "w-[35px]"
+                }`}
+              >
+                <div className="flex-none h-full rotate-[90deg]">
+                  <div
+                    className={`h-full relative ${
+                      currentOrder.status === "Đang giao"
+                        ? "w-[33px]"
+                        : "w-[35px]"
+                    }`}
+                  >
+                    <div className="absolute inset-[-1px]">
+                      <svg
+                        width={
+                          currentOrder.status === "Đang giao" ? "33" : "35"
+                        }
+                        height="1"
+                        viewBox={`0 0 ${
+                          currentOrder.status === "Đang giao" ? "33" : "35"
+                        } 1`}
+                        fill="none"
+                        className="stroke-[#737373]"
+                      >
+                        <line
+                          x1="0"
+                          y1="0.5"
+                          x2={currentOrder.status === "Đang giao" ? "33" : "35"}
+                          y2="0.5"
+                          strokeWidth="1"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </div>
+              {currentOrder.status === "Đang giao" ? (
+                <div className="flex flex-col font-montserrat font-medium gap-[5px] items-start leading-[normal] text-[10px] text-[#04910c] relative shrink-0">
+                  <p className="leading-[1.4]">{getTimelineText().status}</p>
+                  <p className="leading-[1.4]">{getTimelineText().date}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col font-inter font-bold gap-[5px] items-start leading-[normal] text-[12px] text-[#04910c] relative shrink-0">
+                  <p className="leading-[normal]">{getTimelineText().status}</p>
+                  <p className="leading-[normal]">{getTimelineText().date}</p>
+                </div>
+              )}
             </div>
-            {currentOrder.status === "Đang giao" ? (
-              <div className="flex flex-col font-montserrat font-medium gap-[5px] items-start leading-[normal] text-[10px] text-[#04910c] relative shrink-0">
-                <p className="leading-[1.4]">
-                  {currentOrder.timeline[0].status}
-                </p>
-                <p className="leading-[1.4]">{currentOrder.timeline[0].date}</p>
+            <div className="box-border flex gap-[10px] items-center justify-center p-[12px] relative rounded-[12px] shrink-0">
+              <span className="font-inter font-bold text-[12px] leading-[normal] text-[#888888]">
+                Mở rộng
+              </span>
+              <div className="relative shrink-0 size-[18px]">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M9 12L5 8M9 12L13 8M9 12V3"
+                    stroke="#888888"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
-            ) : (
-              <div className="flex flex-col font-inter font-bold gap-[5px] items-start leading-[normal] text-[12px] text-[#04910c] relative shrink-0">
-                <p className="leading-[normal]">
-                  {currentOrder.timeline[0].status}
-                </p>
-                <p className="leading-[normal]">
-                  {currentOrder.timeline[0].date}
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="box-border flex gap-[10px] items-center justify-center p-[12px] relative rounded-[12px] shrink-0">
-            <span className="font-inter font-bold text-[12px] leading-[normal] text-[#888888]">
-              Mở rộng
-            </span>
-            <div className="relative shrink-0 size-[18px]">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 18 18"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M9 12L5 8M9 12L13 8M9 12V3"
-                  stroke="#888888"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Customer */}
       <div className="bg-white border-2 border-[#e7e7e7] box-border flex gap-[8px] items-center px-[24px] py-[8px] relative rounded-[24px] w-full">
@@ -309,7 +449,11 @@ const AdminOrderDetail: React.FC = () => {
       </div>
 
       {/* Payment Table */}
-      <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[24px] relative rounded-[24px] w-full">
+      <div
+        className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[24px] relative rounded-[24px] w-full ${
+          currentOrder.status === "Đã hủy" ? "opacity-50" : ""
+        }`}
+      >
         <div className="box-border flex gap-[6px] items-center px-[6px] py-0 relative shrink-0 w-full">
           <Wallet className="relative shrink-0 size-[24px]" />
           <h2 className="font-montserrat font-semibold text-[#272424] text-[18px] leading-[1.4]">
@@ -402,80 +546,131 @@ const AdminOrderDetail: React.FC = () => {
           {/* Summary Row */}
           <div className="border border-[#e7e7e7] box-border flex gap-[40px] items-center justify-end px-[6px] py-0 relative rounded-bl-[16px] rounded-br-[16px] shrink-0 w-full">
             <div className="box-border flex items-center justify-between px-[6px] py-[12px] relative shrink-0 w-[335px]">
-              <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
-                <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-                  Tổng tiền sản phẩm
-                </p>
-                <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-                  Tổng phí vận chuyển
-                </p>
-                <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-                  Phụ phí
-                </p>
-                <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
-                  Doanh thu đơn hàng
-                </p>
-              </div>
-              <div className="flex flex-row items-center self-stretch">
-                <div className="flex flex-col gap-[4px] h-full items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
-                  <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-                    {formatCurrency(currentOrder.summary.subtotal)}
-                  </p>
-                  <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-                    {formatCurrency(currentOrder.summary.shipping)}
-                  </p>
-                  <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-                    {formatCurrency(currentOrder.summary.fee)}
-                  </p>
-                  <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
-                    {formatCurrency(currentOrder.summary.total)}
-                  </p>
-                </div>
-              </div>
+              {isPOSOrder ? (
+                // POS Summary
+                <>
+                  <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+                    <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                      Tổng tiền hàng
+                    </p>
+                    <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                      Giảm giá
+                    </p>
+                    <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                      Khách phải trả
+                    </p>
+                    <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                      Tiền khách đưa
+                    </p>
+                    <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                      Tiền thừa trả khách
+                    </p>
+                  </div>
+                  <div className="flex flex-row items-center self-stretch">
+                    <div className="flex flex-col gap-[4px] h-full items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+                      <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                        400.000đ
+                      </p>
+                      <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                        20.000đ
+                      </p>
+                      <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                        380.000đ
+                      </p>
+                      <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                        400.000đ
+                      </p>
+                      <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                        20.000đ
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Website Summary
+                <>
+                  <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+                    <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                      Tổng tiền sản phẩm
+                    </p>
+                    <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                      Tổng phí vận chuyển
+                    </p>
+                    <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                      Phụ phí
+                    </p>
+                    <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                      Doanh thu đơn hàng
+                    </p>
+                  </div>
+                  <div className="flex flex-row items-center self-stretch">
+                    <div className="flex flex-col gap-[4px] h-full items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+                      <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                        {formatCurrency(currentOrder.summary.subtotal)}
+                      </p>
+                      <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                        {formatCurrency(currentOrder.summary.shipping)}
+                      </p>
+                      <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                        {formatCurrency(currentOrder.summary.fee)}
+                      </p>
+                      <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                        {formatCurrency(currentOrder.summary.total)}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Payment Information Card */}
-      <div className="bg-white border-2 border-[#e7e7e7] box-border flex items-start justify-between px-[24px] py-[15px] relative rounded-[24px] w-full">
-        <div className="flex gap-[5px] items-start relative self-stretch shrink-0">
-          <Wallet className="relative shrink-0 size-[24px]" />
-          <p className="font-montserrat font-semibold leading-[1.4] relative shrink-0 text-[#272424] text-[18px] text-nowrap">
-            Thanh toán của người mua
-          </p>
-        </div>
-        <div className="box-border flex items-center justify-between px-[10px] py-[12px] relative shrink-0 w-[347px]">
-          <div className="flex flex-col gap-[4px] h-[72px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
-            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-              Tổng tiền sản phẩm
-            </p>
-            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-              Phí vận chuyển
-            </p>
-            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-              Mã giảm giá của shop
-            </p>
-            <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
-              Tổng tiền thanh toán
+      {/* Payment Information Card - Only for Website orders */}
+      {!isPOSOrder && (
+        <div
+          className={`bg-white border-2 border-[#e7e7e7] box-border flex items-start justify-between px-[24px] py-[15px] relative rounded-[24px] w-full ${
+            currentOrder.status === "Đã hủy" ? "opacity-50" : ""
+          }`}
+        >
+          <div className="flex gap-[5px] items-start relative self-stretch shrink-0">
+            <Wallet className="relative shrink-0 size-[24px]" />
+            <p className="font-montserrat font-semibold leading-[1.4] relative shrink-0 text-[#272424] text-[18px] text-nowrap">
+              Thanh toán của người mua
             </p>
           </div>
-          <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
-            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-              {formatCurrency(currentOrder.payment.subtotal)}
-            </p>
-            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-              {formatCurrency(currentOrder.payment.shipping)}
-            </p>
-            <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
-              {formatCurrency(currentOrder.payment.discount)}
-            </p>
-            <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
-              {formatCurrency(currentOrder.payment.total)}
-            </p>
+          <div className="box-border flex items-center justify-between px-[10px] py-[12px] relative shrink-0 w-[347px]">
+            <div className="flex flex-col gap-[4px] h-[72px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+              <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                Tổng tiền sản phẩm
+              </p>
+              <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                Phí vận chuyển
+              </p>
+              <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                Mã giảm giá của shop
+              </p>
+              <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                Tổng tiền thanh toán
+              </p>
+            </div>
+            <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+              <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                {formatCurrency(currentOrder.payment.subtotal)}
+              </p>
+              <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                {formatCurrency(currentOrder.payment.shipping)}
+              </p>
+              <p className="font-montserrat font-medium relative shrink-0 text-[12px]">
+                {formatCurrency(currentOrder.payment.discount)}
+              </p>
+              <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                {formatCurrency(currentOrder.payment.total)}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

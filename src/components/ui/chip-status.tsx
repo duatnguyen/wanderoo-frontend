@@ -13,20 +13,29 @@ export type ChipStatusKey =
   | "transfer"
   | "active"
   | "disabled"
+  | "pending"
+  | "shipping"
+  | "cancelled"
   | "default";
 
 const CHIP_STYLES: Record<
   ChipStatusKey,
   { bg: string; text: string; label: string }
 > = {
+  // Order statuses - from Figma
+  completed: { bg: "#b2ffb4", text: "#04910c", label: "Đã hoàn thành" }, // Green
+  pending: { bg: "#e7e7e7", text: "#737373", label: "Chờ xác nhận" }, // Gray
+  paid: { bg: "#b2ffb4", text: "#04910c", label: "Đã thanh toán" }, // Green
+  unpaid: { bg: "#ffdcdc", text: "#eb2b0b", label: "Chưa thanh toán" }, // Red/Pink
+  shipping: { bg: "#cce5ff", text: "#004085", label: "Đang giao" }, // Blue
+  cancelled: { bg: "#ffdcdc", text: "#eb2b0b", label: "Đã hủy" }, // Red/Pink
+  transfer: { bg: "#fff5c5", text: "#e27d00", label: "Chuyển khoản" }, // Yellow/Orange
+  cash: { bg: "#dcd2ff", text: "#7f27ff", label: "Tiền mặt" }, // Purple
+  
+  // Warehouse/import statuses
   processing: { bg: "#cce5ff", text: "#004085", label: "Đang giao dịch" },
-  completed: { bg: "#b2ffb4", text: "#04910c", label: "Hoàn thành" },
   not_imported: { bg: "#ffdcdc", text: "#eb2b0b", label: "Chưa nhập" },
   imported: { bg: "#b2ffb4", text: "#04910c", label: "Đã nhập" },
-  paid: { bg: "#b2ffb4", text: "#04910c", label: "Đã thanh toán" },
-  unpaid: { bg: "#FFDCDC", text: "#FF0000", label: "Chưa thanh toán" },
-  cash: { bg: "#DCD2FF", text: "#7F27FF", label: "Tiền mặt" },
-  transfer: { bg: "#FFF5C5", text: "#E27D00", label: "Chuyển khoản" },
   active: { bg: "#b2ffb4", text: "#04910c", label: "Đang kích hoạt" },
   disabled: { bg: "#ffdcdc", text: "#eb2b0b", label: "Đã khóa" },
   default: { bg: "#f1f5f9", text: "#0f172a", label: "Trạng thái" },
