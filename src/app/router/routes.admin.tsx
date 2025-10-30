@@ -88,6 +88,9 @@ const AdminSupplierDetail = lazy(
 const AdminWebsite = lazy(
   () => import("../../features/channels/pages/AdminWebsite")
 );
+const AdminCustomerDetail = lazy(
+  () => import("../../features/customers/pages/AdminCustomerDetail")
+);
 
 export const adminRoutes: RouteObject[] = [
   {
@@ -278,7 +281,7 @@ export const adminRoutes: RouteObject[] = [
     path: "customers/:customerId",
     element: (
       <LazyWrapper>
-        <AdminCustomers />
+        <AdminCustomerDetail />
       </LazyWrapper>
     ),
   },

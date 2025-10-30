@@ -308,8 +308,20 @@ const AdminCustomers: React.FC = () => {
                   ? "border-transparent"
                   : "border-[#e7e7e7]"
               } ${
-                selectedCustomers.has(c.id) ? "bg-blue-50" : "hover:bg-gray-50"
+                selectedCustomers.has(c.id)
+                  ? "bg-blue-50"
+                  : "hover:bg-gray-50 cursor-pointer"
               }`}
+              onClick={(e) => {
+                // Prevent navigation when checkbox or button is clicked
+                if (
+                  (e.target as HTMLElement).closest("button") ||
+                  (e.target as HTMLElement).closest('input[type="checkbox"]')
+                ) {
+                  return;
+                }
+                navigate(`/admin/customers/${c.id}`);
+              }}
             >
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">

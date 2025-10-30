@@ -410,9 +410,9 @@ export const adminNavSections: AdminNavSection[] = [
         submenu: [
           {
             label: "Danh sách khách hàng",
-            path: "/admin/customers/allcustomers",
+            path: "/admin/customers",
             icon: icons.customers,
-            activeMatch: "/admin/customers/allcustomers",
+            activeMatch: "/admin/customers",
           },
           {
             label: "Đánh giá",
