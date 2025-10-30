@@ -91,6 +91,9 @@ const AdminWebsite = lazy(
 const AdminCustomerDetail = lazy(
   () => import("../../features/customers/pages/AdminCustomerDetail")
 );
+const AdminAddCustomer = lazy(
+  () => import("../../features/customers/pages/AdminAddCustomer")
+);
 
 export const adminRoutes: RouteObject[] = [
   {
@@ -274,6 +277,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminCustomers />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "customers/new",
+    element: (
+      <LazyWrapper>
+        <AdminAddCustomer />
       </LazyWrapper>
     ),
   },
