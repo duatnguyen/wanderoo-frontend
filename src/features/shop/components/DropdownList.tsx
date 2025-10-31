@@ -45,8 +45,14 @@ const DropdownList: FC<DropdownListProps> = ({
     setOpen(false);
   };
 
+  // If className includes width classes, don't apply default width
+  const hasWidthOverride = className.includes("w-") || className.includes("!w-");
+  const containerClass = hasWidthOverride 
+    ? `relative ${className}` 
+    : `relative w-[190px] ${className}`;
+  
   return (
-    <div className={`relative w-[190px] ${className}`} data-name="DropdownList">
+    <div className={containerClass} data-name="DropdownList">
       <button
         ref={buttonRef}
         type="button"

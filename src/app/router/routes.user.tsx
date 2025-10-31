@@ -1,11 +1,20 @@
 // src/app/router/routes.user.tsx
 import type { RouteObject } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { lazy } from "react";
 import { LazyWrapper } from "../../components/common/LazyWrapper";
 
 // Lazy load user/shop pages
 const UserHome = lazy(() => import("../../pages/user/UserHome"));
-const UserProfile = lazy(() => import("../../pages/user/Profile"));
+const ProfileLayout = lazy(() => import("../../layouts/ProfileLayout"));
+const BasicInformationTab = lazy(
+  () => import("../../pages/user/tabs/BasicInformationTab")
+);
+const AddressTab = lazy(() => import("../../pages/user/tabs/AddressTab"));
+const PasswordTab = lazy(() => import("../../pages/user/tabs/PasswordTab"));
+const PrivacyTab = lazy(() => import("../../pages/user/tabs/PrivacyTab"));
+const OrdersTab = lazy(() => import("../../pages/user/tabs/OrdersTab"));
+const VouchersTab = lazy(() => import("../../pages/user/tabs/VouchersTab"));
 const LandingPage = lazy(
   () => import("../../features/shop/pages/Main/landingPage")
 );
@@ -30,9 +39,63 @@ export const userRoutes: RouteObject[] = [
     path: "profile",
     element: (
       <LazyWrapper>
-        <UserProfile />
+        <ProfileLayout />
       </LazyWrapper>
     ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/user/profile/basicinformation" replace />,
+      },
+      {
+        path: "basicinformation",
+        element: (
+          <LazyWrapper>
+            <BasicInformationTab />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "address",
+        element: (
+          <LazyWrapper>
+            <AddressTab />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "password",
+        element: (
+          <LazyWrapper>
+            <PasswordTab />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "privacy",
+        element: (
+          <LazyWrapper>
+            <PrivacyTab />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "orders",
+        element: (
+          <LazyWrapper>
+            <OrdersTab />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "vouchers",
+        element: (
+          <LazyWrapper>
+            <VouchersTab />
+          </LazyWrapper>
+        ),
+      },
+    ],
   },
 ];
 

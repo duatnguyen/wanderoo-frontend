@@ -115,7 +115,14 @@ const Header: React.FC<HeaderProps> = ({
         <span className="text-white text-[16px] font-semibold min-w-[60px] mx-2">
           {userName}
         </span>
-        <UserAvatar src={avatarUrl} />
+        <button
+          onClick={() => navigate("/user/profile/")}
+          className="hover:opacity-80 transition-opacity"
+          aria-label="Xem hồ sơ"
+          type="button"
+        >
+          <UserAvatar src={avatarUrl} />
+        </button>
       </div>
     </header>
   );
