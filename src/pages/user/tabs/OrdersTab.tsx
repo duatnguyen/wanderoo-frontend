@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -50,6 +51,7 @@ const parseDateFromInput = (dateString: string): string => {
 };
 
 const OrdersTab: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<OrderStatus>("all");
   // Store dates in YYYY-MM-DD format for date input, but display in DD/MM/YYYY
   // Initialize with empty strings so date filter is optional
@@ -360,8 +362,7 @@ const OrdersTab: React.FC = () => {
                         </div>
                         <button
                           onClick={() => {
-                            // Navigate to order detail page
-                            console.log("View order details:", order.id);
+                            navigate(`/user/profile/orders/${order.id}`);
                           }}
                           className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base self-start sm:self-auto transition-colors"
                         >

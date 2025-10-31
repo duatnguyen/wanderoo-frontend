@@ -4,7 +4,6 @@ import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import Button from "../../components/Button";
 import ProductCard from "../../components/ProductCard";
-import Pagination from "../../components/Pagination";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -37,8 +36,6 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 3; // Sample total pages
 
   // Sample product data - in real app, fetch from API using productId
   const product = {
@@ -511,12 +508,40 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
             </div>
 
             {/* Pagination */}
-            <div className="mt-8">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <span className="text-gray-700">Trang hiện tại</span>
+              <select className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+              <button
+                className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed"
+                disabled
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+              <button className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
             </div>
           </div>
         </section>

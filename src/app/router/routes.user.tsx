@@ -14,6 +14,9 @@ const AddressTab = lazy(() => import("../../pages/user/tabs/AddressTab"));
 const PasswordTab = lazy(() => import("../../pages/user/tabs/PasswordTab"));
 const PrivacyTab = lazy(() => import("../../pages/user/tabs/PrivacyTab"));
 const OrdersTab = lazy(() => import("../../pages/user/tabs/OrdersTab"));
+const OrderDetailTab = lazy(
+  () => import("../../pages/user/tabs/OrderDetailTab")
+);
 const VouchersTab = lazy(() => import("../../pages/user/tabs/VouchersTab"));
 const LandingPage = lazy(
   () => import("../../features/shop/pages/Main/landingPage")
@@ -84,6 +87,14 @@ export const userRoutes: RouteObject[] = [
         element: (
           <LazyWrapper>
             <OrdersTab />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "orders/:orderId",
+        element: (
+          <LazyWrapper>
+            <OrderDetailTab />
           </LazyWrapper>
         ),
       },
