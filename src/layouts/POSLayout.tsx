@@ -1,12 +1,17 @@
-import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { POSSidebar } from "../features/pos/components/POSSidebar";
 import { POSHeader, type OrderTab } from "../features/pos/components/POSHeader";
 import { POSProvider, usePOSContext } from "../features/pos/context/POSContext";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { POSSidebarItemId } from "../features/pos/components/POSSidebar";
 
 const POSLayoutContent: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isOrderManagementPage = location.pathname.includes("/orders");
+
   const {
     activeSidebarItem,
     setActiveSidebarItem,
@@ -20,6 +25,15 @@ const POSLayoutContent: React.FC = () => {
   } = usePOSContext();
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Update active sidebar item based on route
+  useEffect(() => {
+    if (isOrderManagementPage) {
+      setActiveSidebarItem("invoices" as POSSidebarItemId);
+    } else if (location.pathname.includes("/sales")) {
+      setActiveSidebarItem("cart" as POSSidebarItemId);
+    }
+  }, [location.pathname, isOrderManagementPage, setActiveSidebarItem]);
 
   const handleAddOrder = () => {
     const newOrderId = String(orders.length + 1);
@@ -42,17 +56,26 @@ const POSLayoutContent: React.FC = () => {
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50 justify-between">
       {/* Header */}
-      <POSHeader
-        searchValue={searchValue}
-        onSearchChange={(e) => setSearchValue(e.target.value)}
-        currentOrderId={currentOrderId}
-        orders={orders}
-        onOrderSelect={setCurrentOrderId}
-        onOrderClose={handleCloseOrder}
-        onOrderAdd={handleAddOrder}
-        user={user}
-        className="flex-shrink-0"
-      />
+      {isOrderManagementPage ? (
+        <POSHeader
+          pageTitle="QUẢN LÝ ĐƠN HÀNG"
+          pageSubtitle="Tra cứu đơn hàng"
+          user={user}
+          className="flex-shrink-0"
+        />
+      ) : (
+        <POSHeader
+          searchValue={searchValue}
+          onSearchChange={(e) => setSearchValue(e.target.value)}
+          currentOrderId={currentOrderId}
+          orders={orders}
+          onOrderSelect={setCurrentOrderId}
+          onOrderClose={handleCloseOrder}
+          onOrderAdd={handleAddOrder}
+          user={user}
+          className="flex-shrink-0"
+        />
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
@@ -86,6 +109,14 @@ const POSLayoutContent: React.FC = () => {
               onItemClick={(item) => {
                 setActiveSidebarItem(item);
                 setSidebarOpen(false); // Close on mobile after selection
+
+                // Navigate based on sidebar item
+                if (item === "invoices") {
+                  navigate("/pos/orders");
+                } else if (item === "cart") {
+                  navigate("/pos/sales");
+                }
+                // Add more navigation cases as needed
               }}
               className="h-full"
             />

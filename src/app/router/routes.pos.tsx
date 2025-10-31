@@ -4,7 +4,8 @@ import { lazy } from "react";
 import { LazyWrapper } from "../../components/common/LazyWrapper";
 
 // Lazy load POS pages
-const POSPage = lazy(() => import("../../features/pos/pages/POSPage"));
+const POSPage = lazy(() => import("../../features/pos/pages/POSSales"));
+const OrderManagement = lazy(() => import("../../features/pos/pages/OrderManagement"));
 
 export const posRoutes: RouteObject[] = [
   {
@@ -15,5 +16,12 @@ export const posRoutes: RouteObject[] = [
       </LazyWrapper>
     ),
   },
+  {
+    path: "orders",
+    element: (
+      <LazyWrapper>
+        <OrderManagement />
+      </LazyWrapper>
+    ),
+  },
 ];
-
