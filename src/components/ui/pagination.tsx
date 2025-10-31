@@ -34,57 +34,49 @@ export const Pagination: React.FC<Readonly<PaginationProps>> = ({
       "bg-white border border-[#e7e7e7] rounded-[12px] flex items-center justify-between px-[30px] py-[10px] w-full",
       className
     )}>
-      {/* Left side - Display info */}
-      <div className="flex gap-[3px] items-start">
+      {/* Left side - Display info (hidden on small screens) */}
+      <div className="hidden md:flex gap-[3px] items-start">
         <p className="text-[12px] text-[#737373] font-normal leading-[1.5] whitespace-pre">
           Đang hiển thị {start} - {end} trong tổng {totalPages} trang
         </p>
       </div>
 
-      {/* Right side - Page controls */}
-      <div className="flex gap-[16px] items-start">
-        {/* Page number section */}
-        <div className="flex gap-[13px] items-center">
-          <p className="text-[12px] text-[#272424] font-normal leading-[1.5] whitespace-pre">
-            Trang số
-          </p>
-          <div className="bg-transparent border border-transparent rounded-[8px] px-[8px] py-[4px]">
-            <p className="text-[12px] text-[#272424] font-normal leading-[1.5] whitespace-pre">
-              {current}
-            </p>
-          </div>
+      <div className="w-full flex items-center justify-center gap-2">
+        {/* Prev */}
+        <button
+          onClick={handlePrev}
+          disabled={current <= 1}
+          className={cn(
+            "h-9 w-9 rounded-full flex items-center justify-center text-[#9ca3af]",
+            "hover:bg-gray-50 hover:text-[#6b7280] transition-colors",
+            "disabled:opacity-40 disabled:cursor-not-allowed",
+          )}
+          aria-label="Trang trước"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+
+        {/* Current page number */}
+        <div
+          aria-live="polite"
+          className="h-8 w-8 rounded-full flex items-center justify-center bg-[#E04D30] text-white font-semibold text-[13px]"
+        >
+          {current}
         </div>
 
-        {/* Navigation arrows */}
-        <div className="flex gap-[6px] items-start">
-          {/* Previous button */}
-          <button
-            onClick={handlePrev}
-            disabled={current <= 1}
-            className={cn(
-              "border border-[#b0b0b0] rounded-[8px] px-[6px] py-[4px] flex items-center justify-center w-[20px] h-[20px]",
-              "hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-colors duration-200"
-            )}
-            aria-label="Trang trước"
-          >
-            <ChevronLeft className="h-[8px] w-[8px] text-[#d1d1d1]" />
-          </button>
-
-          {/* Next button */}
-          <button
-            onClick={handleNext}
-            disabled={current >= totalPages}
-            className={cn(
-              "border border-[#b0b0b0] rounded-[8px] px-[6px] py-[4px] flex items-center justify-center w-[20px] h-[20px]",
-              "hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-colors duration-200"
-            )}
-            aria-label="Trang tiếp"
-          >
-            <ChevronRight className="h-[8px] w-[8px] text-[#272424]" />
-          </button>
-        </div>
+        {/* Next */}
+        <button
+          onClick={handleNext}
+          disabled={current >= totalPages}
+          className={cn(
+            "h-9 w-9 rounded-full flex items-center justify-center text-[#9ca3af]",
+            "hover:bg-gray-50 hover:text-[#6b7280] transition-colors",
+            "disabled:opacity-40 disabled:cursor-not-allowed",
+          )}
+          aria-label="Trang tiếp"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
       </div>
     </div>
   );

@@ -56,11 +56,11 @@ export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
 
   return (
     <div
-      className={cn("rounded-[10px] px-[8px] h-fit py-[6px] w-fit", className)}
+      className={cn("rounded-[10px] px-[8px] h-[24px] w-fit flex items-center", className)}
       style={{ backgroundColor: styles.bg }}
     >
       <span
-        className="font-semibold text-[12px] leading-[1.4]"
+        className="font-semibold text-[12px] leading-[1.4] whitespace-nowrap"
         style={{ color: styles.text }}
       >
         {labelOverride ?? styles.label}

@@ -408,3 +408,10 @@ body {
     }
   }
 }
+
+/* Sidebar font override to Inter */
+.admin-sidebar-font {
+  font-family: Inter, -apple-system, system-ui, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 14px; /* đảm bảo đồng nhất 14px */
+}

@@ -6,7 +6,7 @@ import {
   type AdminNavItem,
   type AdminNavSection,
 } from "./adminNavData.tsx";
-import ShopLogo from "../../assets/icons/ShopLogo.png";
+import ShopLogo from "@/assets/icons/ShopLogo.svg";
 import {
   ProfileIcon,
   AddressIcon,
@@ -20,7 +20,20 @@ interface AdminSidebarProps {
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const navigate = useNavigate();
+  const [activeEllipsisKey, setActiveEllipsisKey] = useState<string | null>(null);
+  const [openPopoverKey, setOpenPopoverKey] = useState<string | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    const onClickOutside = () => {
+      setOpenPopoverKey(null);
+      setActiveEllipsisKey(null);
+    };
+    if (openPopoverKey) {
+      window.addEventListener("click", onClickOutside);
+    }
+    return () => window.removeEventListener("click", onClickOutside);
+  }, [openPopoverKey]);
 
   // Check if we're in settings mode based on the path
   const isSettingsMode = activePath.startsWith("/admin/settings");
@@ -54,7 +67,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   }, [activePath]);
 
   const baseClasses =
-    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium tracking-wide transition-colors duration-200";
+    "flex items-center gap-3 rounded-xl px-4 h-8 py-0 text-sm font-medium tracking-wide transition-colors duration-200";
   const activeClasses = "bg-[#E04D30] text-white";
   const inactiveClasses = "text-white hover:text-white hover:bg-[#172b46]";
   const submenuClasses = "ml-[35px] pl-4";
@@ -63,26 +76,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
 
   // Settings button (footer) specific classes
   const footerBaseClasses =
-    "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium tracking-wide transition-colors duration-200";
+    "flex items-center gap-3 rounded-xl px-4 h-8 py-0 text-sm font-medium tracking-wide transition-colors duration-200";
   const footerActiveClasses = "bg-[#E04D30] text-white";
   const footerInactiveClasses =
     "text-white hover:text-white hover:bg-[#172b46]";
 
-  const toggleDropdown = (itemKey: string, item: AdminNavItem) => {
-    setExpandedItems((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemKey)) {
-        newSet.delete(itemKey);
-      } else {
-        newSet.add(itemKey);
-        // If the item has submenus and we're expanding it, navigate to the first submenu item
-        if (item.submenu && item.submenu.length > 0 && item.submenu[0].path) {
-          navigate(item.submenu[0].path);
-        }
-      }
-      return newSet;
-    });
-  };
+  // Dropdown toggle removed; using ellipsis popover instead
 
   const renderNavItem = (
     item: AdminNavItem,
@@ -105,25 +104,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
         : Boolean(item.defaultActive);
     }
 
-    const isExpanded = expandedItems.has(itemKey);
-
     const content = (
       <>
         {!isSubmenu && item.icon({ className: "h-5 w-5" })}
         <span>{item.label}</span>
-        {hasSubmenu && (
-          <svg
-            className={`ml-auto h-4 w-4 transition-transform duration-200 ${
-              isExpanded ? "rotate-90" : ""
-            }`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <polyline points="9,18 15,12 9,6"></polyline>
-          </svg>
-        )}
       </>
     );
 
@@ -135,28 +119,69 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     } else if (isFooter) {
       // Use footer-specific classes for the Settings button
       itemClasses = `${footerBaseClasses} ${
-        isActive ? footerActiveClasses : footerInactiveClasses
+        isActive ? `${footerActiveClasses} h-8 py-0` : footerInactiveClasses
       }`;
     } else {
       itemClasses = `${baseClasses} ${
-        isActive ? activeClasses : inactiveClasses
+        isActive ? `${activeClasses} h-8 py-0` : inactiveClasses
       } ${hasSubmenu ? "cursor-pointer" : ""}`;
     }
 
     if (hasSubmenu) {
       return (
-        <div key={key}>
-          <div
-            className={itemClasses}
-            onClick={() => toggleDropdown(itemKey, item)}
-          >
+        <div key={key} className="relative">
+          <div className={`${itemClasses} pr-10 group`}>
             {content}
+            {/* Ellipsis button on the right */}
+            <button
+              className={`absolute right-2 top-1/2 -translate-y-1/2 h-6 w-8 flex items-center justify-center rounded-md transition-opacity ${
+                isActive || openPopoverKey === itemKey || activeEllipsisKey === itemKey
+                  ? "opacity-100 text-white"
+                  : "opacity-0 group-hover:opacity-100 text-white/70 pointer-events-none group-hover:pointer-events-auto"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                setPopoverPosition({ top: rect.top + window.scrollY, left: rect.right + 8 });
+                setOpenPopoverKey((prev) => (prev === itemKey ? null : itemKey));
+                setActiveEllipsisKey(itemKey);
+              }}
+              aria-label="More actions"
+              title="More actions"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-5 w-5"
+              >
+                <path d="M6 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm8 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm6 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+              </svg>
+            </button>
           </div>
-          {isExpanded && (
-            <div className="mt-1 space-y-1">
-              {item.submenu!.map((subItem, subIndex) =>
-                renderNavItem(subItem, `${itemKey}-sub-${subIndex}`, true)
-              )}
+
+          {/* Popover dropdown for submenu (render fixed outside sidebar) */}
+          {openPopoverKey === itemKey && popoverPosition && (
+            <div
+              className="fixed z-50 w-[260px] rounded-lg border border-white/15 bg-[#163356] p-2 shadow-lg"
+              style={{ top: popoverPosition.top, left: popoverPosition.left }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="space-y-1.5">
+                {item.submenu!.map((subItem, subIndex) => (
+                  <Link
+                    key={`${itemKey}-sub-${subIndex}`}
+                    to={subItem.path || "#"}
+                    className={`${baseClasses} text-white/90 hover:text-white hover:bg-white/10 px-3 h-8 py-0`}
+                    onClick={() => {
+                      setOpenPopoverKey(null);
+                      setActiveEllipsisKey(null);
+                    }}
+                  >
+                    <span>{subItem.label}</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -208,18 +233,22 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   ];
 
   return (
-    <aside className="w-[225px] min-h-screen bg-[#18345C] text-white">
-      <div className="flex flex-1 flex-col px-[16px] pb-4">
+    <aside className="w-[230px] min-h-screen bg-[#18345C] text-white flex flex-col admin-sidebar-font">
+      {/* Khung logo, tách riêng, cao 64px, border-b */}
+      <div className="relative flex items-center justify-start h-[64px] border-b border-white/10 bg-[#18345C] overflow-hidden">
         <Link to="/admin/dashboard">
-          <div className="flex flex-col items-center text-center cursor-pointer">
+          <div className="h-[64px] w-full flex items-center justify-start overflow-hidden relative" style={{ paddingLeft: 2 }}>
             <img
               src={ShopLogo}
               alt="Shop Logo"
-              className="h-[160px] w-[160px] object-contain"
+              style={{ width: 2600, height: 800, objectFit: 'contain', display: 'block', marginTop: 4 }}
+              className="block"
             />
           </div>
         </Link>
-
+      </div>
+      {/* Các mục nav phía dưới, không bị cách xa logo */}
+      <div className="flex-1 flex flex-col px-[16px] pb-2">
         {isSettingsMode ? (
           <nav className="flex-1">
             <div className="py-2 ">
@@ -236,7 +265,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
                   const hasTitle = Boolean(section.title);
                   const sectionKey = section.title ?? index;
                   const wrapperClasses =
-                    index === 0 ? "" : "mt-4 border-t border-white/10 pt-4";
+                    index === 0 ? "mt-[5px]" : "mt-4 border-t border-white/10 pt-4";
                   const listClasses = hasTitle
                     ? "mt-3 space-y-1.5"
                     : "space-y-1.5";
@@ -244,24 +273,51 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
                   return (
                     <div key={sectionKey} className={wrapperClasses}>
                       {hasTitle ? (
-                        <p className="px-2 text-[12px] font-bold uppercase tracking-[0.3em] text-white/45">
-                          {section.title}
-                        </p>
-                      ) : null}
-                      <div className={listClasses}>
-                        {section.items.map(
-                          (item: AdminNavItem, itemIndex: number) =>
-                            renderNavItem(item, `${sectionKey}-${itemIndex}`)
-                        )}
-                      </div>
+                        section.title === "Kênh bán hàng" ? (
+                          <div className="rounded-xl border border-white/15 px-3 py-2.5">
+                            <p className="px-3 text-[12px] font-bold uppercase tracking-[0.15em] text-white/45 whitespace-nowrap">
+                              {section.title}
+                            </p>
+                            <div className="mt-1.5 h-px bg-white/15 -mx-3" />
+                            <div className="mt-2 space-y-1.5 [&>a]:pl-3 [&>div]:pl-3">
+                              {section.items.map(
+                                (item: AdminNavItem, itemIndex: number) =>
+                                  renderNavItem(item, `${sectionKey}-${itemIndex}`)
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="px-2 text-[12px] font-bold uppercase tracking-[0.15em] text-white/45 whitespace-nowrap">
+                              {section.title}
+                            </p>
+                            <div className={listClasses}>
+                              {section.items.map(
+                                (item: AdminNavItem, itemIndex: number) =>
+                                  renderNavItem(item, `${sectionKey}-${itemIndex}`)
+                              )}
+                            </div>
+                          </>
+                        )
+                      ) : (
+                        <div className={listClasses}>
+                          {section.items.map(
+                            (item: AdminNavItem, itemIndex: number) =>
+                              renderNavItem(item, `${sectionKey}-${itemIndex}`)
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 }
               )}
             </nav>
 
-            <div className="mt-auto border-t border-white/10 pt-4">
-              <div className="space-y-1.5">
+            {/* Khung Cấu hình cuối sidebar với khoảng cách chuẩn */}
+            <div className="mt-auto">
+              <div className="h-[49px]" />
+              <div className="-mx-[16px] h-px bg-white/15" />
+              <div className="mt-2 space-y-1.5 [&>a]:pl-5 [&>div]:pl-5">
                 {adminFooterNav.items.map((item: AdminNavItem, index: number) =>
                   renderNavItem(item, `footer-${index}`, false, true)
                 )}
