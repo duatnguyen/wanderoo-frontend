@@ -67,7 +67,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cx(
-          "inline-flex items-center justify-center select-none transition-colors",
+          "inline-flex items-center justify-center select-none transition-colors cursor-pointer",
           VARIANT_BASE[variant],
           SIZE_BASE[size],
           RADIUS_BY_SHAPE[shape],

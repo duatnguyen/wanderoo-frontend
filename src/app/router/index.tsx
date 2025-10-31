@@ -18,6 +18,8 @@ import Loading from "../../components/common/Loading";
 
 // Admin routes
 import { adminRoutes } from "./routes.admin";
+// User routes
+import { userRoutes, shopRoutes } from "./routes.user";
 import UserLayout from "../../layouts/UserLayout";
 
 export const router = createBrowserRouter([
@@ -59,6 +61,9 @@ export const router = createBrowserRouter([
     children: adminRoutes,
   },
 
+  // Shop routes (public - landing page)
+  ...shopRoutes,
+
   // User routes (protected)
   {
     path: "/user",
@@ -74,6 +79,7 @@ export const router = createBrowserRouter([
         path: "",
         element: <Navigate to="/user/home" replace />,
       },
+      ...userRoutes,
     ],
   },
 

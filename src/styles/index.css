@@ -332,6 +332,16 @@ body {
   background: #6b7280;
 }
 
+/* Hide scrollbar for carousel */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
 /* Corner when both scrollbars are present */
 .table-scroll-container::-webkit-scrollbar-corner {
   background: #e5e7eb;
