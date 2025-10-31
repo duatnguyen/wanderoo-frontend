@@ -1,0 +1,120 @@
+import React, { useState } from "react";
+import { Outlet } from "react-router-dom";
+import { POSSidebar } from "../features/pos/components/POSSidebar";
+import { POSHeader, type OrderTab } from "../features/pos/components/POSHeader";
+import { POSProvider, usePOSContext } from "../features/pos/context/POSContext";
+import { Menu, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const POSLayoutContent: React.FC = () => {
+  const {
+    activeSidebarItem,
+    setActiveSidebarItem,
+    searchValue,
+    setSearchValue,
+    orders,
+    setOrders,
+    currentOrderId,
+    setCurrentOrderId,
+    user,
+  } = usePOSContext();
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const handleAddOrder = () => {
+    const newOrderId = String(orders.length + 1);
+    const newOrder: OrderTab = { id: newOrderId, label: `Đơn ${newOrderId}` };
+    setOrders([...orders, newOrder]);
+    setCurrentOrderId(newOrderId);
+  };
+
+  const handleCloseOrder = (orderId: string) => {
+    if (orders.length === 1) {
+      return;
+    }
+    const newOrders = orders.filter((o) => o.id !== orderId);
+    setOrders(newOrders);
+    if (currentOrderId === orderId) {
+      setCurrentOrderId(newOrders[0]?.id || "1");
+    }
+  };
+
+  return (
+    <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50 justify-between">
+      {/* Header */}
+      <POSHeader
+        searchValue={searchValue}
+        onSearchChange={(e) => setSearchValue(e.target.value)}
+        currentOrderId={currentOrderId}
+        orders={orders}
+        onOrderSelect={setCurrentOrderId}
+        onOrderClose={handleCloseOrder}
+        onOrderAdd={handleAddOrder}
+        user={user}
+        className="flex-shrink-0"
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Mobile Sidebar Toggle */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="lg:hidden fixed top-[56px] sm:top-[64px] left-2 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200"
+          aria-label="Toggle sidebar"
+        >
+          {sidebarOpen ? (
+            <X className="w-5 h-5 text-[#454545]" />
+          ) : (
+            <Menu className="w-5 h-5 text-[#454545]" />
+          )}
+        </button>
+
+        {/* Sidebar */}
+        <div
+          className={cn(
+            "flex-shrink-0 transition-all duration-300 ease-in-out",
+            sidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0",
+            "fixed lg:static inset-y-0 left-0 z-40",
+            "lg:w-[75px]"
+          )}
+        >
+          <div className="h-full">
+            <POSSidebar
+              activeItem={activeSidebarItem}
+              onItemClick={(item) => {
+                setActiveSidebarItem(item);
+                setSidebarOpen(false); // Close on mobile after selection
+              }}
+              className="h-full"
+            />
+          </div>
+        </div>
+
+        {/* Sidebar Overlay for Mobile */}
+        {sidebarOpen && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Page Content */}
+        <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
+          <Outlet />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const POSLayout: React.FC = () => {
+  return (
+    <POSProvider>
+      <POSLayoutContent />
+    </POSProvider>
+  );
+};
+
+export default POSLayout;

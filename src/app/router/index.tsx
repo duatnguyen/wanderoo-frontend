@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 // Layouts
 import AdminLayout from "../../layouts/AdminLayout";
+import POSLayout from "../../layouts/POSLayout";
 
 // Pages
 import Login from "../../pages/auth/Login";
@@ -21,6 +22,8 @@ import { adminRoutes } from "./routes.admin";
 // User routes
 import { userRoutes, shopRoutes } from "./routes.user";
 import UserLayout from "../../layouts/UserLayout";
+// POS routes
+import { posRoutes } from "./routes.pos";
 
 export const router = createBrowserRouter([
   // Root redirect (temporarily to shop for UI development)
@@ -68,6 +71,13 @@ export const router = createBrowserRouter([
       },
       ...userRoutes,
     ],
+  },
+
+  // POS routes
+  {
+    path: "/pos",
+    element: <POSLayout />,
+    children: posRoutes,
   },
 
   // 404 Not Found (temporarily redirect to shop for UI development)
