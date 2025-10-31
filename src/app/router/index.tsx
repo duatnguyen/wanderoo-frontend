@@ -18,13 +18,15 @@ import Loading from "../../components/common/Loading";
 
 // Admin routes
 import { adminRoutes } from "./routes.admin";
+// User routes
+import { userRoutes, shopRoutes } from "./routes.user";
 import UserLayout from "../../layouts/UserLayout";
 
 export const router = createBrowserRouter([
-  // Root redirect
+  // Root redirect (temporarily to shop for UI development)
   {
     path: "/",
-    element: <Navigate to="/login" replace />,
+    element: <Navigate to="/shop" replace />,
   },
 
   // Auth routes (public)
@@ -45,41 +47,32 @@ export const router = createBrowserRouter([
     ),
   },
 
-
-  // Admin routes (protected)
+  // Admin routes (temporarily public for UI development)
   {
     path: "/admin",
-    element: (
-      <AuthGuard>
-        <RoleGuard allow={["ADMIN"]}>
-          <AdminLayout />
-        </RoleGuard>
-      </AuthGuard>
-    ),
+    element: <AdminLayout />,
     children: adminRoutes,
   },
 
-  // User routes (protected)
+  // Shop routes (public - landing page)
+  ...shopRoutes,
+
+  // User routes (temporarily public for UI development)
   {
     path: "/user",
-    element: (
-      <AuthGuard>
-        <RoleGuard allow={["USER"]}>
-          <UserLayout />
-        </RoleGuard>
-      </AuthGuard>
-    ),
+    element: <UserLayout />,
     children: [
       {
         path: "",
         element: <Navigate to="/user/home" replace />,
       },
+      ...userRoutes,
     ],
   },
 
-  // 404 Not Found
+  // 404 Not Found (temporarily redirect to shop for UI development)
   {
     path: "*",
-    element: <Navigate to="/login" replace />,
+    element: <Navigate to="/shop" replace />,
   },
 ]);

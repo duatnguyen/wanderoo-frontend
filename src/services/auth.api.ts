@@ -30,7 +30,7 @@ export interface LoginResponse {
 
 // Authentication APIs
 export const authLogin = async (
-  credentials: LoginCredentials,
+  credentials: LoginCredentials
 ): Promise<LoginResponse> => {
   // Mock implementation - thay thế bằng API call thực tế
   return new Promise((resolve, reject) => {
@@ -66,7 +66,7 @@ export const authLogin = async (
       const account = demoAccounts.find(
         (acc) =>
           acc.email === credentials.email &&
-          acc.password === credentials.password,
+          acc.password === credentials.password
       );
 
       if (account) {
@@ -88,7 +88,7 @@ export const authLogin = async (
 };
 
 export const authRegister = async (
-  userData: RegisterData,
+  userData: RegisterData
 ): Promise<LoginResponse> => {
   // Mock implementation
   return new Promise((resolve) => {
@@ -124,7 +124,8 @@ export const authMe = async (): Promise<AuthUser> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       // In real app, decode JWT or call API
-      if (token.includes("demo-token-1")) {
+      // Check for admin token (includes "demo-token-1" or starts with admin pattern)
+      if (token.includes("demo-token-1") || token.match(/demo-token-1-/)) {
         resolve({
           id: "1",
           email: "admin@example.com",
@@ -133,11 +134,24 @@ export const authMe = async (): Promise<AuthUser> => {
           avatar: "",
           createdAt: new Date().toISOString(),
         });
-      } else if (token.includes("demo-token-2")) {
+      }
+      // Check for user token (includes "demo-token-2" or starts with user pattern)
+      else if (token.includes("demo-token-2") || token.match(/demo-token-2-/)) {
         resolve({
           id: "2",
           email: "user@example.com",
           name: "Regular User",
+          role: "USER",
+          avatar: "",
+          createdAt: new Date().toISOString(),
+        });
+      }
+      // Check for new user tokens (from registration)
+      else if (token.includes("demo-token-new")) {
+        resolve({
+          id: token.split("-").pop() || "new-user",
+          email: "newuser@example.com",
+          name: "New User",
           role: "USER",
           avatar: "",
           createdAt: new Date().toISOString(),

@@ -14,11 +14,14 @@ export default function RoleGuard({
   if (!state.isAuth) return <Navigate to="/login" replace />;
   if (!state.role || !allow.includes(state.role)) {
     // chuyển về trang phù hợp role hiện tại
-    return state.role === "USER" ? (
-      <Navigate to="/" replace />
-    ) : (
-      <Navigate to="/admin" replace />
-    );
+    if (state.role === "USER") {
+      return <Navigate to="/shop" replace />;
+    } else if (state.role === "ADMIN") {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else {
+      // No role or unknown role - redirect to login
+      return <Navigate to="/login" replace />;
+    }
   }
   return children;
 }
