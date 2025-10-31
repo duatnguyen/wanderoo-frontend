@@ -9,6 +9,9 @@ const UserProfile = lazy(() => import("../../pages/user/Profile"));
 const LandingPage = lazy(
   () => import("../../features/shop/pages/Main/landingPage")
 );
+const ProductDetail = lazy(
+  () => import("../../features/shop/pages/Product/ProductDetail")
+);
 
 export const userRoutes: RouteObject[] = [
   {
@@ -36,6 +39,14 @@ export const shopRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <LandingPage />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "shop/products/:productId",
+    element: (
+      <LazyWrapper>
+        <ProductDetail />
       </LazyWrapper>
     ),
   },

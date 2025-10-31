@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import ProductCard from "../../components/ProductCard";
@@ -8,6 +9,7 @@ import mainBanner from "../../../../assets/images/banner/main-page-banner.png";
 import subBanner from "../../../../assets/images/banner/sub-banner.png";
 
 const LandingPage: React.FC = () => {
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Sample categories data
@@ -228,9 +230,7 @@ const LandingPage: React.FC = () => {
                       originalPrice={product.originalPrice}
                       rating={product.rating}
                       discountPercent={product.discountPercent}
-                      onClick={() =>
-                        console.log("Flash sale product clicked:", product.id)
-                      }
+                      onClick={() => navigate(`/shop/products/${product.id}`)}
                     />
                   </div>
                 ))}
@@ -299,7 +299,7 @@ const LandingPage: React.FC = () => {
                 originalPrice={product.originalPrice}
                 rating={product.rating}
                 discountPercent={product.discountPercent}
-                onClick={() => console.log("Product clicked:", product.id)}
+                onClick={() => navigate(`/shop/products/${product.id}`)}
               />
             ))}
           </div>
@@ -351,7 +351,7 @@ const LandingPage: React.FC = () => {
                 originalPrice={product.originalPrice}
                 rating={product.rating}
                 discountPercent={product.discountPercent}
-                onClick={() => console.log("Product clicked:", product.id)}
+                onClick={() => navigate(`/shop/products/${product.id}`)}
               />
             ))}
           </div>
