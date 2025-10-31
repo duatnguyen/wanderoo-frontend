@@ -12,6 +12,10 @@ const LandingPage = lazy(
 const ProductDetail = lazy(
   () => import("../../features/shop/pages/Product/ProductDetail")
 );
+const CartPage = lazy(() => import("../../features/shop/pages/Cart/CartPage"));
+const CheckoutPage = lazy(
+  () => import("../../features/shop/pages/Checkout/CheckoutPage")
+);
 
 export const userRoutes: RouteObject[] = [
   {
@@ -35,7 +39,7 @@ export const userRoutes: RouteObject[] = [
 // Shop routes (can be public or user-specific)
 export const shopRoutes: RouteObject[] = [
   {
-    path: "shop",
+    path: "/shop",
     element: (
       <LazyWrapper>
         <LandingPage />
@@ -43,10 +47,26 @@ export const shopRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "shop/products/:productId",
+    path: "/shop/products/:productId",
     element: (
       <LazyWrapper>
         <ProductDetail />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "/shop/cart",
+    element: (
+      <LazyWrapper>
+        <CartPage />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "/shop/checkout",
+    element: (
+      <LazyWrapper>
+        <CheckoutPage />
       </LazyWrapper>
     ),
   },

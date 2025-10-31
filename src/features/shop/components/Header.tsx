@@ -1,16 +1,22 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import SearchForm from "./SearchForm";
 import shopLogo from "../../../assets/icons/ShopLogo.png";
 
-function Logo() {
+function Logo({ onClick }: { onClick: () => void }) {
   return (
-    <div className="flex items-center">
+    <button
+      onClick={onClick}
+      className="flex items-center hover:opacity-80 transition-opacity"
+      aria-label="Về trang chủ"
+      type="button"
+    >
       <img
         src={shopLogo}
         alt="Wanderoo Logo"
         className="h-auto w-auto max-h-[70px] object-contain"
       />
-    </div>
+    </button>
   );
 }
 
@@ -69,38 +75,50 @@ const Header: React.FC<HeaderProps> = ({
   avatarUrl,
   cartCount = 0,
   onMenuClick,
-}) => (
-  <header className="h-[83px] w-full px-4 bg-[#18345c] flex items-center gap-5 relative z-40">
-    <Logo />
-    <button
-      className="ml-6 mr-1 flex items-center"
-      aria-label="Mở menu danh mục"
-      onClick={onMenuClick}
-      type="button"
-    >
-      <MenuIcon />
-    </button>
-    <span className="text-white font-semibold text-[16px] mr-8 select-none">
-      Danh mục
-    </span>
-    <div className="flex-1 max-w-[800px]">
-      <SearchForm placeholder="Bạn muốn mua gì hôm nay?" variant="secondary" />
-    </div>
-    <div className="flex items-center gap-4 min-w-[150px] pl-5">
-      <div className="relative flex items-center">
-        <ShoppingBagIcon />
-        {cartCount !== undefined && (
-          <span className="absolute top-[-7px] right-[-7px] w-5 h-5 bg-[#ffc107] text-[#18345c] rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
-            {cartCount}
-          </span>
-        )}
-      </div>
-      <span className="text-white text-[16px] font-semibold min-w-[60px] mx-2">
-        {userName}
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <header className="h-[83px] w-full px-4 bg-[#18345c] flex items-center gap-5 relative z-40">
+      <Logo onClick={() => navigate("/shop")} />
+      <button
+        className="ml-6 mr-1 flex items-center"
+        aria-label="Mở menu danh mục"
+        onClick={onMenuClick}
+        type="button"
+      >
+        <MenuIcon />
+      </button>
+      <span className="text-white font-semibold text-[16px] mr-8 select-none">
+        Danh mục
       </span>
-      <UserAvatar src={avatarUrl} />
-    </div>
-  </header>
-);
+      <div className="flex-1 max-w-[800px]">
+        <SearchForm
+          placeholder="Bạn muốn mua gì hôm nay?"
+          variant="secondary"
+        />
+      </div>
+      <div className="flex items-center gap-4 min-w-[150px] pl-5">
+        <button
+          onClick={() => navigate("/shop/cart")}
+          className="relative flex items-center hover:opacity-80 transition-opacity"
+          aria-label="Giỏ hàng"
+          type="button"
+        >
+          <ShoppingBagIcon />
+          {cartCount !== undefined && (
+            <span className="absolute top-[-7px] right-[-7px] w-5 h-5 bg-[#ffc107] text-[#18345c] rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
+              {cartCount}
+            </span>
+          )}
+        </button>
+        <span className="text-white text-[16px] font-semibold min-w-[60px] mx-2">
+          {userName}
+        </span>
+        <UserAvatar src={avatarUrl} />
+      </div>
+    </header>
+  );
+};
 
 export default Header;
