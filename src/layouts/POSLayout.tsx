@@ -26,14 +26,23 @@ const POSLayoutContent: React.FC = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const isInventoryPage = location.pathname.includes("/inventory");
+
   // Update active sidebar item based on route
   useEffect(() => {
     if (isOrderManagementPage) {
       setActiveSidebarItem("invoices" as POSSidebarItemId);
     } else if (location.pathname.includes("/sales")) {
       setActiveSidebarItem("cart" as POSSidebarItemId);
+    } else if (isInventoryPage) {
+      setActiveSidebarItem("products" as POSSidebarItemId);
     }
-  }, [location.pathname, isOrderManagementPage, setActiveSidebarItem]);
+  }, [
+    location.pathname,
+    isOrderManagementPage,
+    isInventoryPage,
+    setActiveSidebarItem,
+  ]);
 
   const handleAddOrder = () => {
     const newOrderId = String(orders.length + 1);
@@ -60,6 +69,13 @@ const POSLayoutContent: React.FC = () => {
         <POSHeader
           pageTitle="QUẢN LÝ ĐƠN HÀNG"
           pageSubtitle="Tra cứu đơn hàng"
+          user={user}
+          className="flex-shrink-0"
+        />
+      ) : isInventoryPage ? (
+        <POSHeader
+          pageTitle="QUẢN LÝ ĐƠN HÀNG"
+          pageSubtitle="Tra cứu tồn kho"
           user={user}
           className="flex-shrink-0"
         />
@@ -115,6 +131,8 @@ const POSLayoutContent: React.FC = () => {
                   navigate("/pos/orders");
                 } else if (item === "cart") {
                   navigate("/pos/sales");
+                } else if (item === "products") {
+                  navigate("/pos/inventory");
                 }
                 // Add more navigation cases as needed
               }}
