@@ -1,7 +1,10 @@
 export { default as ProtectedRoute } from "./ProtectedRoute";
 export { default as PublicRoute } from "./PublicRoute";
 export { default as Loading } from "./Loading";
+export { LazyWrapper } from "./LazyWrapper";
 export { TabMenu, OrderTabMenu } from "./TabMenu";
 export type { TabItem } from "./TabMenu";
+export { default as OrderTimeline } from "./OrderTimeline";
+export type { OrderTimelineProps, TimelineStep } from "./OrderTimeline";
 export { default as TabMenuAccount } from "../ui/tab-menu-account";
 export type { TabItem as TabMenuAccountItem } from "../ui/tab-menu-account";

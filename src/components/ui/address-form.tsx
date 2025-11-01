@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
 import CaretDown from "@/components/ui/caret-down";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,8 +43,11 @@ const AddressForm: React.FC<AddressFormProps> = ({
     isDefault: initialData.isDefault || false,
   });
 
-  const handleInputChange = (field: keyof AddressFormData, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (
+    field: keyof AddressFormData,
+    value: string | boolean
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -56,7 +60,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
   const wards = ["Phường Phúc Xá", "Phường Trúc Bạch", "Phường Vĩnh Phú"];
 
   return (
-    <div className="bg-white border-[#e04d30] border-2 flex flex-col items-start rounded-[24px] w-full">
+    <div className="bg-white flex flex-col items-start rounded-[24px] w-full">
       {/* Header */}
       <div className="flex gap-[9px] items-center p-[15px] w-full">
         <h2 className="font-bold text-[#272424] text-[24px] leading-[1.5]">
@@ -65,7 +69,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-[10px] items-start px-[15px] pb-[15px] w-full">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-[10px] items-start px-[15px] pb-[15px] w-full"
+      >
         {/* Full Name */}
         <FormInput
           label="Họ và tên"
@@ -182,20 +189,20 @@ const AddressForm: React.FC<AddressFormProps> = ({
             <input
               type="text"
               value={formData.detailAddress}
-              onChange={(e) => handleInputChange("detailAddress", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("detailAddress", e.target.value)
+              }
               placeholder="Nhập địa chỉ chi tiết của bạn"
-              className="border-0 outline-none text-[12px] font-semibold text-[#888888] placeholder:text-[#888888] bg-transparent flex-1"
+              className="border-0 outline-none text-[12px] font-semibold text-[#272424] placeholder:text-[#888888] bg-transparent flex-1"
             />
           </div>
         </div>
 
         {/* Default Address Checkbox */}
         <div className="flex gap-[5px] items-start w-full">
-          <input
-            type="checkbox"
+          <CustomCheckbox
             checked={formData.isDefault}
-            onChange={(e) => handleInputChange("isDefault", e.target.checked)}
-            className="w-[24px] h-[24px] border"
+            onChange={(checked) => handleInputChange("isDefault", checked)}
           />
           <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
             Đặt làm địa chỉ mặc định
@@ -204,16 +211,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
 
         {/* Action Buttons */}
         <div className="flex gap-[10px] items-center justify-end px-0 py-[12px] w-full">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="secondary" onClick={onCancel}>
             Huỷ
           </Button>
-          <Button type="submit">
-            Xác nhận
-          </Button>
+          <Button type="submit">Xác nhận</Button>
         </div>
       </form>
     </div>

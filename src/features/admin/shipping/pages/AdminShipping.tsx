@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import TabMenuAccount, { type TabItem } from "@/components/ui/tab-menu-account";
 import CaretDown from "@/components/ui/caret-down";
 import AddressForm from "@/components/ui/address-form";
-import { Button } from "@/components/ui/button";
 
 interface AddressFormData {
   fullName: string;
@@ -41,7 +40,7 @@ const AdminShipping: React.FC = () => {
     { id: "shipping", label: "Đơn vị vận chuyển" },
   ];
 
-  const addresses: Address[] = [
+  const [addresses, setAddresses] = useState<Address[]>([
     {
       id: "1",
       name: "Nguyễn Thị Thanh",
@@ -56,7 +55,7 @@ const AdminShipping: React.FC = () => {
       address: "17 ngõ 120 Bà Triệu, Hoàn Kiếm, Hà Nội",
       isDefault: false,
     },
-  ];
+  ]);
 
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([
     {
@@ -77,8 +76,12 @@ const AdminShipping: React.FC = () => {
   ]);
 
   const handleSetDefault = (addressId: string) => {
-    // Handle setting default address
-    console.log("Set default address:", addressId);
+    setAddresses((prev) =>
+      prev.map((address) => ({
+        ...address,
+        isDefault: address.id === addressId,
+      }))
+    );
   };
 
   const handleUpdate = (addressId: string) => {
@@ -94,18 +97,41 @@ const AdminShipping: React.FC = () => {
     console.log("Delete address:", addressId);
   };
 
-  const handleAddNewAddress = () => {
-    setEditingAddress(null);
-    setShowAddressForm(true);
-  };
-
   const handleAddressFormSubmit = (formData: AddressFormData) => {
     if (editingAddress) {
       // Update existing address
-      console.log("Update address:", editingAddress.id, formData);
+      setAddresses((prev) =>
+        prev.map((address) =>
+          address.id === editingAddress.id
+            ? {
+                ...address,
+                name: formData.fullName,
+                phone: formData.phone,
+                address: formData.detailAddress,
+                isDefault: formData.isDefault,
+              }
+            : {
+                ...address,
+                isDefault: formData.isDefault ? false : address.isDefault,
+              }
+        )
+      );
     } else {
       // Add new address
-      console.log("Add new address:", formData);
+      const newAddress: Address = {
+        id: Date.now().toString(),
+        name: formData.fullName,
+        phone: formData.phone,
+        address: formData.detailAddress,
+        isDefault: formData.isDefault,
+      };
+      setAddresses((prev) =>
+        formData.isDefault
+          ? prev
+              .map((addr) => ({ ...addr, isDefault: false }))
+              .concat(newAddress)
+          : prev.concat(newAddress)
+      );
     }
     setShowAddressForm(false);
     setEditingAddress(null);
@@ -144,28 +170,27 @@ const AdminShipping: React.FC = () => {
           Vận chuyển
         </h1>
       </div>
-
-      {/* Tab Menu */}
-      <TabMenuAccount
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        className="w-full"
-      />
-
+      <div className="px-40 w-full">
+        {/* Tab Menu */}
+        <TabMenuAccount
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          className="w-full"
+        />
+      </div>
       {/* Content based on active tab */}
       {activeTab === "address" ? (
         /* Address Cards */
-        <div className="flex flex-col gap-[10px] items-start w-full">
-          {/* Add New Address Button */}
-          <Button onClick={handleAddNewAddress}>Thêm địa chỉ mới</Button>
-
+        <div className="flex flex-col gap-[10px] items-start w-full px-40">
           <div className="bg-white border border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full">
             {addresses.map((address, index) => (
               <div
                 key={address.id}
                 className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${
-                  index === 0 ? "border-b border-[#d1d1d1]" : ""
+                  index !== addresses.length - 1
+                    ? "border-b border-[#d1d1d1]"
+                    : ""
                 }`}
               >
                 {/* Header with name, phone and update button */}
@@ -196,9 +221,19 @@ const AdminShipping: React.FC = () => {
                   </span>
                   <button
                     onClick={() => handleSetDefault(address.id)}
-                    className="bg-white border border-[#e04d30] flex gap-[4px] items-center px-[8px] py-[6px] rounded-[10px] opacity-40"
+                    className={`flex gap-[4px] items-center px-[8px] py-[6px] rounded-[10px] cursor-pointer transition-opacity ${
+                      address.isDefault
+                        ? "bg-white/[0.4] border border-[#e04d30]/[0.4]"
+                        : "bg-white border border-[#e04d30] hover:bg-gray-50"
+                    }`}
                   >
-                    <span className="font-medium text-[#e04d30] text-[14px] leading-[1.4]">
+                    <span
+                      className={`font-medium text-[14px] leading-[1.4] ${
+                        address.isDefault
+                          ? "text-[#e04d30]/[0.4]"
+                          : "text-[#e04d30]"
+                      }`}
+                    >
                       Thiết lập địa chỉ mặc định
                     </span>
                   </button>
@@ -236,7 +271,7 @@ const AdminShipping: React.FC = () => {
         </div>
       ) : (
         /* Shipping Methods */
-        <div className="flex flex-col gap-[10px] items-start w-full">
+        <div className="flex flex-col gap-[10px] items-start w-full p-[24px]">
           {shippingMethods.map((method) => (
             <div key={method.id} className="w-full">
               {/* Method Header */}
@@ -298,8 +333,8 @@ const AdminShipping: React.FC = () => {
 
       {/* Address Form Modal */}
       {showAddressForm && (
-        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="relative w-full max-w-[600px] mx-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
+          <div className="relative w-full max-w-[600px] mx-4 animate-scaleIn">
             <AddressForm
               title={editingAddress ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới"}
               initialData={

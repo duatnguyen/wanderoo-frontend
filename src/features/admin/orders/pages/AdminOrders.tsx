@@ -279,7 +279,7 @@ const AdminOrders: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm kiếm"
-            className="w-[400px]"
+            className="w-[400px] h-[35px]"
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
