@@ -1,16 +1,17 @@
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
+import { ChevronDown } from "lucide-react";
+import { Icon } from "@/components/icons";
+import ImageUpload from "@/components/ui/image-upload";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import CustomCheckbox from "@/components/ui/custom-checkbox";
-import { ChevronDown } from "lucide-react";
-import { Icon } from "@/components/icons";
-import ImageUpload from "@/components/ui/image-upload";
 
 // Generate all combinations of attribute values (cartesian product)
 const generateCombinations = (
@@ -519,9 +520,9 @@ const AdminProductsNew: React.FC = () => {
           <div className="flex flex-col gap-4">
             {/* Product Name and Barcode */}
             <div className="flex gap-4">
-              <div className="flex-1 flex flex-col gap-1.5">
+              <div className="flex-1 flex flex-col gap-1.5 justify-center">
                 <div className="flex items-center gap-1">
-                  <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                  <span className="text-[14px] font-bold text-[#ff0000] font-montserrat">
                     *
                   </span>
                   <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
@@ -537,7 +538,7 @@ const AdminProductsNew: React.FC = () => {
                 />
               </div>
 
-              <div className="flex-1 flex flex-col gap-1.5">
+              <div className="flex-1 flex flex-col gap-1.5 justify-center">
                 <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
                   Mã vạch/barcode
                 </label>
@@ -551,30 +552,23 @@ const AdminProductsNew: React.FC = () => {
 
             {/* Category and Brand */}
             <div className="flex gap-4">
-              <div className="flex-1 flex flex-col gap-1.5">
+              <div className="flex-1 flex flex-col gap-1.5 justify-center">
                 <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
                   Danh mục
                 </label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="bg-white border-2 border-[#e04d30] flex items-center justify-between p-4 rounded-[12px] w-full h-[52px]">
-                      <span className="text-[12px] font-semibold text-[#888888]">
-                        Chọn danh mục
-                      </span>
-                      <ChevronDown className="w-6 h-6 text-[#322f30]" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem>Thể thao</DropdownMenuItem>
-                    <DropdownMenuItem>Thời trang</DropdownMenuItem>
-                    <DropdownMenuItem>Điện tử</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <SimpleDropdown
+                  value={formData.category}
+                  options={["Thể thao", "Thời trang", "Điện tử"]}
+                  onValueChange={(value) =>
+                    handleInputChange("category", value)
+                  }
+                  placeholder="Chọn danh mục"
+                />
               </div>
 
-              <div className="flex-1 flex flex-col gap-1.5">
+              <div className="flex-1 flex flex-col gap-1.5 justify-center">
                 <div className="flex items-center gap-1">
-                  <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                  <span className="text-[14px] font-bold text-[#ff0000] font-montserrat">
                     *
                   </span>
                   <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
@@ -736,6 +730,104 @@ const AdminProductsNew: React.FC = () => {
               </svg>
             </div>
 
+            {/* Display Added Attributes */}
+            {attributes.length > 0 && (
+              <div className="flex flex-col gap-4">
+                {attributes.map((attr, attrIndex) => (
+                  <div
+                    key={attrIndex}
+                    className="flex gap-4 items-center justify-between"
+                  >
+                    <div className="flex gap-4 items-center flex-1">
+                      {/* Attribute Name */}
+                      <div className="flex-shrink-0">
+                        <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-4 py-3 min-w-[200px]">
+                          <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {attr.name}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Attribute Values as Chips */}
+                      <div className="flex-1">
+                        <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-4 py-3 flex flex-wrap gap-2 items-center  max-h-[52px]">
+                          {attr.values.map((value, valueIndex) => (
+                            <div
+                              key={valueIndex}
+                              className="bg-[#f5f5f5] rounded-[8px] px-2 h-6 py-1 flex items-center gap-2 border border-[#e7e7e7]"
+                            >
+                              <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                                {value}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveAttributeValue(
+                                    attrIndex,
+                                    valueIndex
+                                  )
+                                }
+                                className="flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
+                              >
+                                <svg
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 12 12"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M9 3L3 9M3 3L9 9"
+                                    stroke="#737373"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Delete Entire Attribute Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        console.log("Button clicked! Index:", attrIndex);
+                        handleRemoveAttribute(attrIndex);
+                      }}
+                      className="p-2 -m-2 flex items-center justify-center shrink-0 cursor-pointer hover:bg-red-50 rounded transition-all"
+                      style={{ minWidth: "32px", minHeight: "32px" }}
+                    >
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        style={{ pointerEvents: "none" }}
+                      >
+                        <path
+                          d="M3 6H5H21"
+                          stroke="#322f30"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                          stroke="#322f30"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Attribute Name and Value Input */}
             <div className="flex gap-4 items-end">
               <div className="flex-1 flex flex-col gap-1.5">
@@ -820,104 +912,6 @@ const AdminProductsNew: React.FC = () => {
                 </span>
               </button>
             </div>
-
-            {/* Display Added Attributes */}
-            {attributes.length > 0 && (
-              <div className="flex flex-col gap-4">
-                {attributes.map((attr, attrIndex) => (
-                  <div
-                    key={attrIndex}
-                    className="flex gap-4 items-center justify-between"
-                  >
-                    <div className="flex gap-4 items-center flex-1">
-                      {/* Attribute Name */}
-                      <div className="flex-shrink-0">
-                        <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-4 py-3 min-w-[200px]">
-                          <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
-                            {attr.name}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Attribute Values as Chips */}
-                      <div className="flex-1">
-                        <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-4 py-3 flex flex-wrap gap-2 items-center min-h-[52px]">
-                          {attr.values.map((value, valueIndex) => (
-                            <div
-                              key={valueIndex}
-                              className="bg-[#f5f5f5] rounded-[8px] px-3 py-1 flex items-center gap-2 border border-[#e7e7e7]"
-                            >
-                              <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
-                                {value}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleRemoveAttributeValue(
-                                    attrIndex,
-                                    valueIndex
-                                  )
-                                }
-                                className="flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
-                              >
-                                <svg
-                                  width="12"
-                                  height="12"
-                                  viewBox="0 0 12 12"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M9 3L3 9M3 3L9 9"
-                                    stroke="#737373"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Delete Entire Attribute Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        console.log("Button clicked! Index:", attrIndex);
-                        handleRemoveAttribute(attrIndex);
-                      }}
-                      className="p-2 -m-2 flex items-center justify-center shrink-0 cursor-pointer hover:bg-red-50 rounded transition-all"
-                      style={{ minWidth: "32px", minHeight: "32px" }}
-                    >
-                      <svg
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        style={{ pointerEvents: "none" }}
-                      >
-                        <path
-                          d="M3 6H5H21"
-                          stroke="#322f30"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                          stroke="#322f30"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 

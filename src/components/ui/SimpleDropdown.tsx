@@ -45,7 +45,7 @@ export const SimpleDropdown: React.FC<SimpleDropdownProps> = ({
     <div ref={dropdownRef} className={cn("relative w-full", className)}>
       <div
         className={cn(
-          "bg-white border-2 border-[#e04d30] h-[52px] px-[16px] rounded-[12px] w-full flex items-center justify-between cursor-pointer"
+          "bg-white border-2 border-[#e04d30] h-[50px] px-[16px] rounded-[12px] w-full flex items-center justify-between cursor-pointer"
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
@@ -81,4 +81,3 @@ export const SimpleDropdown: React.FC<SimpleDropdownProps> = ({
 };
 
 export default SimpleDropdown;
-
