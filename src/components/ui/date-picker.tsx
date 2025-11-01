@@ -12,6 +12,7 @@ export function DatePicker({
   containerClassName,
   label,
   error,
+  type = "datetime-local",
   ...props
 }: DatePickerProps) {
   return (
@@ -29,7 +30,7 @@ export function DatePicker({
       >
         <input
           {...props}
-          type="datetime-local"
+          type={type}
           className={cn(
             "border-0 outline-none bg-transparent text-[12px] font-semibold placeholder:text-[#888888] text-[#272424] flex-1",
             className

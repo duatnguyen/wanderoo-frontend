@@ -5,14 +5,17 @@ import ReturnOrderSearchPanel, {
 import ReturnOrderDetailsPanel, {
   type ReturnOrderDetails,
 } from "../components/ReturnOrderDetailsPanel";
+import SelectOrderModal from "../components/SelectOrderModal";
 
 const ReturnOrderManagement: React.FC = () => {
   // Mock data
   const [searchValue, setSearchValue] = useState("");
   const [startDate, setStartDate] = useState("2025-06-29");
   const [endDate, setEndDate] = useState("2025-06-29");
-  const [selectedReturnOrderId, setSelectedReturnOrderId] = useState<string>("1003-R1");
+  const [selectedReturnOrderId, setSelectedReturnOrderId] =
+    useState<string>("1003-R1");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSelectOrderModalOpen, setIsSelectOrderModalOpen] = useState(false);
   const totalPages = 1;
 
   // Mock return orders list
@@ -28,7 +31,7 @@ const ReturnOrderManagement: React.FC = () => {
     {
       id: "1004-R1",
       originalOrderId: "1004",
-      status: "Đã hoàn trả",
+      status: "Chưa hoàn trả",
       subStatus: "Đã nhận hàng",
       dateTime: "2025-06-29T14:30:00",
       totalAmount: 150000,
@@ -91,7 +94,7 @@ const ReturnOrderManagement: React.FC = () => {
         discount: 0,
         totalReturnValue: 150000,
       },
-      isReturned: true,
+      isReturned: false,
     },
   };
 
@@ -100,7 +103,14 @@ const ReturnOrderManagement: React.FC = () => {
     : undefined;
 
   const handleCreateReturnOrder = () => {
-    console.log("Create return order");
+    setIsSelectOrderModalOpen(true);
+  };
+
+  const handleSelectOrder = (orderId: string) => {
+    console.log("Selected order for return:", orderId);
+    // Here you would typically create a new return order based on the selected order
+    // For now, we'll just close the modal
+    setIsSelectOrderModalOpen(false);
   };
 
   const handleViewOriginalOrder = (orderId: string) => {
@@ -136,9 +146,15 @@ const ReturnOrderManagement: React.FC = () => {
           onViewOriginalOrder={handleViewOriginalOrder}
         />
       </div>
+
+      {/* Select Order Modal */}
+      <SelectOrderModal
+        isOpen={isSelectOrderModalOpen}
+        onClose={() => setIsSelectOrderModalOpen(false)}
+        onSelectOrder={handleSelectOrder}
+      />
     </div>
   );
 };
 
 export default ReturnOrderManagement;
-

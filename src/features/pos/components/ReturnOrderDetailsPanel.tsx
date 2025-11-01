@@ -1,7 +1,8 @@
 import React from "react";
-import { Pencil, User, FileText, Check, ArrowRightLeft } from "lucide-react";
+import { Pencil, User, FileText, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { POSProduct } from "./POSProductList";
+import { ReturnStatusIcon } from "./icons/ReturnStatusIcon";
 
 export type ReturnOrderDetails = {
   id: string;
@@ -113,18 +114,9 @@ export const ReturnOrderDetailsPanel: React.FC<
                     <tr>
                       <th className="text-left px-4 h-[50px] text-sm font-medium text-[#272424]">
                         <div className="flex items-center gap-2">
-                          <div
-                            className={cn(
-                              "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
-                              returnOrder.isReceived
-                                ? "bg-[#e04d30] border-[#e04d30]"
-                                : "bg-white border-[#e7e7e7]"
-                            )}
-                          >
-                            {returnOrder.isReceived && (
-                              <Check className="w-3 h-3 text-white" />
-                            )}
-                          </div>
+                          <ReturnStatusIcon
+                            isSuccess={returnOrder.isReceived}
+                          />
                           <span className="text-sm font-medium text-[#272424]">
                             Đã nhận hàng
                           </span>
@@ -216,27 +208,16 @@ export const ReturnOrderDetailsPanel: React.FC<
 
         {/* Đã hoàn trả Section */}
         <div>
-          {returnOrder.isReturned && (
-            <div className="border border-[#e7e7e7] rounded-lg overflow-hidden bg-white">
-              <div className="bg-[#f6f6f6] px-4 h-[50px] flex items-center border-b border-[#e7e7e7]">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
-                      returnOrder.isReturned
-                        ? "bg-[#e04d30] border-[#e04d30]"
-                        : "bg-white border-[#e7e7e7]"
-                    )}
-                  >
-                    {returnOrder.isReturned && (
-                      <Check className="w-3 h-3 text-white" />
-                    )}
-                  </div>
-                  <span className="text-sm font-medium text-[#272424]">
-                    Đã hoàn trả
-                  </span>
-                </div>
+          <div className="border border-[#e7e7e7] rounded-lg overflow-hidden bg-white">
+            <div className="bg-[#f6f6f6] px-4 h-[50px] flex items-center border-b border-[#e7e7e7]">
+              <div className="flex items-center gap-2">
+                <ReturnStatusIcon isSuccess={returnOrder.isReturned} />
+                <span className="text-sm font-medium text-[#272424]">
+                  {returnOrder.isReturned ? "Đã hoàn trả" : "Trả hàng thất bại"}
+                </span>
               </div>
+            </div>
+            {returnOrder.isReturned && (
               <div className="p-4">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
@@ -267,8 +248,8 @@ export const ReturnOrderDetailsPanel: React.FC<
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

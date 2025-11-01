@@ -12,6 +12,7 @@ const POSLayoutContent: React.FC = () => {
   const navigate = useNavigate();
   const isOrderManagementPage = location.pathname.includes("/orders");
   const isReturnOrderPage = location.pathname.includes("/returns");
+  const isCreateReturnOrderPage = location.pathname.includes("/returns/create");
 
   const {
     activeSidebarItem,
@@ -71,7 +72,9 @@ const POSLayoutContent: React.FC = () => {
       {/* Header */}
       <POSHeader
         pageTitle={
-          isOrderManagementPage
+          isCreateReturnOrderPage
+            ? "Tạo đơn trả hàng"
+            : isOrderManagementPage
             ? "Quản lý đơn hàng"
             : isInventoryPage
             ? "Tra cứu tồn kho"

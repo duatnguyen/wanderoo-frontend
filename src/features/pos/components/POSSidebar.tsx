@@ -1,13 +1,11 @@
 import React from "react";
-import {
-  ShoppingCart,
-  FileText,
-  PackageSearch,
-  CircleDollarSign,
-  BarChart3,
-  Receipt,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ShoppingCartSidebarIcon } from "./icons/ShoppingCartSidebarIcon";
+import { FileInvoiceSidebarIcon } from "./icons/FileInvoiceSidebarIcon";
+import { PackageSearchSidebarIcon } from "./icons/PackageSearchSidebarIcon";
+import { ReturnSidebarIcon } from "./icons/ReturnSidebarIcon";
+import { UsdCircleSidebarIcon } from "./icons/UsdCircleSidebarIcon";
+import { ChartSimpleSidebarIcon } from "./icons/ChartSimpleSidebarIcon";
 
 export type POSSidebarItemId =
   | "cart"
@@ -25,39 +23,39 @@ export type POSSidebarProps = {
 
 const sidebarItems: Array<{
   id: POSSidebarItemId;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; isActive?: boolean }>;
   label: string;
   rotated?: boolean;
 }> = [
   {
     id: "cart",
-    icon: ShoppingCart,
+    icon: ShoppingCartSidebarIcon,
     label: "Cart",
   },
   {
     id: "invoices",
-    icon: FileText,
+    icon: FileInvoiceSidebarIcon,
     label: "Invoices",
   },
   {
     id: "products",
-    icon: PackageSearch,
+    icon: PackageSearchSidebarIcon,
     label: "Products",
   },
   {
     id: "receipts",
-    icon: Receipt,
+    icon: ReturnSidebarIcon,
     label: "Receipts",
     rotated: true,
   },
   {
     id: "payments",
-    icon: CircleDollarSign,
+    icon: UsdCircleSidebarIcon,
     label: "Payments",
   },
   {
     id: "reports",
-    icon: BarChart3,
+    icon: ChartSimpleSidebarIcon,
     label: "Reports",
   },
 ];
@@ -93,11 +91,8 @@ export const POSSidebar: React.FC<POSSidebarProps> = ({
               title={item.label}
             >
               <Icon
-                className={cn(
-                  "size-[28.125px]",
-                  isActive ? "text-white" : "text-[#454545]",
-                  item.rotated && "rotate-[22.647deg]"
-                )}
+                className={cn(item.rotated && "rotate-[22.647deg]")}
+                isActive={isActive}
               />
             </button>
           );
