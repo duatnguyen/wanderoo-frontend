@@ -35,31 +35,33 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   onOrderClose,
   onOrderAdd,
   pageTitle,
-  pageSubtitle,
   user = { name: "Admin", role: "Admin" },
   className,
 }) => {
-  const isSalesPage = !pageTitle && searchValue !== undefined;
+  const isSalesPage = searchValue !== undefined && orders !== undefined;
 
   return (
     <header
       className={cn(
-        "bg-[#18345C] flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 h-14 sm:h-16",
+        "bg-[#18345C] flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 h-16 sm:h-20",
         className
       )}
     >
-      {isSalesPage ? (
-        <>
-          {/* Logo */}
-          <div className="flex items-center min-w-[120px] sm:min-w-[140px] max-w-[200px] flex-shrink-0">
-            <img
-              src={ShopLogo}
-              alt="Wanderoo Logo"
-              className="h-10 sm:h-12 w-auto object-contain max-h-full"
-            />
-          </div>
+      {/* Logo and Title - Always visible */}
+      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+        <img
+          src={ShopLogo}
+          alt="Wanderoo Logo"
+          className="h-12 sm:h-14 w-auto object-contain max-h-full"
+        />
+        <h1 className="text-white text-lg sm:text-xl font-bold whitespace-nowrap">
+          {pageTitle || "Bán hàng"}
+        </h1>
+      </div>
 
-          {/* Search Bar - Next to Logo */}
+      {isSalesPage && (
+        <>
+          {/* Search Bar - Only on sales page */}
           <div className="flex items-center min-w-0 flex-shrink-0">
             <div className="w-[300px] sm:w-[400px] lg:w-[500px] relative">
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -85,7 +87,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
             </div>
           </div>
 
-          {/* Order Tabs - Next to Search Bar */}
+          {/* Order Tabs - Only on sales page */}
           <div className="flex-1 min-w-0 max-w-[400px]">
             <POSOrderTabs
               orders={orders}
@@ -94,24 +96,6 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
               onOrderClose={onOrderClose}
               onOrderAdd={onOrderAdd}
             />
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Page Title and Logo */}
-          <div className="flex items-center gap-4 flex-shrink-0">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2 mt-1">
-                <img
-                  src={ShopLogo}
-                  alt="Wanderoo Logo"
-                  className="h-6 w-auto object-contain"
-                />
-                {pageSubtitle && (
-                  <span className="text-white text-sm">{pageSubtitle}</span>
-                )}
-              </div>
-            </div>
           </div>
         </>
       )}

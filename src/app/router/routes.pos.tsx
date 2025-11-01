@@ -7,6 +7,7 @@ import { LazyWrapper } from "../../components/common/LazyWrapper";
 const POSPage = lazy(() => import("../../features/pos/pages/POSSales"));
 const OrderManagement = lazy(() => import("../../features/pos/pages/OrderManagement"));
 const InventoryLookup = lazy(() => import("../../features/pos/pages/InventoryLookup"));
+const ReturnOrderManagement = lazy(() => import("../../features/pos/pages/ReturnOrderManagement"));
 
 export const posRoutes: RouteObject[] = [
   {
@@ -30,6 +31,14 @@ export const posRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <InventoryLookup />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "returns",
+    element: (
+      <LazyWrapper>
+        <ReturnOrderManagement />
       </LazyWrapper>
     ),
   },

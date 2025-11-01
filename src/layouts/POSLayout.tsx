@@ -11,6 +11,7 @@ const POSLayoutContent: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isOrderManagementPage = location.pathname.includes("/orders");
+  const isReturnOrderPage = location.pathname.includes("/returns");
 
   const {
     activeSidebarItem,
@@ -36,11 +37,14 @@ const POSLayoutContent: React.FC = () => {
       setActiveSidebarItem("cart" as POSSidebarItemId);
     } else if (isInventoryPage) {
       setActiveSidebarItem("products" as POSSidebarItemId);
+    } else if (isReturnOrderPage) {
+      setActiveSidebarItem("receipts" as POSSidebarItemId);
     }
   }, [
     location.pathname,
     isOrderManagementPage,
     isInventoryPage,
+    isReturnOrderPage,
     setActiveSidebarItem,
   ]);
 
@@ -65,40 +69,47 @@ const POSLayoutContent: React.FC = () => {
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50 justify-between">
       {/* Header */}
-      {isOrderManagementPage ? (
-        <POSHeader
-          pageTitle="QUẢN LÝ ĐƠN HÀNG"
-          pageSubtitle="Tra cứu đơn hàng"
-          user={user}
-          className="flex-shrink-0"
-        />
-      ) : isInventoryPage ? (
-        <POSHeader
-          pageTitle="QUẢN LÝ ĐƠN HÀNG"
-          pageSubtitle="Tra cứu tồn kho"
-          user={user}
-          className="flex-shrink-0"
-        />
-      ) : (
-        <POSHeader
-          searchValue={searchValue}
-          onSearchChange={(e) => setSearchValue(e.target.value)}
-          currentOrderId={currentOrderId}
-          orders={orders}
-          onOrderSelect={setCurrentOrderId}
-          onOrderClose={handleCloseOrder}
-          onOrderAdd={handleAddOrder}
-          user={user}
-          className="flex-shrink-0"
-        />
-      )}
+      <POSHeader
+        pageTitle={
+          isOrderManagementPage
+            ? "Quản lý đơn hàng"
+            : isInventoryPage
+            ? "Tra cứu tồn kho"
+            : isReturnOrderPage
+            ? "Trả hàng"
+            : "Bán hàng"
+        }
+        searchValue={
+          location.pathname.includes("/sales") ? searchValue : undefined
+        }
+        onSearchChange={
+          location.pathname.includes("/sales")
+            ? (e) => setSearchValue(e.target.value)
+            : undefined
+        }
+        currentOrderId={
+          location.pathname.includes("/sales") ? currentOrderId : undefined
+        }
+        orders={location.pathname.includes("/sales") ? orders : undefined}
+        onOrderSelect={
+          location.pathname.includes("/sales") ? setCurrentOrderId : undefined
+        }
+        onOrderClose={
+          location.pathname.includes("/sales") ? handleCloseOrder : undefined
+        }
+        onOrderAdd={
+          location.pathname.includes("/sales") ? handleAddOrder : undefined
+        }
+        user={user}
+        className="flex-shrink-0"
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Mobile Sidebar Toggle */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed top-[56px] sm:top-[64px] left-2 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200"
+          className="lg:hidden fixed top-[64px] sm:top-[80px] left-2 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200"
           aria-label="Toggle sidebar"
         >
           {sidebarOpen ? (
@@ -133,6 +144,8 @@ const POSLayoutContent: React.FC = () => {
                   navigate("/pos/sales");
                 } else if (item === "products") {
                   navigate("/pos/inventory");
+                } else if (item === "receipts") {
+                  navigate("/pos/returns");
                 }
                 // Add more navigation cases as needed
               }}
