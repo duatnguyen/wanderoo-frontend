@@ -1,14 +1,8 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
-import CaretDown from "@/components/ui/caret-down";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 
 interface AddressFormData {
   fullName: string;
@@ -74,22 +68,30 @@ const AddressForm: React.FC<AddressFormProps> = ({
         className="flex flex-col gap-[10px] items-start px-[15px] pb-[15px] w-full"
       >
         {/* Full Name */}
-        <FormInput
-          label="Họ và tên"
-          placeholder="Nhập họ và tên của bạn"
-          type="text"
-          value={formData.fullName}
-          onChange={(e) => handleInputChange("fullName", e.target.value)}
-        />
+        <div className="flex flex-col gap-[6px] items-start w-full">
+          <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+            Họ và tên
+          </label>
+          <FormInput
+            placeholder="Nhập họ và tên của bạn"
+            type="text"
+            value={formData.fullName}
+            onChange={(e) => handleInputChange("fullName", e.target.value)}
+          />
+        </div>
 
         {/* Phone */}
-        <FormInput
-          label="Số điện thoại"
-          placeholder="Nhập số điện thoại của bạn"
-          type="tel"
-          value={formData.phone}
-          onChange={(e) => handleInputChange("phone", e.target.value)}
-        />
+        <div className="flex flex-col gap-[6px] items-start w-full">
+          <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+            Số điện thoại
+          </label>
+          <FormInput
+            placeholder="Nhập số điện thoại của bạn"
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => handleInputChange("phone", e.target.value)}
+          />
+        </div>
 
         {/* Address Section */}
         <div className="flex gap-[20px] items-center w-full">
@@ -103,26 +105,12 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
             Tỉnh/Thành phố
           </label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[52px] items-center p-[16px] rounded-[12px] w-full cursor-pointer">
-                <span className="text-[#888888] text-[12px] font-semibold leading-[1.4] flex-1">
-                  {formData.province || "Chọn tỉnh thành phố"}
-                </span>
-                <CaretDown className="text-[#e04d30]" />
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {provinces.map((province) => (
-                <DropdownMenuItem
-                  key={province}
-                  onClick={() => handleInputChange("province", province)}
-                >
-                  {province}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SimpleDropdown
+            value={formData.province}
+            options={provinces}
+            onValueChange={(value) => handleInputChange("province", value)}
+            placeholder="Chọn tỉnh thành phố"
+          />
         </div>
 
         {/* District Dropdown */}
@@ -130,26 +118,12 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
             Quận/Huyện
           </label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[52px] items-center p-[16px] rounded-[12px] w-full cursor-pointer">
-                <span className="text-[#888888] text-[12px] font-semibold leading-[1.4] flex-1">
-                  {formData.district || "Chọn Quận/Huyện"}
-                </span>
-                <CaretDown className="text-[#e04d30]" />
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {districts.map((district) => (
-                <DropdownMenuItem
-                  key={district}
-                  onClick={() => handleInputChange("district", district)}
-                >
-                  {district}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SimpleDropdown
+            value={formData.district}
+            options={districts}
+            onValueChange={(value) => handleInputChange("district", value)}
+            placeholder="Chọn Quận/Huyện"
+          />
         </div>
 
         {/* Ward Dropdown */}
@@ -157,26 +131,12 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
             Phường/Xã
           </label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[52px] items-center p-[16px] rounded-[12px] w-full cursor-pointer">
-                <span className="text-[#888888] text-[12px] font-semibold leading-[1.4] flex-1">
-                  {formData.ward || "Chọn Phường/Xã"}
-                </span>
-                <CaretDown className="text-[#e04d30]" />
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {wards.map((ward) => (
-                <DropdownMenuItem
-                  key={ward}
-                  onClick={() => handleInputChange("ward", ward)}
-                >
-                  {ward}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SimpleDropdown
+            value={formData.ward}
+            options={wards}
+            onValueChange={(value) => handleInputChange("ward", value)}
+            placeholder="Chọn Phường/Xã"
+          />
         </div>
 
         {/* Detail Address */}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SimpleDropdown } from "../components/SimpleDropdown";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 import type { POSProduct } from "../components/POSProductList";
 
 const CreateReturnOrder: React.FC = () => {

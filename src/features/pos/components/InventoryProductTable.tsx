@@ -1,6 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { SimpleDropdown } from "./SimpleDropdown";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 
 export type InventoryProduct = {
   id: string;

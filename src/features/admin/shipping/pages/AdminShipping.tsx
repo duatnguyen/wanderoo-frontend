@@ -163,26 +163,26 @@ const AdminShipping: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[10px] items-start w-full">
+    <div className="flex flex-col gap-[10px] items-start w-full  px-40">
       {/* Header */}
       <div className="w-full mb-4">
         <h1 className="text-[24px] font-bold text-[#272424] font-montserrat leading-[100%]">
           Vận chuyển
         </h1>
       </div>
-      <div className="px-40 w-full">
-        {/* Tab Menu */}
-        <TabMenuAccount
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          className="w-full"
-        />
-      </div>
+
+      {/* Tab Menu */}
+      <TabMenuAccount
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        className="w-full"
+      />
+
       {/* Content based on active tab */}
       {activeTab === "address" ? (
         /* Address Cards */
-        <div className="flex flex-col gap-[10px] items-start w-full px-40">
+        <div className="flex flex-col gap-[10px] items-start w-full">
           <div className="bg-white border border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full">
             {addresses.map((address, index) => (
               <div
@@ -271,7 +271,7 @@ const AdminShipping: React.FC = () => {
         </div>
       ) : (
         /* Shipping Methods */
-        <div className="flex flex-col gap-[10px] items-start w-full p-[24px]">
+        <div className="flex flex-col gap-[10px] items-start w-full">
           {shippingMethods.map((method) => (
             <div key={method.id} className="w-full">
               {/* Method Header */}

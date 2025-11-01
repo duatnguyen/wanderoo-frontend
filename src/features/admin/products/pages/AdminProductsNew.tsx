@@ -489,7 +489,7 @@ const AdminProductsNew: React.FC = () => {
   const selectedCount = selectedVersions.size;
 
   return (
-    <div className="w-full h-full flex flex-col gap-3">
+    <div className="w-full h-full flex flex-col gap-3 px-40">
       {/* Header */}
       <div className="w-full flex items-center gap-2">
         <button className="flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity">
