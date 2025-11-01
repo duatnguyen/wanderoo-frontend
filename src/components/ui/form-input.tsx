@@ -15,7 +15,7 @@ export function FormInput({
   return (
     <div
       className={cn(
-        "bg-white border-2 border-[#e04d30] flex items-center p-[16px] rounded-[12px] w-full",
+        "bg-white border-2 border-[#e04d30] flex items-center p-[16px] h-[50px] rounded-[12px] w-full",
         containerClassName
       )}
     >
