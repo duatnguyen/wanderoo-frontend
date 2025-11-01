@@ -1,45 +1,53 @@
 import React from "react";
+import { Plus, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SearchBar } from "@/components/ui/search-bar";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Button } from "@/components/ui/button";
+import { SearchBar } from "@/components/ui/search-bar";
 import { POSPagination } from "./POSPagination";
 
-export type Order = {
+export type CashBookTransaction = {
   id: string;
-  totalAmount: number;
+  amount: number;
   dateTime: string;
-  status: string;
+  type: "income" | "expense";
 };
 
-export type OrderSearchPanelProps = {
+export type CashBookSearchPanelProps = {
   searchValue: string;
   onSearchChange: (value: string) => void;
   startDate: string;
   onStartDateChange: (value: string) => void;
   endDate: string;
   onEndDateChange: (value: string) => void;
-  orders: Order[];
-  selectedOrderId?: string;
-  onOrderSelect: (orderId: string) => void;
+  totalIncome: number;
+  totalExpense: number;
+  transactions: CashBookTransaction[];
+  selectedTransactionId?: string;
+  onTransactionSelect: (transactionId: string) => void;
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  onCreateVoucher: () => void;
   className?: string;
 };
 
-export const OrderSearchPanel: React.FC<OrderSearchPanelProps> = ({
+export const CashBookSearchPanel: React.FC<CashBookSearchPanelProps> = ({
   searchValue,
   onSearchChange,
   startDate,
   onStartDateChange,
   endDate,
   onEndDateChange,
-  orders,
-  selectedOrderId,
-  onOrderSelect,
+  totalIncome,
+  totalExpense,
+  transactions,
+  selectedTransactionId,
+  onTransactionSelect,
   currentPage,
   totalPages,
   onPageChange,
+  onCreateVoucher,
   className,
 }) => {
   const formatCurrency = (amount: number) => {
@@ -63,7 +71,7 @@ export const OrderSearchPanel: React.FC<OrderSearchPanelProps> = ({
         <SearchBar
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Tìm kiếm đơn hàng"
+          placeholder="Nhập mã phiếu"
         />
       </div>
 
@@ -86,40 +94,57 @@ export const OrderSearchPanel: React.FC<OrderSearchPanelProps> = ({
         </div>
       </div>
 
-      {/* Order List */}
+      {/* Summary Section */}
+      <div className="p-4 border-b border-[#e7e7e7] space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-green-600 rotate-0" />
+            <span className="text-sm font-medium text-[#272424]">Tổng thu</span>
+          </div>
+          <span className="text-sm font-bold text-[#272424]">
+            {formatCurrency(totalIncome)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-red-600 rotate-180" />
+            <span className="text-sm font-medium text-[#272424]">Tổng chi</span>
+          </div>
+          <span className="text-sm font-bold text-[#272424]">
+            {formatCurrency(totalExpense)}
+          </span>
+        </div>
+      </div>
+
+      {/* Transaction List */}
       <div className="flex-1 overflow-y-auto">
-        {orders.length === 0 ? (
+        {transactions.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-[#737373] text-sm">Không có đơn hàng nào</p>
+            <p className="text-[#737373] text-sm">Không có giao dịch nào</p>
           </div>
         ) : (
           <div className="divide-y divide-[#e7e7e7]">
-            {orders.map((order) => {
-              const isSelected = order.id === selectedOrderId;
+            {transactions.map((transaction) => {
+              const isSelected = transaction.id === selectedTransactionId;
               return (
                 <button
-                  key={order.id}
-                  onClick={() => onOrderSelect(order.id)}
+                  key={transaction.id}
+                  onClick={() => onTransactionSelect(transaction.id)}
                   className={cn(
                     "w-full p-4 text-left hover:bg-gray-50 transition-colors",
                     isSelected && "bg-gray-100"
                   )}
                 >
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-sm font-bold text-[#272424]">
+                      {transaction.id}
+                    </span>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-bold text-[#272424]">
-                        #{order.id}
+                      <span className="text-sm font-medium text-[#272424]">
+                        {formatCurrency(transaction.amount)}
                       </span>
-                      <span className="text-sm font-bold text-[#272424]">
-                        {formatCurrency(order.totalAmount)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
                       <span className="text-xs text-[#737373]">
-                        {formatDate(order.dateTime)}
-                      </span>
-                      <span className="text-xs text-[#272424] font-medium">
-                        {order.status}
+                        {formatDate(transaction.dateTime)}
                       </span>
                     </div>
                   </div>
@@ -128,6 +153,14 @@ export const OrderSearchPanel: React.FC<OrderSearchPanelProps> = ({
             })}
           </div>
         )}
+      </div>
+
+      {/* Create Button */}
+      <div className="p-4 border-t border-[#e7e7e7]">
+        <Button onClick={onCreateVoucher} className="w-full">
+          <Plus className="w-4 h-4" />
+          <span>Tạo phiếu</span>
+        </Button>
       </div>
 
       {/* Pagination */}
@@ -142,4 +175,4 @@ export const OrderSearchPanel: React.FC<OrderSearchPanelProps> = ({
   );
 };
 
-export default OrderSearchPanel;
+export default CashBookSearchPanel;

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Search, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { SearchBar } from "@/components/ui/search-bar";
 import AddCustomerModal, { type CustomerFormData } from "./AddCustomerModal";
 import CheckoutModal from "./CheckoutModal";
 
@@ -63,20 +64,15 @@ export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
         {/* Customer Search */}
         <div className="p-4 border-b border-[#e7e7e7]">
           <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2">
-              <Search className="w-4 h-4 text-[#737373]" />
-            </div>
-            <input
-              type="text"
+            <SearchBar
               value={customerSearch}
               onChange={(e) => onCustomerSearchChange(e.target.value)}
               placeholder="Tìm kiếm khách hàng"
-              className="w-full pl-10 pr-10 py-2 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30]"
             />
             <button
               type="button"
               onClick={() => setIsAddCustomerModalOpen(true)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[#e04d30] hover:text-[#d04327] transition-colors"
+              className="absolute right-6 top-1/2 -translate-y-1/2 text-[#e04d30] hover:text-[#d04327] transition-colors z-10"
               aria-label="Add customer"
             >
               <Plus className="w-5 h-5" />

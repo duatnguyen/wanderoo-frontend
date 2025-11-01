@@ -9,6 +9,7 @@ const OrderManagement = lazy(() => import("../../features/pos/pages/OrderManagem
 const InventoryLookup = lazy(() => import("../../features/pos/pages/InventoryLookup"));
 const ReturnOrderManagement = lazy(() => import("../../features/pos/pages/ReturnOrderManagement"));
 const CreateReturnOrder = lazy(() => import("../../features/pos/pages/CreateReturnOrder"));
+const CashBook = lazy(() => import("../../features/pos/pages/CashBook"));
 
 export const posRoutes: RouteObject[] = [
   {
@@ -48,6 +49,14 @@ export const posRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <CreateReturnOrder />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "cashbook",
+    element: (
+      <LazyWrapper>
+        <CashBook />
       </LazyWrapper>
     ),
   },

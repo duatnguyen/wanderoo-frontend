@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { FormInput } from "@/components/ui/form-input";
 
 export type POSFooterProps = {
   note: string;
@@ -26,12 +27,12 @@ export const POSFooter: React.FC<POSFooterProps> = ({
         <label className="text-xs  sm:text-sm text-[#272424] font-medium whitespace-nowrap flex-shrink-0">
           Ghi chú
         </label>
-        <input
+        <FormInput
           type="text"
           value={note}
           onChange={(e) => onNoteChange(e.target.value)}
           placeholder="Nhập ghi chú đơn hàng"
-          className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 border border-[#e7e7e7] rounded-lg text-xs sm:text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30]"
+          containerClassName="flex-1 min-w-0"
         />
       </div>
 

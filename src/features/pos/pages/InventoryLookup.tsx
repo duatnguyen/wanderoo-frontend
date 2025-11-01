@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search } from "lucide-react";
+import { SearchBar } from "@/components/ui/search-bar";
 import InventoryProductTable, {
   type InventoryProduct,
 } from "../components/InventoryProductTable";
@@ -87,18 +87,11 @@ const InventoryLookup: React.FC = () => {
       {/* Search Bar */}
       <div className="p-4">
         <div className="max-w-6xl mx-auto">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              placeholder="Tìm kiếm sản phẩm"
-              className="w-full pl-4 pr-10 py-2 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30]"
-            />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Search className="w-4 h-4 text-[#737373]" />
-            </div>
-          </div>
+          <SearchBar
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Tìm kiếm sản phẩm"
+          />
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React from "react";
-import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SimpleDropdown } from "./SimpleDropdown";
 
 export type InventoryProduct = {
   id: string;
@@ -36,27 +36,51 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
       {/* Summary and Sort Bar */}
       <div className="p-4 border-b border-[#e7e7e7]">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-sm font-medium text-[#272424]">
+          <span className="text-2xl font-bold text-[#272424]">
             Tổng sản phẩm ({totalProducts})
           </span>
-          <div className="relative flex items-center">
-            <select
-              value={sortBy}
-              onChange={(e) => onSortChange?.(e.target.value)}
-              className="px-4 py-2 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] bg-white focus:outline-none focus:border-[#e04d30] appearance-none pr-8 cursor-pointer"
-            >
-              <option value="default">Mặc định</option>
-              <option value="name-asc">Tên A-Z</option>
-              <option value="name-desc">Tên Z-A</option>
-              <option value="price-asc">Giá tăng dần</option>
-              <option value="price-desc">Giá giảm dần</option>
-              <option value="available-asc">Tồn kho tăng dần</option>
-              <option value="available-desc">Tồn kho giảm dần</option>
-            </select>
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-              <ChevronDown className="w-4 h-4 text-[#737373]" />
-            </div>
-          </div>
+          <SimpleDropdown
+            value={
+              sortBy === "default"
+                ? "Mặc định"
+                : sortBy === "name-asc"
+                ? "Tên A-Z"
+                : sortBy === "name-desc"
+                ? "Tên Z-A"
+                : sortBy === "price-asc"
+                ? "Giá tăng dần"
+                : sortBy === "price-desc"
+                ? "Giá giảm dần"
+                : sortBy === "available-asc"
+                ? "Tồn kho tăng dần"
+                : sortBy === "available-desc"
+                ? "Tồn kho giảm dần"
+                : "Mặc định"
+            }
+            onValueChange={(value) => {
+              const sortMap: Record<string, string> = {
+                "Mặc định": "default",
+                "Tên A-Z": "name-asc",
+                "Tên Z-A": "name-desc",
+                "Giá tăng dần": "price-asc",
+                "Giá giảm dần": "price-desc",
+                "Tồn kho tăng dần": "available-asc",
+                "Tồn kho giảm dần": "available-desc",
+              };
+              onSortChange?.(sortMap[value] || "default");
+            }}
+            options={[
+              "Mặc định",
+              "Tên A-Z",
+              "Tên Z-A",
+              "Giá tăng dần",
+              "Giá giảm dần",
+              "Tồn kho tăng dần",
+              "Tồn kho giảm dần",
+            ]}
+            placeholder="Chọn sắp xếp"
+            className="min-w-[160px] max-w-[200px]"
+          />
         </div>
       </div>
 
@@ -71,13 +95,13 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
             <table className="w-full">
               <thead className="bg-[#f6f6f6] sticky top-0 z-10">
                 <tr>
-                  <th className="text-left px-3 h-[40px] text-xs font-bold text-[#272424]">
+                  <th className="text-left w-[400px] px-3 h-[40px] text-sm font-bold text-[#272424]">
                     Sản phẩm
                   </th>
-                  <th className="text-center px-3 h-[40px] text-xs font-bold text-[#272424]">
+                  <th className="text-center px-3 h-[40px] text-sm font-bold text-[#272424]">
                     Có thể bán
                   </th>
-                  <th className="text-right px-3 h-[40px] text-xs font-bold text-[#272424]">
+                  <th className="text-right px-3 h-[40px] text-sm font-bold text-[#272424]">
                     Đơn giá
                   </th>
                 </tr>
@@ -95,7 +119,7 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
                           />
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-[#272424] line-clamp-1">
+                          <p className="text-sm font-medium text-[#272424] line-clamp-1">
                             {product.name}
                           </p>
                           {(product.category || product.variant) && (
@@ -110,12 +134,12 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
                       </div>
                     </td>
                     <td className="text-center px-3 h-[60px] align-middle">
-                      <span className="text-xs text-[#272424] font-medium">
+                      <span className="text-sm text-[#272424] font-medium">
                         {product.available.toLocaleString("vi-VN")}
                       </span>
                     </td>
                     <td className="text-right px-3 h-[60px] align-middle">
-                      <span className="text-xs font-bold text-[#272424]">
+                      <span className="text-sm font-bold text-[#272424]">
                         {formatCurrency(product.price)}
                       </span>
                     </td>

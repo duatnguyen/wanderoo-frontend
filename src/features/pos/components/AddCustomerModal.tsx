@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { FormInput } from "@/components/ui/form-input";
+import CustomRadio from "@/components/ui/custom-radio";
 
 export type CustomerFormData = {
   fullName: string;
@@ -58,7 +59,7 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
         className="fixed inset-0 bg-black/30 backdrop-blur-sm"
         onClick={handleCancel}
       />
-      
+
       {/* Modal Content */}
       <div
         className="relative z-50 bg-white rounded-[24px] p-6 w-full max-w-[500px] shadow-2xl animate-scaleIn"
@@ -85,14 +86,14 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
             <label className="text-sm font-medium text-[#272424] min-w-[120px]">
               Họ và tên
             </label>
-            <input
+            <FormInput
               type="text"
               value={formData.fullName}
               onChange={(e) =>
                 setFormData({ ...formData, fullName: e.target.value })
               }
               placeholder="Nhập họ và tên"
-              className="flex-1 px-4 py-2 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30]"
+              containerClassName="flex-1"
               required
             />
           </div>
@@ -102,14 +103,14 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
             <label className="text-sm font-medium text-[#272424] min-w-[120px]">
               Số điện thoại
             </label>
-            <input
+            <FormInput
               type="tel"
               value={formData.phoneNumber}
               onChange={(e) =>
                 setFormData({ ...formData, phoneNumber: e.target.value })
               }
               placeholder="Nhập số điện thoại"
-              className="flex-1 px-4 py-2 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30]"
+              containerClassName="flex-1"
               required
             />
           </div>
@@ -120,38 +121,30 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
               Giới tính
             </label>
             <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="male"
-                  checked={formData.gender === "male"}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      gender: e.target.value as "male" | "female",
-                    })
-                  }
-                  className="w-5 h-5 text-[#e04d30] border-[#e7e7e7] focus:ring-[#e04d30] focus:ring-offset-0 accent-[#e04d30]"
-                />
-                <span className="text-sm text-[#272424]">Nam</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="female"
-                  checked={formData.gender === "female"}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      gender: e.target.value as "male" | "female",
-                    })
-                  }
-                  className="w-5 h-5 text-[#e04d30] border-[#e7e7e7] focus:ring-[#e04d30] focus:ring-offset-0 accent-[#e04d30]"
-                />
-                <span className="text-sm text-[#272424]">Nữ</span>
-              </label>
+              <CustomRadio
+                name="gender"
+                value="male"
+                checked={formData.gender === "male"}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    gender: e.target.value as "male" | "female",
+                  })
+                }
+                label="Nam"
+              />
+              <CustomRadio
+                name="gender"
+                value="female"
+                checked={formData.gender === "female"}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    gender: e.target.value as "male" | "female",
+                  })
+                }
+                label="Nữ"
+              />
             </div>
           </div>
 
@@ -165,10 +158,7 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
             >
               Hủy
             </Button>
-            <Button
-              type="submit"
-              className="px-6 py-2"
-            >
+            <Button type="submit" className="px-6 py-2">
               Thêm
             </Button>
           </div>
@@ -179,4 +169,3 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
 };
 
 export default AddCustomerModal;
-

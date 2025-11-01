@@ -1,12 +1,10 @@
 import React from "react";
-import {
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Plus,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SearchBar } from "@/components/ui/search-bar";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Button } from "@/components/ui/button";
+import { POSPagination } from "./POSPagination";
 
 export type ReturnOrder = {
   id: string;
@@ -64,35 +62,28 @@ export const ReturnOrderSearchPanel: React.FC<ReturnOrderSearchPanelProps> = ({
     <div className={cn("flex flex-col h-full bg-white", className)}>
       {/* Search Bar */}
       <div className="p-4 border-b border-[#e7e7e7]">
-        <div className="relative">
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Tìm kiếm đơn trả hàng"
-            className="w-full pl-4 pr-10 py-2 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30]"
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <Search className="w-4 h-4 text-[#737373]" />
-          </div>
-        </div>
+        <SearchBar
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Tìm kiếm đơn trả hàng"
+        />
       </div>
 
       {/* Date Range Filter */}
       <div className="p-4 border-b border-[#e7e7e7]">
         <div className="flex items-center gap-2">
-          <input
+          <DatePicker
             type="date"
             value={startDate}
             onChange={(e) => onStartDateChange(e.target.value)}
-            className="flex-1 px-4 py-2 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] focus:outline-none focus:border-[#e04d30]"
+            containerClassName="flex-1"
           />
-          <span className="text-[#272424] font-medium">-</span>
-          <input
+          <span className="text-[#272424] font-medium px-2">-</span>
+          <DatePicker
             type="date"
             value={endDate}
             onChange={(e) => onEndDateChange(e.target.value)}
-            className="flex-1 px-4 py-2 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] focus:outline-none focus:border-[#e04d30]"
+            containerClassName="flex-1"
           />
         </div>
       </div>
@@ -145,42 +136,19 @@ export const ReturnOrderSearchPanel: React.FC<ReturnOrderSearchPanelProps> = ({
 
       {/* Create Button */}
       <div className="p-4 border-t border-[#e7e7e7]">
-        <button
-          onClick={onCreateReturnOrder}
-          className="w-full bg-[#e04d30] text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-[#d0442a] transition-colors"
-        >
+        <Button onClick={onCreateReturnOrder} className="w-full">
           <Plus className="w-4 h-4" />
-          <span className="text-sm font-medium">Tạo đơn hàng trả</span>
-        </button>
+          <span>Tạo đơn hàng trả</span>
+        </Button>
       </div>
 
       {/* Pagination */}
       <div className="p-4 border-t border-[#e7e7e7]">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="w-4 h-4 text-[#272424]" />
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[#272424]">Trang số</span>
-            <button className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100">
-              <span className="text-sm font-medium text-[#272424]">
-                {currentPage}
-              </span>
-              <ChevronDown className="w-4 h-4 text-[#272424]" />
-            </button>
-          </div>
-          <button
-            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="w-4 h-4 text-[#272424]" />
-          </button>
-        </div>
+        <POSPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
       </div>
     </div>
   );
