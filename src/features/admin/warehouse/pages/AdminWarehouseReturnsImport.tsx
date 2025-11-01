@@ -151,13 +151,13 @@ const AdminWarehouseReturnsImport = () => {
       <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-[1100px] gap-1 flex-1 overflow-hidden">
         {/* Search and Filter Section */}
         <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full">
-          <div className="flex gap-[8px] items-center justify-left relative w-full">
+          <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center justify-left relative w-full">
             <div className="flex flex-row items-center self-stretch">
               <SearchBar
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm"
-                className="w-[500px]"
+                className="w-full sm:w-[500px]"
               />
             </div>
             <DropdownMenu>

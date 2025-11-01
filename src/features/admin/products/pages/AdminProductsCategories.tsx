@@ -426,7 +426,7 @@ const AdminProductsCategories: React.FC = () => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-[4px] h-full items-center justify-center p-[14px] flex-1">
+                  <div className="flex h-full items-center justify-end p-[14px] flex-1 flex-row">
                     <button
                       onClick={() => handleViewDetails(category.id)}
                       className="font-bold text-[14px] text-[#1a71f6] leading-[1.5] hover:opacity-70 transition-opacity"

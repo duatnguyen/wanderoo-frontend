@@ -274,12 +274,12 @@ const AdminOrders: React.FC = () => {
       {/* Orders Table */}
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[10px] md:px-[16px] lg:px-[24px] py-[16px] md:py-[24px] rounded-[24px] w-full">
         {/* Search and Dropdown Section */}
-        <div className="flex gap-[8px] items-center justify-start w-full">
+        <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center justify-start w-full">
           <SearchBar
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm kiếm"
-            className="w-[400px] h-[35px]"
+            className="w-full sm:w-[400px] h-[35px]"
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

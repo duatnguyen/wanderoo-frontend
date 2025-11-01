@@ -206,13 +206,13 @@ const AdminWarehouseImports = () => {
 
         {/* Search and Filter Section */}
         <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full">
-          <div className="flex gap-[8px] items-center justify-left relative w-full">
+          <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center justify-left relative w-full">
             <div className="flex flex-row items-center self-stretch">
               <SearchBar
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
-                className="w-[400px]"
+                className="w-full sm:w-[400px]"
               />
             </div>
             <DropdownMenu>

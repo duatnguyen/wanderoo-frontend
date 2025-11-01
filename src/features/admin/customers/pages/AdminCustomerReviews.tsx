@@ -230,16 +230,16 @@ const AdminCustomerReviews = () => {
           </div>
 
           {/* Search and Date Filter */}
-          <div className="flex gap-[8px] items-stretch justify-between relative w-full">
+          <div className="flex flex-col xl:flex-row gap-[8px] items-stretch justify-between relative w-full">
             <div className="flex flex-row items-center self-stretch">
               <SearchBar
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm"
-                className="w-[500px] px-[16px] py-[16px] rounded-[12px]"
+                className="w-full xl:w-[500px] px-[16px] py-[16px] rounded-[12px]"
               />
             </div>
-            <div className="flex gap-[8px] items-center">
+            <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center">
               <DatePicker
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}

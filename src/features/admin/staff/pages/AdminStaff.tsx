@@ -211,12 +211,12 @@ const AdminStaff: React.FC = () => {
         </div>
 
         {/* Search and Filter */}
-        <div className="flex gap-[10px] items-center w-full">
+        <div className="flex flex-col sm:flex-row gap-[10px] items-stretch sm:items-center w-full">
           <SearchBar
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm kiếm"
-            className="w-[500px]"
+            className="w-full sm:w-[500px]"
           />
 
           <DropdownMenu>

@@ -225,7 +225,7 @@ const AdminProductsCategoryDetail: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[22px] items-center px-[32px] py-[32px] w-full">
+    <div className="flex flex-col gap-[22px] items-center px-40 w-full">
       {/* Header */}
       <div className="flex flex-col gap-[8px] h-[29px] items-start justify-center w-full">
         <div className="flex gap-[30px] items-center w-full">
@@ -386,14 +386,16 @@ const AdminProductsCategoryDetail: React.FC = () => {
         </h2>
 
         {/* Search and Add Button */}
-        <div className="flex items-center justify-between w-full">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:justify-between w-full">
           <SearchBar
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm"
-            className="w-[500px]"
+            className="w-full sm:w-[500px] h-[40px]"
           />
-          <Button onClick={handleAddProduct}>Thêm sản phẩm</Button>
+          <Button onClick={handleAddProduct} className="w-full sm:w-auto">
+            Thêm sản phẩm
+          </Button>
         </div>
 
         {/* Products Table */}

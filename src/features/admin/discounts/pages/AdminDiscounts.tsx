@@ -274,7 +274,7 @@ const AdminDiscounts: React.FC = () => {
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder="Tìm kiếm mã giảm giá"
-        className="w-[500px]"
+        className="w-full sm:w-[500px]"
       />
 
       {/* Voucher Table */}

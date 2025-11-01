@@ -159,12 +159,12 @@ const AdminWarehouseCreateImport = () => {
                 Sản phẩm
               </p>
             </div>
-            <div className="flex items-center justify-between relative shrink-0 w-full">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 relative shrink-0 w-full">
               <SearchBar
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="Tìm kiếm"
-                className="w-[500px]"
+                className="w-full sm:w-[500px]"
               />
               <Button
                 variant="default"

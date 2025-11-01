@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import TabMenuAccount, { type TabItem } from "@/components/ui/tab-menu-account";
 import CaretDown from "@/components/ui/caret-down";
 import AddressForm from "@/components/ui/address-form";
+import ToggleSwitch from "@/components/ui/toggle-switch";
 
 interface AddressFormData {
   fullName: string;
@@ -303,27 +304,10 @@ const AdminShipping: React.FC = () => {
                   <div className="font-semibold text-[16px] text-[#1a1a1b] leading-[1.4]">
                     {method.name}
                   </div>
-                  <div className="relative w-[50px] h-[26px]">
-                    <input
-                      type="checkbox"
-                      checked={method.isEnabled}
-                      onChange={() => handleToggleShipping(method.id)}
-                      className="w-full h-full opacity-0 absolute cursor-pointer z-10"
-                    />
-                    <div
-                      className={`w-full h-full rounded-full transition-colors duration-200 ${
-                        method.isEnabled ? "bg-[#e04d30]" : "bg-gray-300"
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow-md transform transition-transform duration-200 ${
-                          method.isEnabled
-                            ? "translate-x-[24px]"
-                            : "translate-x-[2px]"
-                        }`}
-                      />
-                    </div>
-                  </div>
+                  <ToggleSwitch
+                    checked={method.isEnabled}
+                    onChange={() => handleToggleShipping(method.id)}
+                  />
                 </div>
               )}
             </div>
