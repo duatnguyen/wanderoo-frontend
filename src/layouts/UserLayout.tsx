@@ -1,8 +1,8 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import { useAuthCtx } from "../app/providers/AuthProvider";
-import Header from "../features/shop/components/Header";
-import Footer from "../features/shop/components/Footer";
+import Header from "../components/shop/Header";
+import Footer from "../components/shop/Footer";
 
 const UserLayout: React.FC = () => {
   const { state } = useAuthCtx();
@@ -14,7 +14,7 @@ const UserLayout: React.FC = () => {
         userName={user?.name || "User"}
         avatarUrl={user?.avatar}
         cartCount={0}
-        onMenuClick={() => {}}
+        onMenuClick={() => { }}
       />
 
       <main className="flex-1">

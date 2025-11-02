@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
-import type { POSProduct } from "../components/POSProductList";
+import type { POSProduct } from "../../../components/pos/POSProductList";
 
 const CreateReturnOrder: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();

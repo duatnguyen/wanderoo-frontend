@@ -1,10 +1,12 @@
 // src/app/router/routes.pos.tsx
 import type { RouteObject } from "react-router-dom";
 import { lazy } from "react";
+import { Navigate } from "react-router-dom";
 import { LazyWrapper } from "../../components/common/LazyWrapper";
+import { POS_ROUTES } from "./routes.constants";
 
 // Lazy load POS pages
-const POSPage = lazy(() => import("../../features/pos/pages/POSSales"));
+const POSSales = lazy(() => import("../../features/pos/pages/POSSales"));
 const OrderManagement = lazy(() => import("../../features/pos/pages/OrderManagement"));
 const InventoryLookup = lazy(() => import("../../features/pos/pages/InventoryLookup"));
 const ReturnOrderManagement = lazy(() => import("../../features/pos/pages/ReturnOrderManagement"));
@@ -12,14 +14,22 @@ const CreateReturnOrder = lazy(() => import("../../features/pos/pages/CreateRetu
 const CashBook = lazy(() => import("../../features/pos/pages/CashBook"));
 
 export const posRoutes: RouteObject[] = [
+  // Default POS route - redirect to sales
+  {
+    index: true,
+    element: <Navigate to={POS_ROUTES.SALES} replace />,
+  },
+  
+  // POS Sales (Main POS interface)
   {
     path: "sales",
     element: (
       <LazyWrapper>
-        <POSPage />
+        <POSSales />
       </LazyWrapper>
     ),
   },
+  // Order Management
   {
     path: "orders",
     element: (
@@ -28,6 +38,8 @@ export const posRoutes: RouteObject[] = [
       </LazyWrapper>
     ),
   },
+  
+  // Inventory Lookup
   {
     path: "inventory",
     element: (
@@ -36,22 +48,33 @@ export const posRoutes: RouteObject[] = [
       </LazyWrapper>
     ),
   },
+  
+  // Return Order Management
   {
     path: "returns",
-    element: (
-      <LazyWrapper>
-        <ReturnOrderManagement />
-      </LazyWrapper>
-    ),
+    children: [
+      // Return orders list
+      {
+        index: true,
+        element: (
+          <LazyWrapper>
+            <ReturnOrderManagement />
+          </LazyWrapper>
+        ),
+      },
+      // Create new return order
+      {
+        path: "create/:orderId",
+        element: (
+          <LazyWrapper>
+            <CreateReturnOrder />
+          </LazyWrapper>
+        ),
+      },
+    ],
   },
-  {
-    path: "returns/create/:orderId",
-    element: (
-      <LazyWrapper>
-        <CreateReturnOrder />
-      </LazyWrapper>
-    ),
-  },
+  
+  // Cash Book / Financial Management
   {
     path: "cashbook",
     element: (
@@ -59,5 +82,11 @@ export const posRoutes: RouteObject[] = [
         <CashBook />
       </LazyWrapper>
     ),
+  },
+  
+  // Catch-all route for POS - redirect to sales
+  {
+    path: "*",
+    element: <Navigate to={POS_ROUTES.SALES} replace />,
   },
 ];

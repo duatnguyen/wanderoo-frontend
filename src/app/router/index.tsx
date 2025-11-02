@@ -73,7 +73,7 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // POS routes
+  // POS routes (temporarily public for UI development)
   {
     path: "/pos",
     element: <POSLayout />,

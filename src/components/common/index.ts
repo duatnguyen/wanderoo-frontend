@@ -7,6 +7,7 @@ export type { TabItem } from "./TabMenu";
 export { default as OrderTimeline } from "./OrderTimeline";
 export type { OrderTimelineProps, TimelineStep } from "./OrderTimeline";
 export { default as TabMenuAccount } from "../ui/tab-menu-account";
+export { Breadcrumb, POSBreadcrumb } from "./Breadcrumb";
 
 // Table Components
 export { DataTable } from "../admin/table/DataTable";

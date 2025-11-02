@@ -1,28 +1,16 @@
-import React from "react";import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { POSSidebar } from "../components/pos/POSSidebar";
+import { POSHeader, type OrderTab } from "../components/pos/POSHeader";
+import { POSProvider, usePOSContext } from "../context/POSContext";
+import { Menu, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { POSSidebarItemId } from "../components/pos/POSSidebar";
 
-import { POSProvider } from "../features/pos/context/POSContext";import { Outlet, useLocation, useNavigate } from "react-router-dom";
-
-import POSLayoutContent from "./POSLayoutContent";import { POSSidebar } from "../features/pos/components/POSSidebar";
-
-import { POSHeader, type OrderTab } from "../features/pos/components/POSHeader";
-
-const POSLayout: React.FC = () => {import { POSProvider, usePOSContext } from "../features/pos/context/POSContext";
-
-  return (import { Menu, X } from "lucide-react";
-
-    <POSProvider>import { cn } from "@/lib/utils";
-
-      <POSLayoutContent />import type { POSSidebarItemId } from "../features/pos/components/POSSidebar";
-
-    </POSProvider>
-
-  );const POSLayoutContent: React.FC = () => {
-
-};  const location = useLocation();
-
+const POSLayoutContent: React.FC = () => {
+  const location = useLocation();
   const navigate = useNavigate();
-
-export default POSLayout;  const isOrderManagementPage = location.pathname.includes("/orders");
+  const isOrderManagementPage = location.pathname.includes("/orders");
   const isReturnOrderPage = location.pathname.includes("/returns");
   const isCreateReturnOrderPage = location.pathname.includes("/returns/create");
   const isCashBookPage = location.pathname.includes("/cashbook");
@@ -91,14 +79,14 @@ export default POSLayout;  const isOrderManagementPage = location.pathname.inclu
           isCreateReturnOrderPage
             ? "Tạo đơn trả hàng"
             : isOrderManagementPage
-            ? "Quản lý đơn hàng"
-            : isInventoryPage
-            ? "Tra cứu tồn kho"
-            : isReturnOrderPage
-            ? "Trả hàng"
-            : isCashBookPage
-            ? "Sổ Qũy"
-            : "Bán hàng"
+              ? "Quản lý đơn hàng"
+              : isInventoryPage
+                ? "Tra cứu tồn kho"
+                : isReturnOrderPage
+                  ? "Trả hàng"
+                  : isCashBookPage
+                    ? "Sổ Qũy"
+                    : "Bán hàng"
         }
         searchValue={
           location.pathname.includes("/sales") ? searchValue : undefined

@@ -53,7 +53,8 @@ const AdminCreateVoucherReturningCustomer = lazy(
 const AdminCreateVoucherPrivate = lazy(
   () => import("../../features/admin/discounts/pages/AdminCreateVoucherPrivate")
 );
-const AdminPOS = lazy(() => import("../../features/admin/channels/pages/AdminPOS"));
+const AdminPOS = lazy(() => import("../../features/pos/pages/POSSales"));
+
 const AdminWarehouseReturnsImport = lazy(
   () => import("../../features/admin/warehouse/pages/AdminWarehouseReturnsImport")
 );
@@ -103,9 +104,7 @@ const AdminSupplierNew = lazy(
 const AdminSupplierDetail = lazy(
   () => import("../../features/admin/warehouse/pages/AdminSupplierDetail")
 );
-const AdminWebsite = lazy(
-  () => import("../../features/admin/channels/pages/AdminWebsite")
-);
+
 const AdminCustomerDetail = lazy(
   () => import("../../features/admin/customers/pages/AdminCustomerDetail")
 );
@@ -479,14 +478,6 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminDiscounts />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "channels/website",
-    element: (
-      <LazyWrapper>
-        <AdminWebsite />
       </LazyWrapper>
     ),
   },

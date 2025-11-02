@@ -6,7 +6,7 @@ import { LazyWrapper } from "../../components/common/LazyWrapper";
 
 // Lazy load user/shop pages
 const UserHome = lazy(() => import("../../features/shop/pages/UserProfile/UserHome"));
-const ProfileLayout = lazy(() => import("../../features/shop/layouts/ProfileLayout"));
+const ProfileLayout = lazy(() => import("../../layouts/ProfileLayout"));
 const BasicInformationTab = lazy(
   () => import("../../features/shop/pages/UserProfile/BasicInformationTab")
 );

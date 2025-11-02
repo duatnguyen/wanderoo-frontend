@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import OrderSearchPanel, { type Order } from "../components/OrderSearchPanel";
+import OrderSearchPanel, { type Order } from "../../../components/pos/OrderSearchPanel";
 import OrderDetailsPanel, {
   type OrderDetails,
-} from "../components/OrderDetailsPanel";
+} from "../../../components/pos/OrderDetailsPanel";
 
 const OrderManagement: React.FC = () => {
   // Mock data

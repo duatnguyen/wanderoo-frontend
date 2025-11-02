@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import CashBookSearchPanel, {
   type CashBookTransaction,
-} from "../components/CashBookSearchPanel";
+} from "../../../components/pos/CashBookSearchPanel";
 import CashBookDetailsPanel, {
   type CashBookTransactionDetails,
-} from "../components/CashBookDetailsPanel";
+} from "../../../components/pos/CashBookDetailsPanel";
 
 const CashBook: React.FC = () => {
   const [searchValue, setSearchValue] = useState("");
