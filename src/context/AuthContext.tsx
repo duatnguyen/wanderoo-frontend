@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
+import React, { createContext, useReducer, useEffect } from "react";
 import type {
   AuthContextType,
   AuthState,
@@ -144,12 +144,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 };

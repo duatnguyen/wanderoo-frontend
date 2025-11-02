@@ -12,6 +12,7 @@ export function DatePicker({
   containerClassName,
   label,
   error,
+  type = "datetime-local",
   ...props
 }: DatePickerProps) {
   return (
@@ -23,13 +24,13 @@ export function DatePicker({
       )}
       <div
         className={cn(
-          "bg-white border-2 border-[#e04d30] flex items-center p-[16px] rounded-[12px] w-full",
+          "bg-white h-[40px] border-2 border-[#e04d30] flex items-center p-[16px] rounded-[12px] w-full",
           error && "border-red-500"
         )}
       >
         <input
           {...props}
-          type="datetime-local"
+          type={type}
           className={cn(
             "border-0 outline-none bg-transparent text-[12px] font-semibold placeholder:text-[#888888] text-[#272424] flex-1",
             className
