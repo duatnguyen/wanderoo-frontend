@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
 import {
@@ -46,7 +47,7 @@ interface VoucherFormData {
   displaySetting: "pos" | "website" | "pos-website";
 }
 
-const AdminCreateVoucher: React.FC = () => {
+const AdminCreateVoucherPrivate: React.FC = () => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [formData, setFormData] = useState<VoucherFormData>({
@@ -84,26 +85,28 @@ const AdminCreateVoucher: React.FC = () => {
 
   return (
     <div className="w-full overflow-x-auto min-h-screen">
-      <div className="flex flex-col w-full max-w-full lg:max-w-[calc(100%-500px)] mx-auto mt-[10px] px-[24px] min-w-[700px]">
+      <div className="flex flex-col gap-[10px] items-start w-full max-w-[930px] mx-auto px-[24px] min-w-[925px]">
       {/* Header with Back Button */}
-      <div className="flex flex-col gap-[8px] items-start justify-center w-full min-w-[700px]">
-        <div className="flex flex-col sm:flex-row gap-[15px] sm:gap-[30px] items-start sm:items-center w-full">
+      <div className="flex flex-col gap-[8px] items-start justify-center w-full min-w-[925px]">
+        <div className="flex gap-[4px] items-center">
           <button
             onClick={handleBackClick}
-            className="flex items-center gap-[8px] text-[#272424] cursor-pointer flex-shrink-0"
+            className="relative shrink-0 size-[24px] flex items-center justify-center cursor-pointer"
           >
-            <Icon name="arrow-left" size={24} color="currentColor" />
+            <ArrowLeft className="w-5 h-5 text-[#737373]" />
           </button>
-          <span className="font-bold text-[20px] sm:text-[24px] leading-[1.2] break-words">Tạo mã giảm giá mới</span>
+          <h1 className="font-montserrat font-bold text-[#272424] text-[24px] leading-[1.5] whitespace-nowrap">
+            Tạo mã giảm giá mới
+          </h1>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-[16px] w-full mt-[8px] min-w-[700px] flex-shrink-0">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-[16px] w-full min-w-[925px] flex-shrink-0">
         {/* Basic Information Section */}
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0 min-w-[700px]">
+        <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
           {/* Title Section */}
           <div className="flex flex-col gap-[8px]">
-            <h2 className="font-bold text-[18px] sm:text-[20px] text-[#272424] leading-[normal] break-words">
+            <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
               Thông tin cơ bản
             </h2>
           </div>
@@ -113,7 +116,7 @@ const AdminCreateVoucher: React.FC = () => {
             <div className="bg-[#e04d30] border border-white rounded-[12px] h-[52px] px-[12px] sm:px-[16px] flex items-center gap-[4px] w-full sm:w-auto">
               <CreditCardPercentIcon size={24} color="#FFFFFF" className="flex-shrink-0" />
               <span className="font-semibold text-[16px] sm:text-[20px] text-white leading-[1.4] whitespace-nowrap">
-                Voucher toàn shop
+                Voucher riêng tư
               </span>
             </div>
           </div>
@@ -165,37 +168,37 @@ const AdminCreateVoucher: React.FC = () => {
 
             {/* Date Range Field */}
             <div className="flex flex-col sm:flex-row sm:items-start gap-[8px] sm:gap-[16px]">
-              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] sm:w-[215px] flex-shrink-0 sm:text-right">
+              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[200px] sm:w-[215px] flex-shrink-0 text-right">
                 Thời gian sử dụng mã
               </label>
-              <div className="flex-1 w-full flex flex-col lg:flex-row gap-[4px] items-center min-w-0">
+              <div className="flex-1 w-full flex flex-col sm:flex-row gap-[4px] items-center">
                 {/* Start DateTime */}
-                <div className="w-full lg:flex-1 lg:min-w-[200px] lg:max-w-[240px]">
+                <div className="flex-shrink-0">
                   <FormInput
                     type="datetime-local"
                     value={formatDateTimeForInput(formData.startDate)}
                     onChange={(e) =>
                       handleInputChange("startDate", e.target.value)
                     }
-                    containerClassName="h-[36px] w-full"
+                    containerClassName="h-[36px] w-[240px]"
                     className={!formData.startDate ? 'opacity-50' : ''}
                   />
                 </div>
 
                 {/* Dash Separator - hidden on mobile */}
-                <div className="hidden lg:flex items-center justify-center text-[#272424] px-[4px] flex-shrink-0">
+                <div className="hidden sm:flex items-center justify-center text-[#272424] px-[4px]">
                   -
                 </div>
 
                 {/* End DateTime */}
-                <div className="w-full lg:flex-1 lg:min-w-[200px] lg:max-w-[240px]">
+                <div className="flex-shrink-0">
                   <FormInput
                     type="datetime-local"
                     value={formatDateTimeForInput(formData.endDate)}
                     onChange={(e) =>
                       handleInputChange("endDate", e.target.value)
                     }
-                    containerClassName="h-[36px] w-full"
+                    containerClassName="h-[36px] w-[240px]"
                     className={!formData.endDate ? 'opacity-50' : ''}
                   />
                 </div>
@@ -205,10 +208,10 @@ const AdminCreateVoucher: React.FC = () => {
         </div>
 
         {/* Voucher Settings Section */}
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0 min-w-[700px]">
+        <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
           {/* Title Section */}
           <div className="flex flex-col gap-[8px]">
-            <h2 className="font-bold text-[18px] sm:text-[20px] text-[#272424] leading-[normal] break-words">
+            <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
               Thiết lập mã giảm giá
             </h2>
           </div>
@@ -230,7 +233,7 @@ const AdminCreateVoucher: React.FC = () => {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-[164px] justify-between h-[36px] border-[#e04d30] border-[1.6px] rounded-[12px] px-[16px] whitespace-nowrap hover:bg-[#e04d30]/5 "
+                        className="w-[164px] justify-between h-[36px] border-[#e04d30] border-[1.6px] rounded-[12px] px-[12px] sm:px-[16px] whitespace-nowrap hover:bg-[#e04d30]/5 "
                       >
                         <span className="font-medium text-[13px] text-[#272424]">
                           {formData.discountType === "percentage"
@@ -267,7 +270,7 @@ const AdminCreateVoucher: React.FC = () => {
                 </div>
 
                 {/* Discount Value Input */}
-                <div className="flex-1 w-full">
+                <div className="flex-1 min-w-0 w-full">
                   <FormInput
                     placeholder={
                       formData.discountType === "percentage"
@@ -288,10 +291,10 @@ const AdminCreateVoucher: React.FC = () => {
             {/* Maximum Discount (only for percentage) */}
             {formData.discountType === "percentage" && (
               <div className="flex flex-col sm:flex-row sm:items-start gap-[8px] sm:gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] sm:w-[215px] flex-shrink-0 sm:text-right">
+                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] break-words sm:w-[215px] flex-1 sm:flex-shrink-0 sm:w-[240px] sm:text-right">
                   Mức giảm tối đa
                 </label>
-                <div className="flex-1 flex flex-col gap-[12px] min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col gap-[12px]">
                   <div className="flex flex-row gap-[12px]">
                     <CustomRadio
                       name="maxDiscountLimit"
@@ -330,7 +333,7 @@ const AdminCreateVoucher: React.FC = () => {
 
             {/* Minimum Order Amount */}
             <div className="flex flex-col sm:flex-row sm:items-start gap-[8px] sm:gap-[16px]">
-              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] sm:w-[215px] flex-shrink-0 sm:text-right">
+              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] break-words sm:w-[215px] flex-1 sm:flex-shrink-0 sm:w-[240px] sm:text-right">
                 Giá trị đơn hàng tối thiểu
               </label>
               <div className="flex-1 min-w-0">
@@ -347,10 +350,10 @@ const AdminCreateVoucher: React.FC = () => {
 
             {/* Maximum Usage */}
             <div className="flex flex-col sm:flex-row sm:items-start gap-[8px] sm:gap-[16px]">
-              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] sm:w-[215px] flex-shrink-0 sm:text-right">
+              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] break-words sm:w-[215px] flex-1 sm:flex-shrink-0 sm:w-[240px] sm:text-right">
                 Tổng lượt sử dụng tối đa
               </label>
-              <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex-1 min-w-0 flex flex-col">
                 <FormInput
                   placeholder="Nhập số lượt sử dụng"
                   value={formData.maxUsage}
@@ -359,7 +362,7 @@ const AdminCreateVoucher: React.FC = () => {
                   }
                   containerClassName="h-[36px] w-full"
                 />
-                <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
+                <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words text-left">
                   Tổng số mã giảm giá tối đa có thể sử dụng
                 </p>
               </div>
@@ -367,7 +370,7 @@ const AdminCreateVoucher: React.FC = () => {
 
             {/* Maximum Usage Per Customer */}
             <div className="flex flex-col sm:flex-row sm:items-start gap-[8px] sm:gap-[16px]">
-              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] sm:w-[215px] flex-shrink-0 sm:text-right">
+              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] break-words sm:w-[215px] flex-1 sm:flex-shrink-0 sm:w-[240px] sm:text-right">
                 Lượt sử dụng tối đa/người
               </label>
               <div className="flex-1 min-w-0">
@@ -385,10 +388,10 @@ const AdminCreateVoucher: React.FC = () => {
         </div>
 
         {/* Display Settings Section */}
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0 min-w-[700px]">
+        <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
           {/* Title Section */}
           <div className="flex flex-col gap-[8px]">
-            <h2 className="font-bold text-[16px] text-[#272424] leading-[normal] break-words">
+            <h2 className="font-montserrat font-bold text-[16px] text-[#272424] leading-[normal]">
               Hiển thị mã giảm giá và sản phẩm áp dụng
             </h2>
           </div>
@@ -397,10 +400,10 @@ const AdminCreateVoucher: React.FC = () => {
           <div className="px-0 py-[12px] flex flex-col gap-[16px]">
             {/* Display Setting */}
             <div className="flex flex-col sm:flex-row sm:items-start gap-[8px] sm:gap-[16px]">
-              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] sm:w-[215px] flex-shrink-0 sm:text-right">
+              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] break-words sm:w-[215px] flex-1 sm:flex-shrink-0 sm:w-[240px] sm:text-right">
                 Thiết lập hiển thị
               </label>
-              <div className="flex-1 flex flex-col gap-[20px]">
+              <div className="flex-1 min-w-0 flex flex-col gap-[20px]">
                 <CustomRadio
                   name="displaySetting"
                   value="pos"
@@ -433,10 +436,10 @@ const AdminCreateVoucher: React.FC = () => {
 
             {/* Applied Products */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-[8px] sm:gap-[16px]">
-              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] sm:w-[215px] flex-shrink-0 sm:text-right">
+              <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] break-words sm:w-[215px] flex-1 sm:flex-shrink-0 sm:w-[240px] sm:text-right">
                 Sản phẩm được áp dụng
               </label>
-              <div className="flex-1 flex items-center min-w-0">
+              <div className="flex-1 min-w-0 flex items-center">
                 <span className="font-semibold text-[#272424] text-[14px] leading-[1.4] break-words">
                   Tất cả sản phẩm
                 </span>
@@ -461,4 +464,5 @@ const AdminCreateVoucher: React.FC = () => {
   );
 };
 
-export default AdminCreateVoucher;
+export default AdminCreateVoucherPrivate;
+

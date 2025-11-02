@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
 
@@ -24,7 +24,7 @@ const mockImportDetail: ImportDetail = {
   createdDate: "2024-01-15",
   supplier: "Công ty TNHH ABC",
   createdBy: "Nguyễn Văn A",
-  status: "processing",
+  status: "completed",
   importStatus: "not_imported",
   paymentStatus: "unpaid",
   paymentMethod: "cash",
@@ -45,13 +45,15 @@ const AdminWarehouseImportDetail: React.FC = () => {
     importCode: mockImportDetail.importCode,
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+  const formatCurrency = (amount: number) => {
+    const formatted = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount).replace(/\s/g, '').replace(/₫/g, 'đ');
+    return formatted;
+  };
 
   return (
-    <div className="space-y-4 p-3">
+    <div className="flex flex-col gap-[16px] p-3 w-full max-w-[1200px] mx-auto overflow-x-auto overflow-y-auto table-scroll-container">
       {/* Header matching Figma design */}
-      <div className="w-full h-full justify-start items-center gap-2 inline-flex">
+      <div className="w-full h-full justify-start items-center gap-2 inline-flex min-w-[1150px] flex-shrink-0">
         <div className="w-6 h-6 relative">
           <Button 
             variant="ghost" 
@@ -76,11 +78,11 @@ const AdminWarehouseImportDetail: React.FC = () => {
       </div>
 
       {/* Table section matching Figma design */}
-      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-lg flex-col justify-start items-start inline-flex flex-shrink-0 min-w-[1150px]">
         {/* Header with status icon and title */}
-        <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
-          <div className="w-10 h-10 relative overflow-hidden">
-            <div className="w-[37.45px] h-[35px] left-[2.50px] top-[2.50px] absolute bg-[#04910C]"></div>
+        <div className="self-stretch px-[14px] py-[14px] rounded-t-lg border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex flex-shrink-0">
+          <div className="w-6 h-6 rounded-full bg-[#04910C] flex items-center justify-center">
+            <Check className="w-4 h-4 text-white" strokeWidth={3} />
           </div>
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
             Đã nhập kho
@@ -88,7 +90,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
         </div>
 
         {/* Table header */}
-        <div className="self-stretch h-[50px] bg-[#F6F6F6] justify-start items-start inline-flex">
+        <div className="self-stretch h-[50px] bg-[#F6F6F6] justify-start items-start inline-flex flex-shrink-0">
           <div className="w-[400px] self-stretch px-[14px] overflow-hidden border-l border-[#D1D1D1] justify-start items-center flex">
             <div className="w-[22px] h-0 transform rotate-[-90deg] origin-top-left">
                 {/* icon place here */}
@@ -120,8 +122,8 @@ const AdminWarehouseImportDetail: React.FC = () => {
         {detail.items.map((item, index) => (
           <div 
             key={item.id} 
-            className={`self-stretch border border-[#D1D1D1] justify-start items-start inline-flex ${
-              index === detail.items.length - 1 ? 'rounded-b-[24px]' : ''
+            className={`self-stretch border border-[#D1D1D1] justify-start items-start inline-flex flex-shrink-0 ${
+              index === detail.items.length - 1 ? 'rounded-b-lg' : ''
             }`}
           >
             <div className="w-[400px] self-stretch px-3 py-3 justify-start items-center gap-3 flex">
@@ -131,23 +133,23 @@ const AdminWarehouseImportDetail: React.FC = () => {
                 alt={item.name}
               />
               <div className="self-stretch justify-start items-start gap-2.5 flex">
-                <div className="text-black text-[10px] font-[500] font-montserrat leading-[14px]">
+                <div className="text-black text-[14px] font-[500] font-montserrat leading-[14px]">
                   {item.name}
                 </div>
               </div>
             </div>
             <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-center gap-2.5 inline-flex">
-              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
+              <div className="text-[#272424] text-[14px] font-[500] font-montserrat leading-[14px]">
                 {item.quantity}
               </div>
             </div>
             <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-center gap-2 inline-flex">
-              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
+              <div className="text-[#272424] text-[14px] font-[500] font-montserrat leading-[14px]">
                 {formatCurrency(item.price)}
               </div>
             </div>
             <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-end gap-2 inline-flex">
-              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
+              <div className="text-[#272424] text-[14px] font-[500] font-montserrat leading-[14px]">
                 {formatCurrency(item.total)}
               </div>
             </div>
@@ -156,29 +158,26 @@ const AdminWarehouseImportDetail: React.FC = () => {
       </div>
 
       {/* Payment summary section matching Figma design */}
-      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-lg flex-col justify-start items-start inline-flex flex-shrink-0 min-w-[1150px]">
         {/* Header with payment status */}
-        <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
-          <div className="w-10 h-10 relative overflow-hidden">
-            <div className="w-[37.45px] h-[35px] left-[2.50px] top-[2.50px] absolute bg-[#04910C]">
-                {/* icon place here */}
-            </div>
+        <div className="self-stretch px-[14px] py-[14px] rounded-t-lg border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex flex-shrink-0">
+          <div className="w-6 h-6 rounded-full bg-[#04910C] flex items-center justify-center">
+            <Check className="w-4 h-4 text-white" strokeWidth={3} />
           </div>
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
             Đã thanh toán
           </div>
         </div>
 
-        {/* Summary row */}
-        <div className="self-stretch h-[50px] bg-[#F6F6F6] border-b border-[#D1D1D1] justify-start items-start inline-flex">
+        {/* Row 1: Tổng tiền */}
+        <div className="self-stretch h-[50px] bg-[#F6F6F6] border-b border-[#D1D1D1] justify-start items-start inline-flex flex-shrink-0">
           <div className="flex-1 self-stretch px-[14px] overflow-hidden border-l border-[#D1D1D1] justify-start items-center flex">
-            <div className="w-[22px] h-0 transform rotate-[-90deg] origin-top-left"></div>
             <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
               Tổng tiền
             </div>
           </div>
-          <div className="flex-1 self-stretch relative">
-            <div className="left-[101px] top-[15px] absolute text-center text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+          <div className="flex-1 self-stretch px-[14px] justify-center items-center flex">
+            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
               {detail.totals.items} sản phẩm
             </div>
           </div>
@@ -189,17 +188,15 @@ const AdminWarehouseImportDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Payment details */}
-        <div className="self-stretch pt-1.5 pb-1.5 rounded-b-[24px] border border-[#D1D1D1] justify-between items-start inline-flex">
-          <div className="flex-1 self-stretch px-3 flex-col justify-center items-start gap-2.5 inline-flex">
-            <div className="justify-start items-start gap-2.5 inline-flex">
-              <div className="text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px]">
-                Tiền cần trả nhà cung cấp
-              </div>
+        {/* Row 2: Tiền cần trả NCC */}
+        <div className="self-stretch h-[50px] bg-[#F6F6F6] rounded-b-lg justify-between items-center inline-flex flex-shrink-0">
+          <div className="flex-1 self-stretch px-[14px] justify-start items-center flex">
+            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[14px]">
+              Tiền cần trả NCC
             </div>
           </div>
-          <div className="flex-1 self-stretch px-3 flex-col justify-center items-end gap-2 inline-flex">
-            <div className="text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px]">
+          <div className="flex-1 self-stretch px-[14px] justify-end items-center flex">
+            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[14px]">
               {formatCurrency(detail.totals.value)}
             </div>
           </div>
@@ -207,22 +204,22 @@ const AdminWarehouseImportDetail: React.FC = () => {
       </div>
 
       {/* Supplier and Staff section matching Figma design */}
-      <div className="w-full h-full justify-start items-start gap-3 inline-flex">
+      <div className="w-full h-full justify-start items-start gap-3 inline-flex flex-shrink-0 min-w-[1150px]">
         {/* Supplier card */}
-        <div className="flex-1 px-6 py-3 bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+        <div className="flex-1 px-6 py-3 bg-white border border-[#D1D1D1] rounded-lg flex-col justify-start items-start inline-flex flex-shrink-0">
           <div className="self-stretch pt-1.5 pb-1.5 rounded-[12px] justify-start items-center gap-2.5 inline-flex">
             <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
               Nhà cung cấp
             </div>
           </div>
-          <div className="self-stretch justify-start items-center gap-[26px] inline-flex">
+          <div className="self-stretch justify-start items-center gap-2 inline-flex">
             <img 
-              className="w-[85px] h-[85px] rounded-[12px]" 
-              src="https://placehold.co/85x85" 
+              className="w-[60px] h-[60px] rounded-[12px]" 
+              src="https://placehold.co/60x60" 
               alt="Supplier"
             />
             <div className="self-stretch justify-start items-start gap-2.5 flex">
-              <div className="text-black text-[12px] font-[400] font-montserrat leading-[18px]">
+              <div className="text-black text-[14px] font-[400] font-montserrat leading-[14px]">
                 {detail.supplier}
               </div>
             </div>
@@ -230,20 +227,20 @@ const AdminWarehouseImportDetail: React.FC = () => {
         </div>
 
         {/* Staff card */}
-        <div className="flex-1 px-6 py-3 bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+        <div className="flex-1 px-6 py-3 bg-white border border-[#D1D1D1] rounded-lg flex-col justify-start items-start inline-flex flex-shrink-0">
           <div className="self-stretch pt-1.5 pb-1.5 rounded-[12px] justify-start items-center gap-2.5 inline-flex">
             <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
               Nhân viên phụ trách
             </div>
           </div>
-          <div className="self-stretch justify-start items-center gap-[26px] inline-flex">
-            <div className="w-[85px] h-[85px] rounded-[12px] border-2 border-dashed border-[#D1D1D1] flex items-center justify-center">
+          <div className="self-stretch justify-start items-center gap-2 inline-flex">
+            <div className="w-[60px] h-[60px] rounded-[12px] border-2 border-dashed border-[#D1D1D1] flex items-center justify-center">
               <div className="text-[#D1D1D1] text-[12px] font-[400] font-montserrat leading-[18px]">
                 Avatar
               </div>
             </div>
             <div className="self-stretch justify-start items-start gap-2.5 flex">
-              <div className="text-[#272424] text-[12px] font-[400] font-montserrat leading-[18px]">
+              <div className="text-[#272424] text-[14px] font-[400] font-montserrat leading-[14px]">
                 {detail.createdBy}
               </div>
             </div>

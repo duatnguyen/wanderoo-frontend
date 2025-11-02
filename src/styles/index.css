@@ -415,3 +415,19 @@ body {
     "Helvetica Neue", Arial, sans-serif !important;
   font-size: 14px; /* đảm bảo đồng nhất 14px */
 }
+
+/* Hide native date input picker icon when we provide our own */
+.hide-native-picker::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+
+
+
+/* Enlarge and keep native datepicker icon visible */
+.big-native-picker::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  width: 24px;
+  height: 24px;
+  transform: scale(1.0);
+  cursor: pointer;
+}

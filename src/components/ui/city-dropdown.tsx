@@ -46,12 +46,17 @@ const CityDropdown: React.FC<CityDropdownProps> = ({
     <div ref={dropdownRef} className={cn("relative w-full", className)}>
       <div
         className={cn(
-          "bg-white border-2 border-[#e04d30] h-[52px] px-[16px] rounded-[12px] w-full flex items-center justify-between cursor-pointer",
+          "bg-white border-2 border-[#e04d30] h-[36px] px-[12px] rounded-[12px] w-full flex items-center justify-between cursor-pointer",
           error && "border-red-500"
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="border-0 outline-none bg-transparent text-[12px] font-semibold placeholder:text-[#888888] text-[#888888] flex-1">
+        <span
+          className={cn(
+            "border-0 outline-none bg-transparent text-[14px] font-semibold flex-1",
+            value ? "text-[#272424]" : "text-[#888888]"
+          )}
+        >
           {value || placeholder}
         </span>
         <svg
@@ -72,7 +77,7 @@ const CityDropdown: React.FC<CityDropdownProps> = ({
           {cityOptions.map((option) => (
             <div
               key={option}
-              className="px-[16px] py-[12px] text-[10px] font-medium text-[#272424] hover:bg-[#f5f5f5] cursor-pointer first:rounded-t-[12px] last:rounded-b-[12px]"
+              className="px-[16px] py-[12px] text-[14px] font-medium text-[#272424] hover:bg-[#f5f5f5] cursor-pointer first:rounded-t-[12px] last:rounded-b-[12px]"
               onClick={() => handleOptionClick(option)}
             >
               {option}

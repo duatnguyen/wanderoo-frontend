@@ -59,7 +59,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
     <div className="bg-white border-[#e04d30] border-2 flex flex-col items-start rounded-[24px] w-full">
       {/* Header */}
       <div className="flex gap-[9px] items-center p-[15px] w-full">
-        <h2 className="font-bold text-[#272424] text-[24px] leading-[1.5]">
+        <h2 className="font-bold text-[#272424] text-[16px] leading-[1.5]">
           {title}
         </h2>
       </div>
@@ -73,6 +73,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
           type="text"
           value={formData.fullName}
           onChange={(e) => handleInputChange("fullName", e.target.value)}
+          containerClassName="h-[36px] px-[12px] py-0"
         />
 
         {/* Phone */}
@@ -82,11 +83,12 @@ const AddressForm: React.FC<AddressFormProps> = ({
           type="tel"
           value={formData.phone}
           onChange={(e) => handleInputChange("phone", e.target.value)}
+          containerClassName="h-[36px] px-[12px] py-0"
         />
 
         {/* Address Section */}
         <div className="flex gap-[20px] items-center w-full">
-          <h3 className="font-bold text-[#272424] text-[20px] leading-normal">
+          <h3 className="font-bold text-[#272424] text-[16px] leading-normal">
             Địa chỉ
           </h3>
         </div>
@@ -98,8 +100,8 @@ const AddressForm: React.FC<AddressFormProps> = ({
           </label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[52px] items-center p-[16px] rounded-[12px] w-full cursor-pointer">
-                <span className="text-[#888888] text-[12px] font-semibold leading-[1.4] flex-1">
+              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
+                <span className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.province ? 'text-black' : 'text-[#888888]'}`}>
                   {formData.province || "Chọn tỉnh thành phố"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
@@ -125,8 +127,8 @@ const AddressForm: React.FC<AddressFormProps> = ({
           </label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[52px] items-center p-[16px] rounded-[12px] w-full cursor-pointer">
-                <span className="text-[#888888] text-[12px] font-semibold leading-[1.4] flex-1">
+              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
+                <span className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.district ? 'text-black' : 'text-[#888888]'}`}>
                   {formData.district || "Chọn Quận/Huyện"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
@@ -152,8 +154,8 @@ const AddressForm: React.FC<AddressFormProps> = ({
           </label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[52px] items-center p-[16px] rounded-[12px] w-full cursor-pointer">
-                <span className="text-[#888888] text-[12px] font-semibold leading-[1.4] flex-1">
+              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
+                <span className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.ward ? 'text-black' : 'text-[#888888]'}`}>
                   {formData.ward || "Chọn Phường/Xã"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
@@ -178,13 +180,13 @@ const AddressForm: React.FC<AddressFormProps> = ({
             Địa chỉ chi tiết
             <span className="text-[#eb2b0b] text-[16px]">*</span>
           </label>
-          <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] h-[52px] items-center px-[16px] py-[12px] rounded-[12px] w-full">
+          <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full">
             <input
               type="text"
               value={formData.detailAddress}
               onChange={(e) => handleInputChange("detailAddress", e.target.value)}
               placeholder="Nhập địa chỉ chi tiết của bạn"
-              className="border-0 outline-none text-[12px] font-semibold text-[#888888] placeholder:text-[#888888] bg-transparent flex-1"
+              className="border-0 outline-none text-[14px] font-semibold text-black placeholder:text-[#888888] bg-transparent flex-1"
             />
           </div>
         </div>
@@ -197,7 +199,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
             onChange={(e) => handleInputChange("isDefault", e.target.checked)}
             className="w-[24px] h-[24px] border"
           />
-          <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
+          <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
             Đặt làm địa chỉ mặc định
           </label>
         </div>

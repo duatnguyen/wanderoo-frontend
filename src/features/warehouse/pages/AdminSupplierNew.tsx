@@ -90,9 +90,9 @@ const AdminSupplierNew = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[16px] items-center w-full max-w-[1200px] mx-auto">
+    <div className="flex flex-col gap-[4px] items-center w-full max-w-[903px] mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-[12px] w-full">
+      <div className="flex items-center gap-[12px] w-full -mt-[15px]">
         <button
           onClick={() => navigate("/admin/warehouse/supplier")}
           className="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] hover:bg-gray-100 transition-colors"
@@ -100,22 +100,22 @@ const AdminSupplierNew = () => {
           <ArrowLeft className="w-[20px] h-[20px] text-[#272424]" />
         </button>
         <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
-          Thêm nhà cung cấp
+          Thêm mới nhà cung cấp
         </h2>
       </div>
 
       {/* General Information Table */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
+      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
         <div className="flex items-center justify-between w-full">
-          <h3 className="font-bold text-[#272424] text-[20px] leading-normal">
+          <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
             Thông tin chung
           </h3>
         </div>
 
         <form onSubmit={handleSubmit} className="w-full">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px] w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[12px] w-full">
             {/* Tên nhà cung cấp */}
-            <div className="flex flex-col gap-[8px]">
+            <div className="flex flex-col gap-[4px]">
               <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
                 Tên nhà cung cấp <span className="text-red-500">*</span>
               </label>
@@ -126,6 +126,7 @@ const AdminSupplierNew = () => {
                 }
                 placeholder="Nhập tên nhà cung cấp"
                 className={errors.supplierName ? "border-red-500" : ""}
+                containerClassName="h-[36px] px-[12px] py-0"
               />
               {errors.supplierName && (
                 <span className="text-red-500 text-[12px]">
@@ -135,7 +136,7 @@ const AdminSupplierNew = () => {
             </div>
 
             {/* Số điện thoại */}
-            <div className="flex flex-col gap-[8px]">
+            <div className="flex flex-col gap-[4px]">
               <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
                 Số điện thoại <span className="text-red-500">*</span>
               </label>
@@ -144,6 +145,7 @@ const AdminSupplierNew = () => {
                 onChange={(e) => handleInputChange("phone", e.target.value)}
                 placeholder="Nhập số điện thoại"
                 className={errors.phone ? "border-red-500" : ""}
+                containerClassName="h-[36px] px-[12px] py-0"
               />
               {errors.phone && (
                 <span className="text-red-500 text-[12px]">{errors.phone}</span>
@@ -161,6 +163,7 @@ const AdminSupplierNew = () => {
                 onChange={(e) => handleInputChange("email", e.target.value)}
                 placeholder="Nhập email"
                 className={errors.email ? "border-red-500" : ""}
+                containerClassName="h-[36px] px-[12px] py-0"
               />
               {errors.email && (
                 <span className="text-red-500 text-[12px]">{errors.email}</span>
@@ -171,32 +174,16 @@ const AdminSupplierNew = () => {
       </div>
 
       {/* Address Information Table */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
+      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
         <div className="flex items-center justify-between w-full">
-          <h3 className="font-bold text-[#272424] text-[20px] leading-normal">
+          <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
             Thông tin địa chỉ
           </h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px] w-full">
-          {/* Địa chỉ đường */}
-          <div className="flex flex-col gap-[8px]">
-            <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
-              Địa chỉ đường <span className="text-red-500">*</span>
-            </label>
-            <FormInput
-              value={formData.street}
-              onChange={(e) => handleInputChange("street", e.target.value)}
-              placeholder="Nhập địa chỉ đường"
-              className={errors.street ? "border-red-500" : ""}
-            />
-            {errors.street && (
-              <span className="text-red-500 text-[12px]">{errors.street}</span>
-            )}
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-[12px] w-full">
           {/* Tỉnh/Thành phố */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[4px]">
             <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
               Tỉnh/Thành phố <span className="text-red-500">*</span>
             </label>
@@ -211,7 +198,7 @@ const AdminSupplierNew = () => {
           </div>
 
           {/* Quận/Huyện */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[4px]">
             <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
               Quận/Huyện <span className="text-red-500">*</span>
             </label>
@@ -241,13 +228,30 @@ const AdminSupplierNew = () => {
               <span className="text-red-500 text-[12px]">{errors.ward}</span>
             )}
           </div>
+
+          {/* Địa chỉ chi tiết - moved to the last (bottom-right) position */}
+          <div className="flex flex-col gap-[8px]">
+            <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
+              Địa chỉ chi tiết <span className="text-red-500">*</span>
+            </label>
+            <FormInput
+              value={formData.street}
+              onChange={(e) => handleInputChange("street", e.target.value)}
+              placeholder="Nhập địa chỉ chi tiết"
+              className={errors.street ? "border-red-500" : ""}
+              containerClassName="h-[36px] px-[12px] py-0"
+            />
+            {errors.street && (
+              <span className="text-red-500 text-[12px]">{errors.street}</span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Note Field */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
+      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
         <div className="flex items-center justify-between w-full">
-          <h3 className="font-bold text-[#272424] text-[20px] leading-normal">
+          <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
             Ghi chú
           </h3>
         </div>
@@ -256,7 +260,8 @@ const AdminSupplierNew = () => {
           <FormInput
             value={formData.note}
             onChange={(e) => handleInputChange("note", e.target.value)}
-            placeholder="Nhập ghi chú (tùy chọn)"
+            placeholder="Nhập ghi chú (nếu có)"
+            containerClassName="h-[50px] px-[12px] py-0"
           />
         </div>
       </div>
@@ -276,7 +281,7 @@ const AdminSupplierNew = () => {
           onClick={handleSubmit}
           className="px-[24px] py-[12px]"
         >
-          Thêm nhà cung cấp
+          Thêm mới 
         </Button>
       </div>
     </div>

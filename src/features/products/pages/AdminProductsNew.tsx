@@ -491,7 +491,7 @@ const AdminProductsNew: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col gap-3">
       {/* Header */}
-      <div className="w-full flex items-center gap-2">
+      <div className="w-[calc(100%-400px)] mx-auto flex items-center gap-2">
         <button className="flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity">
           <Icon name="arrow-left" size={24} />
         </button>
@@ -502,16 +502,18 @@ const AdminProductsNew: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-[22px] w-full">
         {/* Image Upload Section */}
-        <ImageUpload
-          images={images}
-          onImagesChange={setImages}
-          maxImages={9}
-          maxSizeInMB={2}
-          required={true}
-        />
+        <div className="w-[calc(100%-400px)] mx-auto">
+          <ImageUpload
+            images={images}
+            onImagesChange={setImages}
+            maxImages={9}
+            maxSizeInMB={2}
+            required={true}
+          />
+        </div>
 
         {/* Basic Information Section */}
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
+        <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4 w-[calc(100%-400px)] mx-auto">
           <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
             Thông tin cơ bản
           </h2>
@@ -534,6 +536,7 @@ const AdminProductsNew: React.FC = () => {
                   onChange={(e) =>
                     handleInputChange("productName", e.target.value)
                   }
+                  containerClassName="h-[36px] px-4"
                 />
               </div>
 
@@ -545,6 +548,7 @@ const AdminProductsNew: React.FC = () => {
                   placeholder="Nhập mã vạch"
                   value={formData.barcode}
                   onChange={(e) => handleInputChange("barcode", e.target.value)}
+                  containerClassName="h-[36px] px-4"
                 />
               </div>
             </div>
@@ -557,8 +561,8 @@ const AdminProductsNew: React.FC = () => {
                 </label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="bg-white border-2 border-[#e04d30] flex items-center justify-between p-4 rounded-[12px] w-full h-[52px]">
-                      <span className="text-[12px] font-semibold text-[#888888]">
+                    <button className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] w-full h-[36px]">
+                      <span className="text-[14px] font-semibold text-[#888888]">
                         Chọn danh mục
                       </span>
                       <ChevronDown className="w-6 h-6 text-[#322f30]" />
@@ -581,11 +585,30 @@ const AdminProductsNew: React.FC = () => {
                     Thương hiệu
                   </label>
                 </div>
-                <FormInput
-                  placeholder="Nhập thương hiệu"
-                  value={formData.brand}
-                  onChange={(e) => handleInputChange("brand", e.target.value)}
-                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] w-full h-[36px]">
+                      <span className="text-[14px] font-semibold text-[#888888]">
+                        {formData.brand || "Chọn thương hiệu"}
+                      </span>
+                      <ChevronDown className="w-6 h-6 text-[#322f30]" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-full">
+                    <DropdownMenuItem onClick={() => handleInputChange("brand", "Nike")}>
+                      Nike
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleInputChange("brand", "Adidas")}>
+                      Adidas
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleInputChange("brand", "Puma")}>
+                      Puma
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleInputChange("brand", "New Balance")}>
+                      New Balance
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
@@ -600,7 +623,7 @@ const AdminProductsNew: React.FC = () => {
                 </label>
               </div>
               <textarea
-                className="bg-white border-2 border-[#e04d30] p-4 rounded-[12px] w-full h-[141px] resize-none outline-none text-[12px] font-semibold placeholder:text-[#888888] text-[#888888]"
+                className="bg-white border-2 border-[#e04d30] p-4 rounded-[12px] w-full h-[141px] resize-none outline-none text-[14px] font-semibold placeholder:text-[#888888] text-[#888888]"
                 placeholder="Nhập mô tả sản phẩm"
                 value={formData.description}
                 onChange={(e) =>
@@ -613,7 +636,7 @@ const AdminProductsNew: React.FC = () => {
 
         {/* Sales Information Section - Conditionally render based on showAttributes */}
         {!showAttributes ? (
-          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4 w-[calc(100%-400px)] mx-auto">
             <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
               Thông tin bán hàng
             </h2>
@@ -634,10 +657,11 @@ const AdminProductsNew: React.FC = () => {
                 </div>
                 <Button
                   variant="secondary"
-                  className="w-fit"
+                  className="w-fit flex items-center gap-2 text-[14px]"
                   type="button"
                   onClick={handleAddAttribute}
                 >
+                  <Icon name="plus" size={16} color="#e04d30" />
                   Thêm thuộc tính
                 </Button>
               </div>
@@ -659,6 +683,7 @@ const AdminProductsNew: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("costPrice", e.target.value)
                     }
+                    containerClassName="h-[36px] px-4"
                   />
                 </div>
 
@@ -677,6 +702,7 @@ const AdminProductsNew: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("sellingPrice", e.target.value)
                     }
+                    containerClassName="h-[36px] px-4"
                   />
                 </div>
               </div>
@@ -698,6 +724,7 @@ const AdminProductsNew: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("inventory", e.target.value)
                     }
+                    containerClassName="h-[36px] px-4"
                   />
                 </div>
 
@@ -716,6 +743,7 @@ const AdminProductsNew: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("available", e.target.value)
                     }
+                    containerClassName="h-[36px] px-4"
                   />
                 </div>
               </div>
@@ -723,7 +751,7 @@ const AdminProductsNew: React.FC = () => {
           </div>
         ) : (
           /* Attributes Section - Replaces entire Sales Information when attributes are added */
-          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4 w-[calc(100%-400px)] mx-auto">
             <div className="flex items-center gap-1">
               <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
                 Thuộc tính
@@ -746,6 +774,7 @@ const AdminProductsNew: React.FC = () => {
                   placeholder="Nhập tên thuộc tính"
                   value={currentAttribute.name}
                   onChange={(e) => handleAttributeNameChange(e.target.value)}
+                  containerClassName="h-[36px] px-4"
                 />
               </div>
 
@@ -764,6 +793,7 @@ const AdminProductsNew: React.FC = () => {
                         handleAddAttributeValue();
                       }
                     }}
+                    containerClassName="h-[36px] px-4"
                   />
                   <button
                     type="button"
@@ -923,7 +953,7 @@ const AdminProductsNew: React.FC = () => {
 
         {/* Version Section - Show when attributes are added */}
         {showAttributes && attributes.length > 0 && versions.length > 0 && (
-          <div className="bg-white border border-[#e7e7e7] rounded-[24px] py-6 flex flex-col gap-4">
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] py-6 flex flex-col gap-4 w-[calc(100%-400px)] mx-auto">
             <div className="flex items-center gap-1 px-6">
               <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
                 Phiên bản
@@ -1038,7 +1068,7 @@ const AdminProductsNew: React.FC = () => {
         )}
 
         {/* Shipping Section */}
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
+        <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4 w-[calc(100%-400px)] mx-auto">
           <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
             Vận chuyển
           </h2>
@@ -1058,6 +1088,7 @@ const AdminProductsNew: React.FC = () => {
                 placeholder="Nhập vào"
                 value={formData.weight}
                 onChange={(e) => handleInputChange("weight", e.target.value)}
+                containerClassName="h-[36px] px-4"
               />
             </div>
 
@@ -1070,7 +1101,7 @@ const AdminProductsNew: React.FC = () => {
 
               <div className="flex gap-4">
                 <div className="flex-1 flex flex-col gap-1.5">
-                  <div className="bg-white border-2 border-[#e04d30] flex items-center justify-between p-4 rounded-[12px] h-[52px]">
+                  <div className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] h-[36px]">
                     <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat">
                       R
                     </span>
@@ -1084,7 +1115,7 @@ const AdminProductsNew: React.FC = () => {
                 </div>
 
                 <div className="flex-1 flex flex-col gap-1.5">
-                  <div className="bg-white border-2 border-[#e04d30] flex items-center justify-between p-4 rounded-[12px] h-[52px]">
+                  <div className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] h-[36px]">
                     <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat">
                       D
                     </span>
@@ -1098,7 +1129,7 @@ const AdminProductsNew: React.FC = () => {
                 </div>
 
                 <div className="flex-1 flex flex-col gap-1.5">
-                  <div className="bg-white border-2 border-[#e04d30] flex items-center justify-between p-4 rounded-[12px] h-[52px]">
+                  <div className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] h-[36px]">
                     <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat">
                       C
                     </span>
@@ -1116,7 +1147,7 @@ const AdminProductsNew: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-2.5">
+        <div className="w-[calc(100%-400px)] mx-auto flex items-center justify-end gap-2.5">
           <Button variant="secondary" onClick={handleCancel}>
             Huỷ
           </Button>
@@ -1189,6 +1220,7 @@ const AdminProductsNew: React.FC = () => {
                         onChange={(e) =>
                           handleBarcodeChange(versionId, e.target.value)
                         }
+                        containerClassName="h-[36px] px-4"
                       />
                     </div>
                   </div>
@@ -1254,7 +1286,7 @@ const AdminProductsNew: React.FC = () => {
                   Áp dụng 1 giá cho tất cả phiên bản
                 </p>
                 <div className="w-full">
-                  <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[52px]">
+                  <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
                     <input
                       type="text"
                       placeholder="0"
@@ -1271,7 +1303,7 @@ const AdminProductsNew: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <Button onClick={handleApplyAllPrice} className="ml-4 h-[52px]">
+              <Button onClick={handleApplyAllPrice} className="ml-4 h-[36px]">
                 Áp dụng cho tất cả
               </Button>
             </div>
@@ -1295,7 +1327,7 @@ const AdminProductsNew: React.FC = () => {
                       </p>
                     </div>
                     <div className="w-[315px]">
-                      <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[52px]">
+                      <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
                         <input
                           type="text"
                           placeholder="0"
@@ -1392,6 +1424,7 @@ const AdminProductsNew: React.FC = () => {
                       onChange={(e) =>
                         handleEditVersionChange("barcode", e.target.value)
                       }
+                      containerClassName="h-[36px] px-4"
                     />
                   </div>
 
@@ -1412,6 +1445,7 @@ const AdminProductsNew: React.FC = () => {
                         onChange={(e) =>
                           handleEditVersionChange("costPrice", e.target.value)
                         }
+                        containerClassName="h-[36px] px-4"
                       />
                     </div>
 
@@ -1433,6 +1467,7 @@ const AdminProductsNew: React.FC = () => {
                             e.target.value
                           )
                         }
+                        containerClassName="h-[36px] px-4"
                       />
                     </div>
                   </div>
@@ -1454,6 +1489,7 @@ const AdminProductsNew: React.FC = () => {
                         onChange={(e) =>
                           handleEditVersionChange("inventory", e.target.value)
                         }
+                        containerClassName="h-[36px] px-4"
                       />
                     </div>
 
@@ -1472,6 +1508,7 @@ const AdminProductsNew: React.FC = () => {
                         onChange={(e) =>
                           handleEditVersionChange("available", e.target.value)
                         }
+                        containerClassName="h-[36px] px-4"
                       />
                     </div>
                   </div>

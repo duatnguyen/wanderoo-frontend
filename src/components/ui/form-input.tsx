@@ -22,7 +22,7 @@ export function FormInput({
       <input
         {...props}
         className={cn(
-          "border-0 outline-none bg-transparent text-[12px] font-semibold placeholder:text-[#888888] text-[#888888] flex-1",
+          "border-0 outline-none bg-transparent text-[14px] font-semibold placeholder:text-[#888888] text-black flex-1 text-left",
           className
         )}
       />

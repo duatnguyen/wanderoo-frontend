@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import Icon from "@/components/icons/Icon";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { SearchBar } from "@/components/ui/search-bar";
 import CaretDown from "@/components/ui/caret-down";
@@ -196,14 +197,15 @@ const AdminCustomers: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[16px] items-center w-full max-w-full overflow-hidden">
+    <div className="flex flex-col gap-0 items-center w-full max-w-full overflow-hidden">
       {/* Customers Table */}
-      <div className="flex items-center justify-between w-full">
-        <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+      <div className="flex items-center justify-between w-full mb-[5px] flex-nowrap gap-2">
+        <h2 className="font-bold text-[#272424] text-[24px] leading-normal whitespace-nowrap min-w-0 overflow-hidden text-ellipsis">
           Danh sách khách hàng
         </h2>
-        <Button onClick={() => navigate("/admin/customers/new")}>
-          Thêm khách hàng
+        <Button onClick={() => navigate("/admin/customers/new")} className="h-[36px] flex-shrink-0">
+          <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
+          <span className="whitespace-nowrap">Thêm  mới khách hàng</span>
         </Button>
       </div>
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[12px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
@@ -213,14 +215,14 @@ const AdminCustomers: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm kiếm"
-            className="w-[400px]"
+            className="flex-1 min-w-0 max-w-[400px]"
           />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer">
                 <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  Trạng thái tài khoản
+                  {statusFilter === "all" ? "Tất cả trạng thái" : statusFilter === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
@@ -233,7 +235,7 @@ const AdminCustomers: React.FC = () => {
                 Đang kích hoạt
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("disabled")}>
-                Đã khóa
+              Ngừng kích hoạt
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -242,9 +244,10 @@ const AdminCustomers: React.FC = () => {
         {/* Table */}
         <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
           {/* Table Header */}
-          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1000px] h-[58px]">
+          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1100px] h-[58px]">
             <div className="flex flex-row items-center w-full h-full">
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[350px] min-w-[350px] min-h-[58px]">
+              {/* Checkbox column */}
+              <div className="flex h-full items-center px-[4px] py-[12px] min-w-[24px] flex-shrink-0">
                 <CustomCheckbox
                   checked={
                     paginatedCustomers.length > 0 &&
@@ -253,49 +256,48 @@ const AdminCustomers: React.FC = () => {
                   onChange={(checked) => handleSelectAll(checked)}
                   className="w-[30px] h-[30px]"
                 />
-                {selectedCustomers.size > 0 ? (
-                  <div className="flex gap-[6px] items-center">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                      Đã chọn {selectedCustomers.size} khách hàng
-                    </span>
-                    <Button onClick={handleDeactivateSelected}>
+              </div>
+              {/* If selection active, show actions across row */}
+              {selectedCustomers.size > 0 ? (
+                <div className="flex items-center gap-[12px] flex-1 px-[4px]">
+                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] whitespace-nowrap">
+                    Đã chọn {selectedCustomers.size} khách hàng
+                  </span>
+                  <div className="flex items-center gap-[8px]">
+                    <Button
+                      className="h-[32px] px-[16px] rounded-[10px] bg-[#e04d30] text-white hover:bg-[#d54933] transition-colors duration-150 text-[12px]"
+                      onClick={() => console.log("Activate selected:", Array.from(selectedCustomers))}
+                    >
+                      Đang kích hoạt
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="h-[32px] px-[16px] rounded-[10px] border-2 border-[#e04d30] text-[#e04d30] hover:bg-[#ffe9e5] hover:text-[#c73722] transition-colors duration-150 text-[12px]"
+                      onClick={handleDeactivateSelected}
+                    >
                       Ngừng kích hoạt
                     </Button>
                   </div>
-                ) : (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Khách hàng
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[180px] min-w-[180px] min-h-[58px]">
-                {selectedCustomers.size === 0 && (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Email
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[130px] min-w-[130px] min-h-[58px]">
-                {selectedCustomers.size === 0 && (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Số điện thoại
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[180px] min-w-[180px] min-h-[58px]">
-                {selectedCustomers.size === 0 && (
-                  <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                    Tổng chi tiêu
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1 min-h-[58px]">
-                {selectedCustomers.size > 0 ? null : (
-                  <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                    Trạng thái
-                  </span>
-                )}
-              </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0 ml-[7px]">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Khách hàng</span>
+                  </div>
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Email</span>
+                  </div>
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Số điện thoại</span>
+                  </div>
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Tổng chi tiêu</span>
+                  </div>
+                  <div className="flex gap-[4px] items-center px-[4px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Trạng thái</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -303,7 +305,7 @@ const AdminCustomers: React.FC = () => {
           {paginatedCustomers.map((c, index) => (
             <div
               key={c.id}
-              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full min-w-[1000px] ${
+              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full min-w-[1100px] ${
                 index === paginatedCustomers.length - 1
                   ? "border-transparent"
                   : "border-[#e7e7e7]"
@@ -312,64 +314,60 @@ const AdminCustomers: React.FC = () => {
                   ? "bg-blue-50"
                   : "hover:bg-gray-50 cursor-pointer"
               }`}
-              onClick={(e) => {
-                // Prevent navigation when checkbox or button is clicked
-                if (
-                  (e.target as HTMLElement).closest("button") ||
-                  (e.target as HTMLElement).closest('input[type="checkbox"]')
-                ) {
-                  return;
-                }
-                navigate(`/admin/customers/${c.id}`);
-              }}
             >
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
-                  <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[350px] min-w-[350px]">
+                  {/* Checkbox col */}
+                  <div className="flex h-full items-center px-[4px] py-[12px] min-w-[24px] flex-shrink-0">
                     <CustomCheckbox
                       checked={selectedCustomers.has(c.id)}
                       onChange={(checked) => handleSelectItem(c.id, checked)}
                       className="w-[30px] h-[30px]"
                     />
-                    <div className="w-[50px] h-[50px] relative overflow-hidden rounded-lg border-2 border-[#d1d1d1]">
+                  </div>
+                  {/* Name col */}
+                  <div className="flex h-full items-center px-[4px] py-[12px] flex-1 min-w-0 ml-[7px]">
+                    <div className="w-[50px] h-[50px] relative overflow-hidden rounded-lg border-2 border-[#d1d1d1] mr-[8px]">
                       <Avatar className="w-full h-full">
                         {c.avatar ? (
                           <AvatarImage src={c.avatar} alt={c.name} />
                         ) : (
-                          <AvatarFallback className="text-xs">
-                            {c.name.charAt(0)}
-                          </AvatarFallback>
+                          <AvatarFallback className="text-xs">{c.name.charAt(0)}</AvatarFallback>
                         )}
                       </Avatar>
                     </div>
                     <div className="flex flex-col gap-[2px] h-full items-start justify-center">
-                      <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3]">
+                      <button
+                        className="font-semibold text-[14px] text-[#1a71f6] leading-[1.3] hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin/customers/${c.id}`);
+                        }}
+                      >
                         {c.name}
-                      </span>
-                      <span className="font-medium text-[11px] text-[#737373] leading-[1.3]">
-                        @{c.username}
-                      </span>
+                      </button>
+                      <span className="font-medium text-[12px] text-[#737373] leading-[1.3]">@{c.username}</span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-[180px] min-w-[180px]">
-                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4] truncate">
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
+                    <span className="font-medium text-[#272424] text-[14px] leading-[1.4] truncate">
                       {c.email}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-[130px] min-w-[130px]">
-                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
+                    <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                       {c.phone}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-[180px] min-w-[180px]">
-                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
-                      {c.totalSpent.toLocaleString("vi-VN")} VNĐ
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
+                    <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
+                      {c.totalSpent.toLocaleString("vi-VN")}đ
                     </span>
-                    <span className="font-medium text-[#737373] text-[11px] leading-[1.3]">
+                    <span className="font-medium text-[#737373] text-[12px] leading-[1.3]">
                       {c.totalOrders} đơn hàng
                     </span>
                   </div>
-                  <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
+                  <div className="flex gap-[4px] h-full items-center px-[4px] py-[12px] flex-1 min-w-0">
                     <div
                       className={`rounded-[10px] ${
                         c.status === "active" ? "bg-[#b2ffb4]" : "bg-[#ffdcdc]"
@@ -377,13 +375,13 @@ const AdminCustomers: React.FC = () => {
                     >
                       <div className="flex gap-[10px] items-center justify-center px-[8px] py-[6px]">
                         <span
-                          className={`font-semibold text-[12px] leading-[1.4] ${
+                          className={`font-semibold text-[14px] leading-[1.4] ${
                             c.status === "active"
                               ? "text-[#04910c]"
                               : "text-[#eb2b0b]"
                           }`}
                         >
-                          {c.status === "active" ? "Đang kích hoạt" : "Đã khóa"}
+                          {c.status === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
                         </span>
                       </div>
                     </div>

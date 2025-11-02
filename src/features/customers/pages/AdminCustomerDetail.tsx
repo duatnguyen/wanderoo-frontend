@@ -123,9 +123,10 @@ const AdminCustomerDetail = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[10px] w-full">
-      {/* Header */}
-      <div className="flex flex-col gap-[8px] py-[10px] w-full">
+    <div className="w-full overflow-x-auto min-h-screen">
+      <div className="flex flex-col gap-[10px] items-start w-full max-w-[1100px] mx-auto px-[24px] min-w-[1070px] pb-[32px]">
+        {/* Header */}
+        <div className="flex flex-col gap-[8px] pt-[10px] pb-0 w-full">
         <div className="flex items-center justify-between w-full">
           <div className="flex gap-[8px] items-center">
             <button
@@ -144,21 +145,21 @@ const AdminCustomerDetail = () => {
             </div>
           </div>
           <div className="flex gap-[10px]">
-            <Button variant="secondary">Huỷ</Button>
-            <Button variant="default">Lưu</Button>
+            <Button variant="secondary" className="text-[14px]">Huỷ</Button>
+            <Button variant="default" className="text-[14px]">Lưu</Button>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex gap-[15px] w-full">
+        {/* Content */}
+        <div className="flex gap-[15px] w-full">
         {/* Left Column */}
         <div className="flex flex-col gap-[8px] flex-1">
           {/* Customer Summary Card */}
-          <div className="bg-white border border-[#d1d1d1] rounded-[24px] p-[14px] h-[152px] flex items-center justify-between">
-            <div className="flex w-full gap-[8px] items-center">
-              <div className="w-[70px] h-[70px] rounded-[25px] border-2 border-dashed border-[#d1d1d1] p-[3px]">
-                <Avatar className="w-full h-full rounded-[20px]">
+          <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[10px] h-[100px] flex items-center justify-between">
+            <div className="flex w-full gap-[8px] items-start">
+              <div className="w-[60px] h-[60px] rounded-[8px] border-2 border-dashed border-[#d1d1d1] p-[3px]">
+                <Avatar className="w-full h-full rounded-[8px]">
                   {customer.avatar ? (
                     <AvatarImage src={customer.avatar} alt={customer.name} />
                   ) : (
@@ -170,8 +171,8 @@ const AdminCustomerDetail = () => {
                 {customer.name}
               </p>
             </div>
-            <div className="flex w-full flex-col gap-[8px] items-center text-[#272424]">
-              <p className="font-semibold text-[16px] leading-[1.4]">
+            <div className="flex w-full flex-col gap-[4px] items-center text-[#272424]">
+              <p className="font-normal text-[14px] leading-[1.4]">
                 Tổng chi tiêu
               </p>
               <p className="font-bold text-[20px] leading-normal">
@@ -184,7 +185,7 @@ const AdminCustomerDetail = () => {
           </div>
 
           {/* Recent Orders */}
-          <div className="bg-white border border-[#d1d1d1] rounded-[24px] flex flex-col">
+          <div className="bg-white border border-[#d1d1d1] rounded-[8px] flex flex-col">
             <div className="flex items-center justify-between border-b border-[#d1d1d1] px-[16px] pt-[16px] pb-[8px]">
               <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 Đơn hàng gần đây
@@ -241,20 +242,20 @@ const AdminCustomerDetail = () => {
         </div>
 
         {/* Right Column */}
-        <div className="flex flex-col gap-[8px] w-[428px]">
+        <div className="flex flex-col gap-[8px] w-[400px]">
           {/* Contact Info */}
-          <div className="bg-white border border-[#d1d1d1] rounded-[24px] p-[16px] flex flex-col gap-[8px]">
+          <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[12px] flex flex-col gap-[6px]">
             <div className="flex items-center justify-between">
               <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 Liên hệ
               </p>
               <button
                 onClick={handleEditClick}
-                className="flex items-center gap-[6px] px-[6px] hover:opacity-80 transition-opacity"
+                className="flex items-center gap-[4px] px-[4px] hover:opacity-80 transition-opacity"
               >
                 <svg
-                  width="16"
-                  height="16"
+                  width="14"
+                  height="14"
                   viewBox="0 0 16 16"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -267,58 +268,58 @@ const AdminCustomerDetail = () => {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
+                <span className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4]">
                   Chỉnh sửa
                 </span>
               </button>
             </div>
             <div className="flex items-center justify-between">
-              <p className="font-medium text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                 Tên khách hàng
               </p>
-              <p className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 {customer.name}
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <p className="font-medium text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                 Số điện thoại
               </p>
-              <p className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 {customer.phone}
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <p className="font-medium text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                 Giới tính
               </p>
-              <p className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 {customer.gender}
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <p className="font-medium text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                 Email
               </p>
-              <p className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 {customer.email}
               </p>
             </div>
           </div>
 
           {/* Address Book */}
-          <div className="bg-white border border-[#d1d1d1] rounded-[24px] p-[16px] flex flex-col gap-[8px]">
+          <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[12px] flex flex-col gap-[6px]">
             <div className="flex items-center justify-between">
               <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 Sổ địa chỉ
               </p>
               <button
                 onClick={handleAddressEditClick}
-                className="flex items-center gap-[6px] px-[6px] hover:opacity-80 transition-opacity"
+                className="flex items-center gap-[4px] px-[4px] hover:opacity-80 transition-opacity"
               >
                 <svg
-                  width="16"
-                  height="16"
+                  width="14"
+                  height="14"
                   viewBox="0 0 16 16"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -331,47 +332,46 @@ const AdminCustomerDetail = () => {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
+                <span className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4]">
                   Chỉnh sửa
                 </span>
               </button>
             </div>
             <div className="flex items-center justify-between">
-              <p className="font-medium text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                 Tên khách hàng
               </p>
-              <p className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 {customer.name}
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <p className="font-medium text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                 Số điện thoại
               </p>
-              <p className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
+              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                 {customer.phone}
               </p>
             </div>
-            <div className="flex items-center justify-between">
-              <p className="font-medium text-[#272424] text-[12px] leading-[1.4]">
+            <div className="flex items-start justify-between gap-[8px]">
+              <p className="font-medium text-[#272424] text-[14px] leading-[1.4] flex-shrink-0">
                 Địa chỉ
               </p>
-              <p className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
-                {customer.address}
+              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] break-words flex-1 text-right">
+                {customer.address?.replace(/Hà Nội/g, 'Hà\u00A0Nội')}
               </p>
             </div>
           </div>
 
           {/* Notes */}
-          <div className="bg-white border border-[#d1d1d1] rounded-[24px] p-[16px] flex flex-col gap-[6px] h-[234px]">
+          <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[16px] flex flex-col gap-[6px]">
             <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
               Ghi chú
             </p>
-            <div className="flex-1 border border-[#d1d1d1] rounded-[12px] p-[16px]">
-              <p className="font-normal text-[#737373] text-[12px] leading-[1.5]">
-                Viết ghi chú vào đây
-              </p>
-            </div>
+            <textarea
+              className="border border-[#d1d1d1] rounded-[8px] p-[16px] h-[120px] resize-none font-normal text-[#737373] text-[14px] leading-[1.5] focus:border-orange-500 focus:outline-none"
+              placeholder="Nhập ghi chú tại đây (Nếu có)"
+            />
           </div>
         </div>
       </div>
@@ -387,7 +387,7 @@ const AdminCustomerDetail = () => {
           onClick={() => setIsEditModalOpen(false)}
         >
           <div
-            className="bg-white rounded-[24px] p-[32px] w-[658px] shadow-2xl animate-scaleIn"
+            className="bg-white rounded-[8px] p-[32px] w-[658px] shadow-2xl animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -506,7 +506,7 @@ const AdminCustomerDetail = () => {
           onClick={() => setIsAddressModalOpen(false)}
         >
           <div
-            className="bg-white rounded-[24px] p-[32px] w-[658px] shadow-2xl animate-scaleIn"
+            className="bg-white rounded-[8px] p-[32px] w-[658px] shadow-2xl animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -619,6 +619,8 @@ const AdminCustomerDetail = () => {
           </div>
         </div>
       )}
+      </div>
+      <div className="h-[calc(100vh-200px)]"></div>
     </div>
   );
 };

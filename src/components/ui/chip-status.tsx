@@ -14,6 +14,7 @@ export type ChipStatusKey =
   | "active"
   | "disabled"
   | "pending"
+  | "confirmed"
   | "shipping"
   | "cancelled"
   | "default";
@@ -25,6 +26,7 @@ const CHIP_STYLES: Record<
   // Order statuses - from Figma
   completed: { bg: "#b2ffb4", text: "#04910c", label: "Đã hoàn thành" }, // Green
   pending: { bg: "#e7e7e7", text: "#737373", label: "Chờ xác nhận" }, // Gray
+  confirmed: { bg: "#D1E7DD", text: "#28A745", label: "Đã xác nhận" }, // Light Green
   paid: { bg: "#b2ffb4", text: "#04910c", label: "Đã thanh toán" }, // Green
   unpaid: { bg: "#ffdcdc", text: "#eb2b0b", label: "Chưa thanh toán" }, // Red/Pink
   shipping: { bg: "#cce5ff", text: "#004085", label: "Đang giao" }, // Blue

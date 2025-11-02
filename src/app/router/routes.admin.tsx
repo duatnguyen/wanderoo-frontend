@@ -38,6 +38,21 @@ const AdminDiscounts = lazy(
 const AdminCreateVoucher = lazy(
   () => import("../../features/discounts/pages/AdminCreateVoucher")
 );
+const AdminCreateVoucherShopWide = lazy(
+  () => import("../../features/discounts/pages/AdminCreateVoucherShopWide")
+);
+const AdminCreateVoucherProduct = lazy(
+  () => import("../../features/discounts/pages/AdminCreateVoucherProduct")
+);
+const AdminCreateVoucherNewCustomer = lazy(
+  () => import("../../features/discounts/pages/AdminCreateVoucherNewCustomer")
+);
+const AdminCreateVoucherReturningCustomer = lazy(
+  () => import("../../features/discounts/pages/AdminCreateVoucherReturningCustomer")
+);
+const AdminCreateVoucherPrivate = lazy(
+  () => import("../../features/discounts/pages/AdminCreateVoucherPrivate")
+);
 const AdminPOS = lazy(() => import("../../features/channels/pages/AdminPOS"));
 const AdminWarehouseReturnsImport = lazy(
   () => import("../../features/warehouse/pages/AdminWarehouseReturnsImport")
@@ -47,6 +62,9 @@ const AdminWarehouseImports = lazy(
 );
 const AdminWarehouseCreateImport = lazy(
   () => import("../../features/warehouse/pages/AdminWarehouseCreateImport")
+);
+const AdminWarehouseCreateReturnImport = lazy(
+  () => import("../../features/warehouse/pages/AdminWarehouseCreateReturnImport")
 );
 const AdminWarehouseImportDetail = lazy(
   () => import("../../features/warehouse/pages/AdminWarehouseImportDetail")
@@ -241,6 +259,14 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
+    path: "warehouse/returns/create",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseCreateReturnImport />
+      </LazyWrapper>
+    ),
+  },
+  {
     path: "warehouse/imports",
     element: (
       <LazyWrapper>
@@ -405,6 +431,46 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminCreateVoucher />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "discounts/new/shop-wide",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherShopWide />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "discounts/new/product",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherProduct />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "discounts/new/new-customer",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherNewCustomer />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "discounts/new/returning-customer",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherReturningCustomer />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "discounts/new/private",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherPrivate />
       </LazyWrapper>
     ),
   },

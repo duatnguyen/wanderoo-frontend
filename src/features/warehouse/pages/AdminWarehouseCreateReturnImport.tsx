@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -49,10 +49,30 @@ const mockProducts: MockProduct[] = [
   },
 ];
 
-const AdminWarehouseCreateImport = () => {
-  document.title = "Tạo đơn nhập hàng | Wanderoo";
+// Mock import data - would normally fetch from API
+const mockImportData: { [key: string]: { supplier: string; items: Product[] } } = {
+  "1": {
+    supplier: "Công ty TNHH ABC",
+    items: [
+      { id: "p1", name: "Áo thun thoáng khí Rockbros LKW008", quantity: 100, price: 120000, image: "/placeholder-product.jpg" },
+      { id: "p2", name: "Áo thun dài tay Northshengwolf", quantity: 50, price: 150000, image: "/placeholder-product.jpg" },
+    ],
+  },
+  "2": {
+    supplier: "Công ty XYZ",
+    items: [
+      { id: "p3", name: "Giày Thể Thao Nam", quantity: 30, price: 500000, image: "/placeholder-product.jpg" },
+    ],
+  },
+};
+
+const AdminWarehouseCreateReturnImport = () => {
+  document.title = "Tạo đơn trả hàng nhập | Wanderoo";
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const importId = searchParams.get("importId");
+  
   const [supplierSearch, setSupplierSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productFormSearch, setProductFormSearch] = useState("");
@@ -60,6 +80,16 @@ const AdminWarehouseCreateImport = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+  // Load import data when importId is provided
+  useEffect(() => {
+    if (importId && mockImportData[importId]) {
+      const importData = mockImportData[importId];
+      setSupplierSearch(importData.supplier);
+      // Set initial products with their original quantities from import order
+      setProducts(importData.items.map(item => ({ ...item })));
+    }
+  }, [importId]);
 
   const totalProducts = products.length;
   const totalAmount = products.reduce(
@@ -78,12 +108,27 @@ const AdminWarehouseCreateImport = () => {
   };
 
   const handleCancel = () => {
-    navigate("/admin/warehouse/imports");
+    navigate("/admin/warehouse/returnsimport");
   };
 
   const handleConfirm = () => {
-    // Handle confirm logic here
-    console.log("Confirm import order");
+    // Generate a new return ID (in real app, this would come from the API)
+    const newReturnId = `return-${Date.now()}`;
+    // Save default status to localStorage so the list page can reflect the new return
+    // Default status: processing (Đang giao dịch), returned (Đã hoàn trả), pending_refund (Chưa thanh toán)
+    if (typeof window !== "undefined") {
+      const storedStatus = JSON.parse(localStorage.getItem("returnImportStatuses") || "{}");
+      storedStatus[newReturnId] = {
+        status: "processing",
+        returnStatus: "returned",
+        refundStatus: "pending_refund",
+      };
+      localStorage.setItem("returnImportStatuses", JSON.stringify(storedStatus));
+      // Dispatch custom event to notify the list page
+      window.dispatchEvent(new Event("returnImportStatusUpdated"));
+    }
+    // Navigate to the return detail page
+    navigate(`/admin/warehouse/returns/${newReturnId}`);
   };
 
   const toggleProductSelection = (productId: string) => {
@@ -153,7 +198,7 @@ const AdminWarehouseCreateImport = () => {
       <div className="box-border flex flex-col gap-[8px] items-start justify-center px-0 pb-[10px] relative shrink-0 w-full min-w-[1000px]">
         <div className="flex items-center gap-[8px] relative shrink-0 w-full">
           <button
-            onClick={() => navigate("/admin/warehouse/imports")}
+            onClick={() => navigate("/admin/warehouse/returnsimport")}
             className="relative shrink-0 size-[24px] flex items-center justify-center cursor-pointer"
           >
             <div className="flex items-center justify-center">
@@ -176,7 +221,7 @@ const AdminWarehouseCreateImport = () => {
             </div>
           </button>
           <h1 className="font-['Montserrat'] font-bold text-[24px] text-[#272424] leading-normal">
-            Tạo đơn nhập hàng
+            Tạo đơn trả hàng nhập
           </h1>
         </div>
       </div>
@@ -189,28 +234,30 @@ const AdminWarehouseCreateImport = () => {
           <div className="basis-0 bg-white border border-[#d1d1d1] box-border flex flex-col gap-[8px] grow items-start min-h-px min-w-px px-[24px] py-[16px] relative rounded-lg flex-shrink-0 w-full min-w-[600px]">
             <div className="flex gap-[10px] items-start relative shrink-0 w-full">
               <p className="font-['Montserrat'] font-semibold leading-[1.4] relative shrink-0 text-[#272424] text-[16px]">
-                Sản phẩm
+                Sản phẩm hoàn trả
               </p>
             </div>
-            <div className="flex items-center gap-2 relative shrink-0 w-full">
-              <SearchBar
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Tìm kiếm"
-                className="flex-1 h-[36px] [&_input]:text-[14px]"
-              />
-              <Button
-                variant="secondary"
-                onClick={() => setIsProductFormOpen(true)}
-                className="bg-white text-[#e04d30] border border-[#e04d30] hover:bg-white hover:text-[#e04d30] h-[36px] w-[36px] p-0 flex items-center justify-center flex-shrink-0"
-              >
-                <Icon name="plus" size={16} color="#e04d30" strokeWidth={3} />
-              </Button>
-            </div>
+            {!importId && (
+              <div className="flex items-center gap-2 relative shrink-0 w-full">
+                <SearchBar
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Tìm kiếm"
+                  className="flex-1 h-[36px] [&_input]:text-[14px]"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsProductFormOpen(true)}
+                  className="bg-white text-[#e04d30] border border-[#e04d30] hover:bg-white hover:text-[#e04d30] h-[36px] w-[36px] p-0 flex items-center justify-center flex-shrink-0"
+                >
+                  <Icon name="plus" size={16} color="#e04d30" strokeWidth={3} />
+                </Button>
+              </div>
+            )}
             
             {/* Products Table */}
             {products.length > 0 && (
-              <div className="w-[calc(100%+48px)] mt-4 -mx-[24px]">
+              <div className="w-[calc(100%+48px)] mt-0 -mx-[24px]">
                 {/* Table Header */}
                 <div className="bg-[#f6f6f6] border-b border-[#d1d1d1] flex items-center py-[14px] pl-[24px] pr-0">
                   <div className="flex-[2] min-w-0 font-['Montserrat'] font-semibold text-[14px] text-[#272424]">
@@ -346,12 +393,23 @@ const AdminWarehouseCreateImport = () => {
               <p className="font-['Montserrat'] font-semibold leading-[1.4] relative shrink-0 text-[#272424] text-[16px]">
                 Nhà cung cấp
               </p>
-              <SearchBar
-                value={supplierSearch}
-                onChange={(e) => setSupplierSearch(e.target.value)}
-                placeholder="Tìm kiếm"
-                className="w-full h-[36px] [&_input]:text-[14px]"
-              />
+              {supplierSearch ? (
+                <div className="flex items-start gap-3 w-full">
+                  <div className="w-[60px] h-[60px] bg-[#e7e7e7] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-[#9a9a9a] text-[12px]">60 x 60</span>
+                  </div>
+                  <p className="font-['Montserrat'] text-[#272424] text-[14px] leading-normal">
+                    {supplierSearch}
+                  </p>
+                </div>
+              ) : (
+                <SearchBar
+                  value={supplierSearch}
+                  onChange={(e) => setSupplierSearch(e.target.value)}
+                  placeholder="Tìm kiếm"
+                  className="w-full h-[36px] [&_input]:text-[14px]"
+                />
+              )}
             </div>
           </div>
 
@@ -363,9 +421,6 @@ const AdminWarehouseCreateImport = () => {
                   <div className="flex gap-[4px] items-start leading-[1.4] relative shrink-0">
                     <p className="font-['Montserrat'] relative shrink-0 text-[#272424] font-semibold text-[16px]">
                       Ghi chú
-                    </p>
-                    <p className="font-['Montserrat'] relative shrink-0 text-[#eb2b0b] font-semibold text-[16px]">
-                      *
                     </p>
                   </div>
                 </div>
@@ -404,101 +459,101 @@ const AdminWarehouseCreateImport = () => {
             className="relative z-10 w-[700px] max-h-[90vh] bg-white flex flex-col rounded-lg shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-              <div className="bg-white flex flex-col rounded-lg overflow-hidden">
-                {/* Search Header */}
-                <div className="border-b border-[#e7e7e7] flex gap-2 items-center px-[16px] py-[30px] shrink-0 bg-white">
-                  <div className="border-[1.6px] border-[#e04d30] border-solid box-border flex gap-[4px] grow items-center px-[16px] py-[8px] rounded-[12px] bg-white">
-                    <input
-                      type="text"
-                      value={productFormSearch}
-                      onChange={(e) => setProductFormSearch(e.target.value)}
-                      placeholder="Tìm kiếm"
-                      className="font-['Montserrat'] font-normal leading-[1.5] text-[12px] text-[#949494] grow outline-none bg-transparent"
-                    />
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="shrink-0"
-                    >
-                      <path
-                        d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
-                        stroke="#454545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M21 21L16.65 16.65"
-                        stroke="#454545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <button 
-                    onClick={() => navigate("/admin/products/new")}
-                    className="bg-[#e04d30] flex items-center justify-center h-[40px] w-[40px] rounded-[12px] shrink-0"
+            <div className="bg-white flex flex-col rounded-lg overflow-hidden">
+              {/* Search Header */}
+              <div className="border-b border-[#e7e7e7] flex gap-2 items-center px-[16px] py-[30px] shrink-0 bg-white">
+                <div className="border-[1.6px] border-[#e04d30] border-solid box-border flex gap-[4px] grow items-center px-[16px] py-[8px] rounded-[12px] bg-white">
+                  <input
+                    type="text"
+                    value={productFormSearch}
+                    onChange={(e) => setProductFormSearch(e.target.value)}
+                    placeholder="Tìm kiếm"
+                    className="font-['Montserrat'] font-normal leading-[1.5] text-[12px] text-[#949494] grow outline-none bg-transparent"
+                  />
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="shrink-0"
                   >
-                    <span className="font-['Montserrat'] font-light text-[32px] text-white leading-[1.5]">
-                      +
-                    </span>
-                  </button>
-                </div>
-
-                {/* Table Header */}
-                <div className="box-border flex items-center px-[15px] py-0 shrink-0 bg-white">
-                  <div className="bg-white box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
-                    <Checkbox
-                      checked={selectedProductIds.length === filteredMockProducts.length && filteredMockProducts.length > 0}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedProductIds(filteredMockProducts.map(p => p.id));
-                        } else {
-                          setSelectedProductIds([]);
-                        }
-                      }}
+                    <path
+                      d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
+                      stroke="#454545"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                    <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#454545]">
-                      Sản phẩm
-                    </p>
-                  </div>
-                  <div className="bg-white box-border flex gap-[4px] grow h-[50px] items-center justify-center p-[14px]">
-                    <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
-                      Có thể bán
-                    </p>
-                  </div>
+                    <path
+                      d="M21 21L16.65 16.65"
+                      stroke="#454545"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
+                <button 
+                  onClick={() => navigate("/admin/products/new")}
+                  className="bg-[#e04d30] flex items-center justify-center h-[40px] w-[40px] rounded-[12px] shrink-0"
+                >
+                  <span className="font-['Montserrat'] font-light text-[32px] text-white leading-[1.5]">
+                    +
+                  </span>
+                </button>
+              </div>
 
-                {/* Product List */}
-                <div className="box-border flex flex-col max-h-[400px] items-start px-[15px] py-0 overflow-y-auto bg-white">
-                  {filteredMockProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="border-b border-[#e7e7e7] box-border flex items-center w-full bg-white"
-                    >
-                      <div className="bg-white box-border flex gap-[8px] h-full items-start overflow-clip px-[5px] py-[14px] w-[450px]">
-                        <Checkbox
-                          checked={selectedProductIds.includes(product.id)}
-                          onCheckedChange={() => toggleProductSelection(product.id)}
-                        />
-                        <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300">
-                        </div>
-                        <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-black">
-                          {product.name}
-                        </p>
-                      </div>
-                      <div className="bg-white box-border flex gap-[4px] grow h-full items-center justify-center p-[14px]">
-                        <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
-                          {product.availableStock}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+              {/* Table Header */}
+              <div className="box-border flex items-center px-[15px] py-0 shrink-0 bg-white">
+                <div className="bg-white box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
+                  <Checkbox
+                    checked={selectedProductIds.length === filteredMockProducts.length && filteredMockProducts.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedProductIds(filteredMockProducts.map(p => p.id));
+                      } else {
+                        setSelectedProductIds([]);
+                      }
+                    }}
+                  />
+                  <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#454545]">
+                    Sản phẩm
+                  </p>
                 </div>
+                <div className="bg-white box-border flex gap-[4px] grow h-[50px] items-center justify-center p-[14px]">
+                  <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
+                    Có thể bán
+                  </p>
+                </div>
+              </div>
+
+              {/* Product List */}
+              <div className="box-border flex flex-col max-h-[400px] items-start px-[15px] py-0 overflow-y-auto bg-white">
+                {filteredMockProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="border-b border-[#e7e7e7] box-border flex items-center w-full bg-white"
+                  >
+                    <div className="bg-white box-border flex gap-[8px] h-full items-start overflow-clip px-[5px] py-[14px] w-[450px]">
+                      <Checkbox
+                        checked={selectedProductIds.includes(product.id)}
+                        onCheckedChange={() => toggleProductSelection(product.id)}
+                      />
+                      <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300">
+                      </div>
+                      <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-black">
+                        {product.name}
+                      </p>
+                    </div>
+                    <div className="bg-white box-border flex gap-[4px] grow h-full items-center justify-center p-[14px]">
+                      <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
+                        {product.availableStock}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
               {/* Footer Buttons */}
               <div className="box-border flex gap-[10px] items-center justify-end px-[16px] py-[12px] shrink-0 bg-white rounded-b-lg">
@@ -524,4 +579,5 @@ const AdminWarehouseCreateImport = () => {
   );
 };
 
-export default AdminWarehouseCreateImport;
+export default AdminWarehouseCreateReturnImport;
+

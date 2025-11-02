@@ -233,7 +233,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   ];
 
   return (
-    <aside className="w-[230px] min-h-screen bg-[#18345C] text-white flex flex-col admin-sidebar-font">
+    <aside className="w-[230px] h-screen bg-[#18345C] text-white flex flex-col admin-sidebar-font overflow-hidden">
       {/* Khung logo, tách riêng, cao 64px, border-b */}
       <div className="relative flex items-center justify-start h-[64px] border-b border-white/10 bg-[#18345C] overflow-hidden">
         <Link to="/admin/dashboard">
@@ -241,14 +241,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
             <img
               src={ShopLogo}
               alt="Shop Logo"
-              style={{ width: 2600, height: 800, objectFit: 'contain', display: 'block', marginTop: 4 }}
+              style={{ width: 3000, height: 920, objectFit: 'contain', display: 'block', marginTop: 4 }}
               className="block"
             />
           </div>
         </Link>
       </div>
       {/* Các mục nav phía dưới, không bị cách xa logo */}
-      <div className="flex-1 flex flex-col px-[16px] pb-2">
+      <div className="flex-1 flex flex-col px-[16px] pb-2 overflow-y-auto admin-sidebar-scroll">
         {isSettingsMode ? (
           <nav className="flex-1">
             <div className="py-2 ">

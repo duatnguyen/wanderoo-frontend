@@ -109,10 +109,10 @@ const voucherTypes = {
     },
   ],
   privateChannel: {
-    icon: <CreditCardPercentIcon size={30} color="#292D32" />,
+    icon: <CreditCardPercentIcon size={24} color="#292D32" />,
     title: "Voucher riêng tư",
     description:
-      "Voucher nhằm áp dụng cho nhóm khách hàng shop muốn thông qua mã voucher",
+      "Voucher áp dụng cho nhóm khách hàng shop thông qua mã voucher",
   },
 };
 
@@ -136,47 +136,51 @@ const AdminDiscounts: React.FC = () => {
 
   const handleCreateVoucher = (type: string) => {
     console.log("Creating voucher of type:", type);
-    navigate("/admin/discounts/new");
+    // Map voucher types to different routes
+    const routeMap: Record<string, string> = {
+      "Voucher toàn shop": "/admin/discounts/new/shop-wide",
+      "Voucher sản phẩm": "/admin/discounts/new/product",
+      "Voucher khách hàng mới": "/admin/discounts/new/new-customer",
+      "Voucher khách hàng mua lại": "/admin/discounts/new/returning-customer",
+      "Voucher riêng tư": "/admin/discounts/new/private",
+    };
+    const route = routeMap[type] || "/admin/discounts/new";
+    navigate(route);
   };
 
   return (
-    <div className="flex flex-col gap-[10px] px-[50px] py-[32px] w-full">
+    <div className="flex flex-col gap-[6px] px-1 xl:px-[50px] pt-0 pb-[12px] w-full -mt-[7px]">
       {/* Header */}
-      <div className="flex flex-col gap-[8px] h-[79px] items-start justify-center px-0 py-[10px] w-full">
-        <div className="flex gap-[30px] items-center px-0 py-[4px] w-full">
-          <h1 className="font-bold text-[24px] text-[#272424] leading-[normal]">
+      <div className="flex flex-col gap-[4px] h-[54px] items-start justify-center px-0 py-0 w-full">
+        <div className="flex gap-[20px] items-center justify-start px-0 py-0 w-full -ml-1 xl:-ml-[50px]">
+          <h1 className="font-bold text-[24px] text-[#272424] leading-[normal] text-left">
             Danh sách mã giảm giá
           </h1>
         </div>
       </div>
 
       {/* Create Voucher Section */}
-      <div className="bg-white border border-[#d1d1d1] rounded-[24px] p-[24px] flex flex-col w-full">
+      <div className="bg-white border border-[#d1d1d1] rounded-[24px] pt-[12px] px-[24px] pb-[24px] flex flex-col w-full xl:w-[calc(100%+100px)] -mx-0 xl:-mx-[50px] -mt-[10px] overflow-x-auto">
         {/* Create Voucher Header */}
-        <div className="flex flex-col gap-[8px] h-[79px] items-start justify-center px-0 py-[10px] w-full">
-          <div className="flex gap-[30px] items-center px-0 py-[4px] w-full">
-            <h2 className="font-bold text-[24px] text-[#272424] leading-[normal]">
+        <div className="flex flex-col gap-[2px] items-start justify-center px-0 py-0 w-full flex-shrink-0">
+          <div className="flex gap-[20px] items-center px-0 py-0 w-full">
+            <h2 className="font-bold text-[20px] text-[#272424] leading-[normal]">
               Tạo voucher
             </h2>
           </div>
-          <p className="font-medium text-[10px] text-[#e04d30] leading-[1.4]">
-            Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để
-            thu hút người mua.
+          <p className="font-medium text-[13px] text-[#e04d30] leading-[1.4] -mt-[2px] whitespace-nowrap">
+            Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để thu hút người mua.
           </p>
         </div>
 
-        {/* Conversion Section */}
-        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full">
-          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[normal]">
-            Cải thiện tỉ lệ chuyển đổi
-          </h3>
-        </div>
-        <div className="flex gap-[60px] items-center justify-center w-full">
-          {voucherTypes.conversion.map((voucher, index) => (
-            <div
-              key={index}
-              className="bg-white border-2 border-[#E04D30] rounded-[24px] px-[22px] py-[19px] flex flex-col gap-[10px] items-start flex-1"
-            >
+        {/* Conversion Section - subheading removed per request */}
+        <div className="w-full min-w-[1000px]">
+          <div className="flex gap-[20px] items-center justify-start">
+            {voucherTypes.conversion.map((voucher, index) => (
+              <div
+                key={index}
+                className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0"
+              >
               <div className="flex gap-[10px] items-start">
                 <div className="flex items-center justify-center w-[24px] h-[24px]">
                   {voucher.icon}
@@ -185,30 +189,30 @@ const AdminDiscounts: React.FC = () => {
                   {voucher.title}
                 </div>
               </div>
-              <p className="font-medium text-[10px] text-[#322f30] leading-[1.4]">
+              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
                 {voucher.description}
               </p>
-              <div className="flex gap-[10px] items-center justify-end w-full">
-                <Button onClick={() => handleCreateVoucher(voucher.title)}>
-                  Tạo
-                </Button>
+              <div className="flex justify-end w-full mt-auto">
+                <Button className="h-[28px] px-[16px] text-[14px] rounded-[8px]" onClick={() => handleCreateVoucher(voucher.title)}>Tạo</Button>
               </div>
             </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Target Customer Section */}
-        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4">
-          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4]">
+        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4 flex-shrink-0">
+          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
             Tập trung vào nhóm khách hàng mục tiêu
           </h3>
         </div>
-        <div className="flex gap-[60px] items-center justify-center w-full">
-          {voucherTypes.targetCustomer.map((voucher, index) => (
-            <div
-              key={index}
-              className="bg-white border-2 border-[#E04D30] rounded-[24px] px-[22px] py-[19px] flex flex-col gap-[10px] items-start flex-1"
-            >
+        <div className="w-full min-w-[1000px]">
+          <div className="flex gap-[20px] items-center justify-start">
+            {voucherTypes.targetCustomer.map((voucher, index) => (
+              <div
+                key={index}
+                className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0"
+              >
               <div className="flex gap-[10px] items-start">
                 <div className="flex items-center justify-center w-[24px] h-[24px]">
                   {voucher.icon}
@@ -217,191 +221,207 @@ const AdminDiscounts: React.FC = () => {
                   {voucher.title}
                 </div>
               </div>
-              <p className="font-medium text-[10px] text-[#322f30] leading-[1.4]">
+              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
                 {voucher.description}
               </p>
-              <div className="flex gap-[10px] items-center justify-end w-full">
-                <Button onClick={() => handleCreateVoucher(voucher.title)}>
+              <div className="flex justify-end w-full mt-auto">
+                <Button className="h-[28px] px-[16px] text-[14px] rounded-[8px]" onClick={() => handleCreateVoucher(voucher.title)}>Tạo</Button>
+              </div>
+            </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Private Channel Section */}
+        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4 flex-shrink-0">
+          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
+            Tập trung vào kênh hiển thị riêng tư
+          </h3>
+        </div>
+        <div className="w-full min-w-[1000px]">
+          <div className="flex gap-[20px] items-center justify-start">
+            <div className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0">
+              <div className="flex gap-[10px] items-start">
+                <div className="flex items-center justify-center w-[24px] h-[24px]">
+                  {voucherTypes.privateChannel.icon}
+                </div>
+                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
+                  {voucherTypes.privateChannel.title}
+                </div>
+              </div>
+              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
+                {voucherTypes.privateChannel.description}
+              </p>
+              <div className="flex justify-end w-full mt-auto">
+                <Button
+                  className="h-[28px] px-[16px] text-[14px] rounded-[8px]"
+                  onClick={() =>
+                    handleCreateVoucher(voucherTypes.privateChannel.title)
+                  }
+                >
                   Tạo
                 </Button>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Private Channel Section */}
-        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4">
-          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4]">
-            Tập trung vào kênh hiển thị riêng tư
-          </h3>
-        </div>
-        <div className="flex gap-[60px] items-center justify-center w-full">
-          <div className="bg-white border-2 border-[#E04D30] rounded-[24px] px-[22px] py-[19px] flex flex-col gap-[10px] items-start flex-1">
-            <div className="flex gap-[10px] items-start">
-              <div className="flex items-center justify-center w-[30px] h-[30px]">
-                {voucherTypes.privateChannel.icon}
-              </div>
-              <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                {voucherTypes.privateChannel.title}
-              </div>
-            </div>
-            <p className="font-medium text-[10px] text-[#322f30] leading-[1.4]">
-              {voucherTypes.privateChannel.description}
-            </p>
-            <div className="flex gap-[10px] items-center justify-end w-full">
-              <Button
-                onClick={() =>
-                  handleCreateVoucher(voucherTypes.privateChannel.title)
-                }
-              >
-                Tạo
-              </Button>
-            </div>
+            <div className="w-[500px] flex-shrink-0" />
           </div>
         </div>
       </div>
 
-      {/* Tab Menu */}
-      <TabMenuAccount
-        tabs={discountTabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      {/* Tab Menu + Search (expanded width) */}
+      <div className="w-full xl:w-[calc(100%+100px)] -mx-0 xl:-mx-[50px] flex flex-col gap-2">
+        <div className="w-full overflow-x-auto xl:overflow-x-visible">
+        <TabMenuAccount
+          tabs={discountTabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+            className="w-auto min-w-fit"
+        />
+        </div>
 
-      {/* Search Bar */}
-
-      <SearchBar
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Tìm kiếm mã giảm giá"
-        className="w-[500px]"
-      />
+        {/* Search Bar */}
+        <SearchBar
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Tìm kiếm mã giảm giá"
+          className="w-full xl:w-[500px]"
+        />
+      </div>
 
       {/* Voucher Table */}
-      <div className="">
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] w-full overflow-hidden">
-          {/* Table Header */}
-          <div className="flex items-start w-full">
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[10px] items-center px-[12px] py-[15px] w-[200px] rounded-tl-[12px]">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
-                Tên voucher|Mã voucher
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] flex-1">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
-                Loại mã
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] flex-1">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
-                SP áp dụng
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[100px]">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
-                Giảm giá
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[120px]">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4] text-center">
-                Tổng lượt sử dụng tối đa
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[80px]">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
-                Đã dùng
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[100px]">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
-                Hiển thị
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[150px]">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
-                Thời gian lưu
-              </p>
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] w-[100px] rounded-tr-[12px]">
-              <p className="font-semibold text-[12px] text-[#272424] leading-[1.4]">
-                Thao tác
-              </p>
-            </div>
-          </div>
+      <div className="w-full overflow-x-auto xl:overflow-x-visible">
+        <div className="bg-white border border-[#e7e7e7] rounded-[24px] w-full xl:w-[calc(100%+100px)] -mx-0 xl:-mx-[50px] overflow-hidden min-w-[1085px] xl:min-w-0">
+          <table className="w-full border-collapse min-w-[1085px]">
+            <thead>
+              <tr>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[12px] py-[15px] text-left rounded-tl-[12px]">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4] whitespace-nowrap">
+                    Tên voucher|Mã voucher
+                  </p>
+                </th>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
+                    Loại mã
+                  </p>
+                </th>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
+                    SP áp dụng
+                  </p>
+                </th>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
+                    Giảm giá
+                  </p>
+                </th>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4] text-center">
+                    Tổng lượt sử<br/> dụng tối đa
+                  </p>
+                </th>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
+                    Đã dùng
+                  </p>
+                </th>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
+                    Hiển thị
+                  </p>
+                </th>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
+                    Thời gian lưu
+                  </p>
+                </th>
+                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center rounded-tr-[12px]">
+                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
+                    Thao tác
+                  </p>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
 
-          {/* Table Body */}
-          {mockVouchers.map((voucher) => (
-            <div
-              key={voucher.id}
-              className="flex items-start border-t border-[#d1d1d1] w-full"
-            >
-              <div className="flex gap-[10px] items-center px-[12px] py-[14px] w-[200px]">
-                <div className="flex items-center justify-center w-[24px] h-[24px]">
-                  <CreditCardPercentIcon size={24} color="#292D32" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex flex-col gap-[4px] items-start justify-center">
-                    <div
-                      className={`flex gap-[10px] items-start px-[8px] py-[6px] rounded-[6px] ${getStatusBadgeClass(
-                        voucher.status
-                      )}`}
-                    >
-                      <p className="font-bold text-[12px] leading-[normal]">
-                        {voucher.status}
+              {mockVouchers.map((voucher) => (
+                <tr key={voucher.id} className="border-t border-[#d1d1d1]">
+                  <td className="px-[12px] py-[14px] align-top">
+                    <div className="flex gap-[10px] items-center">
+                      <div className="flex items-center justify-center w-[24px] h-[24px]">
+                        <CreditCardPercentIcon size={24} color="#292D32" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex flex-col gap-[4px] items-start justify-center">
+                          <div
+                            className={`flex gap-[10px] items-start px-[8px] py-[6px] rounded-[6px] ${getStatusBadgeClass(
+                              voucher.status
+                            )}`}
+                          >
+                            <p className="font-bold text-[13px] leading-[normal]">
+                              {voucher.status}
+                            </p>
+                          </div>
+                          <div className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                            <p className="mb-0">{voucher.name}</p>
+                            <p>Mã voucher: {voucher.code}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-[14px] py-[14px] text-center align-middle">
+                    {voucher.type === "Voucher khách hàng mới" ? (
+                      <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                        Voucher khách<br/>hàng mới
                       </p>
+                    ) : (
+                      <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                        {voucher.type}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-[14px] py-[14px] text-center align-middle">
+                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                      {voucher.products}
+                    </p>
+                  </td>
+                  <td className="px-[14px] py-[14px] text-center align-middle">
+                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                      {voucher.discount}
+                    </p>
+                  </td>
+                  <td className="px-[14px] py-[14px] text-center align-middle">
+                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                      {voucher.maxUsage}
+                    </p>
+                  </td>
+                  <td className="px-[14px] py-[14px] text-center align-middle">
+                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                      {voucher.used}
+                    </p>
+                  </td>
+                  <td className="px-[14px] py-[14px] text-center align-middle">
+                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                      {voucher.display}
+                    </p>
+                  </td>
+                  <td className="px-[14px] py-[14px] text-center align-middle">
+                    <div className="font-medium text-[13px] text-[#272424] leading-[1.4]">
+                      <p className="mb-0">{voucher.startDate} -</p>
+                      <p>{voucher.endDate}</p>
                     </div>
-                    <div className="font-medium text-[10px] text-[#272424] leading-[1.4]">
-                      <p className="mb-0">{voucher.name}</p>
-                      <p>Mã voucher: {voucher.code}</p>
+                  </td>
+                  <td className="px-[14px] py-[14px] text-center align-middle">
+                    <div className="font-semibold text-[13px] text-[#1a71f6] leading-[1.4] cursor-pointer">
+                      <p className="mb-0 hover:opacity-70">Chỉnh sửa</p>
+                      <p className="mb-0 hover:opacity-70">Đơn hàng</p>
+                      <p className="hover:opacity-70">Kết thúc</p>
                     </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] flex-1">
-                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
-                  {voucher.type}
-                </p>
-              </div>
-              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] flex-1">
-                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
-                  {voucher.products}
-                </p>
-              </div>
-              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[100px]">
-                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
-                  {voucher.discount}
-                </p>
-              </div>
-              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[120px]">
-                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
-                  {voucher.maxUsage}
-                </p>
-              </div>
-              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[80px]">
-                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
-                  {voucher.used}
-                </p>
-              </div>
-              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[100px]">
-                <p className="font-medium text-[10px] text-[#272424] leading-[1.4]">
-                  {voucher.display}
-                </p>
-              </div>
-              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[150px]">
-                <div className="font-medium text-[10px] text-[#272424] leading-[1.4] text-center">
-                  <p className="mb-0">{voucher.startDate} -</p>
-                  <p>{voucher.endDate}</p>
-                </div>
-              </div>
-              <div className="flex flex-col items-center justify-center px-[14px] py-[14px] w-[100px]">
-                <div className="font-semibold text-[12px] text-[#1a71f6] leading-[1.4] cursor-pointer">
-                  <p className="mb-0 hover:opacity-70">Chỉnh sửa</p>
-                  <p className="mb-0 hover:opacity-70">Đơn hàng</p>
-                  <p className="hover:opacity-70">Kết thúc</p>
-                </div>
-              </div>
-            </div>
-          ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

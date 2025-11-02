@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import Icon from "@/components/icons/Icon";
 import { SearchBar } from "@/components/ui/search-bar";
 import CaretDown from "@/components/ui/caret-down";
 import { Pagination } from "@/components/ui/pagination";
@@ -215,14 +216,19 @@ const AdminWarehouseSupplier = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[16px] items-center w-full max-w-full overflow-hidden">
+    <div className="flex flex-col gap-[8px] items-center w-full max-w-full overflow-hidden">
       {/* Suppliers Table */}
-      <div className="flex items-center justify-between w-full">
-        <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+      <div className="flex items-center justify-between w-full flex-nowrap gap-2">
+        <h2 className="font-bold text-[#272424] text-[24px] leading-normal whitespace-nowrap min-w-0 overflow-hidden text-ellipsis">
           Danh sách nhà cung cấp
         </h2>
-        <Button onClick={() => navigate("/admin/warehouse/supplier/new")}>
-          Thêm nhà cung cấp
+        <Button
+          variant={"default"}
+          className="h-[36px] flex-shrink-0"
+          onClick={() => navigate("/admin/warehouse/supplier/new")}
+        >
+          <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
+          <span className="whitespace-nowrap">Thêm mới nhà cung cấp</span>
         </Button>
       </div>
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[12px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
@@ -239,7 +245,7 @@ const AdminWarehouseSupplier = () => {
             <DropdownMenuTrigger asChild>
               <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer">
                 <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  Trạng thái
+                  {statusFilter === "all" ? "Tất cả trạng thái" : statusFilter === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
@@ -249,10 +255,10 @@ const AdminWarehouseSupplier = () => {
                 Tất cả trạng thái
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("active")}>
-                Đang hoạt động
+              Đang kích hoạt
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
-                Ngừng hoạt động
+              Ngừng kích hoạt
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -261,7 +267,7 @@ const AdminWarehouseSupplier = () => {
         {/* Table */}
         <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
           {/* Table Header */}
-          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1000px] h-[56px]">
+          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1180px] h-[56px]">
             <div className="flex flex-row items-center w-full">
               <div className="flex gap-[6px] items-center px-[4px] py-[12px] min-w-[24px] flex-shrink-0">
                 <CustomCheckbox
@@ -283,40 +289,40 @@ const AdminWarehouseSupplier = () => {
                       onClick={handlePrimaryAction}
                       className="text-[12px] px-[12px] py-[6px] h-auto"
                     >
-                      Kích hoạt
+                      Đang kích hoạt
                     </Button>
                     <Button
                       variant="secondary"
                       onClick={handleSecondaryAction}
                       className="text-[12px] px-[12px] py-[6px] h-auto whitespace-nowrap"
                     >
-                      Ngừng hoạt động
+                      Ngừng kích hoạt
                     </Button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-[176px] min-w-[176px]">
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                      Mã nhà cung cấp
+                      Mã NCC
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-[250px] min-w-[250px]">
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                      Tên nhà cung cấp
+                      Tên NCC
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-[150px] min-w-[150px]">
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
                       Số điện thoại
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-[200px] min-w-[200px]">
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
                       Email
                     </span>
                   </div>
-                  <div className="flex gap-[4px] items-center justify-end p-[14px] flex-1">
+                  <div className="flex gap-[4px] items-center justify-end p-[14px] flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
                       Trạng thái
                     </span>
@@ -330,29 +336,33 @@ const AdminWarehouseSupplier = () => {
           {paginatedSuppliers.map((s, index) => (
             <div
               key={s.id}
-              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full min-w-[1000px] ${
+              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full min-w-[1180px] ${
                 index === paginatedSuppliers.length - 1
                   ? "border-transparent"
                   : "border-[#e7e7e7]"
               } ${
                 selectedSuppliers.has(s.id) ? "bg-blue-50" : "hover:bg-gray-50"
-              } cursor-pointer`}
-              onClick={() => navigate(`/admin/warehouse/supplier/${s.id}`)}
+              }`}
             >
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
-                  <div className="flex gap-[6px] h-full items-center px-[4px] py-[12px] w-[200px] min-w-[200px]">
+                  <div className="flex h-full items-center px-[4px] py-[12px] min-w-[24px] flex-shrink-0">
                     <div onClick={(e) => e.stopPropagation()}>
                       <CustomCheckbox
                         checked={selectedSuppliers.has(s.id)}
                         onChange={handleSelectItem(s.id)}
                       />
                     </div>
-                    <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3]">
+                  </div>
+                  <div className="flex h-full items-center px-[4px] py-[12px] flex-1 min-w-0 ml-[7px]">
+                    <span
+                      className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] whitespace-nowrap cursor-pointer hover:underline"
+                      onClick={() => navigate(`/admin/warehouse/supplier/${s.id}`)}
+                    >
                       {s.id}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-[250px] min-w-[250px]">
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
                       {s.name}
                     </span>
@@ -360,23 +370,23 @@ const AdminWarehouseSupplier = () => {
                       {s.company}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-[150px] min-w-[150px]">
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
                       {s.phone}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-[200px] min-w-[200px]">
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4] truncate">
                       {s.email}
                     </span>
                   </div>
-                  <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
+                  <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1 min-w-0">
                     <ChipStatus
                       status={s.status === "active" ? "active" : "disabled"}
                       labelOverride={
                         s.status === "active"
-                          ? "Đang hoạt động"
-                          : "Ngừng hoạt động"
+                          ? " Đang kích hoạt"
+                          : "Ngừng kích hoạt"
                       }
                       className="font-bold text-[12px] leading-normal"
                     />

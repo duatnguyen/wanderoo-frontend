@@ -2,11 +2,12 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import Icon from "@/components/icons/Icon";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import CaretDown from "@/components/ui/caret-down";
 import { SearchBar } from "@/components/ui/search-bar";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
+import { Pagination } from "@/components/ui/pagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,6 +113,8 @@ const AdminStaff: React.FC = () => {
     return filtered.slice(startIndex, endIndex);
   }, [filtered, currentPage]);
 
+  const totalPages = Math.ceil(filtered.length / 10);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       // Select all items on current page
@@ -136,18 +139,6 @@ const AdminStaff: React.FC = () => {
     setSelectedStaff(newSelected);
   };
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    const totalPages = Math.ceil(filtered.length / 10);
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
 
   const handleActivateSelected = () => {
     // TODO: Implement activation logic
@@ -164,10 +155,10 @@ const AdminStaff: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[22px] items-center w-full">
+    <div className="flex flex-col gap-[8px] items-center w-full max-w-full overflow-x-hidden">
       {/* Store Owner Header */}
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[8px] items-start justify-center px-[24px] py-[20px] rounded-[24px] w-full">
-        <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
+        <h1 className="font-bold text-[#272424] text-[20px] leading-normal">
           Tài khoản chủ cửa hàng
         </h1>
         <div className="flex items-center justify-between w-full">
@@ -184,13 +175,16 @@ const AdminStaff: React.FC = () => {
               </Avatar>
             </div>
             <div className="flex flex-col gap-[4px]">
-              <h2 className="font-bold text-[#272424] text-[16px] leading-normal">
+              <span
+                className="font-semibold text-[#1a71f6] text-[14px] leading-normal cursor-pointer hover:underline"
+                onClick={() => navigate("/admin/staff/S001")}
+              >
                 {storeOwner.name}
-              </h2>
+              </span>
             </div>
           </div>
-          <div className="bg-[#b2ffb4] flex gap-[10px] items-center justify-center px-[8px] py-[6px] rounded-[10px]">
-            <span className="font-semibold text-[14px] text-[#04910c] leading-[1.4]">
+          <div className="bg-[#b2ffb4] h-[24px] flex gap-[10px] items-center justify-center px-[8px] rounded-[10px]">
+            <span className="font-semibold text-[13px] text-[#04910c] leading-[1.4]">
               Đang kích hoạt
             </span>
           </div>
@@ -198,32 +192,33 @@ const AdminStaff: React.FC = () => {
       </div>
 
       {/* Staff Table */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[24px] py-[24px] rounded-[24px] w-full">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex gap-[8px] items-center">
-            <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[8px] items-start px-[24px] py-[24px] rounded-[24px] w-full">
+        <div className="flex items-center justify-between w-full flex-nowrap gap-2">
+          <div className="flex gap-[8px] items-center min-w-0 flex-1">
+            <h2 className="font-bold text-[#272424] text-[20px] leading-normal whitespace-nowrap min-w-0 overflow-hidden text-ellipsis">
               Tài khoản nhân viên
             </h2>
           </div>
-          <Button onClick={() => navigate("/admin/staff/new")}>
-            Thêm tài khoản nhân viên
+          <Button onClick={() => navigate("/admin/staff/new")} className="h-[36px] flex-shrink-0">
+            <Icon name="plus" size={14} color="#ffffff" strokeWidth={3} />
+            <span className="whitespace-nowrap">Thêm tài khoản nhân viên</span>
           </Button>
         </div>
 
         {/* Search and Filter */}
-        <div className="flex gap-[10px] items-center w-full">
+        <div className="flex gap-[10px] items-center w-full flex-wrap">
           <SearchBar
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm kiếm"
-            className="w-[500px]"
+            className="flex-1 min-w-0 max-w-[500px]"
           />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[24px] py-[12px] rounded-[12px] cursor-pointer">
+              <div className="bg-white border border-[#e04d30] flex gap-[6px] items-center justify-center px-[24px] h-[36px] rounded-[12px] cursor-pointer flex-shrink-0 whitespace-nowrap">
                 <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  Trạng thái tài khoản
+                  {statusFilter === "all" ? "Tất cả trạng thái" : statusFilter === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
@@ -236,18 +231,20 @@ const AdminStaff: React.FC = () => {
                 Đang kích hoạt
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("disabled")}>
-                Đã khóa
+                Ngừng kích hoạt
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
         {/* Table */}
-        <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full">
+        <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full overflow-x-auto">
           {/* Table Header */}
-          <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full h-[58px]">
+          <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full min-w-[1100px] h-[58px]">
             <div className="flex flex-row items-center w-full h-full">
-              <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[450px] min-h-[58px]">
+              <div className={`flex gap-[8px] h-full items-center px-[5px] py-[14px] min-h-[58px] ${
+                selectedStaff.size > 0 ? "flex-1" : "w-[450px]"
+              }`}>
                 <CustomCheckbox
                   checked={
                     paginatedStaff.length > 0 &&
@@ -257,34 +254,41 @@ const AdminStaff: React.FC = () => {
                   className="w-[30px] h-[30px]"
                 />
                 {selectedStaff.size > 0 ? (
-                  <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                    Đã chọn {selectedStaff.size} tài khoản
-                  </span>
+                  <div className="flex items-center gap-[8px] whitespace-nowrap">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                      Đã chọn {selectedStaff.size} tài khoản
+                    </span>
+                    <div className="flex gap-[6px] items-center ml-[8px]">
+                      <Button
+                        className="h-[36px] rounded-[10px] text-[14px]"
+                        onClick={handleActivateSelected}
+                      >
+                        Đang kích hoạt
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="h-[36px] rounded-[10px] text-[14px]"
+                        onClick={handleDeactivateSelected}
+                      >
+                        Ngừng kích hoạt
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
                     Tài khoản
                   </span>
                 )}
               </div>
-              <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] flex-1 min-h-[58px]">
+              <div className="flex gap-[8px] h-full items-center justify-center pl-0 pr-[5px] py-[14px] flex-1 min-h-[58px]">
                 {selectedStaff.size === 0 && (
-                  <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                  <span className="font-semibold text-[#272424] text-[14px] leading-[1.5] text-center">
                     Vai trò
                   </span>
                 )}
               </div>
-              <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1 min-h-[58px]">
-                {selectedStaff.size > 0 ? (
-                  <div className="flex gap-[6px] items-center">
-                    <Button
-                      variant="secondary"
-                      onClick={handleDeactivateSelected}
-                    >
-                      Ngừng kích hoạt
-                    </Button>
-                    <Button onClick={handleActivateSelected}>Kích hoạt</Button>
-                  </div>
-                ) : (
+              <div className="flex gap-[4px] h-full items-center justify-end px-[5px] py-[14px] flex-1 min-h-[58px]">
+                {selectedStaff.size > 0 ? null : (
                   <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
                     Trạng thái
                   </span>
@@ -297,8 +301,7 @@ const AdminStaff: React.FC = () => {
           {paginatedStaff.map((s, index) => (
             <div
               key={s.id}
-              onClick={() => navigate(`/admin/staff/${s.id}`)}
-              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[15px] py-0 w-full cursor-pointer ${
+              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[15px] py-0 w-full min-w-[1100px] ${
                 index === paginatedStaff.length - 1
                   ? "border-transparent"
                   : "border-[#e7e7e7]"
@@ -314,7 +317,7 @@ const AdminStaff: React.FC = () => {
                         className="w-[30px] h-[30px]"
                       />
                     </div>
-                    <div className="w-[70px] h-[70px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
+                    <div className="w-[56px] h-[56px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
                       <Avatar className="w-full h-full">
                         {s.avatar ? (
                           <AvatarImage src={s.avatar} alt={s.name} />
@@ -326,20 +329,23 @@ const AdminStaff: React.FC = () => {
                       </Avatar>
                     </div>
                     <div className="flex flex-col gap-[10px] h-full items-center justify-center">
-                      <span className="font-semibold text-[14px] text-[#1a71f6] leading-[1.4] h-[70px] flex items-center">
+                      <span
+                        className="font-semibold text-[14px] text-[#1a71f6] leading-[1.4] h-[56px] flex items-center cursor-pointer hover:underline"
+                        onClick={() => navigate(`/admin/staff/${s.id}`)}
+                      >
                         {s.name}
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-[8px] h-[50px] items-center px-[5px] py-[14px] flex-1">
-                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                  <div className="flex gap-[8px] h-[50px] items-center justify-center pl-0 pr-[5px] py-[14px] flex-1">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.5] text-center">
                       {s.role}
                     </span>
                   </div>
-                  <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
-                    <div className="bg-[#b2ffb4] rounded-[10px]">
-                      <div className="flex gap-[10px] items-center justify-center px-[8px] py-[6px]">
-                        <span className="font-semibold text-[14px] text-[#04910c] leading-[1.4]">
+                  <div className="flex gap-[4px] h-full items-center justify-end px-[5px] py-[14px] flex-1">
+                    <div className="bg-[#b2ffb4] h-[24px] rounded-[10px] flex items-center">
+                      <div className="flex gap-[10px] items-center justify-center px-[8px]">
+                        <span className="font-semibold text-[13px] text-[#04910c] leading-[1.4]">
                           Đang kích hoạt
                         </span>
                       </div>
@@ -352,49 +358,12 @@ const AdminStaff: React.FC = () => {
         </div>
 
         {/* Pagination */}
-        <div className="bg-white border border-[#e7e7e7] flex h-[48px] items-center justify-between px-[30px] py-[10px] rounded-[12px] w-full">
-          <div className="flex gap-[3px] items-start">
-            <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#737373]">
-              <p className="leading-[1.5]">
-                Đang hiển thị{" "}
-                {Math.min((currentPage - 1) * 10 + 1, filtered.length)} -{" "}
-                {Math.min(currentPage * 10, filtered.length)} trong tổng{" "}
-                {Math.ceil(filtered.length / 10)} trang
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-[16px] items-start">
-            <div className="flex gap-[13px] items-center">
-              <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#454545]">
-                <p className="leading-[1.5]">Trang số</p>
-              </div>
-              <div className="flex gap-[2px] items-center pl-[8px] pr-[6px] py-[4px] rounded-[8px]">
-                <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#454545]">
-                  <p className="leading-[1.5]">{currentPage}</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-[6px] items-start">
-              <div
-                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
-                  currentPage <= 1 ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                onClick={handlePrevPage}
-              >
-                <ChevronLeft className="w-[20px] h-[20px] text-[#d1d1d1]" />
-              </div>
-              <div
-                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
-                  currentPage >= Math.ceil(filtered.length / 10)
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-                onClick={handleNextPage}
-              >
-                <ChevronRight className="w-[20px] h-[20px] text-[#454545]" />
-              </div>
-            </div>
-          </div>
+        <div className="px-[15px] py-[8px] w-full flex-shrink-0">
+          <Pagination
+            current={currentPage}
+            total={totalPages}
+            onChange={setCurrentPage}
+          />
         </div>
       </div>
     </div>

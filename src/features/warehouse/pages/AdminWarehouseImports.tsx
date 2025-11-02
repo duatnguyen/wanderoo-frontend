@@ -107,6 +107,7 @@ const AdminWarehouseImports = () => {
   const [activeTab, setActiveTab] = useState<ImportStatus>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [imports] = useState<WarehouseImport[]>(mockImports);
+  const [selectedStatus, setSelectedStatus] = useState("Tất cả trạng thái");
 
   const tabs = [
 { id: "all", label: "Tất cả" },
@@ -177,9 +178,9 @@ const AdminWarehouseImports = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-h-screen w-full gap-1">
+    <div className="flex flex-col h-screen max-h-screen w-full gap-0">
       {/* Header */}
-      <div className="flex items-center justify-between py-[4px] px-0 h-[32px] w-full mb-2">
+      <div className="flex items-center justify-between py-[4px] px-0 h-[32px] w-full mb-[6px]">
         <h1 className="font-bold text-[24px] text-[#272424] font-['Montserrat']">
           Nhập hàng
         </h1>
@@ -216,26 +217,30 @@ const AdminWarehouseImports = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
-                className="w-[400px]"
+                className="flex-1 w-[clamp(180px,40vw,400px)]"
               />
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer">
                   <span className="text-[#e04d30] text-[11px] font-semibold leading-[1.4]">
-                    Trạng thái
+                    {selectedStatus}
                   </span>
                   <CaretDown className="text-[#e04d30]" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => {}}>
+                <DropdownMenuItem onClick={() => setSelectedStatus("Tất cả trạng thái")}>
                   Tất cả trạng thái
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
-                  Đang kích hoạt
+                <DropdownMenuItem onClick={() => setSelectedStatus("Đang giao dịch")}>
+                  Đang giao dịch
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>Đã khóa</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus("Đã hoàn thành")}>Đã hoàn thành</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus("Chưa nhập")}>Chưa nhập</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus("Đã nhập")}>Đã nhập</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus("Chưa thanh toán")}>Chưa thanh toán</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus("Đã thanh toán")}>Đã thanh toán</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -245,58 +250,63 @@ const AdminWarehouseImports = () => {
         <div className="flex flex-col items-start px-[15px] py-0 relative rounded-[16px] w-full">
           {/* Table Container with Scroll */}
           <div className="w-full overflow-x-auto">
-            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full min-w-[1400px] xl:min-w-0">
+            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full min-w-[1400px]">
               {/* Table Header */}
-              <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
+              <div className="bg[#f6f6f6] bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
                 <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 basis-[120px] xl:basis-[100px]">
+                  <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                       Mã đơn nhập
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 basis-[120px] xl:basis-[100px]">
+                  <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                       Ngày tạo
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[150px] xl:basis-[120px]">
+                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
-                      Phương thức thanh toán
+                      Phương thức <br/>thanh toán
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[130px] xl:basis-[110px]">
+                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                       Trạng thái
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[130px] xl:basis-[110px]">
+                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                       Trạng thái nhập
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[150px] xl:basis-[130px]">
+                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
-                      Trạng thái thanh toán
+                      Trạng thái<br/> thanh toán
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[150px] xl:basis-[130px]">
+                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                       Nhà cung cấp
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[130px] xl:basis-[110px]">
+                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                       Người tạo
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[150px] xl:basis-[110px]">
+                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
-                      Số lượng nhập
+                       SL nhập
                     </span>
                   </div>
-                  <div className="flex h-full items-center justify-end xl:justify-center px-[20px] py-[12px] shrink-0 basis-[240px] xl:basis-[180px]">
+                  <div className="flex h-full items-center justify-end xl:justify-center px-[20px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                       Giá trị đơn
+                    </span>
+                  </div>
+                  <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
+                      Thao tác
                     </span>
                   </div>
                 </div>
@@ -314,46 +324,57 @@ const AdminWarehouseImports = () => {
                 >
                   <div className="flex items-center w-full">
                     <div className="flex flex-row items-center w-full">
-                      <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 basis-[120px] xl:basis-[100px]">
-                        <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-center whitespace-nowrap">
+                      <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 flex-1 min-w-0">
+                        <span
+                          className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-center whitespace-nowrap cursor-pointer hover:underline"
+                          onClick={() => navigate(`/admin/warehouse/imports/${importItem.id}`)}
+                        >
                           {importItem.importCode}
                         </span>
                       </div>
-                      <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 basis-[120px] xl:basis-[100px]">
+                      <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 flex-1 min-w-0">
                         <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                           {formatDate(importItem.createdDate)}
                         </span>
                       </div>
-                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[150px] xl:basis-[120px]">
+                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                         {getPaymentMethodChip(importItem.paymentMethod)}
                       </div>
-                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[130px] xl:basis-[110px]">
+                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                         {getStatusChip(importItem.status)}
                       </div>
-                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[130px] xl:basis-[110px]">
+                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                         {getImportStatusChip(importItem.importStatus)}
                       </div>
-                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[140px] xl:basis-[120px]">
+                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                         {getPaymentStatusChip(importItem.paymentStatus)}
                       </div>
-                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[150px] xl:basis-[130px]">
+                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                         <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                           {importItem.supplier}
                         </span>
                       </div>
-                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[130px] xl:basis-[110px]">
+                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                         <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                           {importItem.createdBy}
                         </span>
                       </div>
-                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 basis-[150px] xl:basis-[110px]">
+                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                         <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
                           {importItem.totalItems}
                         </span>
                       </div>
-                      <div className="flex h-full items-center justify-end xl:justify-center pr-[20px] pl-[8px] py-[12px] shrink-0 basis-[240px] xl:basis-[180px]">
+                      <div className="flex h-full items-center justify-end xl:justify-center pr-[20px] pl-[8px] py-[12px] shrink-0 flex-1 min-w-0">
                         <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-right xl:text-center whitespace-nowrap">
                           {formatCurrency(importItem.totalValue)}
+                        </span>
+                      </div>
+                      <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
+                        <span
+                          className="font-medium text-[13px] text-[#1a71f6] leading-[1.4] text-center whitespace-nowrap cursor-pointer hover:underline"
+                          onClick={() => navigate(`/admin/warehouse/returns/create?importId=${importItem.id}`)}
+                        >
+                          Trả hàng
                         </span>
                       </div>
                     </div>

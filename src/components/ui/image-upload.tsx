@@ -107,7 +107,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           {images.map((image) => (
             <div
               key={image.id}
-              className="relative bg-white border-2 border-dashed border-[#e04d30] rounded-[8px] w-[120px] h-[120px] overflow-hidden group"
+              className="relative bg-white border-2 border-dashed border-[#e04d30] rounded-[8px] w-[78px] h-[78px] overflow-hidden group"
             >
               <img
                 src={image.url}
@@ -129,11 +129,19 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           {images.length < maxImages && (
             <div
               onClick={handleImageClick}
-              className="bg-[#ffeeea] border-2 border-dashed border-[#e04d30] rounded-[8px] w-[120px] h-[120px] flex flex-col items-center justify-center gap-2 p-5 cursor-pointer hover:bg-[#ffe4dd] transition-colors"
+              className="bg-white border-2 border-dashed border-[#e04d30] rounded-[8px] w-[78px] h-[78px] flex flex-col items-center justify-center gap-1 p-2 cursor-pointer hover:opacity-80 transition-opacity"
             >
-              <Icon name="image" size={32} />
-              <p className="text-[10px] font-medium text-[#737373] font-montserrat text-center">
-                Thêm hình ảnh ({images.length}/{maxImages})
+              <div className="relative">
+                <Icon name="image" size={24} color="#e04d30" />
+                <div className="absolute -bottom-1 -right-1 bg-[#e04d30] rounded-full w-4 h-4 flex items-center justify-center">
+                  <Icon name="plus" size={10} color="#FFFFFF" />
+                </div>
+              </div>
+              <p className="text-[10px] font-medium text-[#e04d30] font-montserrat text-center leading-tight">
+                Thêm hình ảnh
+              </p>
+              <p className="text-[10px] font-medium text-[#e04d30] font-montserrat text-center leading-tight">
+                ({images.length}/{maxImages})
               </p>
             </div>
           )}
