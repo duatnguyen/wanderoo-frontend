@@ -17,7 +17,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div
       className={cn(
-        "border-2 h-[50px] bg-white border-[#e04d30] flex items-center gap-2 px-[12px] py-[8px] rounded-[10px]",
+        "border-2 h-[40px] bg-white border-[#e04d30] flex items-center gap-2 px-[12px] py-[8px] rounded-[10px]",
         className
       )}
     >

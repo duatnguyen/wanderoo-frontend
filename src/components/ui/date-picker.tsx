@@ -24,7 +24,7 @@ export function DatePicker({
       )}
       <div
         className={cn(
-          "bg-white h-[50px] border-2 border-[#e04d30] flex items-center p-[16px] rounded-[12px] w-full",
+          "bg-white h-[40px] border-2 border-[#e04d30] flex items-center p-[16px] rounded-[12px] w-full",
           error && "border-red-500"
         )}
       >

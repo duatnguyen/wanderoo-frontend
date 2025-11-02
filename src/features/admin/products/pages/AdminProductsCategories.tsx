@@ -328,7 +328,7 @@ const AdminProductsCategories: React.FC = () => {
                             type="text"
                             value={editingName}
                             onChange={(e) => setEditingName(e.target.value)}
-                            className="flex-1 px-3 py-2 border-2 border-[#e04d30] rounded-[8px] text-[14px] font-semibold text-[#272424] font-montserrat outline-none focus:border-[#c43d20]"
+                            className="flex-1 p-2 border-2 border-[#e04d30] rounded-[8px] text-[12px] font-semibold text-[#272424] font-montserrat outline-none focus:border-[#c43d20]"
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {

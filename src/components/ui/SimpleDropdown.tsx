@@ -45,16 +45,16 @@ export const SimpleDropdown: React.FC<SimpleDropdownProps> = ({
     <div ref={dropdownRef} className={cn("relative w-full", className)}>
       <div
         className={cn(
-          "bg-white border-2 border-[#e04d30] h-[50px] px-[16px] rounded-[12px] w-full flex items-center justify-between cursor-pointer"
+          "bg-white border-2 border-[#e04d30] h-[40px] px-[16px] rounded-[12px] w-full flex items-center justify-between cursor-pointer"
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-[12px] font-semibold text-[#272424] flex-1">
+        <span className="text-[12px] font-semibold text-[#e04d30] flex-1">
           {value || placeholder}
         </span>
         <ChevronDown
           className={cn(
-            "w-4 h-4 text-[#272424] transition-transform duration-200",
+            "w-4 h-4 text-[#e04d30] transition-transform duration-200",
             isOpen && "rotate-180"
           )}
         />

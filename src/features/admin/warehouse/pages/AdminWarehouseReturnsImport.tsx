@@ -131,10 +131,10 @@ const AdminWarehouseReturnsImport = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden p-[10px] w-full gap-1">
+    <div className="flex flex-col h-screen max-h-screen overflow-hidden w-full gap-1">
       {/* Header */}
       <div className="flex items-center justify-between py-[4px] px-0 h-[32px] w-full mb-2">
-        <h1 className="font-bold text-[18px] text-[#272424] font-['Montserrat']">
+        <h1 className="font-bold text-[24px] text-[#272424] font-['Montserrat']">
           Danh sách đơn trả hàng nhập
         </h1>
         <Button

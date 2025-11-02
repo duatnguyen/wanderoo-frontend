@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Checkbox } from "@/components/ui/checkbox";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
 
 interface Product {
   id: string;
@@ -57,11 +56,14 @@ const AdminWarehouseCreateImport = () => {
   const [productSearch, setProductSearch] = useState("");
   const [productFormSearch, setProductFormSearch] = useState("");
   const [note, setNote] = useState("");
-  const [products] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
-  const totalProducts = products.length;
+  const totalProducts = products.reduce(
+    (sum, product) => sum + product.quantity,
+    0
+  );
   const totalAmount = products.reduce(
     (sum, product) => sum + product.quantity * product.price,
     0
@@ -92,18 +94,48 @@ const AdminWarehouseCreateImport = () => {
   };
 
   const handleAddProducts = () => {
-    // Handle adding selected products to the import
-    console.log("Selected products:", selectedProductIds);
+    // Convert selected product IDs to Product objects
+    const newProducts = selectedProductIds.map((id) => {
+      const mockProduct = mockProducts.find((p) => p.id === id);
+      return {
+        id: mockProduct?.id || id,
+        name: mockProduct?.name || "Unknown Product",
+        quantity: 1,
+        price: 0,
+        image: mockProduct?.image,
+        availableStock: mockProduct?.availableStock || 0,
+      };
+    });
+
+    setProducts((prev) => [...prev, ...newProducts]);
     setIsProductFormOpen(false);
     setSelectedProductIds([]);
+  };
+
+  const handleRemoveProduct = (productId: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+  };
+
+  const handleUpdateProduct = (
+    productId: string,
+    field: "quantity" | "price",
+    value: number
+  ) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, [field]: value } : p))
+    );
   };
 
   const filteredMockProducts = mockProducts.filter((product) =>
     product.name.toLowerCase().includes(productFormSearch.toLowerCase())
   );
 
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(productSearch.toLowerCase())
+  );
+
   return (
-    <div className="box-border flex flex-col gap-[10px] items-center px-[20px] py-[32px] relative w-full max-w-full overflow-hidden">
+    <div className="box-border flex flex-col gap-[10px] items-center relative w-full max-w-full">
       {/* Header */}
       <div className="box-border flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] relative shrink-0 w-full">
         <div className="flex items-center justify-between relative shrink-0 w-full">
@@ -164,7 +196,7 @@ const AdminWarehouseCreateImport = () => {
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="Tìm kiếm"
-                className="w-full sm:w-[500px]"
+                className="w-full h-[40px] sm:w-[500px]"
               />
               <Button
                 variant="default"
@@ -173,6 +205,117 @@ const AdminWarehouseCreateImport = () => {
                 Thêm sản phẩm
               </Button>
             </div>
+
+            {/* Product List */}
+            {filteredProducts.length > 0 && (
+              <div className="w-full overflow-x-auto">
+                <div className="w-full">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 bg-[#f6f6f6] border-b border-[#d1d1d1] py-2 px-4">
+                    <div className="font-semibold text-[14px] text-[#272424] text-start">
+                      Sản phẩm
+                    </div>
+                    <div className="font-semibold text-[14px] text-[#272424] text-center">
+                      Số lượng
+                    </div>
+                    <div className="font-semibold text-[14px] text-[#272424] text-center">
+                      Đơn giá trả
+                    </div>
+                    <div className="font-semibold text-[14px] text-[#272424] text-end">
+                      Thành tiền
+                    </div>
+                    <div className="w-[24px]"></div>
+                  </div>
+
+                  {/* Product Rows */}
+                  {filteredProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-4 border-b border-[#e7e7e7] py-3 px-4 hover:bg-gray-50 items-center"
+                    >
+                      {/* Product Info */}
+                      <div className="flex items-center gap-3">
+                        <div className="h-[50px] w-[50px] bg-gray-200 rounded flex items-center justify-center shrink-0">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="h-full w-full object-cover rounded"
+                            />
+                          ) : (
+                            <span className="text-gray-400 text-xs">
+                              No Image
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-medium text-[14px] text-[#272424]">
+                          {product.name}
+                        </span>
+                      </div>
+
+                      {/* Quantity */}
+                      <div>
+                        <input
+                          type="number"
+                          value={product.quantity}
+                          onChange={(e) =>
+                            handleUpdateProduct(
+                              product.id,
+                              "quantity",
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="border-2 border-[#e04d30] rounded-[8px] px-2 py-1 w-full text-center text-[14px] focus:outline-none"
+                          min="0"
+                        />
+                      </div>
+
+                      {/* Price */}
+                      <div>
+                        <input
+                          type="number"
+                          value={product.price}
+                          onChange={(e) =>
+                            handleUpdateProduct(
+                              product.id,
+                              "price",
+                              parseInt(e.target.value) || 0
+                            )
+                          }
+                          className="border-2 border-[#e04d30] rounded-[8px] text-center px-2 py-1 w-full text-[14px] focus:outline-none"
+                          min="0"
+                        />
+                      </div>
+
+                      {/* Total */}
+                      <div className="font-semibold text-[14px] text-[#272424] text-end">
+                        {formatCurrency(product.quantity * product.price)}
+                      </div>
+
+                      {/* Remove Button */}
+                      <button
+                        onClick={() => handleRemoveProduct(product.id)}
+                        className="text-[#e04d30] hover:text-[#d04020] cursor-pointer"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                        >
+                          <path
+                            d="M4 4L12 12M12 4L4 12"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Payment Section */}
@@ -269,109 +412,95 @@ const AdminWarehouseCreateImport = () => {
       </div>
 
       {/* Product Selection Modal */}
-      <Sheet open={isProductFormOpen} onOpenChange={setIsProductFormOpen}>
-        <SheetContent className="w-[700px] bg-[#f7f7f7] flex flex-col rounded-[24px]">
-          {/* Search Header */}
-          <div className="border-b border-[#e7e7e7] flex gap-[20px] items-center px-[16px] py-[30px] shrink-0">
-            <div className="border-[1.6px] border-[#e04d30] border-solid box-border flex gap-[4px] grow items-center px-[16px] py-[8px] rounded-[12px] bg-white">
-              <input
-                type="text"
+      {isProductFormOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn"
+          style={{
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(8px)",
+          }}
+          onClick={() => setIsProductFormOpen(false)}
+        >
+          <div
+            className="bg-[#f7f7f7] w-[700px] max-w-[90vw] max-h-[90vh] flex flex-col rounded-[24px] shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Header */}
+            <div className="border-b border-[#e7e7e7] flex gap-[20px] items-center px-[16px] py-[30px] shrink-0">
+              <SearchBar
                 value={productFormSearch}
                 onChange={(e) => setProductFormSearch(e.target.value)}
                 placeholder="Tìm kiếm"
-                className="font-['Montserrat'] font-normal leading-[1.5] text-[12px] text-[#949494] grow outline-none bg-transparent"
+                className="flex-1 h-[40px]"
               />
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0"
-              >
-                <path
-                  d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
-                  stroke="#454545"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M21 21L16.65 16.65"
-                  stroke="#454545"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <button className="bg-[#e04d30] flex items-center justify-center h-[40px] px-[12px] py-[8px] rounded-[12px] shrink-0">
+                <span className="font-['Montserrat'] font-light text-[32px] text-white leading-[1.5]">
+                  +
+                </span>
+              </button>
             </div>
-            <button className="bg-[#e04d30] flex items-center justify-center h-[40px] px-[12px] py-[8px] rounded-[12px] shrink-0">
-              <span className="font-['Montserrat'] font-light text-[32px] text-white leading-[1.5]">
-                +
-              </span>
-            </button>
-          </div>
 
-          {/* Table Header */}
-          <div className="box-border flex items-center px-[15px] py-0 shrink-0">
-            <div className="bg-[#f7f7f7] box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
-              <div className="w-[24px] h-[24px]" />
-              <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#454545]">
-                Sản phẩm
-              </p>
-            </div>
-            <div className="bg-[#f7f7f7] box-border flex gap-[4px] grow h-[50px] items-center p-[14px]">
-              <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545]">
-                Có thể bán
-              </p>
-            </div>
-          </div>
-
-          {/* Product List */}
-          <div className="box-border flex flex-col h-[350px] items-start px-[15px] py-0 overflow-y-auto">
-            {filteredMockProducts.map((product) => (
-              <div
-                key={product.id}
-                className="border-b border-[#e7e7e7] box-border flex items-center w-full"
-              >
-                <div className="bg-[#f6f6f6] box-border flex gap-[8px] h-full items-center overflow-clip px-[5px] py-[14px] w-[450px]">
-                  <Checkbox
-                    checked={selectedProductIds.includes(product.id)}
-                    onCheckedChange={() => toggleProductSelection(product.id)}
-                  />
-                  <div className="h-[70px] w-[97px] bg-gray-200 rounded flex items-center justify-center shrink-0">
-                    <span className="text-gray-400 text-xs">No Image</span>
-                  </div>
-                  <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-black">
-                    {product.name}
-                  </p>
-                </div>
-                <div className="bg-[#f6f6f6] box-border flex gap-[4px] grow h-full items-center p-[14px]">
-                  <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545]">
-                    {product.availableStock}
-                  </p>
-                </div>
+            {/* Table Header */}
+            <div className="box-border flex items-center px-[15px] py-0 shrink-0">
+              <div className="bg-[#f7f7f7] box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
+                <div className="w-[24px] h-[24px]" />
+                <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#454545]">
+                  Sản phẩm
+                </p>
               </div>
-            ))}
-          </div>
+              <div className="bg-[#f7f7f7] box-border flex gap-[4px] grow h-[50px] items-center p-[14px]">
+                <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545]">
+                  Có thể bán
+                </p>
+              </div>
+            </div>
 
-          {/* Footer Buttons */}
-          <div className="box-border flex gap-[10px] items-center justify-end px-[16px] py-[12px] shrink-0 mt-auto">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setIsProductFormOpen(false);
-                setSelectedProductIds([]);
-              }}
-            >
-              Huỷ
-            </Button>
-            <Button variant="default" onClick={handleAddProducts}>
-              Xác nhận
-            </Button>
+            {/* Product List */}
+            <div className="box-border flex flex-col h-[350px] items-start px-[15px] py-0 overflow-y-auto">
+              {filteredMockProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="border-b border-[#e7e7e7] box-border flex items-center w-full"
+                >
+                  <div className="bg-[#f6f6f6] box-border flex gap-[8px] h-full items-center overflow-clip px-[5px] py-[14px] w-[450px]">
+                    <CustomCheckbox
+                      checked={selectedProductIds.includes(product.id)}
+                      onChange={() => toggleProductSelection(product.id)}
+                    />
+                    <div className="h-[70px] w-[97px] bg-gray-200 rounded flex items-center justify-center shrink-0">
+                      <span className="text-gray-400 text-xs">No Image</span>
+                    </div>
+                    <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-black">
+                      {product.name}
+                    </p>
+                  </div>
+                  <div className="bg-[#f6f6f6] box-border flex gap-[4px] grow h-full items-center p-[14px]">
+                    <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545]">
+                      {product.availableStock}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="box-border flex gap-[10px] items-center justify-end px-[16px] py-[12px] shrink-0 mt-auto">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsProductFormOpen(false);
+                  setSelectedProductIds([]);
+                }}
+              >
+                Huỷ
+              </Button>
+              <Button variant="default" onClick={handleAddProducts}>
+                Xác nhận
+              </Button>
+            </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      )}
     </div>
   );
 };

@@ -6,13 +6,7 @@ import type { ChipStatusKey } from "@/components/ui/chip-status";
 import { SearchBar } from "@/components/ui/search-bar";
 import TabMenuAccount from "@/components/ui/tab-menu-account";
 import { Pagination } from "@/components/ui/pagination";
-import CaretDown from "@/components/ui/caret-down";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 
 type ImportStatus = "all" | "processing" | "completed";
 
@@ -106,6 +100,7 @@ const AdminWarehouseImports = () => {
   const [activeTab, setActiveTab] = useState<ImportStatus>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [imports] = useState<WarehouseImport[]>(mockImports);
+  const [statusFilter, setStatusFilter] = useState("Tất cả trạng thái");
 
   const tabs = [
     { id: "all", label: "Tất cả" },
@@ -175,22 +170,23 @@ const AdminWarehouseImports = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-h-screen w-full gap-1">
+    <div className="flex flex-col h-screen max-h-screen w-full gap-1 px-2 sm:px-4 lg:px-6">
       {/* Header */}
-      <div className="flex items-center justify-between py-[4px] px-0 h-[32px] w-full mb-2">
-        <h1 className="font-bold text-[24px] text-[#272424] font-['Montserrat']">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-[4px] px-0 h-auto sm:h-[32px] w-full mb-2 gap-2 sm:gap-0">
+        <h1 className="font-bold text-[20px] sm:text-[24px] text-[#272424] font-['Montserrat']">
           Nhập hàng
         </h1>
         <Button
           variant={"default"}
           onClick={() => navigate("/admin/warehouse/imports/create")}
+          className="w-full sm:w-auto"
         >
           Tạo đơn nhập hàng
         </Button>
       </div>
 
       {/* Main Content */}
-      <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-[1100px] flex-1 overflow-hidden">
+      <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative gap-3 rounded-[20px] w-full max-w-full flex-1 overflow-hidden">
         {/* Tab Menu */}
         <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full">
           <TabMenuAccount
@@ -205,43 +201,35 @@ const AdminWarehouseImports = () => {
         </div>
 
         {/* Search and Filter Section */}
-        <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full">
-          <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center justify-left relative w-full">
-            <div className="flex flex-row items-center self-stretch">
-              <SearchBar
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
-                className="w-full sm:w-[400px]"
-              />
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer">
-                  <span className="text-[#e04d30] text-[11px] font-semibold leading-[1.4]">
-                    Trạng thái
-                  </span>
-                  <CaretDown className="text-[#e04d30]" />
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => {}}>
-                  Tất cả trạng thái
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
-                  Đang kích hoạt
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>Đã khóa</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center px-[15px] justify-left relative w-full">
+          <div className="flex flex-row items-center w-full sm:flex-1">
+            <SearchBar
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
+              className="w-full h-[40px] sm:max-w-[400px]"
+            />
+          </div>
+          <div className="flex flex-row w-full sm:w-auto">
+            <SimpleDropdown
+              value={statusFilter}
+              options={[
+                "Tất cả trạng thái",
+                "Đang kích hoạt",
+                "Ngừng kích hoạt",
+              ]}
+              onValueChange={setStatusFilter}
+              placeholder="Trạng thái"
+              className="w-full sm:w-[200px]"
+            />
           </div>
         </div>
 
         {/* Table Section */}
-        <div className="flex flex-col items-start px-[15px] py-0 relative rounded-[16px] w-full">
+        <div className="px-[8px] sm:px-[15px] rounded-[16px] w-full">
           {/* Table Container with Scroll */}
-          <div className="w-full overflow-x-auto">
-            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-fit">
+          <div className="w-full overflow-x-auto -mx-[8px] sm:mx-0">
+            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-fit min-w-[1000px]">
               {/* Table Header */}
               <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
                 <div className="flex flex-row items-center w-full">
