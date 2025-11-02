@@ -1,13 +1,20 @@
 // src/pages/admin/AdminOrders.tsx
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { TabMenuAccount } from "@/components/common";
-import type { TabMenuAccountItem } from "@/components/common";
+import {
+  TabMenuAccount,
+  PageContainer,
+  ContentCard,
+  PageHeader,
+  TableFilters,
+  OrderTableHeader,
+  OrderTableRow,
+  type FilterOption,
+  type OrderTableColumn,
+} from "@/components/common";
+import type { TabItem } from "@/components/ui/tab-menu-account";
 import { Pagination } from "@/components/ui/pagination";
-import { ChipStatus } from "@/components/ui/chip-status";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
-import { SearchBar } from "@/components/ui/search-bar";
-import { DetailIcon } from "@/components/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,7 +181,7 @@ const mockOrders = [
 ];
 
 // Order tabs data
-const orderTabs: TabMenuAccountItem[] = [
+const orderTabs: TabItem[] = [
   { id: "all", label: "Tất cả" },
   { id: "pending", label: "Chờ xác nhận" },
   { id: "confirmed", label: "Đã xác nhận" },
@@ -261,14 +268,66 @@ const AdminOrders: React.FC = () => {
     return filteredOrders.slice(startIndex, endIndex);
   }, [filteredOrders, currentPage]);
 
+  // Filter options
+  const statusFilterOptions: FilterOption[] = [
+    { value: "all", label: "Tất cả" },
+    { value: "pending", label: "Chờ xác nhận" },
+    { value: "confirmed", label: "Đã xác nhận" },
+    { value: "shipping", label: "Đang giao" },
+    { value: "completed", label: "Đã hoàn thành" },
+    { value: "returned", label: "Đã hủy" },
+  ];
+
+  const sourceFilterOptions: FilterOption[] = [
+    { value: "all", label: "Tất cả" },
+    { value: "website", label: "Website" },
+    { value: "pos", label: "POS" },
+  ];
+
+  // Order table columns definition
+  const orderTableColumns: OrderTableColumn[] = [
+    {
+      title: "Tên sản phẩm",
+      width: "w-2/5",
+      minWidth: "min-w-80",
+      className: "",
+    },
+    {
+      title: "Tổng đơn",
+      width: "w-1/10",
+      minWidth: "min-w-24",
+    },
+    {
+      title: "Nguồn",
+      width: "w-1/10",
+      minWidth: "min-w-20",
+    },
+    {
+      title: "ĐVVC",
+      width: "w-1/12",
+      minWidth: "min-w-16",
+    },
+    {
+      title: "Xử lý",
+      width: "w-1/6",
+      minWidth: "min-w-28",
+    },
+    {
+      title: "Thanh toán",
+      width: "w-1/6",
+      minWidth: "min-w-28",
+    },
+    {
+      title: "Thao tác",
+      width: "w-1/8",
+      minWidth: "min-w-20",
+    },
+  ];
+
   return (
-    <div className="flex flex-col items-center w-full min-w-0">
-      {/* Header */}
-      <div className="flex items-center justify-start w-full shrink-0 mb-[2px]">
-        <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
-          Danh sách đơn hàng
-        </h2>
-      </div>
+    <PageContainer>
+      {/* Page Header */}
+      <PageHeader title="Danh sách đơn hàng" />
 
       {/* Tab Menu */}
       <div className="w-full shrink-0 mb-[10px] overflow-x-auto">
@@ -280,209 +339,59 @@ const AdminOrders: React.FC = () => {
         />
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[10px] md:px-[16px] lg:px-[24px] py-[16px] md:py-[24px] rounded-[8px] w-full">
-        {/* Search and Dropdown Section */}
-        <div className="flex gap-[8px] items-center justify-start w-full min-w-0">
-          <SearchBar
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm"
-            className="flex-1 min-w-0 max-w-[400px]"
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer flex-shrink-0 whitespace-nowrap">
-                <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  Trạng thái
-                </span>
-                <CaretDown className="text-[#e04d30]" />
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setActiveTab("all")}>
-                Tất cả
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("pending")}>
-                Chờ xác nhận
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("confirmed")}>
-                Đã xác nhận
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("shipping")}>
-                Đang giao
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("completed")}>
-                Đã hoàn thành
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveTab("returned")}>
-                Đã hủy
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer flex-shrink-0 whitespace-nowrap">
-                <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  Nguồn đơn
-                </span>
-                <CaretDown className="text-[#e04d30]" />
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setSourceFilter("all")}>
-                Tất cả
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSourceFilter("website")}>
-                Website
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSourceFilter("pos")}>
-                POS
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      {/* Content Card */}
+      <ContentCard className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[10px] md:px-[16px] lg:px-[24px] py-[16px] md:py-[24px] rounded-[8px] w-full">
+        {/* Filters Section */}
+        <TableFilters
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Tìm kiếm"
+          filterValue={activeTab}
+          onFilterChange={setActiveTab}
+          filterOptions={statusFilterOptions}
+          filterLabel="Trạng thái"
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer flex-shrink-0 whitespace-nowrap">
+                  <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
+                    Nguồn đơn
+                  </span>
+                  <CaretDown className="text-[#e04d30]" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {sourceFilterOptions.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    onClick={() => setSourceFilter(option.value)}
+                  >
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
+
         <h1 className="font-bold text-[20px] mb-0">101 đơn hàng</h1>
-        {/* Table */}
-        {/* Table Header */}
+        {/* Order Table */}
         <div className="w-full gap-2 flex flex-col -mt-[4px] overflow-x-auto">
-          <div className="bg-white w-full min-w-[1520px]">
-            <div className="flex items-center w-full">
-              <div className="bg-[#f6f6f6] flex items-center px-[16px] py-[14px] flex-1 min-w-[450px] rounded-l-[6px]">
-                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Tên sản phẩm
-                </p>
-              </div>
-              <div className="bg-[#f6f6f6] flex items-center justify-center px-[16px] py-[14px] w-[160px]">
-                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Tổng đơn hàng
-                </p>
-              </div>
-              <div className="bg-[#f6f6f6] flex items-center justify-center px-[16px] py-[14px] w-[150px]">
-                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Nguồn đơn
-                </p>
-              </div>
-              <div className="bg-[#f6f6f6] flex items-center justify-center px-[16px] py-[14px] w-[120px]">
-                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  ĐVVC
-                </p>
-              </div>
-              <div className="bg-[#f6f6f6] flex items-center justify-center px-[16px] py-[14px] w-[200px]">
-                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Trạng thái xử lý
-                </p>
-              </div>
-              <div className="bg-[#f6f6f6] flex items-center justify-center px-[16px] py-[14px] w-[220px]">
-                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                  Trạng thái thanh toán
-                </p>
-              </div>
-              <div className="bg-[#f6f6f6] flex items-center justify-center px-[16px] py-[14px] w-[180px] rounded-r-[6px]">
-                <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                  Thao tác
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="w-full min-w-[1520px]">
-            {/* Table Body */}
+          {/* Table Header */}
+          <OrderTableHeader columns={orderTableColumns} />
+
+          {/* Table Body */}
+          <div className="w-full min-w-[1200px]">
             <div className="flex flex-col gap-[12px] w-full">
               {paginatedOrders.map((order) => (
-                <div key={order.id} className="w-full">
-                  {/* User Header Row */}
-                  <div className="flex justify-between px-[16px] py-[12px] border border-[#e7e7e7] bg-gray-50 rounded-t-[6px] min-w-[1520px]">
-                    <div className="flex gap-[10px]">
-                      <div className="w-[30px] h-[30px] rounded-[24px] bg-gray-200"></div>
-                      <div className="flex items-center gap-[8px]">
-                        <p className="font-montserrat font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
-                          {order.customer}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                        Mã đơn hàng: {order.id}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Product Row - Only show first product */}
-                  {order.products[0] && (
-                    <div className="flex border-b border-x rounded-b-[6px] border-[#e7e7e7] min-w-[1520px]">
-                      {/* Product Name Column */}
-                      <div className="flex items-start gap-0 px-[16px] py-[12px] flex-1 min-w-[450px]">
-                        <img
-                          src={order.products[0].image}
-                          alt={order.products[0].name}
-                          className="border border-[#d1d1d1] w-[56px] h-[56px] object-cover bg-gray-100"
-                        />
-                        <div className="flex flex-col gap-[8px] flex-1 pl-[8px] pr-[12px] pt-0">
-                          <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                            {order.products[0].name}
-                          </p>
-                          <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.4]">
-                            Phân loại hàng: Size 40
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Total Order Column */}
-                      <div className="flex flex-col items-center gap-[4px] px-[16px] py-[12px] w-[160px]">
-                        <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                          {order.products[0].price}
-                        </p>
-                        <ChipStatus
-                          status={getPaymentTypeStatus(order.paymentType)}
-                          labelOverride={order.paymentType}
-                        />
-                      </div>
-
-                      {/* Source Column */}
-                      <div className="flex items-center justify-center px-[16px] py-[12px] w-[150px]">
-                        <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                          {order.category}
-                        </p>
-                      </div>
-
-                      {/* Shipping Column */}
-                      <div className="flex items-center justify-center px-[16px] py-[12px] w-[120px]">
-                        <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-                          .....
-                        </p>
-                      </div>
-
-                      {/* Processing Status Column */}
-                      <div className="flex items-center justify-center px-[16px] py-[12px] w-[200px]">
-                        <ChipStatus
-                          status={getProcessingStatus(order.status)}
-                          labelOverride={order.status}
-                        />
-                      </div>
-
-                      {/* Payment Status Column */}
-                      <div className="flex items-center justify-center px-[16px] py-[12px] w-[220px]">
-                        <ChipStatus
-                          status={getPaymentStatus(order.paymentStatus)}
-                          labelOverride={order.paymentStatus}
-                        />
-                      </div>
-
-                      {/* Actions Column */}
-                      <div className="flex items-center justify-center gap-[8px] px-[16px] py-[12px] w-[180px]">
-                        <button
-                          className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer hover:underline"
-                          onClick={() =>
-                            handleViewOrderDetail(order.id, order.status, order.category)
-                          }
-                        >
-                          <DetailIcon size={16} color="#1a71f6" />
-                          Xem chi tiết
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <OrderTableRow
+                  key={order.id}
+                  order={order}
+                  onViewDetail={handleViewOrderDetail}
+                  getPaymentTypeStatus={getPaymentTypeStatus}
+                  getProcessingStatus={getProcessingStatus}
+                  getPaymentStatus={getPaymentStatus}
+                />
               ))}
             </div>
           </div>
@@ -494,8 +403,8 @@ const AdminOrders: React.FC = () => {
           total={Math.ceil(filteredOrders.length / 10)}
           onChange={setCurrentPage}
         />
-      </div>
-    </div>
+      </ContentCard>
+    </PageContainer>
   );
 };
 

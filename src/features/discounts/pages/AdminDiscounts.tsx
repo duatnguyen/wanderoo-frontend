@@ -160,7 +160,7 @@ const AdminDiscounts: React.FC = () => {
       </div>
 
       {/* Create Voucher Section */}
-      <div className="bg-white border border-[#d1d1d1] rounded-[24px] pt-[12px] px-[24px] pb-[24px] flex flex-col w-full xl:w-[calc(100%+100px)] -mx-0 xl:-mx-[50px] -mt-[10px] overflow-x-auto">
+      <div className="bg-white border border-[#d1d1d1] rounded-[24px] pt-[12px] px-[24px] pb-[24px] flex flex-col w-full -mt-[10px] overflow-x-auto">
         {/* Create Voucher Header */}
         <div className="flex flex-col gap-[2px] items-start justify-center px-0 py-0 w-full flex-shrink-0">
           <div className="flex gap-[20px] items-center px-0 py-0 w-full">
@@ -290,8 +290,8 @@ const AdminDiscounts: React.FC = () => {
 
       {/* Voucher Table */}
       <div className="w-full overflow-x-auto xl:overflow-x-visible">
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] w-full xl:w-[calc(100%+100px)] -mx-0 xl:-mx-[50px] overflow-hidden min-w-[1085px] xl:min-w-0">
-          <table className="w-full border-collapse min-w-[1085px]">
+        <div className="bg-white border border-[#e7e7e7] rounded-[24px] w-full overflow-hidden min-w-[900px]">
+          <table className="w-full border-collapse min-w-[900px]">
             <thead>
               <tr>
                 <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[12px] py-[15px] text-left rounded-tl-[12px]">

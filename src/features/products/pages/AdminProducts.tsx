@@ -105,8 +105,8 @@ const AdminProducts: React.FC = () => {
         {/* Table Section */}
         <div className="flex flex-col items-start px-3 sm:px-[15px] py-0 relative rounded-[16px] w-full">
           {/* Table Container with Scroll */}
-          <div className="w-full overflow-x-auto overflow-y-visible table-scroll-horizontal pb-4">
-            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] min-w-[1400px] sm:min-w-[1600px] lg:min-w-[1800px] w-fit">
+          <div className="w-full overflow-x-auto pb-4">
+            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full min-w-[1200px]">
               {/* Table Header */}
               {selectedProducts.size > 0 ? (
                 /* Selection Header */
@@ -154,9 +154,9 @@ const AdminProducts: React.FC = () => {
                 /* Normal Header */
                 <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full h-[68px]">
                   <div className="flex flex-row items-center w-full h-full">
-                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[60px] min-w-[60px] min-h-[68px] flex-shrink-0">
+                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-12 flex-shrink-0">
                       <div
-                        className="min-w-[24px] flex-shrink-0"
+                        className="flex-shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <CustomCheckbox
@@ -166,52 +166,52 @@ const AdminProducts: React.FC = () => {
                         />
                       </div>
                     </div>
-                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[500px] min-h-[68px]">
+                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-1/4 min-w-48">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Tên sản phẩm
                       </span>
                     </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        SKU sản phẩm
+                        SKU
                       </span>
                     </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Barcode
                       </span>
                     </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/12 min-w-16">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Tồn kho
                       </span>
                     </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/12 min-w-16">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        Có thể bán
+                        Có bán
                       </span>
                     </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/10 min-w-20">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        SL bán trên website
+                        SL web
                       </span>
                     </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/10 min-w-20">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        SL bán trên POS
+                        SL POS
                       </span>
                     </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/10 min-w-20">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Giá bán
                       </span>
                     </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/10 min-w-20">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Giá vốn
                       </span>
                     </div>
-                    <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
+                    <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Thao tác
                       </span>
@@ -225,7 +225,7 @@ const AdminProducts: React.FC = () => {
               <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
                 <div className="flex flex-row items-center w-full">
                   {/* Checkbox Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
+                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-12 flex-shrink-0">
                     <div onClick={(e) => e.stopPropagation()}>
                       <CustomCheckbox
                         checked={selectedProducts.has("1")}
@@ -235,7 +235,7 @@ const AdminProducts: React.FC = () => {
                     </div>
                   </div>
                   {/* Product Name with Image */}
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
+                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-1/4 min-w-48">
                     <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0">
                       {/* Product Image Placeholder */}
                     </div>

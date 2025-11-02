@@ -244,10 +244,10 @@ const AdminCustomers: React.FC = () => {
         {/* Table */}
         <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
           {/* Table Header */}
-          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1100px] h-[58px]">
+          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full h-[58px]">
             <div className="flex flex-row items-center w-full h-full">
-              {/* Checkbox column */}
-              <div className="flex h-full items-center px-[4px] py-[12px] min-w-[24px] flex-shrink-0">
+                  {/* Checkbox column */}
+              <div className="flex h-full items-center px-[4px] py-[12px] w-8 flex-shrink-0">
                 <CustomCheckbox
                   checked={
                     paginatedCustomers.length > 0 &&
@@ -281,19 +281,19 @@ const AdminCustomers: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0 ml-[7px]">
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/4 min-w-48 ml-[7px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Khách hàng</span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/4 min-w-44">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Email</span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/5 min-w-32">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Số điện thoại</span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
+                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/5 min-w-32">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Tổng chi tiêu</span>
                   </div>
-                  <div className="flex gap-[4px] items-center px-[4px] py-[12px] flex-1 min-w-0">
+                  <div className="flex gap-[4px] items-center px-[4px] py-[12px] w-1/6 min-w-24">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Trạng thái</span>
                   </div>
                 </>
@@ -305,7 +305,7 @@ const AdminCustomers: React.FC = () => {
           {paginatedCustomers.map((c, index) => (
             <div
               key={c.id}
-              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full min-w-[1100px] ${
+              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full ${
                 index === paginatedCustomers.length - 1
                   ? "border-transparent"
                   : "border-[#e7e7e7]"
@@ -318,7 +318,7 @@ const AdminCustomers: React.FC = () => {
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
                   {/* Checkbox col */}
-                  <div className="flex h-full items-center px-[4px] py-[12px] min-w-[24px] flex-shrink-0">
+                  <div className="flex h-full items-center px-[4px] py-[12px] w-8 flex-shrink-0">
                     <CustomCheckbox
                       checked={selectedCustomers.has(c.id)}
                       onChange={(checked) => handleSelectItem(c.id, checked)}
@@ -326,7 +326,7 @@ const AdminCustomers: React.FC = () => {
                     />
                   </div>
                   {/* Name col */}
-                  <div className="flex h-full items-center px-[4px] py-[12px] flex-1 min-w-0 ml-[7px]">
+                  <div className="flex h-full items-center px-[4px] py-[12px] w-1/4 min-w-48 ml-[7px]">
                     <div className="w-[50px] h-[50px] relative overflow-hidden rounded-lg border-2 border-[#d1d1d1] mr-[8px]">
                       <Avatar className="w-full h-full">
                         {c.avatar ? (
@@ -349,17 +349,17 @@ const AdminCustomers: React.FC = () => {
                       <span className="font-medium text-[12px] text-[#737373] leading-[1.3]">@{c.username}</span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-1/4 min-w-44">
                     <span className="font-medium text-[#272424] text-[14px] leading-[1.4] truncate">
                       {c.email}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-1/5 min-w-32">
                     <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                       {c.phone}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
+                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-1/5 min-w-32">
                     <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
                       {c.totalSpent.toLocaleString("vi-VN")}đ
                     </span>
@@ -367,7 +367,7 @@ const AdminCustomers: React.FC = () => {
                       {c.totalOrders} đơn hàng
                     </span>
                   </div>
-                  <div className="flex gap-[4px] h-full items-center px-[4px] py-[12px] flex-1 min-w-0">
+                  <div className="flex gap-[4px] h-full items-center px-[4px] py-[12px] w-1/6 min-w-24">
                     <div
                       className={`rounded-[10px] ${
                         c.status === "active" ? "bg-[#b2ffb4]" : "bg-[#ffdcdc]"
