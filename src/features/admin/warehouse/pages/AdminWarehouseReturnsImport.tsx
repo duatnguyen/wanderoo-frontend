@@ -5,13 +5,7 @@ import { ChipStatus } from "@/components/ui/chip-status";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
 import { SearchBar } from "@/components/ui/search-bar";
 import { Pagination } from "@/components/ui/pagination";
-import CaretDown from "@/components/ui/caret-down";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 
 interface ReturnImport {
   id: string;
@@ -63,6 +57,9 @@ const AdminWarehouseReturnsImport = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [returns] = useState<ReturnImport[]>(mockReturns);
+  const [returnStatus, setReturnStatus] = useState("Trạng thái hoàn hàng");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalSearchTerm, setModalSearchTerm] = useState("");
 
   const filteredReturns = useMemo(() => {
     return returns.filter((returnItem) => {
@@ -131,24 +128,22 @@ const AdminWarehouseReturnsImport = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen max-h-screen overflow-hidden w-full gap-1">
+    <div className="flex flex-col h-screen max-h-screen w-full gap-1 px-2 sm:px-4 lg:px-6">
       {/* Header */}
-      <div className="flex items-center justify-between py-[4px] px-0 h-[32px] w-full mb-2">
-        <h1 className="font-bold text-[24px] text-[#272424] font-['Montserrat']">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-[4px] px-0 h-auto sm:h-[32px] w-full mb-2 gap-2 sm:gap-0">
+        <h1 className="font-bold text-[20px] sm:text-[24px] text-[#272424] font-['Montserrat']">
           Danh sách đơn trả hàng nhập
         </h1>
         <Button
-          onClick={() => navigate("/admin/warehouse/returns/create")}
-          className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-[20px] py-[8px] rounded-[10px]"
+          onClick={() => setIsModalOpen(true)}
+          className="w-full sm:w-auto"
         >
-          <span className="font-bold text-[11px] leading-normal">
-            Tạo đơn trả hàng nhập
-          </span>
+          Tạo đơn trả hàng nhập
         </Button>
       </div>
 
       {/* Main Content */}
-      <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-[1100px] gap-1 flex-1 overflow-hidden">
+      <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-full max-w-full gap-1 flex-1 overflow-hidden">
         {/* Search and Filter Section */}
         <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full">
           <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center justify-left relative w-full">
@@ -157,38 +152,29 @@ const AdminWarehouseReturnsImport = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Tìm kiếm"
-                className="w-full sm:w-[500px]"
+                className="w-full min-w-0 sm:max-w-[400px] md:max-w-[500px]"
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer">
-                  <span className="text-[#e04d30] text-[11px] font-semibold leading-[1.4]">
-                    Trạng thái hoàn hàng
-                  </span>
-                  <CaretDown className="text-[#e04d30]" />
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => {}}>
-                  Tất cả trạng thái
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
-                  Đã hoàn trả
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
-                  Chưa hoàn trả
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <SimpleDropdown
+              value={returnStatus}
+              options={[
+                "Trạng thái hoàn hàng",
+                "Tất cả trạng thái",
+                "Đã hoàn trả",
+                "Chưa hoàn trả",
+              ]}
+              onValueChange={setReturnStatus}
+              placeholder="Trạng thái hoàn hàng"
+              className="w-full sm:w-[200px]"
+            />
           </div>
         </div>
 
         {/* Table Section */}
-        <div className="flex flex-col items-start px-[15px] py-0 relative rounded-[16px] w-full">
+        <div className="px-[8px] sm:px-[15px] rounded-[16px] w-full">
           {/* Table Container with Scroll */}
-          <div className="w-full overflow-x-auto">
-            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-fit">
+          <div className="w-full overflow-x-auto -mx-[8px] sm:mx-0">
+            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-fit min-w-[1400px]">
               {/* Table Header */}
               <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
                 <div className="flex flex-row items-center w-full">
@@ -321,6 +307,95 @@ const AdminWarehouseReturnsImport = () => {
           />
         </div>
       </div>
+
+      {/* Create Return Import Modal */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn"
+          style={{
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(8px)",
+          }}
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            className="bg-white w-[800px] max-w-[90vw] max-h-[90vh] flex flex-col rounded-[24px] shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-[#D1D1D1]">
+              <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
+                Tạo đơn trả hàng nhập
+              </h2>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Search Bar */}
+              <div className="mb-4">
+                <SearchBar
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  placeholder="Tìm kiếm"
+                  className="w-full"
+                />
+              </div>
+
+              {/* Table */}
+              <div className="border border-[#D1D1D1] rounded-[16px] overflow-hidden">
+                {/* Table Header */}
+                <div className="bg-[#f6f6f6] flex items-center px-[12px] py-3 border-b border-[#D1D1D1]">
+                  <div className="flex flex-row items-center w-full text-[13px] font-semibold text-[#272424]">
+                    <div className="w-[150px]">Mã đơn nhập</div>
+                    <div className="w-[150px]">Ngày tạo</div>
+                    <div className="w-[150px]">Nhân viên</div>
+                    <div className="w-[150px]">Nhà cung cấp</div>
+                    <div className="w-[200px]">Giá trị đơn nhập hàng</div>
+                    <div className="w-[100px] text-center">Thao tác</div>
+                  </div>
+                </div>
+
+                {/* Table Body */}
+                {mockReturns.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center px-[12px] py-3 border-b border-[#e7e7e7] hover:bg-gray-50 text-[13px] text-[#272424] cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/admin/warehouse/returns/${item.id}`);
+                    }}
+                  >
+                    <div className="flex flex-row items-center w-full">
+                      <div className="w-[150px] font-semibold text-[#1a71f6]">
+                        {item.importCode}
+                      </div>
+                      <div className="w-[150px]">
+                        {new Date(item.createdDate).toLocaleString("vi-VN", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                      <div className="w-[150px]">{item.createdBy}</div>
+                      <div className="w-[150px]">{item.supplier}</div>
+                      <div className="w-[200px]">
+                        {formatCurrency(item.totalValue)}
+                      </div>
+                      <div className="w-[100px] text-center">
+                        <span className="text-[#1a71f6] hover:underline cursor-pointer">
+                          Trả hàng
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

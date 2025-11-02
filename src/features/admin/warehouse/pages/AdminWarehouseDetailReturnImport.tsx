@@ -1,8 +1,11 @@
+import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
-import PajamasTodoDoneIcon from "@/assets/icons/social/pajamas_todo-done.svg";
+import { FormInput } from "@/components/ui/form-input";
+import { DatePicker } from "@/components/ui/date-picker";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 
 interface ReturnImportDetail {
   id: string;
@@ -11,6 +14,7 @@ interface ReturnImportDetail {
   createdDate: string;
   supplier: string;
   createdBy: string;
+  status: "processing" | "completed";
   returnStatus: "returned" | "pending_return";
   refundStatus: "refunded" | "pending_refund";
   paymentMethod: "cash" | "transfer";
@@ -20,19 +24,50 @@ interface ReturnImportDetail {
     quantity: number;
     price: number;
     total: number;
-    image?: string;
   }>;
   totals: { items: number; value: number };
   returnReason: string;
 }
 
-const mockReturnDetail: ReturnImportDetail = {
+const mockReturnDetailProcessing: ReturnImportDetail = {
+  id: "2",
+  returnCode: "SRT002",
+  importCode: "REI002",
+  createdDate: "2025-09-12T15:30:00",
+  supplier: "Công ty ABC",
+  createdBy: "Admin NguyenVanA",
+  status: "processing",
+  returnStatus: "pending_return",
+  refundStatus: "pending_refund",
+  paymentMethod: "transfer",
+  returnReason: "Sản phẩm bị lỗi, không đạt chất lượng yêu cầu",
+  items: [
+    {
+      id: "p1",
+      name: "Áo thun thoáng khí Rockbros LKW008",
+      quantity: 100,
+      price: 120000,
+      total: 12000000,
+    },
+    {
+      id: "p2",
+      name: "Áo thun dài tay Northshengwolf",
+      quantity: 50,
+      price: 150000,
+      total: 7500000,
+    },
+  ],
+  totals: { items: 150, value: 19500000 },
+};
+
+const mockReturnDetailCompleted: ReturnImportDetail = {
   id: "1",
   returnCode: "SRT001",
-  importCode: "NK001",
-  createdDate: "2024-01-15",
-  supplier: "Công ty TNHH ABC",
-  createdBy: "Nguyễn Văn A",
+  importCode: "REI001",
+  createdDate: "2025-09-13T21:05:00",
+  supplier: "Kho Nhật Quang",
+  createdBy: "Admin ThanhNguyen",
+  status: "completed",
   returnStatus: "returned",
   refundStatus: "refunded",
   paymentMethod: "cash",
@@ -44,7 +79,6 @@ const mockReturnDetail: ReturnImportDetail = {
       quantity: 100,
       price: 120000,
       total: 12000000,
-      image: "https://placehold.co/60x60",
     },
     {
       id: "p2",
@@ -52,22 +86,34 @@ const mockReturnDetail: ReturnImportDetail = {
       quantity: 50,
       price: 150000,
       total: 7500000,
-      image: "https://placehold.co/60x60",
     },
   ],
   totals: { items: 150, value: 19500000 },
 };
 
-const AdminWarehouseDetailReturnImport = () => {
+const AdminWarehouseDetailReturnImport: React.FC = () => {
   document.title = "Chi tiết đơn trả hàng nhập | Wanderoo";
 
   const navigate = useNavigate();
   const { returnId } = useParams<{ returnId: string }>();
 
+  // Refund modal state
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [refundMethod, setRefundMethod] = useState("Chọn hình thức hoàn tiền");
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundDate, setRefundDate] = useState("");
+  const [referenceCode, setReferenceCode] = useState("");
+
+  // For testing: use processing for ID 2, completed for ID 1
+  const isProcessingId = returnId === "2";
+  const mockDetail = isProcessingId
+    ? mockReturnDetailProcessing
+    : mockReturnDetailCompleted;
+
   const detail: ReturnImportDetail = {
-    ...mockReturnDetail,
-    id: returnId ?? mockReturnDetail.id,
-    returnCode: mockReturnDetail.returnCode,
+    ...mockDetail,
+    id: returnId ?? mockDetail.id,
+    returnCode: mockDetail.returnCode,
   };
 
   const formatCurrency = (amount: number) =>
@@ -76,90 +122,90 @@ const AdminWarehouseDetailReturnImport = () => {
       currency: "VND",
     }).format(amount);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const handleConfirmReturn = () => {
+    console.log("Confirm return");
+    // TODO: Handle return confirmation
   };
 
+  const handleConfirmRefund = () => {
+    setIsRefundModalOpen(true);
+  };
+
+  const handleRefundModalCancel = () => {
+    setIsRefundModalOpen(false);
+    setRefundMethod("Chọn hình thức hoàn tiền");
+    setRefundAmount("");
+    setRefundDate("");
+    setReferenceCode("");
+  };
+
+  const handleRefundModalConfirm = () => {
+    console.log("Refund details:", {
+      refundMethod,
+      refundAmount,
+      refundDate,
+      referenceCode,
+    });
+    // TODO: Handle refund confirmation
+    setIsRefundModalOpen(false);
+  };
+
+  const isCompleted = detail.status === "completed";
+  const isReturned = detail.returnStatus === "returned";
+  const isRefunded = detail.refundStatus === "refunded";
+
   return (
-    <div className="space-y-4 p-3">
-      {/* Header */}
-      <div className="w-full h-full justify-start items-center gap-2 inline-flex">
-        <div className="w-6 h-6 relative">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-0 w-6 h-6"
-            onClick={() => navigate("/admin/warehouse/returns")}
-          >
-            <ArrowLeft className="h-4 w-4 text-[#454545]" />
-          </Button>
+    <div className="space-y-4 px-40">
+      {/* Header matching Figma design */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="p-0 w-6 h-6 cursor-pointer"
+          onClick={() => navigate("/admin/warehouse/returnsimport")}
+        >
+          <ArrowLeft className="h-4 w-4 text-[#454545]" />
+        </Button>
+        <div className="text-[#272424] text-[24px] font-[700] font-montserrat">
+          {detail.returnCode}
         </div>
-        <div className="self-stretch flex-col justify-center items-center gap-2.5 inline-flex">
-          <div className="justify-center flex flex-col text-[#272424] text-[24px] font-[700] font-montserrat">
-            {detail.returnCode}
-          </div>
+        <div className="text-[#272424] text-[12px] font-[400] font-montserrat leading-[18px]">
+          {new Date(detail.createdDate).toLocaleDateString("vi-VN")}{" "}
+          {new Date(detail.createdDate).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </div>
-        <div className="self-stretch flex-col justify-center items-center gap-2.5 inline-flex">
-          <div className="justify-center flex flex-col text-[#272424] text-[12px] font-[400] font-montserrat leading-[18px]">
-            {formatDate(detail.createdDate)}
-          </div>
-        </div>
-        <ChipStatus
-          status={
-            detail.returnStatus === "returned" ? "completed" : "processing"
-          }
-        />
+        <ChipStatus status={detail.status} />
       </div>
 
       {/* Return Status Section */}
-      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+      <div className="w-full bg-white border border-[#D1D1D1] rounded-[24px] overflow-hidden">
         {/* Header with status icon and title */}
-        <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
-          <div className="w-10 h-10 relative">
-            <img
-              src={PajamasTodoDoneIcon}
-              alt="Success icon"
-              className="w-full h-full"
-            />
-          </div>
+        <div className="px-[14px] py-[14px] border-b border-[#D1D1D1] flex items-center gap-5">
+          {isReturned ? (
+            <CheckCircle2 className="w-10 h-10 text-[#04910C]" />
+          ) : (
+            <Square className="w-10 h-10 text-[#D1D1D1]" />
+          )}
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
-            Đã hoàn trả
+            {isReturned ? "Đã hoàn trả" : "Chưa hoàn trả"}
           </div>
         </div>
 
         {/* Table header */}
-        <div className="self-stretch h-[50px] bg-[#F6F6F6] justify-start items-start inline-flex">
-          <div className="w-[400px] self-stretch px-[14px] overflow-hidden border-l border-[#D1D1D1] justify-start items-center flex">
-            <div className="w-[22px] h-0 transform rotate-[-90deg] origin-top-left">
-              {" "}
-            </div>
-            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
-              Sản phẩm
-            </div>
+        <div className="grid grid-cols-[2fr_1fr_1fr_1fr] h-[50px] bg-[#F6F6F6] items-center border-b border-[#D1D1D1]">
+          <div className="px-[14px] text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+            Sản phẩm
           </div>
-          <div className="flex-1 self-stretch px-[14px] relative justify-center items-center gap-1 flex">
-            <div className="w-[22px] h-0 left-0 top-[36px] absolute transform rotate-[-90deg] origin-top-left"></div>
-            <div className="w-16 text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
-              Số lượng
-            </div>
+          <div className="px-[14px] text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px] text-center">
+            Số lượng
           </div>
-          <div className="flex-1 self-stretch px-[14px] relative justify-center items-center gap-1 flex">
-            <div className="w-[22px] h-0 left-0 top-[36px] absolute transform rotate-[-90deg] origin-top-left"></div>
-            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
-              Đơn giá trả
-            </div>
+          <div className="px-[14px] text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px] text-center">
+            Đơn giá trả
           </div>
-          <div className="flex-1 self-stretch px-[14px] border-r border-[#D1D1D1] justify-end items-center gap-1 flex">
-            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
-              Thành tiền
-            </div>
+          <div className="px-[14px] text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px] text-right">
+            Thành tiền
           </div>
         </div>
 
@@ -167,102 +213,99 @@ const AdminWarehouseDetailReturnImport = () => {
         {detail.items.map((item, index) => (
           <div
             key={item.id}
-            className={`self-stretch border border-[#D1D1D1] justify-start items-start inline-flex ${
-              index === detail.items.length - 1 ? "rounded-b-[24px]" : ""
+            className={`grid grid-cols-[2fr_1fr_1fr_1fr] items-center ${
+              index === detail.items.length - 1
+                ? "border-b-0"
+                : "border-b border-[#D1D1D1]"
             }`}
           >
-            <div className="w-[400px] self-stretch px-3 py-3 justify-start items-center gap-3 flex">
+            <div className="px-[14px] py-3 flex items-center gap-3">
               <img
-                className="w-[60px] h-[60px]"
-                src={item.image || "https://placehold.co/60x60"}
+                className="w-[60px] h-[60px] rounded object-cover flex-shrink-0"
+                src="https://placehold.co/60x60"
                 alt={item.name}
               />
-              <div className="self-stretch justify-start items-start gap-2.5 flex">
-                <div className="text-black text-[10px] font-[500] font-montserrat leading-[14px]">
-                  {item.name}
-                </div>
+              <div className="text-black text-[14px] font-[500] font-montserrat leading-[14px]">
+                {item.name}
               </div>
             </div>
-            <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-center gap-2.5 inline-flex">
-              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
-                {item.quantity}
-              </div>
+            <div className="px-[14px] py-3 text-[#272424] text-[14px] font-[500] font-montserrat leading-[14px] text-center">
+              {item.quantity}
             </div>
-            <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-center gap-2 inline-flex">
-              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
-                {formatCurrency(item.price)}
-              </div>
+            <div className="px-[14px] py-3 text-[#272424] text-[14px] font-[500] font-montserrat leading-[14px] text-center">
+              {formatCurrency(item.price)}
             </div>
-            <div className="flex-1 self-stretch px-[14px] flex-col justify-center items-end gap-2 inline-flex">
-              <div className="text-[#272424] text-[10px] font-[500] font-montserrat leading-[14px]">
-                {formatCurrency(item.total)}
-              </div>
+            <div className="px-[14px] py-3 text-[#272424] text-[14px] font-[500] font-montserrat leading-[14px] text-right">
+              {formatCurrency(item.total)}
             </div>
           </div>
         ))}
+
+        {/* Return confirmation button for processing status */}
+        {!isReturned && !isCompleted && (
+          <div className="px-[14px] py-3 flex justify-end border-t border-[#D1D1D1]">
+            <Button onClick={handleConfirmReturn} variant="secondary">
+              Xác nhận hoàn trả
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Refund Summary Section */}
-      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
+      <div className="w-full bg-white border border-[#D1D1D1] rounded-[24px] overflow-hidden">
         {/* Header with refund status */}
-        <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
-          <div className="w-10 h-10 relative">
-            <img
-              src={PajamasTodoDoneIcon}
-              alt="Success icon"
-              className="w-full h-full"
-            />
-          </div>
+        <div className="px-[14px] py-[14px] border-b border-[#D1D1D1] flex items-center gap-5">
+          {isRefunded ? (
+            <CheckCircle2 className="w-10 h-10 text-[#04910C]" />
+          ) : (
+            <Square className="w-10 h-10 text-[#D1D1D1]" />
+          )}
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
-            Đã nhận hoàn tiền
+            {isRefunded ? "Đã nhận hoàn tiền" : "Chưa nhận hoàn tiền"}
           </div>
         </div>
 
         {/* Summary row */}
-        <div className="self-stretch h-[50px] bg-[#F6F6F6] border-b border-[#D1D1D1] justify-start items-start inline-flex">
-          <div className="flex-1 self-stretch px-[14px] overflow-hidden border-l border-[#D1D1D1] justify-start items-center flex">
-            <div className="w-[22px] h-0 transform rotate-[-90deg] origin-top-left"></div>
-            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
-              Giá trị hàng trả
-            </div>
+        <div className="grid grid-cols-[1fr_1fr_1fr] h-[50px] bg-[#F6F6F6] border-b border-[#D1D1D1] items-center">
+          <div className="px-[14px] text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
+            Giá trị hàng trả
           </div>
-          <div className="flex-1 self-stretch relative">
-            <div className="left-[101px] top-[15px] absolute text-center text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
-              {detail.totals.items} sản phẩm
-            </div>
+          <div className="px-[14px] text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px] text-center">
+            {detail.totals.items} sản phẩm
           </div>
-          <div className="flex-1 self-stretch px-[14px] border-r border-[#D1D1D1] justify-end items-center gap-1 flex">
-            <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
-              {formatCurrency(detail.totals.value)}
-            </div>
+          <div className="px-[14px] text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px] text-right">
+            {formatCurrency(detail.totals.value)}
           </div>
         </div>
 
         {/* Refund details */}
-        <div className="self-stretch pt-1.5 pb-1.5 rounded-b-[24px] border border-[#D1D1D1] justify-between items-start inline-flex">
-          <div className="flex-1 self-stretch px-3 flex-col justify-center items-start gap-2.5 inline-flex">
-            <div className="justify-start items-start gap-2.5 inline-flex">
-              <div className="text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px]">
-                Giá trị hoàn trả
-              </div>
-            </div>
+        <div className="grid grid-cols-[1fr_1fr] border-b border-[#D1D1D1] items-center">
+          <div className="px-[14px] py-3 text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px]">
+            Giá trị hoàn trả
           </div>
-          <div className="flex-1 self-stretch px-3 flex-col justify-center items-end gap-2 inline-flex">
-            <div className="text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px]">
-              {formatCurrency(detail.totals.value)}
-            </div>
+          <div className="px-[14px] py-3 text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px] text-right">
+            {formatCurrency(detail.totals.value)}
           </div>
         </div>
+
+        {/* Refund confirmation button for processing status */}
+        {!isRefunded && !isCompleted && (
+          <div className="px-[14px] py-3 flex justify-end border-t border-[#D1D1D1]">
+            <Button onClick={handleConfirmRefund} variant="secondary">
+              Xác nhận hoàn tiền
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Return Reason Section */}
-      <div className="w-full h-full bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
-        <div className="self-stretch px-[14px] py-[14px] rounded-t-[24px] border-b border-[#D1D1D1] justify-start items-center gap-5 inline-flex">
+      <div className="w-full bg-white border border-[#D1D1D1] rounded-[24px] overflow-hidden">
+        <div className="px-[14px] py-[14px] border-b border-[#D1D1D1]">
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
             Lý do trả hàng
           </div>
         </div>
-        <div className="self-stretch px-[14px] py-[14px] rounded-b-[24px] justify-start items-start inline-flex">
+        <div className="px-[14px] py-[14px]">
           <div className="text-[#272424] text-[14px] font-[400] font-montserrat leading-[19.60px]">
             {detail.returnReason}
           </div>
@@ -270,49 +313,130 @@ const AdminWarehouseDetailReturnImport = () => {
       </div>
 
       {/* Supplier and Staff section */}
-      <div className="w-full h-full justify-start items-start gap-3 inline-flex">
+      <div className="grid grid-cols-2 gap-3">
         {/* Supplier card */}
-        <div className="flex-1 px-6 py-3 bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
-          <div className="self-stretch pt-1.5 pb-1.5 rounded-[12px] justify-start items-center gap-2.5 inline-flex">
-            <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
-              Nhà cung cấp
-            </div>
+        <div className="p-6 bg-white border border-[#D1D1D1] rounded-[24px]">
+          <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px] mb-3">
+            Nhà cung cấp
           </div>
-          <div className="self-stretch justify-start items-center gap-[26px] inline-flex">
+          <div className="flex items-center gap-6">
             <img
-              className="w-[85px] h-[85px] rounded-[12px]"
+              className="w-[85px] h-[85px] rounded-[12px] object-cover"
               src="https://placehold.co/85x85"
               alt="Supplier"
             />
-            <div className="self-stretch justify-start items-start gap-2.5 flex">
-              <div className="text-black text-[12px] font-[400] font-montserrat leading-[18px]">
-                {detail.supplier}
-              </div>
+            <div className="text-black text-[14px] font-[400] font-montserrat leading-[18px]">
+              {detail.supplier}
             </div>
           </div>
         </div>
 
         {/* Staff card */}
-        <div className="flex-1 px-6 py-3 bg-white border border-[#D1D1D1] rounded-[24px] flex-col justify-start items-start inline-flex">
-          <div className="self-stretch pt-1.5 pb-1.5 rounded-[12px] justify-start items-center gap-2.5 inline-flex">
-            <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
-              Nhân viên phụ trách
-            </div>
+        <div className="p-6 bg-white border border-[#D1D1D1] rounded-[24px]">
+          <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px] mb-3">
+            Nhân viên phụ trách
           </div>
-          <div className="self-stretch justify-start items-center gap-[26px] inline-flex">
-            <div className="w-[85px] h-[85px] rounded-[12px] border-2 border-dashed border-[#D1D1D1] flex items-center justify-center">
+          <div className="flex items-center gap-6">
+            <div className="w-[85px] h-[85px] rounded-[12px] border-2 border-dashed border-[#D1D1D1] flex items-center justify-center bg-gray-50">
               <div className="text-[#D1D1D1] text-[12px] font-[400] font-montserrat leading-[18px]">
                 Avatar
               </div>
             </div>
-            <div className="self-stretch justify-start items-start gap-2.5 flex">
-              <div className="text-[#272424] text-[12px] font-[400] font-montserrat leading-[18px]">
-                {detail.createdBy}
-              </div>
+            <div className="text-[#272424] text-[14px] font-[400] font-montserrat leading-[18px]">
+              {detail.createdBy}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Refund Confirmation Modal */}
+      {isRefundModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn"
+          style={{
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(8px)",
+          }}
+          onClick={handleRefundModalCancel}
+        >
+          <div
+            className="bg-white w-[600px] max-w-[90vw] max-h-[90vh] flex flex-col rounded-[24px] shadow-2xl animate-scaleIn p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Title */}
+            <h2 className="text-[24px] font-bold text-[#272424] font-montserrat mb-6">
+              Xác nhận hoàn tiền
+            </h2>
+
+            {/* Form Fields */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Refund Method Dropdown */}
+              <div className="flex flex-col gap-2">
+                <label className="font-semibold text-[14px] text-[#272424]">
+                  Chọn hình thức hoàn tiền
+                </label>
+                <SimpleDropdown
+                  value={refundMethod}
+                  options={["Tiền mặt", "Chuyển khoản"]}
+                  onValueChange={setRefundMethod}
+                  placeholder="Chọn hình thức hoàn tiền"
+                />
+              </div>
+
+              {/* Refund Amount */}
+              <div className="flex flex-col gap-2">
+                <label className="font-semibold text-[14px] text-[#272424]">
+                  Số tiền hoàn trả
+                </label>
+                <FormInput
+                  type="text"
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                  placeholder="Nhập số tiền hoàn trả"
+                />
+              </div>
+
+              {/* Refund Date */}
+              <DatePicker
+                type="date"
+                value={refundDate}
+                onChange={(e) => setRefundDate(e.target.value)}
+                placeholder="//"
+                label="Ngày ghi nhận"
+                containerClassName="gap-2"
+              />
+
+              {/* Reference Code */}
+              <div className="flex flex-col gap-2">
+                <label className="font-semibold text-[14px] text-[#272424]">
+                  Mã tham chiếu <span className="text-[#e04d30]">*</span>
+                </label>
+                <FormInput
+                  type="text"
+                  value={referenceCode}
+                  onChange={(e) => setReferenceCode(e.target.value)}
+                  placeholder="Nhập mã tham chiếu"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Modal Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-[#D1D1D1]">
+              <Button variant="secondary" onClick={handleRefundModalCancel}>
+                Huỷ
+              </Button>
+              <Button
+                variant="default"
+                onClick={handleRefundModalConfirm}
+                disabled={!referenceCode}
+              >
+                Xác nhận
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
