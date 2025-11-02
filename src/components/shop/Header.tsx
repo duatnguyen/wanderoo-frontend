@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import SearchForm from "./SearchForm";
-import shopLogo from "../../../assets/icons/ShopLogo.png";
+import shopLogo from "../../assets/icons/ShopLogo.png";
 
 function Logo({ onClick }: { onClick: () => void }) {
   return (

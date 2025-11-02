@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
-import ProductCard from "../../components/ProductCard";
-import CategoryTabMenu from "../../components/CategoryTabMenu";
-import Button from "../../components/Button";
+import Header from "../../../../components/shop/Header";
+import Footer from "../../../../components/shop/Footer";
+import ProductCard from "../../../../components/shop/ProductCard";
+import CategoryTabMenu from "../../../../components/shop/CategoryTabMenu";
+import Button from "../../../../components/shop/Button";
 import mainBanner from "../../../../assets/images/banner/main-page-banner.png";
 import subBanner from "../../../../assets/images/banner/sub-banner.png";
 

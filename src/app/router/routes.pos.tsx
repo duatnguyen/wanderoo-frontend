@@ -5,13 +5,13 @@ import { Navigate } from "react-router-dom";
 import { LazyWrapper } from "../../components/common/LazyWrapper";
 import { POS_ROUTES } from "./routes.constants";
 
-// Lazy load POS pages
-const POSSales = lazy(() => import("../../features/pos/pages/POSSales"));
-const OrderManagement = lazy(() => import("../../features/pos/pages/OrderManagement"));
-const InventoryLookup = lazy(() => import("../../features/pos/pages/InventoryLookup"));
-const ReturnOrderManagement = lazy(() => import("../../features/pos/pages/ReturnOrderManagement"));
-const CreateReturnOrder = lazy(() => import("../../features/pos/pages/CreateReturnOrder"));
-const CashBook = lazy(() => import("../../features/pos/pages/CashBook"));
+// Lazy load POS pages - Organized by feature modules
+const POSSales = lazy(() => import("../../features/pos/pages/sales"));
+const OrderManagement = lazy(() => import("../../features/pos/pages/orders"));
+const InventoryLookup = lazy(() => import("../../features/pos/pages/inventory"));
+const ReturnOrderManagement = lazy(() => import("../../features/pos/pages/returns/ReturnOrderManagement"));
+const CreateReturnOrder = lazy(() => import("../../features/pos/pages/returns/CreateReturnOrder"));
+const CashBook = lazy(() => import("../../features/pos/pages/cashbook"));
 
 export const posRoutes: RouteObject[] = [
   // Default POS route - redirect to sales
