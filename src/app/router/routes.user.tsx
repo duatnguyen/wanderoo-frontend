@@ -5,19 +5,19 @@ import { lazy } from "react";
 import { LazyWrapper } from "../../components/common/LazyWrapper";
 
 // Lazy load user/shop pages
-const UserHome = lazy(() => import("../../pages/user/UserHome"));
-const ProfileLayout = lazy(() => import("../../layouts/ProfileLayout"));
+const UserHome = lazy(() => import("../../features/shop/pages/UserProfile/UserHome"));
+const ProfileLayout = lazy(() => import("../../features/shop/layouts/ProfileLayout"));
 const BasicInformationTab = lazy(
-  () => import("../../pages/user/tabs/BasicInformationTab")
+  () => import("../../features/shop/pages/UserProfile/BasicInformationTab")
 );
-const AddressTab = lazy(() => import("../../pages/user/tabs/AddressTab"));
-const PasswordTab = lazy(() => import("../../pages/user/tabs/PasswordTab"));
-const PrivacyTab = lazy(() => import("../../pages/user/tabs/PrivacyTab"));
-const OrdersTab = lazy(() => import("../../pages/user/tabs/OrdersTab"));
+const AddressTab = lazy(() => import("../../features/shop/pages/UserProfile/AddressTab"));
+const PasswordTab = lazy(() => import("../../features/shop/pages/UserProfile/PasswordTab"));
+const PrivacyTab = lazy(() => import("../../features/shop/pages/UserProfile/PrivacyTab"));
+const OrdersTab = lazy(() => import("../../features/shop/pages/UserProfile/OrdersTab"));
 const OrderDetailTab = lazy(
-  () => import("../../pages/user/tabs/OrderDetailTab")
+  () => import("../../features/shop/pages/UserProfile/OrderDetailTab")
 );
-const VouchersTab = lazy(() => import("../../pages/user/tabs/VouchersTab"));
+const VouchersTab = lazy(() => import("../../features/shop/pages/UserProfile/VouchersTab"));
 const LandingPage = lazy(
   () => import("../../features/shop/pages/Main/landingPage")
 );

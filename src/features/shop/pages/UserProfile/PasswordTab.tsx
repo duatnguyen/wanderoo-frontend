@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Button from "../../../features/shop/components/Button";
+import Button from "../../components/Button";
 
 const PasswordTab: React.FC = () => {
   const [formData, setFormData] = useState({

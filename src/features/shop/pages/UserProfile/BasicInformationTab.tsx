@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import Button from "../../../features/shop/components/Button";
-import { EditPencilIcon } from "../components/ProfileIcons";
+import Button from "../../components/Button";
+import { EditPencilIcon } from "../../components/ProfileIcons";
 
-const ProfileTab: React.FC = () => {
+const BasicInformationTab: React.FC = () => {
   const [userData, setUserData] = useState({
     fullName: "Thanh",
     email: "th***********@gmail.com",
@@ -201,5 +201,5 @@ const ProfileTab: React.FC = () => {
   );
 };
 
-export default ProfileTab;
+export default BasicInformationTab;
 

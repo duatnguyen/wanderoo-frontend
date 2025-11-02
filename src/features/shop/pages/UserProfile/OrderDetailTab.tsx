@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import OrderTimeline, {
   type TimelineStep,
-} from "../../../components/common/OrderTimeline";
-import Button from "../../../features/shop/components/Button";
+} from "../../../../components/common/OrderTimeline";
+import Button from "../../components/Button";
+import ActionButton from "../../components/ActionButton";
+import ProductReviewModal from "../../components/ProductReviewModal";
+import StarRating from "../../components/StarRating";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -34,16 +37,38 @@ function ArrowLeftIcon() {
   );
 }
 
+type ProductType = {
+  id: string;
+  imageUrl: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  variant?: string;
+  quantity: number;
+  isReviewed?: boolean;
+};
+
 const OrderDetailTab: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(
+    null
+  );
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(
+    new Set()
+  );
+  const [productReviews, setProductReviews] = useState<
+    Map<string, { rating: number; comment: string }>
+  >(new Map());
 
   // Determine if order is delivered based on orderId or status
   // In real app, this would come from API
   const isDelivered = orderId?.includes("delivered") || true; // For demo, set to true
 
   // Mock order data - in real app, fetch from API using orderId
-  const order = {
+  const [order] = useState({
     id: orderId || "WB0303168522",
     orderDate: "25/08/2025",
     status: isDelivered ? "Đã nhận hàng" : "Chờ xác nhận",
@@ -56,6 +81,7 @@ const OrderDetailTab: React.FC = () => {
         originalPrice: 230000,
         variant: "Đen",
         quantity: 1,
+        isReviewed: false,
       },
     ],
     customer: {
@@ -113,9 +139,14 @@ const OrderDetailTab: React.FC = () => {
             completed: false,
           },
         ] as TimelineStep[]),
-  };
+  });
 
   const totalPayment = order.payment.total;
+
+  // Check if a product has been reviewed
+  const isProductReviewed = (productId: string) => {
+    return reviewedProducts.has(productId);
+  };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -197,41 +228,87 @@ const OrderDetailTab: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Action Buttons - Only show for delivered orders */}
+                {/* Review Display or Action Buttons - Only show for delivered orders */}
                 {isDelivered && (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button
-                      variant="primary"
-                      size="md"
-                      onClick={() => {
-                        // Navigate to product page or add to cart
-                        navigate(`/shop/products/${product.id}`);
-                      }}
-                      className="flex-1 sm:flex-none"
-                    >
-                      Mua lại
-                    </Button>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
-                      >
-                        <span>Thêm</span>
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                  <>
+                    {/* Show existing review if reviewed */}
+                    {isProductReviewed(product.id) &&
+                    productReviews.has(product.id) ? (
+                      <div className="space-y-3">
+                        <div className="border-t border-gray-200 pt-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <StarRating
+                                value={
+                                  productReviews.get(product.id)?.rating || 0
+                                }
+                                onChange={() => {}}
+                                size="sm"
+                                readonly={true}
+                              />
+                              {productReviews.get(product.id)?.comment && (
+                                <p className="text-sm text-gray-700 mt-2">
+                                  {productReviews.get(product.id)?.comment}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedProduct(product);
+                                setIsReviewModalOpen(true);
+                              }}
+                              className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                            >
+                              Sửa
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col justify-end sm:flex-row gap-2">
+                        <Button
+                          variant="primary"
+                          size="md"
+                          onClick={() => {
+                            navigate(`/shop/products/${product.id}`);
+                          }}
+                          className="flex-1 sm:flex-none"
                         >
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
+                          Mua lại
+                        </Button>
+                        <ActionButton
+                          variant="ghost"
+                          size="md"
+                          options={[
+                            {
+                              id: "return-refund",
+                              label: "Yêu cầu hoàn hàng/Trả tiền",
+                              onClick: () => {
+                                console.log(
+                                  "Request return/refund for order:",
+                                  order.id,
+                                  "product:",
+                                  product.id
+                                );
+                              },
+                            },
+                            {
+                              id: "review",
+                              label: "Đánh giá",
+                              onClick: () => {
+                                setSelectedProduct(product);
+                                setIsReviewModalOpen(true);
+                              },
+                            },
+                          ]}
+                        >
+                          Thêm
+                        </ActionButton>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -331,6 +408,124 @@ const OrderDetailTab: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Review Modal */}
+      {selectedProduct && (
+        <ProductReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => {
+            setIsReviewModalOpen(false);
+            setSelectedProduct(null);
+          }}
+          product={{
+            id: selectedProduct.id,
+            name: selectedProduct.name,
+            imageUrl: selectedProduct.imageUrl,
+            classification: selectedProduct.variant,
+          }}
+          initialRating={
+            productReviews.get(selectedProduct.id)?.rating || undefined
+          }
+          initialComment={
+            productReviews.get(selectedProduct.id)?.comment || undefined
+          }
+          onSubmit={(review) => {
+            console.log("Review submitted:", review);
+            setIsReviewModalOpen(false);
+            if (!isProductReviewed(selectedProduct.id)) {
+              setReviewedProducts((prev) =>
+                new Set(prev).add(selectedProduct.id)
+              );
+            }
+            setProductReviews((prev) => {
+              const newMap = new Map(prev);
+              newMap.set(selectedProduct.id, {
+                rating: review.rating,
+                comment: review.comment,
+              });
+              return newMap;
+            });
+            setShowSuccessModal(true);
+            // In real app, here you would submit the review to the API
+          }}
+          isEditMode={isProductReviewed(selectedProduct.id)}
+          onDelete={
+            isProductReviewed(selectedProduct.id)
+              ? () => {
+                  console.log(
+                    "Deleting review for product:",
+                    selectedProduct.id
+                  );
+                  setReviewedProducts((prev) => {
+                    const newSet = new Set(prev);
+                    newSet.delete(selectedProduct.id);
+                    return newSet;
+                  });
+                  setProductReviews((prev) => {
+                    const newMap = new Map(prev);
+                    newMap.delete(selectedProduct.id);
+                    return newMap;
+                  });
+                  setIsReviewModalOpen(false);
+                  setSelectedProduct(null);
+                  // In real app, here you would delete the review from the API
+                }
+              : undefined
+          }
+        />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          />
+          <div
+            className="relative z-50 bg-white rounded-lg shadow-xl w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-8 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="w-20 h-20 bg-[#ea5b0c] rounded-full flex items-center justify-center">
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Cảm ơn bạn đã đánh giá!
+              </h2>
+              <p className="text-gray-600">
+                Đánh giá của bạn đã được gửi thành công.
+              </p>
+              <div className="mt-6">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => {
+                    setShowSuccessModal(false);
+                    setSelectedProduct(null);
+                  }}
+                  className="px-8"
+                >
+                  Đóng
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

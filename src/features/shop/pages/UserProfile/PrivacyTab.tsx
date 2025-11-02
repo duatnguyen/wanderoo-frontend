@@ -1,5 +1,5 @@
 import React from "react";
-import Button from "../../../features/shop/components/Button";
+import Button from "../../components/Button";
 
 const PrivacyTab: React.FC = () => {
   const handleDeleteAccount = () => {

@@ -4,7 +4,7 @@ import {
   PersonIcon,
   DocumentIcon,
   TicketIcon,
-} from "../pages/user/components/ProfileIcons";
+} from "../components/ProfileIcons";
 
 type MenuItem = {
   id: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import Button from "../../../features/shop/components/Button";
-import DropdownList from "../../../features/shop/components/DropdownList";
+import Button from "../../components/Button";
+import DropdownList from "../../components/DropdownList";
 
 function PlusIcon() {
   return (
@@ -228,7 +228,10 @@ const AddressTab: React.FC = () => {
     handleCloseModal();
   };
 
-  const handleInputChange = (field: keyof AddressFormData, value: string | boolean) => {
+  const handleInputChange = (
+    field: keyof AddressFormData,
+    value: string | boolean
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -268,7 +271,9 @@ const AddressTab: React.FC = () => {
             <div
               key={address.id}
               className={`${
-                index < addresses.length - 1 ? "border-b border-gray-200 pb-4" : ""
+                index < addresses.length - 1
+                  ? "border-b border-gray-200 pb-4"
+                  : ""
               }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -351,7 +356,7 @@ const AddressTab: React.FC = () => {
             className="fixed inset-0 bg-black/20 backdrop-blur-sm"
             onClick={handleCloseModal}
           />
-          
+
           {/* Modal Content */}
           <div
             className="relative z-50 bg-white rounded-lg shadow-xl w-full max-w-[600px] max-h-[90vh] overflow-y-auto m-4"
@@ -396,8 +401,10 @@ const AddressTab: React.FC = () => {
 
               {/* Address Section */}
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Địa chỉ</h3>
-                
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  Địa chỉ
+                </h3>
+
                 <div className="space-y-4">
                   {/* Province/City */}
                   <div>
@@ -448,7 +455,9 @@ const AddressTab: React.FC = () => {
                     </label>
                     <textarea
                       value={formData.detailAddress}
-                      onChange={(e) => handleInputChange("detailAddress", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("detailAddress", e.target.value)
+                      }
                       placeholder="Nhập địa chỉ chi tiết"
                       rows={3}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-none text-sm sm:text-base"
@@ -463,7 +472,9 @@ const AddressTab: React.FC = () => {
                   type="checkbox"
                   id="isDefault"
                   checked={formData.isDefault}
-                  onChange={(e) => handleInputChange("isDefault", e.target.checked)}
+                  onChange={(e) =>
+                    handleInputChange("isDefault", e.target.checked)
+                  }
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label
@@ -502,3 +513,4 @@ const AddressTab: React.FC = () => {
 };
 
 export default AddressTab;
+
