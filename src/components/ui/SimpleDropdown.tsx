@@ -8,6 +8,7 @@ export type SimpleDropdownProps = {
   options: string[];
   placeholder?: string;
   className?: string;
+  error?: boolean;
 };
 
 export const SimpleDropdown: React.FC<SimpleDropdownProps> = ({
@@ -16,6 +17,7 @@ export const SimpleDropdown: React.FC<SimpleDropdownProps> = ({
   options,
   placeholder = "Chọn...",
   className,
+  error = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,8 @@ export const SimpleDropdown: React.FC<SimpleDropdownProps> = ({
     <div ref={dropdownRef} className={cn("relative w-full", className)}>
       <div
         className={cn(
-          "bg-white border-2 border-[#e04d30] h-[40px] px-[16px] rounded-[12px] w-full flex items-center justify-between cursor-pointer"
+          "bg-white border-2 border-[#e04d30] h-[40px] px-[16px] rounded-[12px] w-full flex items-center justify-between cursor-pointer",
+          error && "border-red-500"
         )}
         onClick={() => setIsOpen(!isOpen)}
       >

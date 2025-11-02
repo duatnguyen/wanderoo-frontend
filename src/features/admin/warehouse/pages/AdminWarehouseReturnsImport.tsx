@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
@@ -144,168 +145,186 @@ const AdminWarehouseReturnsImport = () => {
 
       {/* Main Content */}
       <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-full max-w-full gap-1 flex-1 overflow-hidden">
-        {/* Search and Filter Section */}
-        <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full">
-          <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center justify-left relative w-full">
-            <div className="flex flex-row items-center self-stretch">
-              <SearchBar
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm"
-                className="w-full min-w-0 sm:max-w-[400px] md:max-w-[500px]"
-              />
+        {filteredReturns.length === 0 ? (
+          /* Empty State */
+          <div className="flex-1 flex flex-col items-center justify-center w-full py-20">
+            <div className="text-[#272424] text-[16px] font-medium text-center mb-6">
+              Cửa hàng của bạn chưa có đơn trả hàng nhập nào
             </div>
-            <SimpleDropdown
-              value={returnStatus}
-              options={[
-                "Trạng thái hoàn hàng",
-                "Tất cả trạng thái",
-                "Đã hoàn trả",
-                "Chưa hoàn trả",
-              ]}
-              onValueChange={setReturnStatus}
-              placeholder="Trạng thái hoàn hàng"
-              className="w-full sm:w-[200px]"
-            />
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-6 py-2 rounded-lg flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Tạo đơn trả hàng nhập
+            </Button>
           </div>
-        </div>
-
-        {/* Table Section */}
-        <div className="px-[8px] sm:px-[15px] rounded-[16px] w-full">
-          {/* Table Container with Scroll */}
-          <div className="w-full overflow-x-auto -mx-[8px] sm:mx-0">
-            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-fit min-w-[1400px]">
-              {/* Table Header */}
-              <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
-                <div className="flex flex-row items-center w-full">
-                  <div className="flex h-full items-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
-                      Mã đơn trả
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Mã đơn nhập
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Ngày tạo
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Phương thức thanh toán
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Trạng thái hoàn hàng
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Trạng thái hoàn tiền
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Nhà cung cấp
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Người tạo
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Số lượng trả
-                    </span>
-                  </div>
-                  <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[130px] min-w-[130px]">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Giá trị đơn
-                    </span>
-                  </div>
+        ) : (
+          <>
+            {/* Search and Filter Section */}
+            <div className="flex flex-col gap-[8px] items-center px-[15px] py-[16px] relative rounded-[20px] w-full">
+              <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center justify-left relative w-full">
+                <div className="flex flex-row items-center self-stretch">
+                  <SearchBar
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Tìm kiếm"
+                    className="w-full min-w-[400px] sm:max-w-[600px] md:max-w-[700px]"
+                  />
                 </div>
+                <SimpleDropdown
+                  value={returnStatus}
+                  options={[
+                    "Trạng thái hoàn hàng",
+                    "Tất cả trạng thái",
+                    "Đã hoàn trả",
+                    "Chưa hoàn trả",
+                  ]}
+                  onValueChange={setReturnStatus}
+                  placeholder="Trạng thái hoàn hàng"
+                  className="w-full sm:w-[200px]"
+                />
               </div>
+            </div>
 
-              {/* Table Body */}
-              {paginatedReturns.map((returnItem, index) => (
-                <div
-                  key={returnItem.id}
-                  className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full ${
-                    index === paginatedReturns.length - 1
-                      ? "border-transparent"
-                      : "border-[#e7e7e7]"
-                  } hover:bg-gray-50 cursor-pointer`}
-                  onClick={() =>
-                    navigate(`/admin/warehouse/returns/${returnItem.id}`)
-                  }
-                >
-                  <div className="flex items-center w-full">
+            {/* Table Section */}
+            <div className="px-[8px] sm:px-[15px] rounded-[16px] w-full">
+              {/* Table Container with Scroll */}
+              <div className="w-full overflow-x-auto -mx-[8px] sm:mx-0">
+                <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-fit min-w-[1400px]">
+                  {/* Table Header */}
+                  <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full">
                     <div className="flex flex-row items-center w-full">
                       <div className="flex h-full items-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                        <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-left">
-                          {returnItem.returnCode}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                          Mã đơn trả
                         </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                        <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-center">
-                          {returnItem.importCode}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Mã đơn nhập
                         </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
-                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
-                          {formatDate(returnItem.createdDate)}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Ngày tạo
                         </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
-                        {getPaymentMethodChip(returnItem.paymentMethod)}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Phương thức thanh toán
+                        </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
-                        {getReturnStatusChip(returnItem.returnStatus)}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Trạng thái hoàn hàng
+                        </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
-                        {getRefundStatusChip(returnItem.refundStatus)}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Trạng thái hoàn tiền
+                        </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
-                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
-                          {returnItem.supplier}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Nhà cung cấp
                         </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
-                          {returnItem.createdBy}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Người tạo
                         </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
-                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
-                          {returnItem.returnQuantity}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Số lượng trả
                         </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[130px] min-w-[130px]">
-                        <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
-                          {formatCurrency(returnItem.totalValue)}
+                        <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                          Giá trị đơn
                         </span>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        {/* Pagination */}
-        <div className="px-[15px] py-[8px] w-full flex-shrink-0">
-          <Pagination
-            current={currentPage}
-            total={totalPages}
-            onChange={setCurrentPage}
-          />
-        </div>
+                  {/* Table Body */}
+                  {paginatedReturns.map((returnItem, index) => (
+                    <div
+                      key={returnItem.id}
+                      className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full ${
+                        index === paginatedReturns.length - 1
+                          ? "border-transparent"
+                          : "border-[#e7e7e7]"
+                      } hover:bg-gray-50 cursor-pointer`}
+                      onClick={() =>
+                        navigate(`/admin/warehouse/returns/${returnItem.id}`)
+                      }
+                    >
+                      <div className="flex items-center w-full">
+                        <div className="flex flex-row items-center w-full">
+                          <div className="flex h-full items-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                            <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-left">
+                              {returnItem.returnCode}
+                            </span>
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                            <span className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-center">
+                              {returnItem.importCode}
+                            </span>
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
+                            <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                              {formatDate(returnItem.createdDate)}
+                            </span>
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                            {getPaymentMethodChip(returnItem.paymentMethod)}
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                            {getReturnStatusChip(returnItem.returnStatus)}
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[140px] min-w-[140px]">
+                            {getRefundStatusChip(returnItem.refundStatus)}
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[180px] min-w-[180px]">
+                            <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                              {returnItem.supplier}
+                            </span>
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                            <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                              {returnItem.createdBy}
+                            </span>
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[120px] min-w-[120px]">
+                            <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                              {returnItem.returnQuantity}
+                            </span>
+                          </div>
+                          <div className="flex h-full items-center justify-center px-[4px] py-[12px] w-[130px] min-w-[130px]">
+                            <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
+                              {formatCurrency(returnItem.totalValue)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-[15px] py-[8px] w-full flex-shrink-0">
+              <Pagination
+                current={currentPage}
+                total={totalPages}
+                onChange={setCurrentPage}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Create Return Import Modal */}

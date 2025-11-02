@@ -3,9 +3,57 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
 import { ArrowLeft } from "lucide-react";
-import CityDropdown from "@/components/ui/city-dropdown";
-import DistrictDropdown from "@/components/ui/district-dropdown";
-import WardDropdown from "@/components/ui/ward-dropdown";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
+
+const cityOptions = [
+  "TP. Hồ Chí Minh",
+  "Hà Nội",
+  "Đà Nẵng",
+  "Hải Phòng",
+  "Cần Thơ",
+  "An Giang",
+  "Bà Rịa - Vũng Tàu",
+  "Bắc Giang",
+  "Bắc Kạn",
+  "Bạc Liêu",
+];
+
+const districtOptions = [
+  "Quận 1",
+  "Quận 2",
+  "Quận 3",
+  "Quận 4",
+  "Quận 5",
+  "Quận 6",
+  "Quận 7",
+  "Quận 8",
+  "Quận 9",
+  "Quận 10",
+  "Quận 11",
+  "Quận 12",
+  "Quận Bình Thạnh",
+  "Quận Tân Bình",
+  "Quận Tân Phú",
+  "Quận Phú Nhuận",
+  "Quận Gò Vấp",
+  "Hoàn Kiếm",
+  "Quận Hai Bà Trưng",
+];
+
+const wardOptions = [
+  "Phường 1",
+  "Phường 2",
+  "Phường 3",
+  "Phường 4",
+  "Phường 5",
+  "Phường 6",
+  "Phường 7",
+  "Phường 8",
+  "Phường 9",
+  "Phường 10",
+  "Đinh Tiên Hoàng",
+  "Phường Phố Huế",
+];
 
 const AdminSupplierNew = () => {
   document.title = "Thêm nhà cung cấp | Wanderoo";
@@ -90,7 +138,7 @@ const AdminSupplierNew = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[16px] items-center w-full max-w-[1200px] mx-auto">
+    <div className="flex flex-col gap-[16px] items-center w-full max-w-[1200px] px-40 mx-auto">
       {/* Header */}
       <div className="flex items-center gap-[12px] w-full">
         <button
@@ -200,9 +248,11 @@ const AdminSupplierNew = () => {
             <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
               Tỉnh/Thành phố <span className="text-red-500">*</span>
             </label>
-            <CityDropdown
+            <SimpleDropdown
               value={formData.city}
+              options={cityOptions}
               onValueChange={(value) => handleInputChange("city", value)}
+              placeholder="Chọn tỉnh/thành phố"
               error={!!errors.city}
             />
             {errors.city && (
@@ -215,9 +265,11 @@ const AdminSupplierNew = () => {
             <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
               Quận/Huyện <span className="text-red-500">*</span>
             </label>
-            <DistrictDropdown
+            <SimpleDropdown
               value={formData.district}
+              options={districtOptions}
               onValueChange={(value) => handleInputChange("district", value)}
+              placeholder="Chọn quận/huyện"
               error={!!errors.district}
             />
             {errors.district && (
@@ -232,9 +284,11 @@ const AdminSupplierNew = () => {
             <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
               Phường/Xã <span className="text-red-500">*</span>
             </label>
-            <WardDropdown
+            <SimpleDropdown
               value={formData.ward}
+              options={wardOptions}
               onValueChange={(value) => handleInputChange("ward", value)}
+              placeholder="Chọn phường/xã"
               error={!!errors.ward}
             />
             {errors.ward && (

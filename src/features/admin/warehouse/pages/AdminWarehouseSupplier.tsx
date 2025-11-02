@@ -1,17 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
-import CaretDown from "@/components/ui/caret-down";
 import { Pagination } from "@/components/ui/pagination";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import { ChipStatus } from "@/components/ui/chip-status";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 
 type Supplier = {
   id: string;
@@ -159,12 +153,13 @@ const AdminWarehouseSupplier = () => {
         s.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesStatus && matchesSearch;
     });
-    // Reset to page 1 when filters change
-    if (currentPage > 1) {
-      setCurrentPage(1);
-    }
     return result;
-  }, [suppliers, statusFilter, searchTerm, currentPage]);
+  }, [suppliers, statusFilter, searchTerm]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchTerm]);
 
   const paginatedSuppliers = useMemo(() => {
     const startIndex = (currentPage - 1) * 10;
@@ -235,27 +230,27 @@ const AdminWarehouseSupplier = () => {
             className="w-full sm:flex-1 sm:max-w-[400px]"
           />
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer">
-                <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  Trạng thái
-                </span>
-                <CaretDown className="text-[#e04d30]" />
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setStatusFilter("all")}>
-                Tất cả trạng thái
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("active")}>
-                Đang hoạt động
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
-                Ngừng hoạt động
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SimpleDropdown
+            value={
+              statusFilter === "all"
+                ? "Tất cả trạng thái"
+                : statusFilter === "active"
+                ? "Đang hoạt động"
+                : "Ngừng hoạt động"
+            }
+            options={["Tất cả trạng thái", "Đang hoạt động", "Ngừng hoạt động"]}
+            onValueChange={(value) => {
+              if (value === "Tất cả trạng thái") {
+                setStatusFilter("all");
+              } else if (value === "Đang hoạt động") {
+                setStatusFilter("active");
+              } else {
+                setStatusFilter("inactive");
+              }
+            }}
+            placeholder="Trạng thái"
+            className="w-full sm:w-[200px]"
+          />
         </div>
 
         {/* Table */}
