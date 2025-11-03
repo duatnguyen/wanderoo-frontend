@@ -18,34 +18,42 @@ export const TableActions = ({
   selectedCount,
   itemName = "mục",
   actions = [],
-  className = "flex items-center gap-[8px]",
+  className = "flex items-center gap-3",
   children,
 }: TableActionsProps) => {
   const getButtonStyles = (variant: "primary" | "secondary" | "danger" = "primary") => {
+    const baseStyles = "h-9 px-4 rounded-lg transition-all duration-200 font-medium text-sm";
+    
     switch (variant) {
       case "primary":
-        return "h-[32px] px-[16px] rounded-[10px] bg-[#e04d30] text-white hover:bg-[#d54933] transition-colors duration-150 text-[12px]";
+        return `${baseStyles} bg-[#e04d30] text-white hover:bg-[#d54933] hover:shadow-md active:scale-95`;
       case "secondary":
-        return "h-[32px] px-[16px] rounded-[10px] border-2 border-[#e04d30] text-[#e04d30] hover:bg-[#ffe9e5] hover:text-[#c73722] transition-colors duration-150 text-[12px]";
+        return `${baseStyles} border border-[#e04d30] text-[#e04d30] bg-white hover:bg-[#ffe9e5] hover:border-[#d54933] hover:text-[#d54933] hover:shadow-sm`;
       case "danger":
-        return "h-[32px] px-[16px] rounded-[10px] bg-red-500 text-white hover:bg-red-600 transition-colors duration-150 text-[12px]";
+        return `${baseStyles} bg-red-500 text-white hover:bg-red-600 hover:shadow-md active:scale-95`;
       default:
-        return "h-[32px] px-[16px] rounded-[10px] bg-[#e04d30] text-white hover:bg-[#d54933] transition-colors duration-150 text-[12px]";
+        return `${baseStyles} bg-[#e04d30] text-white hover:bg-[#d54933] hover:shadow-md active:scale-95`;
     }
   };
 
   return (
-    <div className="flex items-center gap-[12px] flex-1 px-[4px]">
-      <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] whitespace-nowrap">
-        Đã chọn {selectedCount} {itemName}
-      </span>
+    <div className="flex items-center justify-between gap-4 flex-1 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[#e04d30] animate-pulse"></div>
+          <span className="font-medium text-[#2d3748] text-sm leading-relaxed whitespace-nowrap">
+            Đã chọn <span className="font-semibold text-[#e04d30]">{selectedCount}</span> {itemName}
+          </span>
+        </div>
+      </div>
+      
       <div className={className}>
         {actions.map((action, index) => (
           <Button
             key={index}
             className={action.className || getButtonStyles(action.variant)}
             onClick={action.onClick}
-            variant={action.variant === "secondary" ? "ghost" : "default"}
+            variant={action.variant === "secondary" ? "outline" : "default"}
           >
             {action.label}
           </Button>
