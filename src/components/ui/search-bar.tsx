@@ -17,7 +17,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div
       className={cn(
-        "border-2 bg-white border-[#e04d30] flex items-center gap-2 px-[12px] py-[8px] rounded-[10px] min-w-0 focus-within:border-[#e04d30] focus-within:ring-2 focus-within:ring-[#e04d30]/20",
+        "border-2 bg-white border-[#e04d30] flex items-center gap-2 h-[40px] px-[12px] rounded-[10px] min-w-0 focus-within:border-[#e04d30] focus-within:ring-2 focus-within:ring-[#e04d30]/20",
         className
       )}
     >

@@ -79,14 +79,14 @@ const POSLayoutContent: React.FC = () => {
           isCreateReturnOrderPage
             ? "Tạo đơn trả hàng"
             : isOrderManagementPage
-              ? "Quản lý đơn hàng"
-              : isInventoryPage
-                ? "Tra cứu tồn kho"
-                : isReturnOrderPage
-                  ? "Trả hàng"
-                  : isCashBookPage
-                    ? "Sổ Qũy"
-                    : "Bán hàng"
+            ? "Quản lý đơn hàng"
+            : isInventoryPage
+            ? "Tra cứu tồn kho"
+            : isReturnOrderPage
+            ? "Trả hàng"
+            : isCashBookPage
+            ? "Sổ Qũy"
+            : "Bán hàng"
         }
         searchValue={
           location.pathname.includes("/sales") ? searchValue : undefined

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { POSProductList, type POSProduct } from "../../../components/pos/POSProductList";
-import { POSOrderSummary } from "../../../components/pos/POSOrderSummary";
-import { POSFooter } from "../../../components/pos/POSFooter";
-import { usePOSContext } from "../../../context/POSContext";
+import {
+  POSProductList,
+  type POSProduct,
+} from "../../../../components/pos/POSProductList";
+import { POSOrderSummary } from "../../../../components/pos/POSOrderSummary";
+import { POSFooter } from "../../../../components/pos/POSFooter";
+import { usePOSContext } from "../../../../context/POSContext";
 
 const POSPage: React.FC = () => {
   const { currentOrderId } = usePOSContext();

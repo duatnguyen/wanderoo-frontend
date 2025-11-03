@@ -6,12 +6,12 @@ import { LazyWrapper } from "../../components/common/LazyWrapper";
 import { POS_ROUTES } from "./routes.constants";
 
 // Lazy load POS pages - Organized by feature modules
-const POSSales = lazy(() => import("../../features/pos/pages/sales"));
-const OrderManagement = lazy(() => import("../../features/pos/pages/orders"));
-const InventoryLookup = lazy(() => import("../../features/pos/pages/inventory"));
+const POSSales = lazy(() => import("../../features/pos/pages/sales/POSSales"));
+const OrderManagement = lazy(() => import("../../features/pos/pages/orders/OrderManagement"));
+const InventoryLookup = lazy(() => import("../../features/pos/pages/inventory/InventoryLookup"));
 const ReturnOrderManagement = lazy(() => import("../../features/pos/pages/returns/ReturnOrderManagement"));
 const CreateReturnOrder = lazy(() => import("../../features/pos/pages/returns/CreateReturnOrder"));
-const CashBook = lazy(() => import("../../features/pos/pages/cashbook"));
+const CashBook = lazy(() => import("../../features/pos/pages/cashbook/CashBook"));
 
 export const posRoutes: RouteObject[] = [
   // Default POS route - redirect to sales

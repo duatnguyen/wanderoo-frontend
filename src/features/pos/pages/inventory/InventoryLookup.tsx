@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { SearchBar } from "@/components/ui/search-bar";
 import InventoryProductTable, {
   type InventoryProduct,
-} from "../../../components/pos/InventoryProductTable";
+} from "../../../../components/pos/InventoryProductTable";
 
 const InventoryLookup: React.FC = () => {
   const [searchValue, setSearchValue] = useState("");

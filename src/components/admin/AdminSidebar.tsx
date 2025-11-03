@@ -20,20 +20,7 @@ interface AdminSidebarProps {
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const [activeEllipsisKey, setActiveEllipsisKey] = useState<string | null>(null);
-  const [openPopoverKey, setOpenPopoverKey] = useState<string | null>(null);
-  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null);
-
-  useEffect(() => {
-    const onClickOutside = () => {
-      setOpenPopoverKey(null);
-      setActiveEllipsisKey(null);
-    };
-    if (openPopoverKey) {
-      window.addEventListener("click", onClickOutside);
-    }
-    return () => window.removeEventListener("click", onClickOutside);
-  }, [openPopoverKey]);
+  const navigate = useNavigate();
 
   // Check if we're in settings mode based on the path
   const isSettingsMode = activePath.startsWith("/admin/settings");
@@ -81,7 +68,21 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const footerInactiveClasses =
     "text-white hover:text-white hover:bg-[#172b46]";
 
-  // Dropdown toggle removed; using ellipsis popover instead
+  const handleMenuClick = (itemKey: string, item: AdminNavItem) => {
+    // If item has submenu, navigate to first submenu item and expand
+    if (item.submenu && item.submenu.length > 0) {
+      const firstSubmenuItem = item.submenu[0];
+      if (firstSubmenuItem.path) {
+        navigate(firstSubmenuItem.path);
+      }
+      // Expand the submenu
+      setExpandedItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(itemKey);
+        return newSet;
+      });
+    }
+  };
 
   const renderNavItem = (
     item: AdminNavItem,
@@ -91,6 +92,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   ) => {
     const itemKey = `item-${key}`;
     const hasSubmenu = item.submenu && item.submenu.length > 0;
+    const isExpanded = expandedItems.has(itemKey);
 
     // For main menu items with submenus, check if any submenu item is active
     let isActive = false;
@@ -130,58 +132,24 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     if (hasSubmenu) {
       return (
         <div key={key} className="relative">
-          <div className={`${itemClasses} pr-10 group`}>
+          <div
+            className={`${itemClasses}`}
+            onClick={() => handleMenuClick(itemKey, item)}
+          >
             {content}
-            {/* Ellipsis button on the right */}
-            <button
-              className={`absolute right-2 top-1/2 -translate-y-1/2 h-6 w-8 flex items-center justify-center rounded-md transition-opacity ${
-                isActive || openPopoverKey === itemKey || activeEllipsisKey === itemKey
-                  ? "opacity-100 text-white"
-                  : "opacity-0 group-hover:opacity-100 text-white/70 pointer-events-none group-hover:pointer-events-auto"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                setPopoverPosition({ top: rect.top + window.scrollY, left: rect.right + 8 });
-                setOpenPopoverKey((prev) => (prev === itemKey ? null : itemKey));
-                setActiveEllipsisKey(itemKey);
-              }}
-              aria-label="More actions"
-              title="More actions"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-5 w-5"
-              >
-                <path d="M6 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm8 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm6 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
-              </svg>
-            </button>
           </div>
 
-          {/* Popover dropdown for submenu (render fixed outside sidebar) */}
-          {openPopoverKey === itemKey && popoverPosition && (
-            <div
-              className="fixed z-50 w-[260px] rounded-lg border border-white/15 bg-[#163356] p-2 shadow-lg"
-              style={{ top: popoverPosition.top, left: popoverPosition.left }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="space-y-1.5">
-                {item.submenu!.map((subItem, subIndex) => (
-                  <Link
-                    key={`${itemKey}-sub-${subIndex}`}
-                    to={subItem.path || "#"}
-                    className={`${baseClasses} text-white/90 hover:text-white hover:bg-white/10 px-3 h-8 py-0`}
-                    onClick={() => {
-                      setOpenPopoverKey(null);
-                      setActiveEllipsisKey(null);
-                    }}
-                  >
-                    <span>{subItem.label}</span>
-                  </Link>
-                ))}
-              </div>
+          {/* Inline submenu */}
+          {isExpanded && (
+            <div className="mt-1.5 space-y-1.5">
+              {item.submenu!.map((subItem, subIndex) =>
+                renderNavItem(
+                  subItem,
+                  `${itemKey}-sub-${subIndex}`,
+                  true,
+                  false
+                )
+              )}
             </div>
           )}
         </div>
@@ -237,11 +205,20 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
       {/* Khung logo, tách riêng, cao 64px, border-b */}
       <div className="relative flex items-center justify-start h-[64px] border-b border-white/10 bg-[#18345C] overflow-hidden">
         <Link to="/admin/dashboard">
-          <div className="h-[64px] w-full flex items-center justify-start overflow-hidden relative" style={{ paddingLeft: 2 }}>
+          <div
+            className="h-[64px] w-full flex items-center justify-start overflow-hidden relative"
+            style={{ paddingLeft: 2 }}
+          >
             <img
               src={ShopLogo}
               alt="Shop Logo"
-              style={{ width: 3000, height: 920, objectFit: 'contain', display: 'block', marginTop: 4 }}
+              style={{
+                width: 3000,
+                height: 920,
+                objectFit: "contain",
+                display: "block",
+                marginTop: 4,
+              }}
               className="block"
             />
           </div>
@@ -265,7 +242,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
                   const hasTitle = Boolean(section.title);
                   const sectionKey = section.title ?? index;
                   const wrapperClasses =
-                    index === 0 ? "mt-[5px]" : "mt-4 border-t border-white/10 pt-4";
+                    index === 0
+                      ? "mt-[5px]"
+                      : "mt-4 border-t border-white/10 pt-4";
                   const listClasses = hasTitle
                     ? "mt-3 space-y-1.5"
                     : "space-y-1.5";
@@ -282,7 +261,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
                             <div className="mt-2 space-y-1.5 [&>a]:pl-3 [&>div]:pl-3">
                               {section.items.map(
                                 (item: AdminNavItem, itemIndex: number) =>
-                                  renderNavItem(item, `${sectionKey}-${itemIndex}`)
+                                  renderNavItem(
+                                    item,
+                                    `${sectionKey}-${itemIndex}`
+                                  )
                               )}
                             </div>
                           </div>
@@ -294,7 +276,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
                             <div className={listClasses}>
                               {section.items.map(
                                 (item: AdminNavItem, itemIndex: number) =>
-                                  renderNavItem(item, `${sectionKey}-${itemIndex}`)
+                                  renderNavItem(
+                                    item,
+                                    `${sectionKey}-${itemIndex}`
+                                  )
                               )}
                             </div>
                           </>

@@ -31,7 +31,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
   isOpen,
   onClose,
   supplierData,
-  onSave
+  onSave,
 }) => {
   const [formData, setFormData] = useState({
     supplierName: supplierData.name,
@@ -40,19 +40,18 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
     street: "số 40 Đinh Tiên Hoàng, Hà Nội",
     city: "Hà Nội",
     district: "Hoàn Kiếm",
-    ward: "Đinh Tiên Hoàng"
+    ward: "Đinh Tiên Hoàng",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
-
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -102,7 +101,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
         street: formData.street,
         ward: formData.ward,
         district: formData.district,
-        city: formData.city
+        city: formData.city,
       });
       onClose();
     }
@@ -116,7 +115,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
       street: "số 40 Đinh Tiên Hoàng, Hà Nội",
       city: "Hà Nội",
       district: "Hoàn Kiếm",
-      ward: "Đinh Tiên Hoàng"
+      ward: "Đinh Tiên Hoàng",
     });
     setErrors({});
     onClose();
@@ -151,11 +150,15 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             </label>
             <FormInput
               value={formData.supplierName}
-              onChange={(e) => handleInputChange("supplierName", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("supplierName", e.target.value)
+              }
               placeholder="Kho Nhật Quang"
             />
             {errors.supplierName && (
-              <span className="text-red-500 text-[12px]">{errors.supplierName}</span>
+              <span className="text-red-500 text-[12px]">
+                {errors.supplierName}
+              </span>
             )}
           </div>
 
@@ -236,7 +239,9 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
               error={!!errors.district}
             />
             {errors.district && (
-              <span className="text-red-500 text-[12px]">{errors.district}</span>
+              <span className="text-red-500 text-[12px]">
+                {errors.district}
+              </span>
             )}
           </div>
 
