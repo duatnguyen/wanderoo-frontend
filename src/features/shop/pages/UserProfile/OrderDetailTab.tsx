@@ -6,6 +6,7 @@ import OrderTimeline, {
 import Button from "../../components/Button";
 import ActionButton from "../../components/ActionButton";
 import ProductReviewModal from "../../components/ProductReviewModal";
+import ReturnRefundModal from "../../components/ReturnRefundModal";
 import StarRating from "../../components/StarRating";
 
 function formatCurrencyVND(value: number) {
@@ -62,6 +63,7 @@ const OrderDetailTab: React.FC = () => {
   const [productReviews, setProductReviews] = useState<
     Map<string, { rating: number; comment: string }>
   >(new Map());
+  const [isReturnRefundModalOpen, setIsReturnRefundModalOpen] = useState(false);
 
   // Determine if order is delivered based on orderId or status
   // In real app, this would come from API
@@ -286,12 +288,8 @@ const OrderDetailTab: React.FC = () => {
                               id: "return-refund",
                               label: "Yêu cầu hoàn hàng/Trả tiền",
                               onClick: () => {
-                                console.log(
-                                  "Request return/refund for order:",
-                                  order.id,
-                                  "product:",
-                                  product.id
-                                );
+                                setSelectedProduct(product);
+                                setIsReturnRefundModalOpen(true);
                               },
                             },
                             {
@@ -525,6 +523,19 @@ const OrderDetailTab: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Return/Refund Modal */}
+      {selectedProduct && (
+        <ReturnRefundModal
+          isOpen={isReturnRefundModalOpen}
+          onClose={() => {
+            setIsReturnRefundModalOpen(false);
+            setSelectedProduct(null);
+          }}
+          productId={selectedProduct.id}
+          orderId={orderId || order.id}
+        />
       )}
     </div>
   );
