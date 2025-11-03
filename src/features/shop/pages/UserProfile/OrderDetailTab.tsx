@@ -3,10 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import OrderTimeline, {
   type TimelineStep,
 } from "../../../../components/common/OrderTimeline";
-import Button from "../../components/Button";
-import ActionButton from "../../components/ActionButton";
-import ProductReviewModal from "../../components/ProductReviewModal";
-import StarRating from "../../components/StarRating";
+import Button from "../../../../components/shop/Button";
+import ActionButton from "../../../../components/shop/ActionButton";
+import ProductReviewModal from "../../../../components/shop/ProductReviewModal";
+import StarRating from "../../../../components/shop/StarRating";
 
 function formatCurrencyVND(value: number) {
   try {

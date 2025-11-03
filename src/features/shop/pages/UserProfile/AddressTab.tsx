@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import Button from "../../components/Button";
-import DropdownList from "../../components/DropdownList";
+import Button from "../../../../components/shop/Button";
+import DropdownList from "../../../../components/shop/DropdownList";
 
 function PlusIcon() {
   return (
@@ -16,26 +16,6 @@ function PlusIcon() {
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M5 7.5L10 12.5L15 7.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   );
@@ -414,7 +394,9 @@ const AddressTab: React.FC = () => {
                     <DropdownList
                       options={provinces}
                       value={formData.province}
-                      onChange={(value) => handleInputChange("province", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("province", value)
+                      }
                       placeholder="Chọn Tỉnh/Thành Phố"
                       className="w-full"
                     />
@@ -428,7 +410,9 @@ const AddressTab: React.FC = () => {
                     <DropdownList
                       options={districts}
                       value={formData.district}
-                      onChange={(value) => handleInputChange("district", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("district", value)
+                      }
                       placeholder="Chọn Quận/Huyện"
                       className="w-full"
                     />
@@ -442,7 +426,9 @@ const AddressTab: React.FC = () => {
                     <DropdownList
                       options={wards}
                       value={formData.ward}
-                      onChange={(value) => handleInputChange("ward", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("ward", value)
+                      }
                       placeholder="Chọn Phường/Xã"
                       className="w-full"
                     />
@@ -513,4 +499,3 @@ const AddressTab: React.FC = () => {
 };
 
 export default AddressTab;
-

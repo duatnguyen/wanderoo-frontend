@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
-import Button from "../../components/Button";
-import ProductCard from "../../components/ProductCard";
+import Header from "../../../../components/shop/Header";
+import Footer from "../../../../components/shop/Footer";
+import Button from "../../../../components/shop/Button";
+import ProductCard from "../../../../components/shop/ProductCard";
 
 function formatCurrencyVND(value: number) {
   try {
