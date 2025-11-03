@@ -31,6 +31,21 @@ const CartPage = lazy(() => import("../../features/shop/pages/Cart/CartPage"));
 const CheckoutPage = lazy(
   () => import("../../features/shop/pages/Checkout/CheckoutPage")
 );
+const WarrantyPolicy = lazy(
+  () => import("../../features/shop/pages/Policies/WarrantyPolicy")
+);
+const ReturnRefundPolicy = lazy(
+  () => import("../../features/shop/pages/Policies/ReturnRefundPolicy")
+);
+const PaymentPolicy = lazy(
+  () => import("../../features/shop/pages/Policies/PaymentPolicy")
+);
+const PrivacyPolicy = lazy(
+  () => import("../../features/shop/pages/Policies/PrivacyPolicy")
+);
+const ShippingPolicy = lazy(
+  () => import("../../features/shop/pages/Policies/ShippingPolicy")
+);
 
 export const userRoutes: RouteObject[] = [
   {
@@ -46,6 +61,46 @@ export const userRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <ReturnRefundRequest />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "policy/warranty",
+    element: (
+      <LazyWrapper>
+        <WarrantyPolicy />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "policy/return-refund",
+    element: (
+      <LazyWrapper>
+        <ReturnRefundPolicy />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "policy/payment",
+    element: (
+      <LazyWrapper>
+        <PaymentPolicy />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "policy/privacy",
+    element: (
+      <LazyWrapper>
+        <PrivacyPolicy />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "policy/shipping",
+    element: (
+      <LazyWrapper>
+        <ShippingPolicy />
       </LazyWrapper>
     ),
   },
