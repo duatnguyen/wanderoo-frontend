@@ -68,7 +68,7 @@ export const POSProductList: React.FC<POSProductListProps> = ({
         ) : (
           <div className="divide-y divide-[#e7e7e7]">
             {products.map((product) => (
-              <div key={product.id} className="px-4 py-3 hover:bg-gray-50">
+              <div key={product.id} className="px-4 hover:bg-gray-50">
                 <div className="grid grid-cols-12 gap-4 items-center">
                   {/* Product Info with Image */}
                   <div className="col-span-5 flex items-center gap-3 min-w-0">

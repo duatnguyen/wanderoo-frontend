@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { SearchBar } from "@/components/ui/search-bar";
 import InventoryProductTable, {
   type InventoryProduct,
-} from "../../../components/pos/InventoryProductTable";
+} from "../../../../components/pos/InventoryProductTable";
 
 const InventoryLookup: React.FC = () => {
   const [searchValue, setSearchValue] = useState("");
@@ -15,6 +15,17 @@ const InventoryLookup: React.FC = () => {
       name: "Túi ngoài trời lưu trữ leo núi Rucksack 30L",
       image:
         "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=150&h=150&fit=crop",
+      barcode: "1234567890123",
+      variant: "Vàng, Size L",
+      available: 2000,
+      price: 300000,
+    },
+    {
+      id: "1",
+      name: "Túi ngoài trời lưu trữ leo núi Rucksack 30L",
+      image:
+        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=150&h=150&fit=crop",
+      barcode: "1234567890123",
       variant: "Vàng, Size L",
       available: 2000,
       price: 300000,
@@ -24,6 +35,7 @@ const InventoryLookup: React.FC = () => {
       name: "Gậy leo núi Track Man Trekking Pole TM6705 – 7930",
       image:
         "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=150&h=150&fit=crop",
+      barcode: "1234567890123",
       available: 2000,
       price: 300000,
     },
@@ -32,6 +44,8 @@ const InventoryLookup: React.FC = () => {
       name: "Giày đi bộ dã ngoại nữ cổ lửng chống thấm - MH100",
       image:
         "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=150&h=150&fit=crop",
+
+      barcode: "1234567890123",
       variant: "Size 35",
       available: 2000,
       price: 300000,
@@ -41,7 +55,7 @@ const InventoryLookup: React.FC = () => {
       name: "Giày đi bộ dã ngoại nữ cổ lửng chống thấm - MH100",
       image:
         "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=150&h=150&fit=crop",
-      variant: "Size 36",
+      barcode: "1234567890123", variant: "Size 36",
       available: 2000,
       price: 300000,
     },
@@ -50,7 +64,7 @@ const InventoryLookup: React.FC = () => {
       name: "Giày đi bộ dã ngoại nữ cổ lửng chống thấm - MH100",
       image:
         "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=150&h=150&fit=crop",
-      variant: "Size 37",
+      barcode: "1234567890123", variant: "Size 37",
       available: 2000,
       price: 300000,
     },
@@ -59,7 +73,7 @@ const InventoryLookup: React.FC = () => {
       name: "Giày đi bộ dã ngoại nữ cổ lửng chống thấm - MH100",
       image:
         "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=150&h=150&fit=crop",
-      variant: "Size 38",
+      barcode: "1234567890123", variant: "Size 38",
       available: 2000,
       price: 300000,
     },
@@ -68,7 +82,7 @@ const InventoryLookup: React.FC = () => {
       name: "Giày đi bộ dã ngoại nữ cổ lửng chống thấm - MH100",
       image:
         "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=150&h=150&fit=crop",
-      variant: "Size 39",
+      barcode: "1234567890123", variant: "Size 39",
       available: 2000,
       price: 300000,
     },
@@ -83,28 +97,15 @@ const InventoryLookup: React.FC = () => {
   );
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-white p-10 border-2 border-[#e7e7e7]">
-      {/* Search Bar */}
-      <div className="p-4">
-        <div className="max-w-6xl mx-auto">
-          <SearchBar
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Tìm kiếm sản phẩm"
-          />
-        </div>
-      </div>
-
+    <div className="h-full flex flex-col overflow-hidden bg-white border-2 border-[#e7e7e7]">
       {/* Product Table */}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-6xl mx-auto">
-          <InventoryProductTable
-            products={filteredProducts}
-            totalProducts={totalProducts}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-          />
-        </div>
+        <InventoryProductTable
+          products={filteredProducts}
+          totalProducts={totalProducts}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+        />
       </div>
     </div>
   );
