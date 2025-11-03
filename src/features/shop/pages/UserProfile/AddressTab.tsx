@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Button from "../../../../components/shop/Button";
 import DropdownList from "../../../../components/shop/DropdownList";
+import { Input, Textarea } from "../../../../components/shop/Input";
 
 function PlusIcon() {
   return (
@@ -352,32 +353,22 @@ const AddressTab: React.FC = () => {
             {/* Form Content */}
             <div className="px-6 py-6 space-y-6">
               {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Họ và tên
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Nhập họ và tên của bạn"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-                />
-              </div>
+              <Input
+                label="Họ và tên"
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Nhập họ và tên của bạn"
+              />
 
               {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số điện thoại
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  placeholder="Nhập số điện thoại của bạn"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-                />
-              </div>
+              <Input
+                label="Số điện thoại"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                placeholder="Nhập số điện thoại của bạn"
+              />
 
               {/* Address Section */}
               <div>
@@ -387,68 +378,51 @@ const AddressTab: React.FC = () => {
 
                 <div className="space-y-4">
                   {/* Province/City */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tỉnh/Thành Phố
-                    </label>
-                    <DropdownList
-                      options={provinces}
-                      value={formData.province}
-                      onChange={(value: string) =>
-                        handleInputChange("province", value)
-                      }
-                      placeholder="Chọn Tỉnh/Thành Phố"
-                      className="w-full"
-                    />
-                  </div>
+                  <DropdownList
+                    label="Tỉnh/Thành Phố"
+                    options={provinces}
+                    value={formData.province}
+                    onChange={(value: string) =>
+                      handleInputChange("province", value)
+                    }
+                    placeholder="Chọn Tỉnh/Thành Phố"
+                    fullWidth
+                  />
 
                   {/* District */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Quận/Huyện
-                    </label>
-                    <DropdownList
-                      options={districts}
-                      value={formData.district}
-                      onChange={(value: string) =>
-                        handleInputChange("district", value)
-                      }
-                      placeholder="Chọn Quận/Huyện"
-                      className="w-full"
-                    />
-                  </div>
+                  <DropdownList
+                    label="Quận/Huyện"
+                    options={districts}
+                    value={formData.district}
+                    onChange={(value: string) =>
+                      handleInputChange("district", value)
+                    }
+                    placeholder="Chọn Quận/Huyện"
+                    fullWidth
+                  />
 
                   {/* Ward/Commune */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phường/Xã
-                    </label>
-                    <DropdownList
-                      options={wards}
-                      value={formData.ward}
-                      onChange={(value: string) =>
-                        handleInputChange("ward", value)
-                      }
-                      placeholder="Chọn Phường/Xã"
-                      className="w-full"
-                    />
-                  </div>
+                  <DropdownList
+                    label="Phường/Xã"
+                    options={wards}
+                    value={formData.ward}
+                    onChange={(value: string) =>
+                      handleInputChange("ward", value)
+                    }
+                    placeholder="Chọn Phường/Xã"
+                    fullWidth
+                  />
 
                   {/* Detail Address */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Địa chỉ chi tiết
-                    </label>
-                    <textarea
-                      value={formData.detailAddress}
-                      onChange={(e) =>
-                        handleInputChange("detailAddress", e.target.value)
-                      }
-                      placeholder="Nhập địa chỉ chi tiết"
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-none text-sm sm:text-base"
-                    />
-                  </div>
+                  <Textarea
+                    label="Địa chỉ chi tiết"
+                    value={formData.detailAddress}
+                    onChange={(e) =>
+                      handleInputChange("detailAddress", e.target.value)
+                    }
+                    placeholder="Nhập địa chỉ chi tiết"
+                    rows={3}
+                  />
                 </div>
               </div>
 

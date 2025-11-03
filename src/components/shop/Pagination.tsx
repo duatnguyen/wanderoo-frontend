@@ -1,4 +1,5 @@
 import React, { type FC } from "react";
+import DropdownList from "./DropdownList";
 
 export type PaginationProps = {
   currentPage: number;
@@ -16,6 +17,10 @@ const Pagination: FC<PaginationProps> = ({
   className = "",
 }) => {
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const pageOptions = pages.map((page) => ({
+    value: page.toString(),
+    label: page.toString(),
+  }));
 
   const handlePrevious = () => {
     if (currentPage > 1 && onPageChange) {
@@ -29,8 +34,8 @@ const Pagination: FC<PaginationProps> = ({
     }
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const page = parseInt(e.target.value, 10);
+  const handlePageChange = (value: string) => {
+    const page = parseInt(value, 10);
     if (onPageChange) {
       onPageChange(page);
     }
@@ -39,17 +44,13 @@ const Pagination: FC<PaginationProps> = ({
   return (
     <div className={`flex items-center justify-center gap-4 ${className}`}>
       <span className="text-gray-700">{label}</span>
-      <select
-        value={currentPage}
-        onChange={handleSelectChange}
-        className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white"
-      >
-        {pages.map((page) => (
-          <option key={page} value={page}>
-            {page}
-          </option>
-        ))}
-      </select>
+      <DropdownList
+        options={pageOptions}
+        value={currentPage.toString()}
+        onChange={handlePageChange}
+        fullWidth={false}
+        className="w-auto min-w-[80px]"
+      />
       <button
         onClick={handlePrevious}
         disabled={currentPage <= 1}

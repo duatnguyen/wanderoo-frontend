@@ -4,7 +4,9 @@ import {
   PersonIcon,
   DocumentIcon,
   TicketIcon,
+  EditPencilIcon,
 } from "../components/shop/ProfileIcons";
+import { useAuthCtx } from "../app/providers/AuthProvider";
 
 type MenuItem = {
   id: string;
@@ -16,6 +18,14 @@ type MenuItem = {
 const ProfileLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { state } = useAuthCtx();
+  const { user } = state;
+
+  // Get user data with fallback to mock data
+  const userData = {
+    fullName: user?.name || "Thanh",
+    avatar: user?.avatar || "https://randomuser.me/api/portraits/men/32.jpg",
+  };
 
   const menuItems: MenuItem[] = [
     {
@@ -54,46 +64,67 @@ const ProfileLayout: React.FC = () => {
 
   return (
     <div className="bg-gray-50">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-          {/* Left Sidebar - Menu */}
-          <aside className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-                Tài khoản của tôi
-              </h3>
-              <nav className="space-y-1 sm:space-y-2">
-                {menuItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(item.path)}
-                    className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-colors text-sm sm:text-base ${activeMenuId === item.id
-                        ? "bg-[#18345c] text-white"
-                        : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {item.icon && (
-                      <span
-                        className={
-                          activeMenuId === item.id
-                            ? "text-white"
-                            : "text-gray-600"
-                        }
-                      >
-                        {item.icon}
-                      </span>
-                    )}
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </aside>
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8">
+        {/* Left Sidebar - Menu */}
+        <aside className="w-full lg:w-64 flex-shrink-0 pl-0">
+          <div className="px-5 sm:p-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
+              Tài khoản của tôi
+            </h3>
 
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
-            <Outlet />
+            {/* User Summary */}
+            <div className="flex flex-col items-start gap-3 sm:gap-4 mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
+              <img
+                src={userData.avatar}
+                alt="Avatar"
+                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0 w-full">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
+                  {userData.fullName}
+                </h3>
+                <button
+                  onClick={() => navigate("/user/profile/basicinformation")}
+                  className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors text-sm"
+                >
+                  <EditPencilIcon />
+                  <span className="font-medium">Sửa hồ sơ</span>
+                </button>
+              </div>
+            </div>
+
+            <nav className="space-y-1 sm:space-y-2">
+              {menuItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => navigate(item.path)}
+                  className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-colors text-sm sm:text-base ${
+                    activeMenuId === item.id
+                      ? "bg-[#18345c] text-white"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {item.icon && (
+                    <span
+                      className={
+                        activeMenuId === item.id
+                          ? "text-white"
+                          : "text-gray-600"
+                      }
+                    >
+                      {item.icon}
+                    </span>
+                  )}
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              ))}
+            </nav>
           </div>
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1 min-w-0 pr-4 sm:pr-6 lg:pr-8">
+          <Outlet />
         </div>
       </div>
     </div>

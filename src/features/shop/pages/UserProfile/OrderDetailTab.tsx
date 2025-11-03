@@ -6,6 +6,7 @@ import OrderTimeline, {
 import Button from "../../../../components/shop/Button";
 import ActionButton from "../../../../components/shop/ActionButton";
 import ProductReviewModal from "../../../../components/shop/ProductReviewModal";
+import ReturnRefundModal from "../../../../components/shop/ReturnRefundModal";
 import StarRating from "../../../../components/shop/StarRating";
 
 function formatCurrencyVND(value: number) {
@@ -52,6 +53,7 @@ const OrderDetailTab: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isReturnRefundModalOpen, setIsReturnRefundModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(
     null
   );
@@ -286,12 +288,8 @@ const OrderDetailTab: React.FC = () => {
                               id: "return-refund",
                               label: "Yêu cầu hoàn hàng/Trả tiền",
                               onClick: () => {
-                                console.log(
-                                  "Request return/refund for order:",
-                                  order.id,
-                                  "product:",
-                                  product.id
-                                );
+                                setSelectedProduct(product);
+                                setIsReturnRefundModalOpen(true);
                               },
                             },
                             {
@@ -474,6 +472,20 @@ const OrderDetailTab: React.FC = () => {
           }
         />
       )}
+
+      {/* Return/Refund Modal */}
+      <ReturnRefundModal
+        isOpen={isReturnRefundModalOpen}
+        onClose={() => {
+          setIsReturnRefundModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        order={{
+          id: order.id,
+          orderDate: order.orderDate,
+        }}
+        product={selectedProduct || undefined}
+      />
 
       {/* Success Modal */}
       {showSuccessModal && (

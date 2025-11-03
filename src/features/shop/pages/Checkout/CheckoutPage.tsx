@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
+import { Textarea } from "../../../../components/shop/Input";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -248,17 +249,14 @@ const CheckoutPage: React.FC = () => {
                     </div>
 
                     {/* Notes */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Lời nhắn
-                      </label>
-                      <textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Lưu ý cho shop"
-                        className="w-full h-24 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-none"
-                      />
-                    </div>
+                    <Textarea
+                      label="Lời nhắn"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Lưu ý cho shop"
+                      rows={6}
+                      className="h-24"
+                    />
                   </div>
 
                   {/* Right Column */}

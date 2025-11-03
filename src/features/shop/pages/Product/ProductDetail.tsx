@@ -4,6 +4,7 @@ import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
 import ProductCard from "../../../../components/shop/ProductCard";
+import DropdownList from "../../../../components/shop/DropdownList";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -510,11 +511,17 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
             {/* Pagination */}
             <div className="mt-8 flex items-center justify-center gap-4">
               <span className="text-gray-700">Trang hiện tại</span>
-              <select className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </select>
+              <DropdownList
+                options={[
+                  { value: "1", label: "1" },
+                  { value: "2", label: "2" },
+                  { value: "3", label: "3" },
+                ]}
+                value="1"
+                onChange={() => {}}
+                fullWidth={false}
+                className="w-auto min-w-[80px]"
+              />
               <button
                 className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed"
                 disabled

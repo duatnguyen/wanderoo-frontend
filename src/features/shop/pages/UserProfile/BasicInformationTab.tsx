@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Button from "../../../../components/shop/Button";
-import { EditPencilIcon } from "../../../../components/shop/ProfileIcons";
+import { Input } from "../../../../components/shop/Input";
 
 const BasicInformationTab: React.FC = () => {
   const [userData, setUserData] = useState({
@@ -35,51 +35,28 @@ const BasicInformationTab: React.FC = () => {
         </p>
       </div>
 
-      {/* User Summary */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-gray-200">
-        <img
-          src={userData.avatar}
-          alt="Avatar"
-          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
-        />
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
-            {userData.fullName}
-          </h3>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors text-sm"
-          >
-            <EditPencilIcon />
-            <span className="font-medium">Sửa hồ sơ</span>
-          </button>
-        </div>
-      </div>
-
       {/* Form */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Form Fields */}
         <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
           {/* Full Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Họ và tên
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={userData.fullName}
-                onChange={(e) =>
-                  handleInputChange("fullName", e.target.value)
-                }
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-              />
-            ) : (
+          {isEditing ? (
+            <Input
+              label="Họ và tên"
+              type="text"
+              value={userData.fullName}
+              onChange={(e) => handleInputChange("fullName", e.target.value)}
+            />
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Họ và tên
+              </label>
               <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base">
                 {userData.fullName}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Email */}
           <div>
@@ -123,9 +100,7 @@ const BasicInformationTab: React.FC = () => {
                   name="gender"
                   value="male"
                   checked={userData.gender === "male"}
-                  onChange={(e) =>
-                    handleInputChange("gender", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("gender", e.target.value)}
                   className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm sm:text-base text-gray-700">Nam</span>
@@ -136,9 +111,7 @@ const BasicInformationTab: React.FC = () => {
                   name="gender"
                   value="female"
                   checked={userData.gender === "female"}
-                  onChange={(e) =>
-                    handleInputChange("gender", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("gender", e.target.value)}
                   className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm sm:text-base text-gray-700">NỮ</span>
@@ -202,4 +175,3 @@ const BasicInformationTab: React.FC = () => {
 };
 
 export default BasicInformationTab;
-

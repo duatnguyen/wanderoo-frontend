@@ -318,6 +318,7 @@ const CartPage: React.FC = () => {
                                   onChange={(value) =>
                                     handleVariantChange(item.id, value)
                                   }
+                                  fullWidth={false}
                                   className="w-[180px]"
                                 />
                               ) : (

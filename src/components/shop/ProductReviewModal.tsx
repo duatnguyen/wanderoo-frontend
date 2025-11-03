@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import StarRating from "./StarRating";
 import Button from "./Button";
+import { Textarea } from "./Input";
+import MediaUpload from "./MediaUpload";
 
 interface Product {
   id: string;
@@ -54,28 +56,6 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
       setSelectedVideos([]);
     }
   }, [isOpen, isEditMode, initialRating, initialComment]);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setSelectedImages((prev) => [...prev, ...files]);
-    }
-  };
-
-  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setSelectedVideos((prev) => [...prev, ...files]);
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleRemoveVideo = (index: number) => {
-    setSelectedVideos((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const handleSubmit = () => {
     if (rating === 0) {
@@ -157,105 +137,36 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
 
         {/* Review Text Area */}
         <div className="px-6 py-4 border-b border-gray-200">
-          <textarea
+          <Textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Hãy chia sẻ những điều bạn thích về sản phẩm này với những người mua khác nhé"
             rows={6}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-none text-sm sm:text-base"
+            fullWidth
           />
         </div>
 
         {/* Media Upload Section */}
         <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex flex-wrap gap-3">
-            {/* Add Image Button */}
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <button
-                type="button"
-                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Thêm hình ảnh
-              </button>
-            </label>
-
-            {/* Add Video Button */}
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept="video/*"
-                multiple
-                onChange={handleVideoChange}
-                className="hidden"
-              />
-              <button
-                type="button"
-                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Thêm video
-              </button>
-            </label>
+          <div className="space-y-3">
+            <MediaUpload
+              accept="image"
+              maxFiles={10}
+              files={selectedImages}
+              onChange={setSelectedImages}
+              variant="solid"
+              previewGridCols={4}
+              className="mb-3"
+            />
+            <MediaUpload
+              accept="video"
+              maxFiles={5}
+              files={selectedVideos}
+              onChange={setSelectedVideos}
+              variant="solid"
+              previewGridCols={4}
+            />
           </div>
-
-          {/* Display Selected Images */}
-          {selectedImages.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {selectedImages.map((image, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={URL.createObjectURL(image)}
-                    alt={`Preview ${index + 1}`}
-                    className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(index)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Display Selected Videos */}
-          {selectedVideos.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {selectedVideos.map((video, index) => (
-                <div key={index} className="relative">
-                  <div className="w-20 h-20 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-gray-400"
-                    >
-                      <path d="M8 5v14l11-7z" fill="currentColor" />
-                    </svg>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveVideo(index)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
-                  >
-                    ×
-                  </button>
-                  <p className="text-xs text-gray-600 mt-1 truncate max-w-[80px]">
-                    {video.name}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Footer Buttons */}
