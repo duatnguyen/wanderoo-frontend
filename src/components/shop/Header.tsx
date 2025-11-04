@@ -7,14 +7,14 @@ function Logo({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center hover:opacity-80 transition-opacity"
+      className="flex items-center hover:opacity-80 transition-opacity  overflow-hidden"
       aria-label="Về trang chủ"
       type="button"
     >
       <img
         src={shopLogo}
         alt="Wanderoo Logo"
-        className="h-auto w-auto max-h-[70px] object-contain"
+        className="h-28 w-auto max-h-[112px] object-contain"
       />
     </button>
   );
