@@ -4,7 +4,7 @@ import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
 import ProductCard from "../../../../components/shop/ProductCard";
-import DropdownList from "../../../../components/shop/DropdownList";
+import { Select } from "antd";
 import Checkbox from "../../../../components/shop/Checkbox";
 
 function formatCurrencyVND(value: number) {
@@ -307,14 +307,13 @@ const CartPage: React.FC = () => {
                                 Phân loại hàng:
                               </span>
                               {item.variantOptions ? (
-                                <DropdownList
-                                  options={item.variantOptions}
+                                <Select
                                   value={item.variant}
                                   onChange={(value) =>
                                     handleVariantChange(item.id, value)
                                   }
-                                  fullWidth={false}
                                   className="w-[180px]"
+                                  options={item.variantOptions}
                                 />
                               ) : (
                                 <span className="text-sm text-gray-700">

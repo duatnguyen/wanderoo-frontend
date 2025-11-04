@@ -2,6 +2,7 @@
 import { Suspense } from "react";
 import { RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ConfigProvider } from "antd";
 
 import { router } from "./app/router"; // createBrowserRouter(...)
 import { AuthProvider } from "./app/providers/AuthProvider";
@@ -22,14 +23,22 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ErrorBoundary>
-          <Suspense fallback={<Loading />}>
-            <RouterProvider router={router} />
-          </Suspense>
-        </ErrorBoundary>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#ea5b0c",
+        },
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ErrorBoundary>
+            <Suspense fallback={<Loading />}>
+              <RouterProvider router={router} />
+            </Suspense>
+          </ErrorBoundary>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ConfigProvider>
   );
 }

@@ -1,4 +1,6 @@
-import { forwardRef, type ButtonHTMLAttributes } from "react";
+import { forwardRef } from "react";
+import { Button as AntdButton } from "antd";
+import type { ButtonProps as AntdButtonProps } from "antd/es/button";
 
 export type ButtonVariant =
   | "primary"
@@ -10,39 +12,71 @@ export type ButtonVariant =
 export type ButtonSize = "sm" | "md" | "lg";
 export type ButtonShape = "rounded" | "pill";
 
-export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+export type ButtonProps = Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "type" | "size"
+> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
   shape?: ButtonShape;
   loading?: boolean;
 };
 
-function cx(...classes: Array<string | false | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
-const VARIANT_BASE: Record<ButtonVariant, string> = {
-  primary:
-    "bg-[#ea5b0c] text-white border border-[#ea5b0c] hover:bg-[#d5510b] focus:ring-2 focus:ring-orange-200",
-  outline:
-    "bg-[#f7f7f7] text-[#454545] border border-[#454545] hover:bg-white focus:ring-2 focus:ring-gray-200",
-  link: "bg-transparent text-[#1076ec] border-0 hover:underline",
-  secondary:
-    "bg-[#18345c] text-white border border-[#18345c] hover:brightness-110 focus:ring-2 focus:ring-blue-200",
-  ghost:
-    "bg-transparent text-[#454545] border border-transparent hover:bg-gray-100 focus:ring-2 focus:ring-gray-200",
-  icon: "bg-transparent text-[#454545] border border-[#454545] hover:bg-white focus:ring-2 focus:ring-gray-200",
+// Map custom variants to antd button types
+const getAntdButtonType = (variant: ButtonVariant): AntdButtonProps["type"] => {
+  switch (variant) {
+    case "primary":
+      return "primary";
+    case "secondary":
+      return "default";
+    case "outline":
+      return "default";
+    case "ghost":
+      return "text";
+    case "link":
+      return "link";
+    case "icon":
+      return "default";
+    default:
+      return "primary";
+  }
 };
 
-const SIZE_BASE: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-[14px]",
-  md: "h-9 px-4 text-[16px]",
-  lg: "h-10 px-5 text-[18px]",
+// Map custom sizes to antd sizes
+const getAntdSize = (size: ButtonSize): AntdButtonProps["size"] => {
+  switch (size) {
+    case "sm":
+      return "small";
+    case "md":
+      return "middle";
+    case "lg":
+      return "large";
+    default:
+      return "middle";
+  }
 };
 
-const RADIUS_BY_SHAPE: Record<ButtonShape, string> = {
-  rounded: "rounded-[5px]",
-  pill: "rounded-full",
+// Get custom className based on variant
+const getCustomClassName = (
+  variant: ButtonVariant,
+  shape: ButtonShape
+): string => {
+  const baseClasses = shape === "pill" ? "!rounded-full" : "!rounded-[5px]";
+
+  switch (variant) {
+    case "secondary":
+      return `${baseClasses} !bg-[#18345c] !border-[#18345c] !text-white hover:!brightness-110`;
+    case "outline":
+      return `${baseClasses} !bg-[#f7f7f7] !border-[#454545] !text-[#454545] hover:!bg-white`;
+    case "ghost":
+      return `${baseClasses} !bg-transparent !border-transparent !text-[#454545] hover:!bg-gray-100`;
+    case "link":
+      return `${baseClasses} !bg-transparent !border-0 !text-[#1076ec] hover:!underline !p-0 !h-auto`;
+    case "icon":
+      return `${baseClasses} !bg-transparent !border-[#454545] !text-[#454545] hover:!bg-white !p-0 !w-10 !h-10`;
+    default:
+      return baseClasses;
+  }
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -55,54 +89,31 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       loading = false,
       children,
+      style,
       ...props
     },
     ref
   ) => {
-    const isDisabled = disabled || loading;
+    const antdType = getAntdButtonType(variant);
+    const antdSize = getAntdSize(size);
+    const customClassName = getCustomClassName(variant, shape);
 
-    const paddingForIcon = variant === "icon" ? "px-0 w-10 h-10" : "";
+    // Extract props that might conflict with AntdButton
+    const { color: _color, ...restProps } = props;
 
     return (
-      <button
+      <AntdButton
         ref={ref}
-        className={cx(
-          "inline-flex items-center justify-center select-none transition-colors cursor-pointer",
-          VARIANT_BASE[variant],
-          SIZE_BASE[size],
-          RADIUS_BY_SHAPE[shape],
-          paddingForIcon,
-          isDisabled && "opacity-60 cursor-not-allowed",
-          className
-        )}
-        disabled={isDisabled}
-        {...props}
+        type={antdType}
+        size={antdSize}
+        loading={loading}
+        disabled={disabled}
+        className={`${customClassName} ${className || ""}`}
+        style={style}
+        {...restProps}
       >
-        {loading && (
-          <svg
-            className="mr-2 size-4 animate-spin text-current"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-            />
-          </svg>
-        )}
         {children}
-      </button>
+      </AntdButton>
     );
   }
 );

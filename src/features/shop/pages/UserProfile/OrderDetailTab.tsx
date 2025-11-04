@@ -1,14 +1,19 @@
 import React, { useState, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import OrderTimeline, {
-  type TimelineStep,
-} from "../../../../components/common/OrderTimeline";
+import { Steps } from "antd";
+import { CheckOutlined } from "@ant-design/icons";
 import Button from "../../../../components/shop/Button";
 import ActionButton from "../../../../components/shop/ActionButton";
 import ProductReviewModal from "../../../../components/shop/ProductReviewModal";
 import ReturnRefundModal from "../../../../components/shop/ReturnRefundModal";
 import StarRating from "../../../../components/shop/StarRating";
 import { getOrderById, type Order } from "./ordersData";
+
+export type TimelineStep = {
+  label: string;
+  completed: boolean;
+  date?: string;
+};
 
 function formatCurrencyVND(value: number) {
   try {
@@ -350,7 +355,38 @@ const OrderDetailTab: React.FC = () => {
         </div>
 
         {/* Order Status Tracker */}
-        <OrderTimeline steps={order.statusSteps} />
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+          <Steps
+            direction="horizontal"
+            current={order.statusSteps.filter((s) => s.completed).length - 1}
+            items={order.statusSteps.map((step) => ({
+              status: step.completed ? "finish" : "wait",
+              title: (
+                <div className="flex flex-col items-center text-center">
+                  <div
+                    className={`text-sm font-semibold ${
+                      step.completed ? "text-[#ea5b0c]" : "text-gray-500"
+                    }`}
+                  >
+                    {step.label}
+                  </div>
+                  {step.date && step.completed && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {step.date}
+                    </div>
+                  )}
+                </div>
+              ),
+              icon: step.completed ? (
+                <div className="w-8 h-8 rounded-lg bg-orange-200 flex items-center justify-center">
+                  <CheckOutlined className="text-white text-sm" />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-white border-2 border-gray-300" />
+              ),
+            }))}
+          />
+        </div>
 
         {/* Customer Information */}
         <div className="flex flex-row gap-5 w-full">

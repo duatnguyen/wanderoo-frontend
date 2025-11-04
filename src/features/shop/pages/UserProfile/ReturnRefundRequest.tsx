@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../../../../components/shop/Button";
 import { Textarea, Input } from "../../../../components/shop/Input";
-import DropdownList from "../../../../components/shop/DropdownList";
+import { Select } from "antd";
 import MediaUpload from "../../../../components/shop/MediaUpload";
 
 function formatCurrencyVND(value: number) {
@@ -52,20 +52,21 @@ const ReturnRefundRequest: React.FC = () => {
   };
 
   const orderData = order || defaultOrder;
-  
+
   // Handle multiple products or single product
   const selectedProducts = products || (product ? [product] : []);
-  
+
   // For backward compatibility, use first product as productData
-  const productData = product || selectedProducts[0] || {
-    id: "1",
-    imageUrl: "",
-    name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
-    price: 199000,
-    originalPrice: 230000,
-    variant: "Đen",
-    quantity: 1,
-  };
+  const productData = product ||
+    selectedProducts[0] || {
+      id: "1",
+      imageUrl: "",
+      name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
+      price: 199000,
+      originalPrice: 230000,
+      variant: "Đen",
+      quantity: 1,
+    };
 
   // Form state
   const [reason, setReason] = useState("");
@@ -198,22 +199,27 @@ const ReturnRefundRequest: React.FC = () => {
 
             <div className="space-y-6">
               {/* Reason Dropdown */}
-              <DropdownList
-                label="Lý do"
-                value={reason}
-                onChange={(value) => setReason(value)}
-                required
-                options={[
-                  { value: "", label: "Chọn lý do" },
-                  { value: "empty-package", label: "Thùng hàng rỗng" },
-                  { value: "not-received", label: "Chưa nhận được hàng" },
-                  { value: "broken", label: "Bể vỡ" },
-                  { value: "wrong-model", label: "Sai mẫu" },
-                  { value: "defective", label: "Hàng lỗi" },
-                  { value: "different-description", label: "Khác mô tả" },
-                  { value: "other", label: "Lý do khác" },
-                ]}
-              />
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  value={reason}
+                  onChange={(value) => setReason(value)}
+                  placeholder="Chọn lý do"
+                  className="w-full"
+                  options={[
+                    { value: "", label: "Chọn lý do" },
+                    { value: "empty-package", label: "Thùng hàng rỗng" },
+                    { value: "not-received", label: "Chưa nhận được hàng" },
+                    { value: "broken", label: "Bể vỡ" },
+                    { value: "wrong-model", label: "Sai mẫu" },
+                    { value: "defective", label: "Hàng lỗi" },
+                    { value: "different-description", label: "Khác mô tả" },
+                    { value: "other", label: "Lý do khác" },
+                  ]}
+                />
+              </div>
 
               {/* Description Textarea */}
               <Textarea

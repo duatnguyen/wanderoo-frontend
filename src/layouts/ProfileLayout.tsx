@@ -1,5 +1,7 @@
 import React from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Menu, ConfigProvider } from "antd";
+import type { MenuProps } from "antd";
 import {
   PersonIcon,
   DocumentIcon,
@@ -62,6 +64,23 @@ const ProfileLayout: React.FC = () => {
         location.pathname.startsWith(item.path + "/")
     )?.id || "basicinformation";
 
+  // Convert menuItems to antd Menu items format
+  const menuProps: MenuProps = {
+    mode: "inline",
+    selectedKeys: [activeMenuId],
+    items: menuItems.map((item) => ({
+      key: item.id,
+      label: item.label,
+      icon: item.icon || undefined,
+    })),
+    onClick: ({ key }) => {
+      const selectedItem = menuItems.find((item) => item.id === key);
+      if (selectedItem) {
+        navigate(selectedItem.path);
+      }
+    },
+  };
+
   return (
     <div className="bg-gray-50">
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8">
@@ -93,32 +112,31 @@ const ProfileLayout: React.FC = () => {
               </div>
             </div>
 
-            <nav className="space-y-1 sm:space-y-2">
-              {menuItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-colors text-sm sm:text-base ${
-                    activeMenuId === item.id
-                      ? "bg-[#18345c] text-white"
-                      : "text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  {item.icon && (
-                    <span
-                      className={
-                        activeMenuId === item.id
-                          ? "text-white"
-                          : "text-gray-600"
-                      }
-                    >
-                      {item.icon}
-                    </span>
-                  )}
-                  <span className="font-medium">{item.label}</span>
-                </button>
-              ))}
-            </nav>
+            <ConfigProvider
+              theme={{
+                components: {
+                  Menu: {
+                    itemActiveBg: "#18345c",
+                    itemSelectedBg: "#18345c",
+                    itemSelectedColor: "#ffffff",
+                    itemHoverBg: "#f9fafb",
+                    itemColor: "#374151",
+                    borderRadius: 8,
+                    itemMarginInline: 0,
+                    itemPaddingInline: 12,
+                    itemHeight: 44,
+                  },
+                },
+              }}
+            >
+              <Menu
+                {...menuProps}
+                className="!border-0 bg-transparent"
+                style={{
+                  backgroundColor: "transparent",
+                }}
+              />
+            </ConfigProvider>
           </div>
         </aside>
 

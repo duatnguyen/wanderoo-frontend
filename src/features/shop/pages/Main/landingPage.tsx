@@ -56,7 +56,7 @@ const LandingPage: React.FC = () => {
   const featuredProducts = productsData.slice(0, 8);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header
         cartCount={0}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}

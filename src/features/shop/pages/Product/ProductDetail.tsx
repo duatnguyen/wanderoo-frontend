@@ -4,7 +4,7 @@ import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
 import ProductCard from "../../../../components/shop/ProductCard";
-import DropdownList from "../../../../components/shop/DropdownList";
+import { Select } from "antd";
 import { getProductById, getRelatedProducts } from "../../data/productsData";
 import type { Product } from "../../data/productsData";
 
@@ -448,16 +448,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
             {/* Pagination */}
             <div className="mt-8 flex items-center justify-center gap-4">
               <span className="text-gray-700">Trang hiện tại</span>
-              <DropdownList
+              <Select
+                value="1"
+                onChange={() => {}}
+                className="w-auto min-w-[80px]"
                 options={[
                   { value: "1", label: "1" },
                   { value: "2", label: "2" },
                   { value: "3", label: "3" },
                 ]}
-                value="1"
-                onChange={() => {}}
-                fullWidth={false}
-                className="w-auto min-w-[80px]"
               />
               <button
                 className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed"
