@@ -1,4 +1,5 @@
 import React, { type FC } from "react";
+import { Search } from "lucide-react";
 
 export type SearchFormProps = {
   value?: string;
@@ -8,23 +9,6 @@ export type SearchFormProps = {
   variant?: "default" | "secondary";
   className?: string;
 };
-
-const SearchIcon: FC = () => (
-  <svg
-    className="w-5 h-5 text-gray-400"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18.5a7.5 7.5 0 006.15-6.15z"
-    />
-  </svg>
-);
 
 const SearchForm: FC<SearchFormProps> = ({
   value,
@@ -60,7 +44,7 @@ const SearchForm: FC<SearchFormProps> = ({
         aria-label="Tìm kiếm"
         data-testid="search-submit"
       >
-        <SearchIcon />
+        <Search className="w-5 h-5 text-gray-400" />
       </button>
     </form>
   );

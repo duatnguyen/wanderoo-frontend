@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Button from "../../../../components/shop/Button";
 import DropdownList from "../../../../components/shop/DropdownList";
 import { Input, Textarea } from "../../../../components/shop/Input";
+import Checkbox from "../../../../components/shop/Checkbox";
 
 function PlusIcon() {
   return (
@@ -427,23 +428,14 @@ const AddressTab: React.FC = () => {
               </div>
 
               {/* Default Address Checkbox */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isDefault"
-                  checked={formData.isDefault}
-                  onChange={(e) =>
-                    handleInputChange("isDefault", e.target.checked)
-                  }
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label
-                  htmlFor="isDefault"
-                  className="text-sm sm:text-base text-gray-700 cursor-pointer"
-                >
-                  Đặt làm địa chỉ mặc định
-                </label>
-              </div>
+              <Checkbox
+                id="isDefault"
+                checked={formData.isDefault}
+                onChange={(e) =>
+                  handleInputChange("isDefault", e.target.checked)
+                }
+                label="Đặt làm địa chỉ mặc định"
+              />
             </div>
 
             {/* Footer Buttons */}

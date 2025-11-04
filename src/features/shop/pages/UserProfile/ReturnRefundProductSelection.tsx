@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../../../../components/shop/Button";
-import { Checkbox } from "../../../../components/ui/checkbox";
+import Checkbox from "../../../../components/shop/Checkbox";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -224,7 +224,7 @@ const ReturnRefundProductSelection: React.FC = () => {
                     <div className="col-span-1 flex items-start">
                       <Checkbox
                         checked={isSelected}
-                        onCheckedChange={() => handleProductToggle(product)}
+                        onChange={() => handleProductToggle(product)}
                       />
                     </div>
 
@@ -316,7 +316,7 @@ const ReturnRefundProductSelection: React.FC = () => {
                     orderData.products.length > 0 &&
                     selectedProducts.size === orderData.products.length
                   }
-                  onCheckedChange={handleSelectAll}
+                  onChange={() => handleSelectAll()}
                 />
                 <span className="text-sm font-medium text-gray-700">
                   Chọn tất cả

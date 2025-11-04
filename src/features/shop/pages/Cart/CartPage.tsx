@@ -5,6 +5,7 @@ import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
 import ProductCard from "../../../../components/shop/ProductCard";
 import DropdownList from "../../../../components/shop/DropdownList";
+import Checkbox from "../../../../components/shop/Checkbox";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -283,11 +284,9 @@ const CartPage: React.FC = () => {
                       >
                         {/* Checkbox */}
                         <div className="col-span-1 flex items-start pt-2">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={selectedItems.has(item.id)}
                             onChange={() => handleSelectItem(item.id)}
-                            className="w-4 h-4 text-[#18345c] border-gray-300 rounded focus:ring-[#18345c] cursor-pointer"
                           />
                         </div>
 
@@ -412,14 +411,12 @@ const CartPage: React.FC = () => {
                   {/* Table Footer */}
                   <div className="bg-white border-t border-gray-200 px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={
                           cartItems.length > 0 &&
                           selectedItems.size === cartItems.length
                         }
                         onChange={handleSelectAll}
-                        className="w-4 h-4 text-[#18345c] border-gray-300 rounded focus:ring-[#18345c] cursor-pointer"
                       />
                       <span className="text-gray-700">
                         Chọn tất cả ({cartItems.length})

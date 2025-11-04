@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
 import ProductCard from "../../../../components/shop/ProductCard";
 import DropdownList from "../../../../components/shop/DropdownList";
+import { getProductById, getRelatedProducts } from "../../data/productsData";
+import type { Product } from "../../data/productsData";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -33,14 +35,20 @@ const Star: React.FC<{ filled?: boolean }> = ({ filled }) => (
 const ProductDetail: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
 
-  // Sample product data - in real app, fetch from API using productId
-  const product = {
+  // Get product from navigation state or find in mockdata
+  const productFromState = (location.state as { product?: Product })?.product;
+  const productFromData = productId && getProductById(productId);
+
+  // Default product data
+  const defaultProduct: Product = {
     id: productId || "1",
+    imageUrl: "",
     name: "Lều trại 2 người chống thấm nước cao cấp",
     price: 1290000,
     originalPrice: 1590000,
@@ -65,54 +73,22 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     reviews: 128,
   };
 
-  // Related products
-  const relatedProducts = [
-    {
-      id: 2,
-      imageUrl: "",
-      name: "Túi ngủ mùa đông giữ nhiệt",
-      price: 890000,
-      originalPrice: 1200000,
-      rating: 4.8,
-      discountPercent: 26,
-    },
-    {
-      id: 3,
-      imageUrl: "",
-      name: "Bếp gas du lịch mini",
-      price: 450000,
-      originalPrice: 650000,
-      rating: 4.3,
-      discountPercent: 31,
-    },
-    {
-      id: 4,
-      imageUrl: "",
-      name: "Ba lô trekking 30L",
-      price: 950000,
-      originalPrice: 1150000,
-      rating: 4.6,
-      discountPercent: 17,
-    },
-    {
-      id: 5,
-      imageUrl: "",
-      name: "Áo khoác gió chống nước",
-      price: 750000,
-      originalPrice: 950000,
-      rating: 4.7,
-      discountPercent: 21,
-    },
-  ];
+  // Use product from state if available, otherwise from mockdata, otherwise default
+  const product: Product =
+    productFromState || productFromData || defaultProduct;
+
+  // Related products from mockdata
+  const relatedProducts = getRelatedProducts(product.id, 4);
 
   const stars = Array.from(
     { length: 5 },
-    (_, i) => i < Math.round(product.rating)
+    (_, i) => i < Math.round(product.rating || 0)
   );
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
-    if (newQuantity >= 1 && newQuantity <= product.stock) {
+    const maxStock = product.stock || 999;
+    if (newQuantity >= 1 && newQuantity <= maxStock) {
       setQuantity(newQuantity);
     }
   };
@@ -149,9 +125,9 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
         </section>
 
         {/* Product Detail Section */}
-        <section className="w-full bg-white py-8">
-          <div className="max-w-[1200px] mx-auto px-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <section className="w-full bg-white py-6">
+          <div className="max-w-[1000px] mx-auto px-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Product Images */}
               <div className="space-y-4">
                 <div className="relative aspect-square bg-transparent rounded-lg overflow-hidden">
@@ -175,7 +151,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   )}
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                  {product.images.map((_, index) => (
+                  {(product.images || []).map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImageIndex(index)}
@@ -192,43 +168,43 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
               </div>
 
               {/* Product Info */}
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-gray-500">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs text-gray-500">
                       {product.brand}
                     </span>
                     <span className="text-gray-300">|</span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-xs text-gray-500">
                       {product.category}
                     </span>
                   </div>
-                  <h1 className="text-[32px] font-bold text-gray-900 mb-4">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-3">
                     {product.name}
                   </h1>
-                  <div className="flex items-center gap-4 mb-4">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className="flex items-center gap-1">
                       {stars.map((filled, idx) => (
                         <Star key={idx} filled={filled} />
                       ))}
                     </div>
-                    <span className="text-gray-600">
+                    <span className="text-sm text-gray-600">
                       ({product.reviews} đánh giá)
                     </span>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="flex items-baseline gap-4 mb-4">
-                    <span className="text-[32px] font-bold text-[#18345c]">
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="flex items-baseline gap-3 mb-3">
+                    <span className="text-2xl font-bold text-[#18345c]">
                       {formatCurrencyVND(product.price)}
                     </span>
                     {product.originalPrice && (
                       <>
-                        <span className="text-[20px] text-gray-400 line-through">
+                        <span className="text-lg text-gray-400 line-through">
                           {formatCurrencyVND(product.originalPrice)}
                         </span>
-                        <span className="text-red-600 font-semibold">
+                        <span className="text-sm text-red-600 font-semibold">
                           Tiết kiệm{" "}
                           {formatCurrencyVND(
                             product.originalPrice - product.price
@@ -238,20 +214,20 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                     )}
                   </div>
 
-                  <div className="mb-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <span className="text-gray-700 font-medium">
+                  <div className="mb-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-sm text-gray-700 font-medium">
                         Số lượng:
                       </span>
-                      <div className="flex items-center gap-3 border border-gray-300 rounded-lg">
+                      <div className="flex items-center gap-2 border border-gray-300 rounded-lg">
                         <button
                           onClick={() => handleQuantityChange(-1)}
-                          className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                          className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors"
                           disabled={quantity <= 1}
                         >
                           <svg
-                            width="20"
-                            height="20"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -260,17 +236,17 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                             <path d="M5 12h14" />
                           </svg>
                         </button>
-                        <span className="w-12 text-center font-semibold">
+                        <span className="w-10 text-center text-sm font-semibold">
                           {quantity}
                         </span>
                         <button
                           onClick={() => handleQuantityChange(1)}
-                          className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                          disabled={quantity >= product.stock}
+                          className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                          disabled={quantity >= (product.stock || 999)}
                         >
                           <svg
-                            width="20"
-                            height="20"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -280,16 +256,16 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                           </svg>
                         </button>
                       </div>
-                      <span className="text-sm text-gray-500 ml-4">
-                        Còn lại: {product.stock} sản phẩm
+                      <span className="text-xs text-gray-500 ml-3">
+                        Còn lại: {product.stock || 0} sản phẩm
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex gap-4">
+                  <div className="flex gap-3">
                     <Button
                       variant="primary"
-                      size="lg"
+                      size="md"
                       shape="rounded"
                       className="flex-1"
                       onClick={handleAddToCart}
@@ -298,7 +274,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                     </Button>
                     <Button
                       variant="secondary"
-                      size="lg"
+                      size="md"
                       shape="rounded"
                       className="flex-1"
                       onClick={() => console.log("Buy now")}
@@ -311,12 +287,12 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
             </div>
 
             {/* Product Description */}
-            <div className="mt-12 border-t border-gray-200 pt-8">
-              <h2 className="text-[24px] font-bold text-gray-900 mb-4">
+            <div className="mt-8 border-t border-gray-200 pt-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-3">
                 Mô tả sản phẩm
               </h2>
               <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
                   {product.description}
                 </p>
               </div>
@@ -325,18 +301,18 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
         </section>
 
         {/* Customer Reviews Section */}
-        <section className="w-full bg-white py-10">
-          <div className="max-w-[1200px] mx-auto px-4">
-            <h2 className="text-[32px] font-bold text-gray-900 mb-8">
+        <section className="w-full bg-white py-6">
+          <div className="max-w-[1000px] mx-auto px-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
               ĐÁNH GIÁ SẢN PHẨM
             </h2>
 
-            <div className="flex flex-col lg:flex-row gap-8 mb-8">
+            <div className="flex flex-col lg:flex-row gap-6 mb-6">
               {/* Overall Rating */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <svg
-                  width="48"
-                  height="48"
+                  width="40"
+                  height="40"
                   viewBox="0 0 20 20"
                   className="text-yellow-400"
                   fill="currentColor"
@@ -344,10 +320,8 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.036a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.802-2.036a1 1 0 00-1.176 0l-2.802 2.036c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81H7.03a1 1 0 00.95-.69l1.07-3.292z" />
                 </svg>
                 <div>
-                  <div className="text-[48px] font-bold text-gray-900">4.8</div>
-                  <div className="text-[16px] text-gray-500">
-                    428 Lượt đánh giá
-                  </div>
+                  <div className="text-3xl font-bold text-gray-900">4.8</div>
+                  <div className="text-sm text-gray-500">428 Lượt đánh giá</div>
                 </div>
               </div>
 
