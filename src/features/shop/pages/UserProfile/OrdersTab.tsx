@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ordersData, type OrderStatus, type Order } from "./ordersData";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -12,32 +13,6 @@ function formatCurrencyVND(value: number) {
     return `${value.toLocaleString("vi-VN")}đ`;
   }
 }
-
-type OrderStatus =
-  | "all"
-  | "pending"
-  | "confirmed"
-  | "shipping"
-  | "delivered"
-  | "cancelled"
-  | "return";
-
-type Order = {
-  id: string;
-  orderDate: string;
-  status: OrderStatus;
-  statusLabel: string;
-  products: {
-    id: string;
-    imageUrl: string;
-    name: string;
-    price: number;
-    originalPrice?: number;
-    variant?: string;
-    variantColor?: string;
-  }[];
-  totalPayment: number;
-};
 
 // Helper function for date parsing (converts YYYY-MM-DD to DD/MM/YYYY for display)
 const parseDateFromInput = (dateString: string): string => {
@@ -58,77 +33,8 @@ const OrdersTab: React.FC = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // Mock orders data
-  const orders: Order[] = [
-    {
-      id: "WB0303168522",
-      orderDate: "25/08/2025",
-      status: "cancelled",
-      statusLabel: "Đã hủy",
-      products: [
-        {
-          id: "1",
-          imageUrl: "/api/placeholder/100/100",
-          name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
-          price: 199000,
-          originalPrice: 230000,
-          variant: "xanh",
-          variantColor: "green",
-        },
-      ],
-      totalPayment: 199000,
-    },
-    {
-      id: "WB0303168523",
-      orderDate: "24/08/2025",
-      status: "delivered",
-      statusLabel: "Đã giao hàng",
-      products: [
-        {
-          id: "2",
-          imageUrl: "/api/placeholder/100/100",
-          name: "Lều mái vòm cho 2 người - MT500 xám (SIMOND)",
-          price: 1200000,
-          originalPrice: 1500000,
-        },
-      ],
-      totalPayment: 1200000,
-    },
-    {
-      id: "WB0303168524",
-      orderDate: "23/08/2025",
-      status: "delivered",
-      statusLabel: "Đã giao hàng",
-      products: [
-        {
-          id: "3",
-          imageUrl: "/api/placeholder/100/100",
-          name: "Lều cắm trại 222 người - MH100 trắng/Xanh (QUECHUA)",
-          price: 199000,
-          originalPrice: 230000,
-        },
-      ],
-      totalPayment: 999000,
-    },
-    {
-      id: "WB0303168525",
-      orderDate: "22/08/2025",
-      status: "delivered",
-      statusLabel: "Đã giao hàng",
-      products: [
-        {
-          id: "4",
-          imageUrl: "/api/placeholder/100/100",
-          name: "Lều cắm trại 3 người - MH100 trắng/Xanh",
-          price: 199000,
-          originalPrice: 330000,
-          variant: "Đen",
-          variantColor: "gray",
-        },
-      ],
-      totalPayment: 300000,
-    },
-  ];
+  // Use shared orders data
+  const orders: Order[] = ordersData;
 
   const tabs = [
     { id: "all" as OrderStatus, label: "Tất cả" },
@@ -181,25 +87,6 @@ const OrdersTab: React.FC = () => {
     return true;
   });
 
-  const CalendarIcon = () => (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="text-gray-400"
-    >
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       {/* Header */}
@@ -246,9 +133,6 @@ const OrdersTab: React.FC = () => {
                 className="px-4 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none appearance-none cursor-pointer"
                 placeholder="dd/mm/yyyy"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <CalendarIcon />
-              </div>
             </div>
             <span className="text-gray-500">-</span>
             <div className="relative">
@@ -266,9 +150,6 @@ const OrdersTab: React.FC = () => {
                 className="px-4 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none appearance-none cursor-pointer"
                 placeholder="dd/mm/yyyy"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <CalendarIcon />
-              </div>
             </div>
           </div>
         </div>
@@ -307,71 +188,64 @@ const OrdersTab: React.FC = () => {
                   >
                     {/* Product Image */}
                     <div className="flex-shrink-0">
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-200"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "https://via.placeholder.com/100";
-                        }}
-                      />
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg border border-gray-300 bg-transparent" />
                     </div>
 
                     {/* Product Details */}
-                    <div className="flex-1 flex flex-col justify-between gap-2">
-                      <div>
-                        <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-2">
-                          {product.name}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm sm:text-base font-semibold text-gray-900">
-                              {formatCurrencyVND(product.price)}
-                            </span>
-                            {product.originalPrice && (
-                              <span className="text-xs sm:text-sm text-gray-500 line-through">
-                                {formatCurrencyVND(product.originalPrice)}
-                              </span>
-                            )}
-                          </div>
-                          {product.variant && (
-                            <span
-                              className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                                product.variantColor === "green"
-                                  ? "bg-green-100 text-green-700"
-                                  : product.variantColor === "gray"
-                                  ? "bg-gray-100 text-gray-700"
-                                  : "bg-blue-100 text-blue-700"
-                              }`}
-                            >
-                              {product.variant}
+                    <div className="flex-1">
+                      <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-2">
+                        {product.name}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm sm:text-base font-semibold text-gray-900">
+                            {formatCurrencyVND(product.price)}
+                          </span>
+                          {product.originalPrice && (
+                            <span className="text-xs sm:text-sm text-gray-500 line-through">
+                              {formatCurrencyVND(product.originalPrice)}
                             </span>
                           )}
                         </div>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2 pt-2 border-t border-gray-200">
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">
-                            Tổng thanh toán:{" "}
+                        {product.variant && (
+                          <span
+                            className={`inline-block px-2 py-1 text-xs font-medium rounded ${
+                              product.variantColor === "green"
+                                ? "bg-green-100 text-green-700"
+                                : product.variantColor === "gray"
+                                ? "bg-gray-100 text-gray-700"
+                                : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
+                            {product.variant}
                           </span>
-                          <span className="text-sm sm:text-base font-bold text-red-600">
-                            {formatCurrencyVND(order.totalPayment)}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            navigate(`/user/profile/orders/${order.id}`);
-                          }}
-                          className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base self-start sm:self-auto transition-colors"
-                        >
-                          Xem chi tiết &gt;&gt;
-                        </button>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
+
+                {/* Order Footer with Total and View Details Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-4 border-t border-gray-200">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">
+                      Tổng thanh toán:{" "}
+                    </span>
+                    <span className="text-sm sm:text-base font-bold text-red-600">
+                      {formatCurrencyVND(order.totalPayment)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigate(`/user/profile/orders/${order.id}`, {
+                        state: { order },
+                      });
+                    }}
+                    className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base self-start sm:self-auto transition-colors"
+                  >
+                    Xem chi tiết &gt;&gt;
+                  </button>
+                </div>
               </div>
             </div>
           ))

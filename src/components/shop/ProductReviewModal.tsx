@@ -103,15 +103,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
         {/* Product Info */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-start gap-4">
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="w-20 h-20 object-cover rounded-lg border border-gray-200"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "https://via.placeholder.com/80";
-              }}
-            />
+            <div className="w-20 h-20 rounded-lg border border-gray-300 bg-transparent" />
             <div className="flex-1">
               <h3 className="text-base font-medium text-gray-900 mb-1">
                 {product.name}

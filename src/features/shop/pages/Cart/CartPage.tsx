@@ -41,7 +41,7 @@ const CartPage: React.FC = () => {
       id: "1",
       name: "Gậy Leo Núi Có Đệm Lò Xo Dài",
       description: "110-135cm, Gậy Trekking",
-      imageUrl: "https://via.placeholder.com/120x120?text=Pole",
+      imageUrl: "",
       price: 100000,
       quantity: 1,
       variant: "Đen",
@@ -55,7 +55,7 @@ const CartPage: React.FC = () => {
       id: "2",
       name: "Ba lô ngoài trời CAMEL CROWN",
       description: "Túi leo núi chuyên nghiệp",
-      imageUrl: "https://via.placeholder.com/120x120?text=Backpack",
+      imageUrl: "",
       price: 100000,
       quantity: 1,
       variant: "Đen",
@@ -69,7 +69,7 @@ const CartPage: React.FC = () => {
       id: "3",
       name: "Giày thể thao leo núi CAMEL CROWN",
       description: "FB12235182",
-      imageUrl: "https://via.placeholder.com/120x120?text=Shoes",
+      imageUrl: "",
       price: 100000,
       quantity: 1,
       variant: "Xám, Size 35",
@@ -83,7 +83,7 @@ const CartPage: React.FC = () => {
       id: "4",
       name: "Tất Xỏ Ngón Chạy Bộ Chạy Trail",
       description: "Leo Núi- Hạn Chế Phồng",
-      imageUrl: "https://via.placeholder.com/120x120?text=Socks",
+      imageUrl: "",
       price: 100000,
       quantity: 1,
       variant: "Đen, Size giày 36",
@@ -170,7 +170,7 @@ const CartPage: React.FC = () => {
   const recommendedProducts = [
     {
       id: 6,
-      imageUrl: "https://via.placeholder.com/300x245?text=Recommended+1",
+      imageUrl: "",
       name: "Ghế xếp du lịch nhẹ",
       price: 320000,
       originalPrice: 450000,
@@ -179,7 +179,7 @@ const CartPage: React.FC = () => {
     },
     {
       id: 7,
-      imageUrl: "https://via.placeholder.com/300x245?text=Recommended+2",
+      imageUrl: "",
       name: "Đèn pin siêu sáng LED",
       price: 280000,
       originalPrice: 380000,
@@ -188,7 +188,7 @@ const CartPage: React.FC = () => {
     },
     {
       id: 8,
-      imageUrl: "https://via.placeholder.com/300x245?text=Recommended+3",
+      imageUrl: "",
       name: "Bộ dụng cụ đa năng",
       price: 180000,
       originalPrice: 250000,
@@ -197,7 +197,7 @@ const CartPage: React.FC = () => {
     },
     {
       id: 9,
-      imageUrl: "https://via.placeholder.com/300x245?text=Recommended+4",
+      imageUrl: "",
       name: "Áo khoác gió chống nước",
       price: 750000,
       originalPrice: 950000,
@@ -293,11 +293,7 @@ const CartPage: React.FC = () => {
 
                         {/* Product Info */}
                         <div className="col-span-4 flex gap-3">
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-20 h-20 rounded object-cover border border-gray-200 flex-shrink-0"
-                          />
+                          <div className="w-20 h-20 rounded border border-gray-300 bg-transparent flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium text-gray-900 mb-1 line-clamp-2">
                               {item.name}

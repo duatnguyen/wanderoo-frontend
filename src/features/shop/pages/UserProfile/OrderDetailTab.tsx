@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useMemo } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import OrderTimeline, {
   type TimelineStep,
 } from "../../../../components/common/OrderTimeline";
@@ -8,6 +8,7 @@ import ActionButton from "../../../../components/shop/ActionButton";
 import ProductReviewModal from "../../../../components/shop/ProductReviewModal";
 import ReturnRefundModal from "../../../../components/shop/ReturnRefundModal";
 import StarRating from "../../../../components/shop/StarRating";
+import { getOrderById, type Order } from "./ordersData";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -52,6 +53,7 @@ type ProductType = {
 const OrderDetailTab: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isReturnRefundModalOpen, setIsReturnRefundModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(
@@ -65,85 +67,127 @@ const OrderDetailTab: React.FC = () => {
     Map<string, { rating: number; comment: string }>
   >(new Map());
 
-  // Determine if order is delivered based on orderId or status
-  // In real app, this would come from API
-  const isDelivered = orderId?.includes("delivered") || true; // For demo, set to true
+  // Get order data from location state or find by orderId
+  const orderFromLocation = (location.state as { order?: Order })?.order;
+  const orderFromData = orderId ? getOrderById(orderId) : null;
+  const sourceOrder = orderFromLocation || orderFromData;
 
-  // Mock order data - in real app, fetch from API using orderId
-  const [order] = useState({
-    id: orderId || "WB0303168522",
-    orderDate: "25/08/2025",
-    status: isDelivered ? "Đã nhận hàng" : "Chờ xác nhận",
-    products: [
-      {
-        id: "1",
-        imageUrl: "/api/placeholder/100/100",
-        name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
-        price: 199000,
-        originalPrice: 230000,
-        variant: "Đen",
-        quantity: 1,
+  // Generate status steps based on order status
+  const generateStatusSteps = (
+    status: string,
+    orderDate?: string
+  ): TimelineStep[] => {
+    const baseSteps = [
+      { label: "Đặt hàng thành công", completed: true, date: orderDate || "" },
+      { label: "Đã xác nhận", completed: false },
+      { label: "Đang vận chuyển", completed: false },
+      { label: "Đã nhận hàng", completed: false },
+    ];
+
+    switch (status) {
+      case "delivered":
+        return [
+          { ...baseSteps[0], completed: true },
+          { ...baseSteps[1], completed: true, date: orderDate || "" },
+          { ...baseSteps[2], completed: true, date: orderDate || "" },
+          { ...baseSteps[3], completed: true, date: orderDate || "" },
+        ];
+      case "shipping":
+        return [
+          { ...baseSteps[0], completed: true },
+          { ...baseSteps[1], completed: true, date: orderDate || "" },
+          { ...baseSteps[2], completed: true, date: orderDate || "" },
+          { ...baseSteps[3], completed: false },
+        ];
+      case "confirmed":
+        return [
+          { ...baseSteps[0], completed: true },
+          { ...baseSteps[1], completed: true, date: orderDate || "" },
+          { ...baseSteps[2], completed: false },
+          { ...baseSteps[3], completed: false },
+        ];
+      case "cancelled":
+        return [
+          { ...baseSteps[0], completed: true },
+          { ...baseSteps[1], completed: false },
+          { ...baseSteps[2], completed: false },
+          { ...baseSteps[3], completed: false },
+        ];
+      default:
+        return baseSteps;
+    }
+  };
+
+  // Transform Order data to OrderDetailTab format
+  const order = useMemo(() => {
+    if (!sourceOrder) {
+      // Fallback if no order found
+      return {
+        id: orderId || "WB0303168522",
+        orderDate: "25/08/2025",
+        status: "Chờ xác nhận",
+        products: [],
+        customer: {
+          name: "Nguyen Thi thanh",
+          phone: "0868211760",
+          address: "310 Cầu Giấy, P. Dịch Vọng, Q. Cầu Giấy",
+          notes: "-",
+        },
+        payment: {
+          productQuantity: 0,
+          subtotal: 0,
+          discount: 0,
+          shipping: 0,
+          total: 0,
+        },
+        statusSteps: generateStatusSteps("pending"),
+      };
+    }
+
+    const totalProducts = sourceOrder.products.length;
+    const subtotal = sourceOrder.products.reduce(
+      (sum, product) => sum + product.price,
+      0
+    );
+
+    return {
+      id: sourceOrder.id,
+      orderDate: sourceOrder.orderDate,
+      status: sourceOrder.statusLabel,
+      products: sourceOrder.products.map((product) => ({
+        id: product.id,
+        imageUrl: product.imageUrl,
+        name: product.name,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        variant: product.variant,
+        quantity: 1, // Default quantity, can be adjusted if needed
         isReviewed: false,
+      })),
+      customer: {
+        name: "Nguyen Thi thanh", // Default customer info, can be extended in ordersData if needed
+        phone: "0868211760",
+        address: "310 Cầu Giấy, P. Dịch Vọng, Q. Cầu Giấy",
+        notes: "-",
       },
-    ],
-    customer: {
-      name: "Nguyen Thi thanh",
-      phone: "0868211760",
-      address: "310 Cầu Giấy, P. Dịch Vọng, Q. Cầu Giấy",
-      notes: "-",
-    },
-    payment: {
-      productQuantity: 1,
-      subtotal: 199000,
-      discount: 0,
-      shipping: 0,
-      total: 199000,
-    },
-    statusSteps: isDelivered
-      ? [
-          {
-            label: "Đặt hàng thành công",
-            completed: true,
-            date: "10/09/2024 18:26",
-          },
-          {
-            label: "Đã xác nhận",
-            completed: true,
-            date: "11/09/2024 18:26",
-          },
-          {
-            label: "Đang vận chuyển",
-            completed: true,
-            date: "11/09/2024 18:26",
-          },
-          {
-            label: "Đã nhận hàng",
-            completed: true,
-            date: "13/09/2024 18:26",
-          },
-        ]
-      : ([
-          {
-            label: "Đặt hàng thành công",
-            completed: true,
-            date: "10/09/2024 18:26",
-          },
-          {
-            label: "Đã xác nhận",
-            completed: false,
-          },
-          {
-            label: "Đang vận chuyển",
-            completed: false,
-          },
-          {
-            label: "Đã nhận hàng",
-            completed: false,
-          },
-        ] as TimelineStep[]),
-  });
+      payment: {
+        productQuantity: totalProducts,
+        subtotal: subtotal,
+        discount: 0,
+        shipping: 0,
+        total: sourceOrder.totalPayment,
+      },
+      statusSteps: generateStatusSteps(
+        sourceOrder.status,
+        sourceOrder.orderDate
+      ),
+    };
+  }, [sourceOrder, orderId]);
 
   const totalPayment = order.payment.total;
+
+  // Determine if order is delivered based on status
+  const isDelivered = sourceOrder?.status === "delivered" || false;
 
   // Check if a product has been reviewed
   const isProductReviewed = (productId: string) => {
@@ -192,15 +236,7 @@ const OrderDetailTab: React.FC = () => {
               className="flex flex-col sm:flex-row gap-4 pb-4 border-b border-gray-200 last:border-b-0 last:pb-0"
             >
               <div className="flex-shrink-0">
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-200"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "https://via.placeholder.com/100";
-                  }}
-                />
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg border border-gray-300 bg-transparent" />
               </div>
 
               <div className="flex-1 flex flex-col gap-4">
@@ -485,6 +521,7 @@ const OrderDetailTab: React.FC = () => {
           orderDate: order.orderDate,
         }}
         product={selectedProduct || undefined}
+        allProducts={order.products}
       />
 
       {/* Success Modal */}

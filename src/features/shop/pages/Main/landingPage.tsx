@@ -50,7 +50,7 @@ const LandingPage: React.FC = () => {
   const flashSaleProducts = [
     {
       id: 101,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+1",
+      imageUrl: "",
       name: "Lều trại 4 người siêu giảm giá",
       price: 1890000,
       originalPrice: 3200000,
@@ -59,7 +59,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 102,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+2",
+      imageUrl: "",
       name: "Bếp nướng BBQ đa năng",
       price: 650000,
       originalPrice: 1200000,
@@ -68,7 +68,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 103,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+3",
+      imageUrl: "",
       name: "Túi ngủ 3 mùa cao cấp",
       price: 990000,
       originalPrice: 1800000,
@@ -77,7 +77,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 104,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+4",
+      imageUrl: "",
       name: "Ba lô du lịch 50L chống thấm",
       price: 1290000,
       originalPrice: 2200000,
@@ -86,7 +86,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 105,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+5",
+      imageUrl: "",
       name: "Bộ đồ nấu ăn du lịch 8 món",
       price: 450000,
       originalPrice: 850000,
@@ -99,7 +99,7 @@ const LandingPage: React.FC = () => {
   const featuredProducts = [
     {
       id: 1,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+1",
+      imageUrl: "",
       name: "Lều trại 2 người chống thấm nước",
       price: 1290000,
       originalPrice: 1590000,
@@ -108,7 +108,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 2,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+2",
+      imageUrl: "",
       name: "Túi ngủ mùa đông giữ nhiệt",
       price: 890000,
       originalPrice: 1200000,
@@ -117,7 +117,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 3,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+3",
+      imageUrl: "",
       name: "Bếp gas du lịch mini",
       price: 450000,
       originalPrice: 650000,
@@ -126,7 +126,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 4,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+4",
+      imageUrl: "",
       name: "Ba lô trekking 30L",
       price: 950000,
       originalPrice: 1150000,
@@ -135,7 +135,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 5,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+5",
+      imageUrl: "",
       name: "Áo khoác gió chống nước",
       price: 750000,
       originalPrice: 950000,
@@ -144,7 +144,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 6,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+6",
+      imageUrl: "",
       name: "Ghế xếp du lịch nhẹ",
       price: 320000,
       originalPrice: 450000,
@@ -153,7 +153,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 7,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+7",
+      imageUrl: "",
       name: "Đèn pin siêu sáng LED",
       price: 280000,
       originalPrice: 380000,
@@ -162,7 +162,7 @@ const LandingPage: React.FC = () => {
     },
     {
       id: 8,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+8",
+      imageUrl: "",
       name: "Bộ dụng cụ đa năng",
       price: 180000,
       originalPrice: 250000,

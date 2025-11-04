@@ -58,12 +58,7 @@ const ProductDetail: React.FC = () => {
 - Trọng lượng: 2.5kg
 
 Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại gia đình`,
-    images: [
-      "https://via.placeholder.com/600x600?text=Product+Image+1",
-      "https://via.placeholder.com/600x600?text=Product+Image+2",
-      "https://via.placeholder.com/600x600?text=Product+Image+3",
-      "https://via.placeholder.com/600x600?text=Product+Image+4",
-    ],
+    images: ["", "", "", ""],
     stock: 25,
     category: "Đồ cắm trại",
     brand: "Naturehike",
@@ -74,7 +69,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
   const relatedProducts = [
     {
       id: 2,
-      imageUrl: "https://via.placeholder.com/300x245?text=Related+1",
+      imageUrl: "",
       name: "Túi ngủ mùa đông giữ nhiệt",
       price: 890000,
       originalPrice: 1200000,
@@ -83,7 +78,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     },
     {
       id: 3,
-      imageUrl: "https://via.placeholder.com/300x245?text=Related+2",
+      imageUrl: "",
       name: "Bếp gas du lịch mini",
       price: 450000,
       originalPrice: 650000,
@@ -92,7 +87,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     },
     {
       id: 4,
-      imageUrl: "https://via.placeholder.com/300x245?text=Related+3",
+      imageUrl: "",
       name: "Ba lô trekking 30L",
       price: 950000,
       originalPrice: 1150000,
@@ -101,7 +96,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     },
     {
       id: 5,
-      imageUrl: "https://via.placeholder.com/300x245?text=Related+4",
+      imageUrl: "",
       name: "Áo khoác gió chống nước",
       price: 750000,
       originalPrice: 950000,
@@ -159,12 +154,8 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Product Images */}
               <div className="space-y-4">
-                <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                  <img
-                    src={product.images[selectedImageIndex]}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative aspect-square bg-transparent rounded-lg overflow-hidden">
+                  <div className="w-full h-full border border-gray-300 rounded-lg" />
                   {product.discountPercent && (
                     <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-[16px] rounded-[4px] px-3 py-1 flex items-center gap-1">
                       <svg
@@ -184,21 +175,17 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   )}
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                  {product.images.map((image, index) => (
+                  {product.images.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => setSelectedImageIndex(index)}
-                      className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                      className={`aspect-square rounded-lg border-2 transition-all bg-transparent ${
                         selectedImageIndex === index
                           ? "border-[#18345c]"
-                          : "border-gray-200 hover:border-gray-300"
+                          : "border-gray-300 hover:border-gray-400"
                       }`}
                     >
-                      <img
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="w-full h-full" />
                     </button>
                   ))}
                 </div>
@@ -409,11 +396,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
               {/* Review 1 */}
               <div className="border-b border-gray-200 pb-6">
                 <div className="flex items-start gap-4">
-                  <img
-                    src="https://via.placeholder.com/50x50?text=Linh"
-                    alt="Linh"
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                  <div className="w-12 h-12 rounded-full border border-gray-300 bg-transparent" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-bold text-gray-900">Linh</span>
@@ -431,21 +414,9 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                       thêm nếu có cơ hội
                     </p>
                     <div className="flex gap-2">
-                      <img
-                        src="https://via.placeholder.com/80x80?text=Boot1"
-                        alt="Review image 1"
-                        className="w-20 h-20 rounded-lg object-cover border border-gray-200"
-                      />
-                      <img
-                        src="https://via.placeholder.com/80x80?text=Boot2"
-                        alt="Review image 2"
-                        className="w-20 h-20 rounded-lg object-cover border border-gray-200"
-                      />
-                      <img
-                        src="https://via.placeholder.com/80x80?text=Boot3"
-                        alt="Review image 3"
-                        className="w-20 h-20 rounded-lg object-cover border border-gray-200"
-                      />
+                      <div className="w-20 h-20 rounded-lg border border-gray-300 bg-transparent" />
+                      <div className="w-20 h-20 rounded-lg border border-gray-300 bg-transparent" />
+                      <div className="w-20 h-20 rounded-lg border border-gray-300 bg-transparent" />
                     </div>
                   </div>
                 </div>
@@ -454,11 +425,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
               {/* Review 2 */}
               <div className="border-b border-gray-200 pb-6">
                 <div className="flex items-start gap-4">
-                  <img
-                    src="https://via.placeholder.com/50x50?text=Nguyen+Du"
-                    alt="Nguyễn Du"
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                  <div className="w-12 h-12 rounded-full border border-gray-300 bg-transparent" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-bold text-gray-900">Nguyễn Du</span>
@@ -482,11 +449,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
               {/* Review 3 */}
               <div className="border-b border-gray-200 pb-6">
                 <div className="flex items-start gap-4">
-                  <img
-                    src="https://via.placeholder.com/50x50?text=Thanh"
-                    alt="Thanh"
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                  <div className="w-12 h-12 rounded-full border border-gray-300 bg-transparent" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-bold text-gray-900">Thanh</span>

@@ -22,6 +22,7 @@ interface ReturnRefundModalProps {
   onClose: () => void;
   order?: OrderType;
   product?: ProductType;
+  allProducts?: ProductType[]; // For orders with multiple products
 }
 
 const ReturnRefundModal: React.FC<ReturnRefundModalProps> = ({
@@ -29,6 +30,7 @@ const ReturnRefundModal: React.FC<ReturnRefundModalProps> = ({
   onClose,
   order,
   product,
+  allProducts,
 }) => {
   const navigate = useNavigate();
   const [selectedOption, setSelectedOption] = useState<
@@ -38,14 +40,21 @@ const ReturnRefundModal: React.FC<ReturnRefundModalProps> = ({
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    if (selectedOption && order && product) {
-      // Navigate to return/refund request page with order, product, and option data
+    if (!selectedOption || !order) return;
+
+    // If order has multiple products, navigate to product selection page
+    if (allProducts && allProducts.length > 1) {
+      navigate("/user/return-refund/select-products", {
+        state: { order: { id: order.id, orderDate: order.orderDate, products: allProducts }, option: selectedOption },
+      });
+    } else if (product) {
+      // Single product - navigate directly to return/refund request page
       navigate("/user/return-refund", {
         state: { order, product, option: selectedOption },
       });
-      onClose();
-      setSelectedOption(null);
     }
+    onClose();
+    setSelectedOption(null);
   };
 
   const handleClose = () => {

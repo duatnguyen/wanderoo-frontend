@@ -20,6 +20,10 @@ const OrderDetailTab = lazy(
 const ReturnRefundRequest = lazy(
   () => import("../../features/shop/pages/UserProfile/ReturnRefundRequest")
 );
+const ReturnRefundProductSelection = lazy(
+  () =>
+    import("../../features/shop/pages/UserProfile/ReturnRefundProductSelection")
+);
 const VouchersTab = lazy(() => import("../../features/shop/pages/UserProfile/VouchersTab"));
 const LandingPage = lazy(
   () => import("../../features/shop/pages/Main/landingPage")
@@ -61,6 +65,14 @@ export const userRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <ReturnRefundRequest />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "return-refund/select-products",
+    element: (
+      <LazyWrapper>
+        <ReturnRefundProductSelection />
       </LazyWrapper>
     ),
   },

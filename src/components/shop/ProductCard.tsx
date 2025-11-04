@@ -57,11 +57,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onKeyDown={(e) => e.key === "Enter" && onClick?.()}
     >
       <div className="relative">
-        <img
-          src={imageUrl}
-          alt={name}
-          className="w-full h-[245px] object-cover"
-        />
+        <div className="w-full h-[245px] border border-gray-300 bg-transparent" />
         {typeof discountPercent === "number" && (
           <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-[14px] rounded-[4px] px-2 py-1 flex items-center gap-1">
             <svg

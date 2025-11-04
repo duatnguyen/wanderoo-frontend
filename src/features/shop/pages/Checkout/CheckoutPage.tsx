@@ -45,7 +45,7 @@ const CheckoutPage: React.FC = () => {
     {
       id: "1",
       name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
-      imageUrl: "https://via.placeholder.com/80x80?text=Tent",
+      imageUrl: "",
       price: 100000,
       quantity: 1,
       variant: "Đen, Size S",
@@ -53,7 +53,7 @@ const CheckoutPage: React.FC = () => {
     {
       id: "2",
       name: "Lều mái vòm 2 người Snowline Shelter Dom...",
-      imageUrl: "https://via.placeholder.com/80x80?text=Tent2",
+      imageUrl: "",
       price: 100000,
       quantity: 1,
       variant: "Đen, Size S",
@@ -61,7 +61,7 @@ const CheckoutPage: React.FC = () => {
     {
       id: "3",
       name: "Lều Dã Ngoại Bến Đẹp Rần ri - Đồ Câu Simano",
-      imageUrl: "https://via.placeholder.com/80x80?text=Pole",
+      imageUrl: "",
       price: 100000,
       quantity: 1,
       variant: "Đen, Size S",
@@ -69,7 +69,7 @@ const CheckoutPage: React.FC = () => {
     {
       id: "4",
       name: "Giày leo núi cổ cao Clorts Trekking Shoes....",
-      imageUrl: "https://via.placeholder.com/80x80?text=Shoes",
+      imageUrl: "",
       price: 100000,
       quantity: 1,
       variant: "Đỏ đen, Size 37",
@@ -191,11 +191,7 @@ const CheckoutPage: React.FC = () => {
                         <tr key={item.id}>
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
-                              <img
-                                src={item.imageUrl}
-                                alt={item.name}
-                                className="w-16 h-16 rounded object-cover border border-gray-200"
-                              />
+                              <div className="w-16 h-16 rounded border border-gray-300 bg-transparent" />
                               <div>
                                 <p className="font-medium text-gray-900 mb-1">
                                   {item.name}
