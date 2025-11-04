@@ -248,8 +248,8 @@ const AdminOrders: React.FC = () => {
       // Filter by source
       const matchesSource =
         sourceFilter === "all" ||
-        (sourceFilter === "website" && 
-         (order.category.toLowerCase() === "website")) ||
+        (sourceFilter === "website" &&
+          (order.category.toLowerCase() === "website")) ||
         (sourceFilter === "pos" && order.category.toLowerCase() === "pos");
 
       return matchesTab && matchesSearch && matchesSource;
@@ -287,40 +287,46 @@ const AdminOrders: React.FC = () => {
   // Order table columns definition
   const orderTableColumns: OrderTableColumn[] = [
     {
-      title: "Tên sản phẩm",
-      width: "w-2/5",
-      minWidth: "min-w-80",
-      className: "",
+      title: "Sản phẩm",
+      width: "flex-1",
+      minWidth: "min-w-[260px]",
+      className: "justify-start",
     },
     {
-      title: "Tổng đơn",
-      width: "w-1/10",
-      minWidth: "min-w-24",
+      title: "Giá và T.toán",
+      width: "w-[140px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
     },
     {
       title: "Nguồn",
-      width: "w-1/10",
-      minWidth: "min-w-20",
+      width: "w-[80px]",
+      minWidth: "min-w-[80px]",
+      className: "justify-start",
     },
     {
-      title: "ĐVVC",
-      width: "w-1/12",
-      minWidth: "min-w-16",
+      title: "Vận chuyển",
+      width: "w-[100px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
     },
     {
-      title: "Xử lý",
-      width: "w-1/6",
-      minWidth: "min-w-28",
+      title: "TT Đơn hàng",
+      width: "w-[140px]",
+      minWidth: "min-w-[140px]",
+      className: "justify-start",
     },
     {
-      title: "Thanh toán",
-      width: "w-1/6",
-      minWidth: "min-w-28",
+      title: "TT Thanh toán",
+      width: "w-[140px]",
+      minWidth: "min-w-[140px]",
+      className: "justify-start",
     },
     {
       title: "Thao tác",
-      width: "w-1/8",
-      minWidth: "min-w-20",
+      width: "w-[100px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
     },
   ];
 
@@ -375,13 +381,19 @@ const AdminOrders: React.FC = () => {
         />
 
         <h1 className="font-bold text-[20px] mb-0">101 đơn hàng</h1>
-        {/* Order Table */}
-        <div className="w-full gap-2 flex flex-col -mt-[4px] overflow-x-auto">
-          {/* Table Header */}
-          <OrderTableHeader columns={orderTableColumns} />
 
-          {/* Table Body */}
-          <div className="w-full min-w-[1200px]">
+        {/* Order Table */}
+        <div className="w-full flex flex-col gap-2 -mt-[4px]">
+          {/* Fixed Table Header */}
+          <div className="sticky top-0 z-10 bg-white">
+            <OrderTableHeader
+              columns={orderTableColumns}
+              className="bg-white w-full"
+            />
+          </div>
+
+          {/* Scrollable Table Body */}
+          <div className="w-full max-h-[500px] overflow-y-auto">
             <div className="flex flex-col gap-[12px] w-full">
               {paginatedOrders.map((order) => (
                 <OrderTableRow

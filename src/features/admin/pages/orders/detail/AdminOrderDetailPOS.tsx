@@ -1,6 +1,6 @@
 // src/pages/admin/AdminOrderDetailPOS.tsx
-import React from "react";
-import { ArrowLeft, Wallet, Package, FileText } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowLeft, Wallet, Package, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -55,6 +55,88 @@ const orderDetail = {
       image: "/api/placeholder/80/80",
     },
   ],
+};
+
+// Payment Summary Component with Dropdown
+const PaymentSummary: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
+  };
+
+  const totalAmount = 380000; // Khách phải trả
+  const summaryData = [
+    { label: "Tổng tiền hàng", amount: 400000 },
+    { label: "Giảm giá", amount: 20000 },
+    { label: "Khách phải trả", amount: 380000, isTotal: true },
+    { label: "Tiền khách đưa", amount: 400000 },
+    { label: "Tiền thừa trả khách", amount: 20000 }
+  ];
+
+  return (
+    <div className="border border-[#e7e7e7] box-border relative rounded-bl-[6px] rounded-br-[6px] shrink-0 w-full bg-white">
+      {/* Collapsed View - Always Visible */}
+      <div 
+        className="flex items-center justify-between px-[16px] py-[12px] cursor-pointer hover:bg-[#f8f9fa] transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-[8px]">
+          <div className="flex items-center justify-center w-[32px] h-[32px] bg-[#e8f5e8] rounded-[6px]">
+            <Wallet className="w-[16px] h-[16px] text-[#28a745]" />
+          </div>
+          <div className="flex flex-col">
+            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+              Tổng thanh toán
+            </p>
+            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+              {isExpanded ? "Ẩn chi tiết" : "Xem chi tiết"}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-[8px]">
+          <p className="font-montserrat font-bold text-[18px] leading-[1.3] text-[#28a745]">
+            {formatCurrency(totalAmount)}
+          </p>
+          <div className="flex items-center justify-center w-[24px] h-[24px] text-[#737373]">
+            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded View - Payment Details */}
+      {isExpanded && (
+        <div className="border-t border-[#e7e7e7] px-[16px] py-[12px] bg-[#fafbfc]">
+          <div className="space-y-[8px]">
+            {summaryData.map((item, index) => (
+              <div 
+                key={index}
+                className={`flex items-center justify-between py-[4px] ${
+                  item.isTotal ? 'border-t border-[#e7e7e7] pt-[8px]' : ''
+                }`}
+              >
+                <p className={`font-montserrat ${
+                  item.isTotal 
+                    ? 'font-semibold text-[14px] text-[#272424]' 
+                    : 'font-medium text-[13px] text-[#737373]'
+                }`}>
+                  {item.label}
+                </p>
+                <p className={`font-montserrat ${
+                  item.isTotal 
+                    ? 'font-bold text-[16px] text-[#28a745]' 
+                    : 'font-medium text-[13px] text-[#272424]'
+                }`}>
+                  {formatCurrency(item.amount)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const AdminOrderDetailPOS: React.FC = () => {
@@ -125,7 +207,7 @@ const AdminOrderDetailPOS: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[10px] items-center w-full max-w-[930px] mx-auto px-[16px] sm:px-[24px] lg:px-0">
+    <div className="flex flex-col gap-[10px] items-center w-full mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-[8px] items-start justify-center w-full">
         <div className="flex gap-[4px] items-center">
@@ -168,88 +250,112 @@ const AdminOrderDetailPOS: React.FC = () => {
       </div>
 
       {/* POS Order Info */}
-      <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden min-w-0">
-        <div className="flex gap-[12px] items-start">
-          <Package className="h-[24px] w-[24px] text-[#272424]" />
-          <div className="flex flex-col gap-[8px] items-start">
-            <p className="font-montserrat font-semibold text-[16px] leading-[1.4] text-[#272424]">
+      <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] relative rounded-[8px] w-full overflow-hidden min-w-0">
+        {/* Order ID Section */}
+        <div className="flex gap-[14px] items-center w-full">
+          <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f8f9fa] rounded-[8px] shrink-0">
+            <Package className="h-[20px] w-[20px] text-[#272424]" />
+          </div>
+          <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
               Mã đơn hàng
             </p>
-            <p className="font-montserrat font-semibold text-[14px] leading-[1.4] text-[#737373]">
+            <p className="font-montserrat font-bold text-[16px] leading-[1.3] text-[#272424]">
               {currentOrder.id}
             </p>
           </div>
         </div>
-        <div className="flex gap-[12px] items-start">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M12 2L2 7L12 12L22 7L12 2Z"
-              stroke="#272424"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M2 17L12 22L22 17"
-              stroke="#272424"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M2 12L12 17L22 12"
-              stroke="#272424"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <div className="flex flex-col gap-[8px] items-start">
-            <p className="font-montserrat font-semibold text-[16px] leading-[1.4] text-[#272424]">
-              Tạo bởi Thanh lúc 26/07/2025 15:24
+
+        {/* Created By Section */}
+        <div className="flex gap-[14px] items-center w-full">
+          <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f8f9fa] rounded-[8px] shrink-0">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2L2 7L12 12L22 7L12 2Z"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 17L12 22L22 17"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 12L12 17L22 12"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+              Được tạo bởi
+            </p>
+            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+              Thanh - 26/07/2025 15:24
             </p>
           </div>
         </div>
-        <div className="flex gap-[12px] items-start">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
-              stroke="#272424"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
-              stroke="#272424"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <div className="flex flex-col gap-[8px] items-start">
-            <p className="font-montserrat font-semibold text-[16px] leading-[1.4] text-[#272424]">
-              Phụ trách bởi Thanh
+
+        {/* Responsible Person Section */}
+        <div className="flex gap-[14px] items-center w-full">
+          <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f8f9fa] rounded-[8px] shrink-0">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
+                stroke="#272424"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+              Nhân viên phụ trách
+            </p>
+            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+              Thanh
             </p>
           </div>
         </div>
-        <div className="flex gap-[12px] items-start">
-          <FileText className="h-[24px] w-[24px] text-[#272424]" />
-          <div className="flex flex-col gap-[8px] items-start">
-            <p className="font-montserrat font-semibold text-[16px] leading-[1.4] text-[#272424]">
-              Ghi chú: ---
+
+        {/* Notes Section */}
+        <div className="flex gap-[14px] items-center w-full">
+          <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f8f9fa] rounded-[8px] shrink-0">
+            <FileText className="h-[20px] w-[20px] text-[#272424]" />
+          </div>
+          <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+              Ghi chú
+            </p>
+            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#737373] italic">
+              Không có ghi chú
             </p>
           </div>
         </div>
@@ -275,146 +381,101 @@ const AdminOrderDetailPOS: React.FC = () => {
 
       {/* Payment Table */}
       <div
-        className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-x-auto ${
-          currentOrder.status === "Đã hủy" ? "opacity-50" : ""
-        }`}
+        className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden min-w-0 ${currentOrder.status === "Đã hủy" ? "opacity-50" : ""
+          }`}
       >
-        <div className="min-w-[800px] w-full">
-        <div className="box-border flex gap-[6px] items-center px-[6px] py-0 relative shrink-0 w-full">
-          <Wallet className="relative shrink-0 size-[24px]" />
-          <h2 className="font-montserrat font-semibold text-[#272424] text-[18px] leading-[1.4]">
-            Thông tin thanh toán
-          </h2>
-        </div>
-        <div className="flex flex-col items-start relative rounded-[8px] w-full">
-          {/* Table Header */}
-          <div className="flex items-start relative shrink-0 w-full">
-            <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] relative rounded-tl-[6px] self-stretch shrink-0 w-[70px]">
-              <div className="box-border flex gap-[8px] h-full items-center overflow-clip pb-[15px] pt-[14px] px-[14px] relative rounded-[inherit] w-[70px]">
-                <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                  STT
-                </p>
-              </div>
-            </div>
-            <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0 w-[400px]">
-              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                Sản phẩm
-              </p>
-            </div>
-            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-center min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0">
-              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                Đơn giá
-              </p>
-            </div>
-            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-center min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0">
-              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                Số lượng
-              </p>
-            </div>
-            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-end min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative rounded-tr-[6px] self-stretch shrink-0">
-              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                Thành tiền
-              </p>
-            </div>
+        <div className="w-full">
+          <div className="box-border flex gap-[6px] items-center px-[6px] py-0 mb-1 relative shrink-0 w-full">
+            <Wallet className="relative shrink-0 size-[24px]" />
+            <h2 className="font-montserrat font-semibold text-[#272424] text-[18px] leading-[1.4]">
+              Thông tin thanh toán
+            </h2>
           </div>
-          {/* Table Body */}
-          {currentOrder.items.map((item, index) => (
-            <div
-              key={item.id}
-              className="border-[0px_1px_1px] border-[#e7e7e7] box-border flex items-center relative shrink-0 w-full"
-            >
-              <div className="flex flex-row items-center self-stretch">
-                <div className="box-border flex gap-[8px] h-full items-center p-[14px] relative shrink-0 w-[70px]">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                    {index + 1}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-row items-start self-stretch">
-                <div className="box-border flex gap-[8px] h-full items-start justify-start p-[14px] relative shrink-0 w-[400px]">
-                  <div className="border-[0.5px] border-[#d1d1d1] relative shrink-0 size-[56px]">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="absolute inset-0 max-w-none object-cover pointer-events-none size-full"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-0 items-start">
-                    <p className="font-montserrat font-medium leading-[1.4] text-[#272424] text-[14px]">
-                      {item.name}
-                    </p>
-                    <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#272424] -mt-[2px]">
-                      Phân loại hàng: Size M, Màu cam
+          <div className="w-full overflow-x-auto">
+            <div className="flex flex-col items-start relative rounded-[8px] w-full min-w-[700px]">
+              {/* Table Header - Fixed */}
+              <div className="flex items-start relative shrink-0 w-full sticky top-0 z-10 bg-white">
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] relative rounded-tl-[6px] self-stretch shrink-0 w-[60px] min-w-[60px]">
+                  <div className="box-border flex gap-[8px] h-full items-center overflow-clip pb-[15px] pt-[14px] px-[8px] relative rounded-[inherit]">
+                    <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                      STT
                     </p>
                   </div>
                 </div>
-              </div>
-              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-center min-h-px min-w-px p-[14px] relative shrink-0">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                    {formatCurrency(item.price)}
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-start pb-[15px] pt-[14px] px-[12px] relative self-stretch flex-1 min-w-[200px]">
+                  <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    Sản phẩm
+                  </p>
+                </div>
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center pb-[15px] pt-[14px] px-[12px] relative self-stretch w-[100px] min-w-[100px]">
+                  <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    Đơn giá
+                  </p>
+                </div>
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center pb-[15px] pt-[14px] px-[12px] relative self-stretch w-[80px] min-w-[80px]">
+                  <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    SL
+                  </p>
+                </div>
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-end pb-[15px] pt-[14px] px-[12px] relative rounded-tr-[6px] self-stretch w-[120px] min-w-[120px]">
+                  <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    Thành tiền
                   </p>
                 </div>
               </div>
-              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-center min-h-px min-w-px p-[14px] relative shrink-0">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                    {item.quantity}
-                  </p>
-                </div>
+
+              {/* Table Body - Scrollable Container */}
+              <div className="w-full max-h-[320px] overflow-y-auto">
+                {currentOrder.items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center relative shrink-0 w-full min-w-[700px] border-b border-[#e7e7e7]"
+                  >
+                    <div className="box-border flex gap-[8px] items-center justify-center p-[12px] relative shrink-0 w-[60px] min-w-[60px]">
+                      <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                        {index + 1}
+                      </p>
+                    </div>
+                    <div className="box-border flex gap-[8px] items-start justify-start p-[12px] relative flex-1 min-w-[200px]">
+                      <div className="border-[0.5px] border-[#d1d1d1] relative shrink-0 size-[40px] rounded-[4px] overflow-hidden">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-0 items-start min-w-0 flex-1">
+                        <p className="font-montserrat font-medium leading-[1.4] text-[#272424] text-[12px] truncate">
+                          {item.name}
+                        </p>
+                        <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#737373] -mt-[2px]">
+                          Phân loại hàng: Size M, Màu cam
+                        </p>
+                      </div>
+                    </div>
+                    <div className="box-border flex gap-[4px] items-center justify-center p-[12px] relative w-[100px] min-w-[100px]">
+                      <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                        {formatCurrency(item.price)}
+                      </p>
+                    </div>
+                    <div className="box-border flex gap-[4px] items-center justify-center p-[12px] relative w-[80px] min-w-[80px]">
+                      <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                        {item.quantity}
+                      </p>
+                    </div>
+                    <div className="box-border flex gap-[4px] items-center justify-end p-[12px] relative w-[120px] min-w-[120px]">
+                      <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                        {formatCurrency(item.total)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-end min-h-px min-w-px p-[14px] relative shrink-0">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                    {formatCurrency(item.total)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-          {/* Summary Row - POS */}
-          <div className="border border-[#e7e7e7] box-border flex gap-[40px] items-center justify-end px-[6px] py-0 relative rounded-bl-[6px] rounded-br-[6px] shrink-0 w-full">
-            <div className="box-border flex items-center justify-between px-[6px] py-[12px] relative shrink-0 w-[335px]">
-              <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
-                <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                  Tổng tiền hàng
-                </p>
-                <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                  Giảm giá
-                </p>
-                <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                  Khách phải trả
-                </p>
-                <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                  Tiền khách đưa
-                </p>
-                <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                  Tiền thừa trả khách
-                </p>
-              </div>
-              <div className="flex flex-row items-center self-stretch">
-                <div className="flex flex-col gap-[4px] h-full items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
-                  <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                    400.000đ
-                  </p>
-                  <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                    20.000đ
-                  </p>
-                  <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                    380.000đ
-                  </p>
-                  <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                    400.000đ
-                  </p>
-                  <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                    20.000đ
-                  </p>
-                </div>
-              </div>
+              {/* Summary Row - POS */}
+              <PaymentSummary />
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );

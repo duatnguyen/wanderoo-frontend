@@ -15,7 +15,7 @@ export interface OrderTableHeaderProps {
 
 export const OrderTableHeader = ({
   columns,
-  className = "bg-white w-full min-w-[1200px]",
+  className = "bg-white w-full",
 }: OrderTableHeaderProps) => {
   return (
     <div className={className}>
@@ -25,12 +25,12 @@ export const OrderTableHeader = ({
             key={column.title}
             className={`bg-[#f6f6f6] flex items-center ${
               index === 0 ? "rounded-l-[6px]" : index === columns.length - 1 ? "rounded-r-[6px]" : ""
-            } px-[16px] py-[14px] ${column.width} ${column.minWidth || ""} ${
+            } px-[8px] py-[12px] ${column.width} ${column.minWidth || ""} ${
               column.className || "justify-center"
             }`}
           >
-            <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-              {column.title}
+            <p className={`font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.2] whitespace-pre-line ${column.className?.includes('justify-start') ? 'text-left' : 'text-center'}`}>
+              {column.title.includes("&") ? column.title.replace("&", "&\n") : column.title}
             </p>
           </div>
         ))}
@@ -71,7 +71,7 @@ export const OrderTableRow = ({
   return (
     <div className="w-full">
       {/* Customer Header Row */}
-      <div className="flex justify-between px-[16px] py-[12px] border border-[#e7e7e7] bg-gray-50 rounded-t-[6px] min-w-[1200px]">
+      <div className="flex justify-between px-[16px] py-[12px] border border-[#e7e7e7] bg-gray-50 rounded-t-[6px] w-full">
         <div className="flex gap-[10px]">
           <div className="w-[30px] h-[30px] rounded-[24px] bg-gray-200"></div>
           <div className="flex items-center gap-[8px]">
@@ -89,27 +89,27 @@ export const OrderTableRow = ({
 
       {/* Product Row - Only show first product */}
       {order.products[0] && (
-        <div className="flex border-b border-x rounded-b-[6px] border-[#e7e7e7] min-w-[1200px]">
-          {/* Product Name Column */}
-          <div className="flex items-start gap-0 px-[16px] py-[12px] flex-1 min-w-[450px]">
+        <div className="flex border-b border-x rounded-b-[6px] border-[#e7e7e7] w-full">
+          {/* Product Name Column - flex-1 với min-width 280px */}
+          <div className="flex items-start gap-2 px-[12px] py-[12px] flex-1 min-w-[280px]">
             <img
               src={order.products[0].image}
               alt={order.products[0].name}
-              className="border border-[#d1d1d1] w-[56px] h-[56px] object-cover bg-gray-100"
+              className="border border-[#d1d1d1] w-[48px] h-[48px] object-cover bg-gray-100 rounded"
             />
-            <div className="flex flex-col gap-[8px] flex-1 pl-[8px] pr-[12px] pt-0">
-              <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+            <div className="flex flex-col gap-[4px] flex-1 min-w-0">
+              <p className="font-montserrat font-medium text-[#272424] text-[13px] leading-[1.3] line-clamp-2">
                 {order.products[0].name}
               </p>
-              <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.4]">
-                Phân loại hàng: Size 40
+              <p className="font-montserrat font-medium text-[#888] text-[11px] leading-[1.3]">
+                Phân loại: Size 40
               </p>
             </div>
           </div>
 
-          {/* Total Order Column */}
-          <div className="flex flex-col items-center gap-[4px] px-[16px] py-[12px] w-[160px]">
-            <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+          {/* Price & Payment Type Column - 140px */}
+          <div className="flex flex-col items-center justify-center gap-[4px] px-[8px] py-[12px] w-[140px]">
+            <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3] text-center">
               {order.products[0].price}
             </p>
             <ChipStatus
@@ -118,44 +118,44 @@ export const OrderTableRow = ({
             />
           </div>
 
-          {/* Source Column */}
-          <div className="flex items-center justify-center px-[16px] py-[12px] w-[150px]">
-            <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
+          {/* Source Column - 80px */}
+          <div className="flex items-center justify-center px-[8px] py-[12px] w-[80px]">
+            <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3] text-center">
               {order.category}
             </p>
           </div>
 
-          {/* Shipping Column */}
-          <div className="flex items-center justify-center px-[16px] py-[12px] w-[120px]">
-            <p className="font-montserrat font-medium text-[#272424] text-[14px] leading-[1.4]">
-              .....
+          {/* Shipping Column - 100px */}
+          <div className="flex items-center justify-center px-[8px] py-[12px] w-[100px]">
+            <p className="font-montserrat font-medium text-[#888] text-[12px] leading-[1.3] text-center">
+              Giao hàng
             </p>
           </div>
 
-          {/* Processing Status Column */}
-          <div className="flex items-center justify-center px-[16px] py-[12px] w-[200px]">
+          {/* Processing Status Column - 140px */}
+          <div className="flex items-center justify-center px-[8px] py-[12px] w-[140px]">
             <ChipStatus
               status={getProcessingStatus(order.status)}
               labelOverride={order.status}
             />
           </div>
 
-          {/* Payment Status Column */}
-          <div className="flex items-center justify-center px-[16px] py-[12px] w-[220px]">
+          {/* Payment Status Column - 140px */}
+          <div className="flex items-center justify-center px-[8px] py-[12px] w-[140px]">
             <ChipStatus
               status={getPaymentStatus(order.paymentStatus)}
               labelOverride={order.paymentStatus}
             />
           </div>
 
-          {/* Actions Column */}
-          <div className="flex items-center justify-center gap-[8px] px-[16px] py-[12px] w-[180px]">
+          {/* Actions Column - 100px */}
+          <div className="flex items-center justify-center gap-[4px] px-[8px] py-[12px] w-[100px]">
             <button
-              className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer hover:underline"
+              className="flex gap-[4px] items-center font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.3] cursor-pointer hover:underline text-center"
               onClick={() => onViewDetail(order.id, order.status, order.category)}
             >
-              <DetailIcon size={16} color="#1a71f6" />
-              Xem chi tiết
+              <DetailIcon size={14} color="#1a71f6" />
+              Chi tiết
             </button>
           </div>
         </div>
