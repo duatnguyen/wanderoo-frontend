@@ -346,7 +346,7 @@ const AdminOrders: React.FC = () => {
       </div>
 
       {/* Content Card */}
-      <ContentCard className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[10px] md:px-[16px] lg:px-[24px] py-[16px] md:py-[24px] rounded-[8px] w-full">
+      <ContentCard >
         {/* Filters Section */}
         <TableFilters
           searchValue={searchTerm}

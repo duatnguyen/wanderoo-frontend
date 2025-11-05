@@ -68,7 +68,7 @@ export const POSSidebar: React.FC<POSSidebarProps> = ({
   return (
     <div
       className={cn(
-        "relative bg-white border-[#454545] h-full w-[75px] flex flex-col items-center pt-3 pb-3 overflow-y-auto",
+        "relative bg-white border-r border-[#e7e7e7] h-full w-[75px] flex flex-col items-center pt-3 pb-3 overflow-y-auto",
         className
       )}
     >
