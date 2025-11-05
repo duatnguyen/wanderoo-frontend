@@ -54,9 +54,12 @@ export const Input: React.FC<InputProps> = ({
 
   const inputProps: AntdInputProps = {
     id: inputId,
-    type: showPasswordToggle && type === "password" 
-      ? (showPassword ? "text" : "password")
-      : type,
+    type:
+      showPasswordToggle && type === "password"
+        ? showPassword
+          ? "text"
+          : "password"
+        : type,
     className: `${fullWidth ? "w-full" : ""} ${className}`,
     status: error ? "error" : undefined,
     ...props,

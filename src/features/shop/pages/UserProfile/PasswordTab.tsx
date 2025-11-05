@@ -33,7 +33,6 @@ const PasswordTab: React.FC = () => {
     console.log("Saving password change", formData);
   };
 
-
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       {/* Form Content */}
@@ -54,7 +53,9 @@ const PasswordTab: React.FC = () => {
               required
               showPasswordToggle
               showPassword={showCurrentPassword}
-              onTogglePassword={() => setShowCurrentPassword(!showCurrentPassword)}
+              onTogglePassword={() =>
+                setShowCurrentPassword(!showCurrentPassword)
+              }
               className="text-gray-900"
             />
 
@@ -97,9 +98,7 @@ const PasswordTab: React.FC = () => {
                   </li>
                   <li className="flex items-start">
                     <span className="mr-2">-</span>
-                    <span>
-                      Không được trùng với 4 mật khẩu gần nhất.
-                    </span>
+                    <span>Không được trùng với 4 mật khẩu gần nhất.</span>
                   </li>
                 </ul>
               </div>
@@ -130,7 +129,9 @@ const PasswordTab: React.FC = () => {
               required
               showPasswordToggle
               showPassword={showConfirmPassword}
-              onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+              onTogglePassword={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
               className="text-gray-900"
             />
           </div>
@@ -146,7 +147,12 @@ const PasswordTab: React.FC = () => {
           >
             Hủy
           </Button>
-          <Button variant="primary" size="md" onClick={handleSave} className="px-6">
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleSave}
+            className="px-6"
+          >
             Lưu
           </Button>
         </div>

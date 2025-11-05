@@ -45,7 +45,14 @@ const ReturnRefundModal: React.FC<ReturnRefundModalProps> = ({
     // If order has multiple products, navigate to product selection page
     if (allProducts && allProducts.length > 1) {
       navigate("/user/return-refund/select-products", {
-        state: { order: { id: order.id, orderDate: order.orderDate, products: allProducts }, option: selectedOption },
+        state: {
+          order: {
+            id: order.id,
+            orderDate: order.orderDate,
+            products: allProducts,
+          },
+          option: selectedOption,
+        },
       });
     } else if (product) {
       // Single product - navigate directly to return/refund request page

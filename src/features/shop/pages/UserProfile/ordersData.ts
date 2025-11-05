@@ -403,4 +403,3 @@ export const ordersData: Order[] = [
 export const getOrderById = (orderId: string): Order | undefined => {
   return ordersData.find((order) => order.id === orderId);
 };
-

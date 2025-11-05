@@ -37,8 +37,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
 
   const variantStyles = {
     primary: "bg-[#ea5b0c] text-white border-[#ea5b0c] hover:bg-[#d5510b]",
-    outline:
-      "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200",
+    outline: "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200",
     ghost: "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200",
   };
 
@@ -99,4 +98,3 @@ const ActionButton: React.FC<ActionButtonProps> = ({
 };
 
 export default ActionButton;
-

@@ -47,4 +47,3 @@ export const ChartSimpleSidebarIcon: React.FC<ChartSimpleSidebarIconProps> = ({
 };
 
 export default ChartSimpleSidebarIcon;
-

@@ -7,13 +7,13 @@
 export const POS_ROUTES = {
   // Base POS route
   BASE: "/pos",
-  
+
   // Main POS pages
   SALES: "/pos/sales",
-  ORDERS: "/pos/orders", 
+  ORDERS: "/pos/orders",
   INVENTORY: "/pos/inventory",
   CASHBOOK: "/pos/cashbook",
-  
+
   // Return order routes
   RETURNS: {
     BASE: "/pos/returns",
@@ -34,7 +34,7 @@ export const ADMIN_ROUTES = {
 } as const;
 
 /**
- * User/Shop Route Constants  
+ * User/Shop Route Constants
  */
 export const USER_ROUTES = {
   BASE: "/user",

@@ -1,1 +1,1 @@
-export { default } from './InventoryLookup';
+export { default } from "./InventoryLookup";

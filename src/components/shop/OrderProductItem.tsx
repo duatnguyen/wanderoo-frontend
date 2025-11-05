@@ -39,8 +39,8 @@ const OrderProductItem: React.FC<OrderProductItemProps> = ({
                 product.variantColor === "green"
                   ? "bg-green-100 text-green-700"
                   : product.variantColor === "gray"
-                  ? "bg-gray-100 text-gray-700"
-                  : "bg-blue-100 text-blue-700"
+                    ? "bg-gray-100 text-gray-700"
+                    : "bg-blue-100 text-blue-700"
               }`}
             >
               {product.variant}

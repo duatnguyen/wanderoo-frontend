@@ -21,7 +21,13 @@ type ReturnImportDetail = {
   returnStatus: "returned" | "pending_return";
   refundStatus: "refunded" | "pending_refund";
   paymentMethod: "cash" | "transfer";
-  items: Array<{ id: string; name: string; quantity: number; price: number; total: number }>;
+  items: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }>;
   totals: { items: number; value: number };
 };
 
@@ -37,15 +43,27 @@ const mockReturnDetail: ReturnImportDetail = {
   refundStatus: "pending_refund",
   paymentMethod: "cash",
   items: [
-    { id: "p1", name: "Áo thun thoáng khí Rockbros LKW008", quantity: 100, price: 120000, total: 12000000 },
-    { id: "p2", name: "Áo thun dài tay Northshengwolf", quantity: 50, price: 150000, total: 7500000 },
+    {
+      id: "p1",
+      name: "Áo thun thoáng khí Rockbros LKW008",
+      quantity: 100,
+      price: 120000,
+      total: 12000000,
+    },
+    {
+      id: "p2",
+      name: "Áo thun dài tay Northshengwolf",
+      quantity: 50,
+      price: 150000,
+      total: 7500000,
+    },
   ],
   totals: { items: 150, value: 19500000 },
 };
 
 const AdminWarehouseDetailReturnImport: React.FC = () => {
   document.title = "Chi tiết đơn trả hàng nhập | Wanderoo";
-  
+
   const navigate = useNavigate();
   const { returnId } = useParams<{ returnId: string }>();
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
@@ -56,10 +74,15 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
   const [referenceCode, setReferenceCode] = useState("");
   // Load status from localStorage if available, otherwise use mock data
   const returnIdToCheck = returnId ?? mockReturnDetail.id;
-  const storedStatus = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("returnImportStatuses") || "{}")[returnIdToCheck] : null;
-  const [refundStatus, setRefundStatus] = useState<"refunded" | "pending_refund">(
-    storedStatus?.refundStatus ?? mockReturnDetail.refundStatus
-  );
+  const storedStatus =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("returnImportStatuses") || "{}")[
+          returnIdToCheck
+        ]
+      : null;
+  const [refundStatus, setRefundStatus] = useState<
+    "refunded" | "pending_refund"
+  >(storedStatus?.refundStatus ?? mockReturnDetail.refundStatus);
   const [status, setStatus] = useState<"processing" | "completed">(
     storedStatus?.status ?? mockReturnDetail.status
   );
@@ -73,7 +96,13 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    const formatted = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount).replace(/\s/g, '').replace(/₫/g, 'đ');
+    const formatted = new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    })
+      .format(amount)
+      .replace(/\s/g, "")
+      .replace(/₫/g, "đ");
     return formatted;
   };
 
@@ -90,10 +119,20 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
     setStatus("completed");
     // Save to localStorage so the list page can also reflect the change
     const returnIdToUpdate = returnId ?? mockReturnDetail.id;
-    const storedStatus = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("returnImportStatuses") || "{}") : {};
-    storedStatus[returnIdToUpdate] = { status: "completed", returnStatus: "returned", refundStatus: "refunded" };
+    const storedStatus =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("returnImportStatuses") || "{}")
+        : {};
+    storedStatus[returnIdToUpdate] = {
+      status: "completed",
+      returnStatus: "returned",
+      refundStatus: "refunded",
+    };
     if (typeof window !== "undefined") {
-      localStorage.setItem("returnImportStatuses", JSON.stringify(storedStatus));
+      localStorage.setItem(
+        "returnImportStatuses",
+        JSON.stringify(storedStatus)
+      );
       // Dispatch custom event to notify other components
       window.dispatchEvent(new Event("returnImportStatusUpdated"));
     }
@@ -110,12 +149,12 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
       {/* Header matching Figma design */}
       <div className="w-full h-full justify-start items-center gap-2 inline-flex min-w-[1150px] flex-shrink-0">
         <div className="w-6 h-6 relative">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-0 w-6 h-6" 
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-0 w-6 h-6"
             onClick={() => navigate("/admin/warehouse/returnsimport")}
-          > 
+          >
             <ArrowLeft className="h-4 w-4 text-[#454545]" />
           </Button>
         </div>
@@ -126,10 +165,14 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
         </div>
         <div className="self-stretch flex-col justify-center items-center gap-2.5 inline-flex">
           <div className="justify-center flex flex-col text-[#272424] text-[12px] font-[400] font-montserrat leading-[18px]">
-            {new Date(detail.createdDate).toLocaleDateString("vi-VN")} {new Date(detail.createdDate).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+            {new Date(detail.createdDate).toLocaleDateString("vi-VN")}{" "}
+            {new Date(detail.createdDate).toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </div>
         </div>
-          <ChipStatus status={detail.status} />
+        <ChipStatus status={detail.status} />
       </div>
 
       {/* Table section matching Figma design */}
@@ -148,7 +191,7 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
         <div className="self-stretch h-[50px] bg-[#F6F6F6] justify-start items-start inline-flex flex-shrink-0">
           <div className="w-[400px] self-stretch px-[14px] overflow-hidden border-l border-[#D1D1D1] justify-start items-center flex">
             <div className="w-[22px] h-0 transform rotate-[-90deg] origin-top-left">
-                {/* icon place here */}
+              {/* icon place here */}
             </div>
             <div className="text-[#272424] text-[14px] font-[600] font-montserrat leading-[19.60px]">
               Sản phẩm
@@ -175,16 +218,16 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
 
         {/* Table rows */}
         {detail.items.map((item, index) => (
-          <div 
-            key={item.id} 
+          <div
+            key={item.id}
             className={`self-stretch border border-[#D1D1D1] justify-start items-start inline-flex flex-shrink-0 ${
-              index === detail.items.length - 1 ? 'rounded-b-lg' : ''
+              index === detail.items.length - 1 ? "rounded-b-lg" : ""
             }`}
           >
             <div className="w-[400px] self-stretch px-3 py-3 justify-start items-center gap-3 flex">
-              <img 
-                className="w-[60px] h-[60px]" 
-                src="https://placehold.co/60x60" 
+              <img
+                className="w-[60px] h-[60px]"
+                src="https://placehold.co/60x60"
                 alt={item.name}
               />
               <div className="self-stretch justify-start items-start gap-2.5 flex">
@@ -226,7 +269,9 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
             </div>
           )}
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px]">
-            {detail.refundStatus === "refunded" ? "Đã thanh toán" : "Thanh toán"}
+            {detail.refundStatus === "refunded"
+              ? "Đã thanh toán"
+              : "Thanh toán"}
           </div>
         </div>
 
@@ -305,12 +350,18 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
                 {/* Left Column */}
                 <div className="flex flex-col gap-[6px]">
                   <label className="font-['Montserrat'] font-medium text-[13px] text-[#272424]">
-                    Chọn hình thức thanh toán <span className="text-[#eb2b0b]">*</span>
+                    Chọn hình thức thanh toán{" "}
+                    <span className="text-[#eb2b0b]">*</span>
                   </label>
-                  <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+                  <DropdownMenu
+                    open={isDropdownOpen}
+                    onOpenChange={setIsDropdownOpen}
+                  >
                     <DropdownMenuTrigger asChild>
                       <button className="w-full border-2 border-[#e04d30] rounded-[10px] px-[10px] py-[6px] flex items-center justify-between bg-white text-left">
-                        <span className={`font-['Montserrat'] text-[13px] ${paymentMethod ? 'text-[#272424]' : 'text-[#737373]'}`}>
+                        <span
+                          className={`font-['Montserrat'] text-[13px] ${paymentMethod ? "text-[#272424]" : "text-[#737373]"}`}
+                        >
                           {paymentMethod || "Chọn hình thức thanh toán"}
                         </span>
                         {isDropdownOpen ? (
@@ -321,10 +372,14 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-[calc(85vw-40px)] max-w-[calc(600px-40px)]">
-                      <DropdownMenuItem onClick={() => setPaymentMethod("Tiền mặt")}>
+                      <DropdownMenuItem
+                        onClick={() => setPaymentMethod("Tiền mặt")}
+                      >
                         Tiền mặt
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setPaymentMethod("Chuyển khoản")}>
+                      <DropdownMenuItem
+                        onClick={() => setPaymentMethod("Chuyển khoản")}
+                      >
                         Chuyển khoản
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -400,9 +455,9 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
             </div>
           </div>
           <div className="self-stretch justify-start items-center gap-2 inline-flex">
-            <img 
-              className="w-[60px] h-[60px] rounded-[12px]" 
-              src="https://placehold.co/60x60" 
+            <img
+              className="w-[60px] h-[60px] rounded-[12px]"
+              src="https://placehold.co/60x60"
               alt="Supplier"
             />
             <div className="self-stretch justify-start items-start gap-2.5 flex">
@@ -434,7 +489,6 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
           </div>
         </div>
       </div>
-      
     </div>
   );
 };

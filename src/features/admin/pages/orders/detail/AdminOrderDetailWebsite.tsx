@@ -284,9 +284,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
                 >
                   <div className="absolute inset-[-1px]">
                     <svg
-                      width={
-                        currentOrder.status === "Đang giao" ? "33" : "35"
-                      }
+                      width={currentOrder.status === "Đang giao" ? "33" : "35"}
                       height="1"
                       viewBox={`0 0 ${
                         currentOrder.status === "Đang giao" ? "33" : "35"
@@ -308,13 +306,21 @@ const AdminOrderDetailWebsite: React.FC = () => {
             </div>
             {currentOrder.status === "Đang giao" ? (
               <div className="flex flex-col font-montserrat font-medium gap-[5px] items-start leading-[normal] text-[10px] text-[#04910c] relative shrink-0 min-w-0">
-                <p className="leading-[1.4] break-words">{getTimelineText().status}</p>
-                <p className="leading-[1.4] whitespace-nowrap">{getTimelineText().date}</p>
+                <p className="leading-[1.4] break-words">
+                  {getTimelineText().status}
+                </p>
+                <p className="leading-[1.4] whitespace-nowrap">
+                  {getTimelineText().date}
+                </p>
               </div>
             ) : (
               <div className="flex flex-col font-inter font-bold gap-[5px] items-start leading-[normal] text-[14px] text-[#04910c] relative shrink-0 min-w-0">
-                <p className="leading-[normal] break-words">{getTimelineText().status}</p>
-                <p className="leading-[normal] whitespace-nowrap">{getTimelineText().date}</p>
+                <p className="leading-[normal] break-words">
+                  {getTimelineText().status}
+                </p>
+                <p className="leading-[normal] whitespace-nowrap">
+                  {getTimelineText().date}
+                </p>
               </div>
             )}
           </div>
@@ -368,135 +374,135 @@ const AdminOrderDetailWebsite: React.FC = () => {
         }`}
       >
         <div className="min-w-[800px] w-full">
-        <div className="box-border flex gap-[6px] items-center px-[6px] py-0 relative shrink-0 w-full">
-          <Wallet className="relative shrink-0 size-[24px]" />
-          <h2 className="font-montserrat font-semibold text-[#272424] text-[18px] leading-[1.4]">
-            Thông tin thanh toán
-          </h2>
-        </div>
-        <div className="flex flex-col items-start relative rounded-[8px] w-full">
-          {/* Table Header */}
-          <div className="flex items-start relative shrink-0 w-full">
-            <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] relative rounded-tl-[6px] self-stretch shrink-0 w-[70px]">
-              <div className="box-border flex gap-[8px] h-full items-center overflow-clip pb-[15px] pt-[14px] px-[14px] relative rounded-[inherit] w-[70px]">
-                <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                  STT
-                </p>
-              </div>
-            </div>
-            <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0 w-[400px]">
-              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                Sản phẩm
-              </p>
-            </div>
-            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-center min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0">
-              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                Đơn giá
-              </p>
-            </div>
-            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-center min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0">
-              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                Số lượng
-              </p>
-            </div>
-            <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-end min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative rounded-tr-[6px] self-stretch shrink-0">
-              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                Thành tiền
-              </p>
-            </div>
+          <div className="box-border flex gap-[6px] items-center px-[6px] py-0 relative shrink-0 w-full">
+            <Wallet className="relative shrink-0 size-[24px]" />
+            <h2 className="font-montserrat font-semibold text-[#272424] text-[18px] leading-[1.4]">
+              Thông tin thanh toán
+            </h2>
           </div>
-          {/* Table Body */}
-          {currentOrder.items.map((item, index) => (
-            <div
-              key={item.id}
-              className="border-[0px_1px_1px] border-[#e7e7e7] box-border flex items-center relative shrink-0 w-full"
-            >
-              <div className="flex flex-row items-center self-stretch">
-                <div className="box-border flex gap-[8px] h-full items-center p-[14px] relative shrink-0 w-[70px]">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                    {index + 1}
+          <div className="flex flex-col items-start relative rounded-[8px] w-full">
+            {/* Table Header */}
+            <div className="flex items-start relative shrink-0 w-full">
+              <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] relative rounded-tl-[6px] self-stretch shrink-0 w-[70px]">
+                <div className="box-border flex gap-[8px] h-full items-center overflow-clip pb-[15px] pt-[14px] px-[14px] relative rounded-[inherit] w-[70px]">
+                  <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                    STT
                   </p>
                 </div>
               </div>
-              <div className="flex flex-row items-start self-stretch">
-                <div className="box-border flex gap-[8px] h-full items-start justify-start p-[14px] relative shrink-0 w-[400px]">
-                  <div className="border-[0.5px] border-[#d1d1d1] relative shrink-0 size-[56px]">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="absolute inset-0 max-w-none object-cover pointer-events-none size-full"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-0 items-start">
-                    <p className="font-montserrat font-medium leading-[1.4] text-[#272424] text-[14px]">
-                      {item.name}
-                    </p>
-                    <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#272424] -mt-[2px]">
-                      Phân loại hàng: Size M, Màu cam
-                    </p>
-                  </div>
-                </div>
+              <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0 w-[400px]">
+                <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                  Sản phẩm
+                </p>
               </div>
-              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-center min-h-px min-w-px p-[14px] relative shrink-0">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                    {formatCurrency(item.price)}
-                  </p>
-                </div>
+              <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-center min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0">
+                <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                  Đơn giá
+                </p>
               </div>
-              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-center min-h-px min-w-px p-[14px] relative shrink-0">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                    {item.quantity}
-                  </p>
-                </div>
+              <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-center min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative self-stretch shrink-0">
+                <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                  Số lượng
+                </p>
               </div>
-              <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
-                <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-end min-h-px min-w-px p-[14px] relative shrink-0">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
-                    {formatCurrency(item.total)}
-                  </p>
-                </div>
+              <div className="basis-0 bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] grow items-center justify-end min-h-px min-w-px pb-[15px] pt-[14px] px-[14px] relative rounded-tr-[6px] self-stretch shrink-0">
+                <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                  Thành tiền
+                </p>
               </div>
             </div>
-          ))}
-          {/* Summary Row - Website */}
-          <div className="border border-[#e7e7e7] box-border flex gap-[40px] items-center justify-end px-[6px] py-0 relative rounded-bl-[6px] rounded-br-[6px] shrink-0 w-full">
-            <div className="box-border flex items-center justify-between px-[6px] py-[12px] relative shrink-0 w-[335px]">
-              <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
-                <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                  Tổng tiền sản phẩm
-                </p>
-                <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                  Tổng phí vận chuyển
-                </p>
-                <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                  Phụ phí
-                </p>
-                <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
-                  Doanh thu đơn hàng
-                </p>
+            {/* Table Body */}
+            {currentOrder.items.map((item, index) => (
+              <div
+                key={item.id}
+                className="border-[0px_1px_1px] border-[#e7e7e7] box-border flex items-center relative shrink-0 w-full"
+              >
+                <div className="flex flex-row items-center self-stretch">
+                  <div className="box-border flex gap-[8px] h-full items-center p-[14px] relative shrink-0 w-[70px]">
+                    <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                      {index + 1}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-row items-start self-stretch">
+                  <div className="box-border flex gap-[8px] h-full items-start justify-start p-[14px] relative shrink-0 w-[400px]">
+                    <div className="border-[0.5px] border-[#d1d1d1] relative shrink-0 size-[56px]">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="absolute inset-0 max-w-none object-cover pointer-events-none size-full"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-0 items-start">
+                      <p className="font-montserrat font-medium leading-[1.4] text-[#272424] text-[14px]">
+                        {item.name}
+                      </p>
+                      <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#272424] -mt-[2px]">
+                        Phân loại hàng: Size M, Màu cam
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
+                  <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-center min-h-px min-w-px p-[14px] relative shrink-0">
+                    <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                      {formatCurrency(item.price)}
+                    </p>
+                  </div>
+                </div>
+                <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
+                  <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-center min-h-px min-w-px p-[14px] relative shrink-0">
+                    <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                      {item.quantity}
+                    </p>
+                  </div>
+                </div>
+                <div className="basis-0 flex flex-row grow items-center self-stretch shrink-0">
+                  <div className="basis-0 box-border flex gap-[8px] grow h-full items-center justify-end min-h-px min-w-px p-[14px] relative shrink-0">
+                    <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#272424] text-[14px] text-nowrap">
+                      {formatCurrency(item.total)}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-row items-center self-stretch">
-                <div className="flex flex-col gap-[4px] h-full items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+            ))}
+            {/* Summary Row - Website */}
+            <div className="border border-[#e7e7e7] box-border flex gap-[40px] items-center justify-end px-[6px] py-0 relative rounded-bl-[6px] rounded-br-[6px] shrink-0 w-full">
+              <div className="box-border flex items-center justify-between px-[6px] py-[12px] relative shrink-0 w-[335px]">
+                <div className="flex flex-col gap-[4px] items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
                   <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                    {formatCurrency(currentOrder.summary.subtotal)}
+                    Tổng tiền sản phẩm
                   </p>
                   <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                    {formatCurrency(currentOrder.summary.shipping)}
+                    Tổng phí vận chuyển
                   </p>
                   <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
-                    {formatCurrency(currentOrder.summary.fee)}
+                    Phụ phí
                   </p>
                   <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
-                    {formatCurrency(currentOrder.summary.total)}
+                    Doanh thu đơn hàng
                   </p>
+                </div>
+                <div className="flex flex-row items-center self-stretch">
+                  <div className="flex flex-col gap-[4px] h-full items-end justify-center leading-[1.4] relative shrink-0 text-[#272424] text-nowrap">
+                    <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
+                      {formatCurrency(currentOrder.summary.subtotal)}
+                    </p>
+                    <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
+                      {formatCurrency(currentOrder.summary.shipping)}
+                    </p>
+                    <p className="font-montserrat font-medium relative shrink-0 text-[14px]">
+                      {formatCurrency(currentOrder.summary.fee)}
+                    </p>
+                    <p className="font-montserrat font-semibold relative shrink-0 text-[14px]">
+                      {formatCurrency(currentOrder.summary.total)}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
 
       {/* Payment Information Card */}
@@ -547,4 +553,3 @@ const AdminOrderDetailWebsite: React.FC = () => {
 };
 
 export default AdminOrderDetailWebsite;
-

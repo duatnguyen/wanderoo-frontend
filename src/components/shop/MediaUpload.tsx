@@ -89,12 +89,23 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
         <>
           <PlusOutlined />
           <div className="mt-2 text-sm text-gray-600">
-            Thêm {accept === "image" ? "hình ảnh" : accept === "video" ? "video" : "hình ảnh/video"} {files.length}/{maxFiles}
+            Thêm{" "}
+            {accept === "image"
+              ? "hình ảnh"
+              : accept === "video"
+                ? "video"
+                : "hình ảnh/video"}{" "}
+            {files.length}/{maxFiles}
           </div>
         </>
       ) : (
         <span className="text-sm font-medium">
-          Thêm {accept === "image" ? "hình ảnh" : accept === "video" ? "video" : "hình ảnh"}
+          Thêm{" "}
+          {accept === "image"
+            ? "hình ảnh"
+            : accept === "video"
+              ? "video"
+              : "hình ảnh"}
         </span>
       )}
     </div>
@@ -110,7 +121,9 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
 
       <Upload
         accept={acceptTypes}
-        listType={showPreview ? (accept === "video" ? "text" : "picture-card") : "text"}
+        listType={
+          showPreview ? (accept === "video" ? "text" : "picture-card") : "text"
+        }
         fileList={fileList}
         onChange={handleChange}
         onRemove={handleRemove}
@@ -123,12 +136,9 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
         {!isMaxFilesReached && !disabled && uploadButton}
       </Upload>
 
-      {helperText && (
-        <p className="mt-1 text-sm text-gray-500">{helperText}</p>
-      )}
+      {helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
     </div>
   );
 };
 
 export default MediaUpload;
-

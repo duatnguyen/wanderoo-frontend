@@ -14,9 +14,9 @@ const PaymentPolicy: React.FC = () => {
         {/* Introductory Paragraph */}
         <div className="rounded-lg sm:p-8 mb-2">
           <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-            Wanderoo cam kết cung cấp các phương thức thanh toán an toàn, linh hoạt và
-            thuận tiện nhất cho khách hàng. Vui lòng đọc kỹ chính sách dưới đây trước
-            khi đặt hàng để đảm bảo trải nghiệm tốt nhất.
+            Wanderoo cam kết cung cấp các phương thức thanh toán an toàn, linh
+            hoạt và thuận tiện nhất cho khách hàng. Vui lòng đọc kỹ chính sách
+            dưới đây trước khi đặt hàng để đảm bảo trải nghiệm tốt nhất.
           </p>
         </div>
 
@@ -29,16 +29,16 @@ const PaymentPolicy: React.FC = () => {
             </h2>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
               <li>
-                Sản phẩm chưa qua sử dụng, còn nguyên tem, mác, bao bì và hóa đơn mua
-                hàng.
+                Sản phẩm chưa qua sử dụng, còn nguyên tem, mác, bao bì và hóa
+                đơn mua hàng.
               </li>
               <li>
-                Hàng giao không đúng về chủng loại, kích thước, màu sắc so với đơn
-                đặt hàng.
+                Hàng giao không đúng về chủng loại, kích thước, màu sắc so với
+                đơn đặt hàng.
               </li>
               <li>
-                Sản phẩm bị lỗi kỹ thuật do nhà sản xuất hoặc hư hỏng trong quá trình
-                vận chuyển.
+                Sản phẩm bị lỗi kỹ thuật do nhà sản xuất hoặc hư hỏng trong quá
+                trình vận chuyển.
               </li>
               <li>
                 Thiếu phụ kiện hoặc số lượng sản phẩm so với đơn hàng ban đầu.
@@ -52,16 +52,14 @@ const PaymentPolicy: React.FC = () => {
               2. Thanh toán khi nhận hàng (COD)
             </h2>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
+              <li>Áp dụng cho khu vực nội thành Hà Nội.</li>
               <li>
-                Áp dụng cho khu vực nội thành Hà Nội.
+                Quý khách chỉ thanh toán sau khi kiểm tra đầy đủ sản phẩm và đảm
+                bảo sản phẩm đúng như cam kết.
               </li>
               <li>
-                Quý khách chỉ thanh toán sau khi kiểm tra đầy đủ sản phẩm và đảm bảo
-                sản phẩm đúng như cam kết.
-              </li>
-              <li>
-                Với các đơn hàng giao ngoài Hà Nội, Wanderoo yêu cầu thanh toán 100%
-                giá trị đơn hàng + phí vận chuyển trước khi giao hàng.
+                Với các đơn hàng giao ngoài Hà Nội, Wanderoo yêu cầu thanh toán
+                100% giá trị đơn hàng + phí vận chuyển trước khi giao hàng.
               </li>
             </ul>
           </div>
@@ -76,7 +74,8 @@ const PaymentPolicy: React.FC = () => {
             </p>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
               <li>
-                <strong>Ngân hàng:</strong> NGÂN HÀNG SÀI GÒN THƯƠNG TÍN (SACOMBANK)
+                <strong>Ngân hàng:</strong> NGÂN HÀNG SÀI GÒN THƯƠNG TÍN
+                (SACOMBANK)
               </li>
               <li>
                 <strong>Số tài khoản:</strong> 0200 7118 4855
@@ -85,8 +84,8 @@ const PaymentPolicy: React.FC = () => {
                 <strong>Chủ tài khoản:</strong> CÔNG TY TNHH WANDEROO
               </li>
               <li>
-                <strong>Nội dung chuyển khoản:</strong> Tên khách + SĐT (Ví dụ: Nam
-                0912345678)
+                <strong>Nội dung chuyển khoản:</strong> Tên khách + SĐT (Ví dụ:
+                Nam 0912345678)
               </li>
             </ul>
           </div>
@@ -97,15 +96,11 @@ const PaymentPolicy: React.FC = () => {
               4. Lưu ý quan trọng
             </h2>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
+              <li>Quý khách không chia sẻ mã OTP cho bất kỳ ai.</li>
+              <li>Kiểm tra hàng hóa kỹ trước khi thanh toán COD.</li>
               <li>
-                Quý khách không chia sẻ mã OTP cho bất kỳ ai.
-              </li>
-              <li>
-                Kiểm tra hàng hóa kỹ trước khi thanh toán COD.
-              </li>
-              <li>
-                Với các đơn hàng ngoại thành hoặc tỉnh, bắt buộc chuyển khoản trước khi
-                giao hàng.
+                Với các đơn hàng ngoại thành hoặc tỉnh, bắt buộc chuyển khoản
+                trước khi giao hàng.
               </li>
             </ul>
           </div>

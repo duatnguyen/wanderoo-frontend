@@ -14,10 +14,7 @@ export const ReturnStatusIcon: React.FC<ReturnStatusIconProps> = ({
   if (isSuccess) {
     return (
       <Check
-        className={cn(
-          "w-5 h-5 text-[#e04d30] flex-shrink-0",
-          className
-        )}
+        className={cn("w-5 h-5 text-[#e04d30] flex-shrink-0", className)}
         strokeWidth={3}
       />
     );
@@ -25,14 +22,10 @@ export const ReturnStatusIcon: React.FC<ReturnStatusIconProps> = ({
 
   return (
     <X
-      className={cn(
-        "w-5 h-5 text-[#737373] flex-shrink-0",
-        className
-      )}
+      className={cn("w-5 h-5 text-[#737373] flex-shrink-0", className)}
       strokeWidth={3}
     />
   );
 };
 
 export default ReturnStatusIcon;
-

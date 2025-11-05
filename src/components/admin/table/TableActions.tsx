@@ -21,7 +21,9 @@ export const TableActions = ({
   className = "flex items-center gap-[8px]",
   children,
 }: TableActionsProps) => {
-  const getButtonStyles = (variant: "primary" | "secondary" | "danger" = "primary") => {
+  const getButtonStyles = (
+    variant: "primary" | "secondary" | "danger" = "primary"
+  ) => {
     switch (variant) {
       case "primary":
         return "h-[32px] px-[16px] rounded-[10px] bg-[#e04d30] text-white hover:bg-[#d54933] transition-colors duration-150 text-[12px]";

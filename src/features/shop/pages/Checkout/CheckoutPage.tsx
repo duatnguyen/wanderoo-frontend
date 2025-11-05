@@ -210,7 +210,9 @@ const CheckoutPage: React.FC = () => {
                             </span>
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className="text-gray-900">{item.quantity}</span>
+                            <span className="text-gray-900">
+                              {item.quantity}
+                            </span>
                           </td>
                           <td className="px-4 py-4 text-center">
                             <span className="text-gray-900 font-semibold">
@@ -341,4 +343,3 @@ const CheckoutPage: React.FC = () => {
 };
 
 export default CheckoutPage;
-

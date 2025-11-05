@@ -224,7 +224,11 @@ const AdminOrders: React.FC = () => {
   };
 
   // Handle view order detail
-  const handleViewOrderDetail = (orderId: string, orderStatus: string, orderSource: string) => {
+  const handleViewOrderDetail = (
+    orderId: string,
+    orderStatus: string,
+    orderSource: string
+  ) => {
     navigate(`/admin/orders/${orderId}`, {
       state: { status: orderStatus, source: orderSource },
     });
@@ -248,8 +252,8 @@ const AdminOrders: React.FC = () => {
       // Filter by source
       const matchesSource =
         sourceFilter === "all" ||
-        (sourceFilter === "website" && 
-         (order.category.toLowerCase() === "website")) ||
+        (sourceFilter === "website" &&
+          order.category.toLowerCase() === "website") ||
         (sourceFilter === "pos" && order.category.toLowerCase() === "pos");
 
       return matchesTab && matchesSearch && matchesSource;

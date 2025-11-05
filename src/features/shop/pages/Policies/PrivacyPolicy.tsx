@@ -14,9 +14,9 @@ const PrivacyPolicy: React.FC = () => {
         {/* Introductory Paragraph */}
         <div className="rounded-lg sm:p-8 mb-2">
           <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-            Wanderoo cam kết bảo vệ thông tin cá nhân của khách hàng khi truy cập và
-            mua sắm tại website. Chính sách này nhằm đảm bảo quyền lợi và sự tin tưởng
-            của khách hàng đối với dịch vụ của Wanderoo.
+            Wanderoo cam kết bảo vệ thông tin cá nhân của khách hàng khi truy
+            cập và mua sắm tại website. Chính sách này nhằm đảm bảo quyền lợi và
+            sự tin tưởng của khách hàng đối với dịch vụ của Wanderoo.
           </p>
         </div>
 
@@ -33,9 +33,7 @@ const PrivacyPolicy: React.FC = () => {
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc mb-4">
               <li>Hỗ trợ khách hàng trong mua sắm</li>
               <li>Giải đáp thắc mắc, tư vấn sản phẩm</li>
-              <li>
-                Cung cấp thông tin mới nhất về sản phẩm, khuyến mãi
-              </li>
+              <li>Cung cấp thông tin mới nhất về sản phẩm, khuyến mãi</li>
               <li>Nâng cấp dịch vụ và tối ưu trải nghiệm</li>
               <li>Thực hiện quảng bá sản phẩm Wanderoo</li>
             </ul>
@@ -44,7 +42,8 @@ const PrivacyPolicy: React.FC = () => {
             </p>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc mb-2">
               <li>
-                Họ và tên, số điện thoại liên hệ, địa chỉ nhận hàng, email (nếu có)
+                Họ và tên, số điện thoại liên hệ, địa chỉ nhận hàng, email (nếu
+                có)
               </li>
             </ul>
             <p className="text-xs sm:text-sm font-bold text-[#18345c]">
@@ -58,15 +57,9 @@ const PrivacyPolicy: React.FC = () => {
               2. Phạm Vi Sử Dụng Thông Tin
             </h2>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
-              <li>
-                Xác nhận đơn hàng, giao hàng, chăm sóc sau bán hàng.
-              </li>
-              <li>
-                Gửi thông tin sản phẩm, chương trình khuyến mãi.
-              </li>
-              <li>
-                Liên hệ trực tiếp qua email, điện thoại khi cần thiết.
-              </li>
+              <li>Xác nhận đơn hàng, giao hàng, chăm sóc sau bán hàng.</li>
+              <li>Gửi thông tin sản phẩm, chương trình khuyến mãi.</li>
+              <li>Liên hệ trực tiếp qua email, điện thoại khi cần thiết.</li>
             </ul>
           </div>
 
@@ -76,8 +69,8 @@ const PrivacyPolicy: React.FC = () => {
               3. Thời Gian Lưu Trữ Thông Tin
             </h2>
             <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-              Thông tin được lưu trữ trong suốt quá trình mua sắm hoặc cho đến khi
-              khách hàng yêu cầu xóa.
+              Thông tin được lưu trữ trong suốt quá trình mua sắm hoặc cho đến
+              khi khách hàng yêu cầu xóa.
             </p>
           </div>
 
@@ -87,12 +80,8 @@ const PrivacyPolicy: React.FC = () => {
               4. Quyền Của Khách Hàng
             </h2>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
-              <li>
-                Truy cập và chỉnh sửa thông tin cá nhân bất kỳ lúc nào.
-              </li>
-              <li>
-                Yêu cầu xóa thông tin khỏi hệ thống.
-              </li>
+              <li>Truy cập và chỉnh sửa thông tin cá nhân bất kỳ lúc nào.</li>
+              <li>Yêu cầu xóa thông tin khỏi hệ thống.</li>
             </ul>
           </div>
 
@@ -102,15 +91,14 @@ const PrivacyPolicy: React.FC = () => {
               5. Cam Kết Bảo Mật Thông Tin
             </h2>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
+              <li>Bảo mật tuyệt đối thông tin cá nhân.</li>
               <li>
-                Bảo mật tuyệt đối thông tin cá nhân.
+                Không tiết lộ cho bên thứ ba nếu không có sự đồng ý hoặc yêu cầu
+                pháp luật.
               </li>
               <li>
-                Không tiết lộ cho bên thứ ba nếu không có sự đồng ý hoặc yêu cầu pháp
-                luật.
-              </li>
-              <li>
-                Sử dụng biện pháp bảo mật hiện đại để ngăn chặn truy cập trái phép.
+                Sử dụng biện pháp bảo mật hiện đại để ngăn chặn truy cập trái
+                phép.
               </li>
             </ul>
           </div>

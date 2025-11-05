@@ -2,11 +2,25 @@ import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const districtOptions = [
-  "Quận 1", "Quận 2", "Quận 3", "Quận 4", "Quận 5",
-  "Quận 6", "Quận 7", "Quận 8", "Quận 9", "Quận 10",
-  "Quận 11", "Quận 12", "Quận Bình Thạnh", "Quận Tân Bình",
-  "Quận Tân Phú", "Quận Phú Nhuận", "Quận Gò Vấp", "Hoàn Kiếm",
-  "Quận Hai Bà Trưng"
+  "Quận 1",
+  "Quận 2",
+  "Quận 3",
+  "Quận 4",
+  "Quận 5",
+  "Quận 6",
+  "Quận 7",
+  "Quận 8",
+  "Quận 9",
+  "Quận 10",
+  "Quận 11",
+  "Quận 12",
+  "Quận Bình Thạnh",
+  "Quận Tân Bình",
+  "Quận Tân Phú",
+  "Quận Phú Nhuận",
+  "Quận Gò Vấp",
+  "Hoàn Kiếm",
+  "Quận Hai Bà Trưng",
 ];
 
 interface DistrictDropdownProps {
@@ -22,21 +36,24 @@ const DistrictDropdown: React.FC<DistrictDropdownProps> = ({
   onValueChange,
   placeholder = "Chọn quận/huyện",
   className = "",
-  error = false
+  error = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -71,10 +88,15 @@ const DistrictDropdown: React.FC<DistrictDropdownProps> = ({
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </div>
-      
+
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e04d30] rounded-[12px] shadow-lg z-50 max-h-60 overflow-y-auto">
           {districtOptions.map((option) => (

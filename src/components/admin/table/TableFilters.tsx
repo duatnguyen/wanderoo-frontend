@@ -19,16 +19,16 @@ export interface TableFiltersProps {
   onSearchChange?: (value: string) => void;
   searchPlaceholder?: string;
   searchClassName?: string;
-  
+
   // Filter dropdown
   filterLabel?: string;
   filterValue?: string;
   onFilterChange?: (value: string) => void;
   filterOptions?: FilterOption[];
-  
+
   // Custom actions
   actions?: ReactNode;
-  
+
   // Layout
   className?: string;
 }
@@ -45,7 +45,9 @@ export const TableFilters = ({
   actions,
   className = "flex gap-[8px] items-center w-full",
 }: TableFiltersProps) => {
-  const currentFilterOption = filterOptions.find(opt => opt.value === filterValue);
+  const currentFilterOption = filterOptions.find(
+    (opt) => opt.value === filterValue
+  );
 
   return (
     <div className={className}>

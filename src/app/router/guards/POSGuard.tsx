@@ -14,7 +14,7 @@ interface POSGuardProps {
 /**
  * POS Route Guard
  * Protects POS routes by checking user authentication and POS permissions
- * 
+ *
  * Note: Currently set to temporarily allow access for UI development
  * In production, this should integrate with your auth system
  */
@@ -25,7 +25,7 @@ const POSGuard: React.FC<POSGuardProps> = ({ children }) => {
   // Temporarily allow access for UI development
   // TODO: Enable authentication checks in production
   const isAuthEnabled = false; // Set to true when auth is ready
-  
+
   if (isAuthEnabled) {
     // Mock auth check - replace with real auth logic
     const user = null; // Get from auth context
@@ -39,17 +39,17 @@ const POSGuard: React.FC<POSGuardProps> = ({ children }) => {
     // Redirect to login if not authenticated
     if (!user) {
       return (
-        <Navigate 
-          to={AUTH_ROUTES.LOGIN} 
-          state={{ from: location.pathname }} 
-          replace 
+        <Navigate
+          to={AUTH_ROUTES.LOGIN}
+          state={{ from: location.pathname }}
+          replace
         />
       );
     }
 
     // Check if user has POS access permissions
-    // const hasPOSAccess = user.role === 'admin' || 
-    //                    user.role === 'pos_operator' || 
+    // const hasPOSAccess = user.role === 'admin' ||
+    //                    user.role === 'pos_operator' ||
     //                    user.permissions?.includes('pos_access');
 
     // if (!hasPOSAccess) {

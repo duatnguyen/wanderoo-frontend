@@ -183,8 +183,8 @@ const AddressTab: React.FC = () => {
                 isDefault: formData.isDefault,
               }
             : formData.isDefault
-            ? { ...addr, isDefault: false }
-            : addr
+              ? { ...addr, isDefault: false }
+              : addr
         )
       );
     } else if (isAddingNew) {

@@ -33,4 +33,3 @@ const Pagination: FC<PaginationProps> = ({
 };
 
 export default Pagination;
-

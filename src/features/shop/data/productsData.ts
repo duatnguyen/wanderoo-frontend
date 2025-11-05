@@ -53,7 +53,8 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     originalPrice: 1200000,
     rating: 4.8,
     discountPercent: 26,
-    description: "Túi ngủ mùa đông giữ nhiệt cao cấp, phù hợp cho nhiệt độ từ -10°C đến 10°C",
+    description:
+      "Túi ngủ mùa đông giữ nhiệt cao cấp, phù hợp cho nhiệt độ từ -10°C đến 10°C",
     images: ["", "", ""],
     stock: 15,
     category: "Đồ cắm trại",
@@ -229,7 +230,9 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
 
 // Helper function to get product by ID
 export const getProductById = (id: string | number): Product | undefined => {
-  return productsData.find((product) => product.id.toString() === id.toString());
+  return productsData.find(
+    (product) => product.id.toString() === id.toString()
+  );
 };
 
 // Helper function to get products by category
@@ -246,4 +249,3 @@ export const getRelatedProducts = (
     .filter((product) => product.id.toString() !== currentProductId.toString())
     .slice(0, limit);
 };
-

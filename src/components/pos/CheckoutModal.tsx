@@ -258,9 +258,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <input
                   type="text"
                   value={
-                    amountPaid
-                      ? formatCurrency(parseFloat(amountPaid))
-                      : ""
+                    amountPaid ? formatCurrency(parseFloat(amountPaid)) : ""
                   }
                   onChange={handleAmountPaidChange}
                   placeholder="0₫"
@@ -304,4 +302,3 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 };
 
 export default CheckoutModal;
-

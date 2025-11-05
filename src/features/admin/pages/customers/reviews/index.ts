@@ -1,2 +1,2 @@
 // Customer Reviews Pages
-export { default } from './AdminCustomerReviews';
+export { default } from "./AdminCustomerReviews";

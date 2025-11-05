@@ -50,18 +50,38 @@ const mockProducts: MockProduct[] = [
 ];
 
 // Mock import data - would normally fetch from API
-const mockImportData: { [key: string]: { supplier: string; items: Product[] } } = {
+const mockImportData: {
+  [key: string]: { supplier: string; items: Product[] };
+} = {
   "1": {
     supplier: "Công ty TNHH ABC",
     items: [
-      { id: "p1", name: "Áo thun thoáng khí Rockbros LKW008", quantity: 100, price: 120000, image: "/placeholder-product.jpg" },
-      { id: "p2", name: "Áo thun dài tay Northshengwolf", quantity: 50, price: 150000, image: "/placeholder-product.jpg" },
+      {
+        id: "p1",
+        name: "Áo thun thoáng khí Rockbros LKW008",
+        quantity: 100,
+        price: 120000,
+        image: "/placeholder-product.jpg",
+      },
+      {
+        id: "p2",
+        name: "Áo thun dài tay Northshengwolf",
+        quantity: 50,
+        price: 150000,
+        image: "/placeholder-product.jpg",
+      },
     ],
   },
   "2": {
     supplier: "Công ty XYZ",
     items: [
-      { id: "p3", name: "Giày Thể Thao Nam", quantity: 30, price: 500000, image: "/placeholder-product.jpg" },
+      {
+        id: "p3",
+        name: "Giày Thể Thao Nam",
+        quantity: 30,
+        price: 500000,
+        image: "/placeholder-product.jpg",
+      },
     ],
   },
 };
@@ -72,7 +92,7 @@ const AdminWarehouseCreateReturnImport = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const importId = searchParams.get("importId");
-  
+
   const [supplierSearch, setSupplierSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productFormSearch, setProductFormSearch] = useState("");
@@ -87,7 +107,7 @@ const AdminWarehouseCreateReturnImport = () => {
       const importData = mockImportData[importId];
       setSupplierSearch(importData.supplier);
       // Set initial products with their original quantities from import order
-      setProducts(importData.items.map(item => ({ ...item })));
+      setProducts(importData.items.map((item) => ({ ...item })));
     }
   }, [importId]);
 
@@ -117,13 +137,18 @@ const AdminWarehouseCreateReturnImport = () => {
     // Save default status to localStorage so the list page can reflect the new return
     // Default status: processing (Đang giao dịch), returned (Đã hoàn trả), pending_refund (Chưa thanh toán)
     if (typeof window !== "undefined") {
-      const storedStatus = JSON.parse(localStorage.getItem("returnImportStatuses") || "{}");
+      const storedStatus = JSON.parse(
+        localStorage.getItem("returnImportStatuses") || "{}"
+      );
       storedStatus[newReturnId] = {
         status: "processing",
         returnStatus: "returned",
         refundStatus: "pending_refund",
       };
-      localStorage.setItem("returnImportStatuses", JSON.stringify(storedStatus));
+      localStorage.setItem(
+        "returnImportStatuses",
+        JSON.stringify(storedStatus)
+      );
       // Dispatch custom event to notify the list page
       window.dispatchEvent(new Event("returnImportStatusUpdated"));
     }
@@ -151,7 +176,7 @@ const AdminWarehouseCreateReturnImport = () => {
         availableStock: product.availableStock,
       }))
       .filter((product) => !products.some((p) => p.id === product.id));
-    
+
     setProducts((prev) => [...prev, ...newProducts]);
     setIsProductFormOpen(false);
     setSelectedProductIds([]);
@@ -160,7 +185,9 @@ const AdminWarehouseCreateReturnImport = () => {
   const handleUpdateQuantity = (productId: string, quantity: number) => {
     setProducts((prev) =>
       prev.map((product) =>
-        product.id === productId ? { ...product, quantity: Math.max(1, quantity) } : product
+        product.id === productId
+          ? { ...product, quantity: Math.max(1, quantity) }
+          : product
       )
     );
   };
@@ -168,7 +195,9 @@ const AdminWarehouseCreateReturnImport = () => {
   const handleUpdatePrice = (productId: string, price: number) => {
     setProducts((prev) =>
       prev.map((product) =>
-        product.id === productId ? { ...product, price: Math.max(0, price) } : product
+        product.id === productId
+          ? { ...product, price: Math.max(0, price) }
+          : product
       )
     );
   };
@@ -254,7 +283,7 @@ const AdminWarehouseCreateReturnImport = () => {
                 </Button>
               </div>
             )}
-            
+
             {/* Products Table */}
             {products.length > 0 && (
               <div className="w-[calc(100%+48px)] mt-0 -mx-[24px]">
@@ -274,7 +303,7 @@ const AdminWarehouseCreateReturnImport = () => {
                   </div>
                   <div className="w-[40px] flex-shrink-0 flex justify-center pr-[8px]"></div>
                 </div>
-                
+
                 {/* Products List */}
                 <div className="flex flex-col">
                   {products.map((product) => (
@@ -284,43 +313,52 @@ const AdminWarehouseCreateReturnImport = () => {
                     >
                       {/* Product Info */}
                       <div className="flex-[2] min-w-0 flex items-start gap-3">
-                        <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300">
-                        </div>
+                        <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300"></div>
                         <span className="font-['Montserrat'] font-normal text-[14px] text-[#272424] truncate min-w-0">
                           {product.name}
                         </span>
                       </div>
-                      
+
                       {/* Quantity */}
                       <div className="flex-1 flex justify-center">
                         <input
                           type="number"
                           value={product.quantity}
-                          onChange={(e) => handleUpdateQuantity(product.id, parseInt(e.target.value) || 1)}
+                          onChange={(e) =>
+                            handleUpdateQuantity(
+                              product.id,
+                              parseInt(e.target.value) || 1
+                            )
+                          }
                           className="w-20 text-center border border-[#d1d1d1] rounded px-2 py-1 text-[12px] font-['Montserrat'] focus:border-[#e04d30] focus:outline-none"
                           min="1"
                         />
                       </div>
-                      
+
                       {/* Unit Price */}
                       <div className="flex-1 flex justify-center">
                         <input
                           type="number"
                           value={product.price}
-                          onChange={(e) => handleUpdatePrice(product.id, parseFloat(e.target.value) || 0)}
+                          onChange={(e) =>
+                            handleUpdatePrice(
+                              product.id,
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
                           className="w-20 text-center border border-[#d1d1d1] rounded px-2 py-1 text-[12px] font-['Montserrat'] focus:border-[#e04d30] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                           min="0"
                           step="1000"
                         />
                       </div>
-                      
+
                       {/* Total Amount */}
                       <div className="flex-1 flex justify-center">
                         <span className="font-['Montserrat'] font-semibold text-[14px] text-[#272424]">
                           {formatCurrency(product.quantity * product.price)}
                         </span>
                       </div>
-                      
+
                       {/* Remove Button */}
                       <div className="w-[40px] flex-shrink-0 flex justify-center pr-[8px]">
                         <button
@@ -438,10 +476,18 @@ const AdminWarehouseCreateReturnImport = () => {
 
           {/* Action Buttons */}
           <div className="flex gap-[10px] items-center justify-end shrink-0 w-full mt-2">
-            <Button onClick={handleCancel} variant="secondary" className="flex-shrink-0 h-[36px] text-[14px]">
+            <Button
+              onClick={handleCancel}
+              variant="secondary"
+              className="flex-shrink-0 h-[36px] text-[14px]"
+            >
               Huỷ
             </Button>
-            <Button onClick={handleConfirm} variant="default" className="flex-shrink-0 h-[36px] text-[14px]">
+            <Button
+              onClick={handleConfirm}
+              variant="default"
+              className="flex-shrink-0 h-[36px] text-[14px]"
+            >
               Xác nhận
             </Button>
           </div>
@@ -450,7 +496,7 @@ const AdminWarehouseCreateReturnImport = () => {
 
       {/* Product Selection Modal */}
       {isProductFormOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           onClick={() => setIsProductFormOpen(false)}
         >
@@ -494,7 +540,7 @@ const AdminWarehouseCreateReturnImport = () => {
                     />
                   </svg>
                 </div>
-                <button 
+                <button
                   onClick={() => navigate("/admin/products/new")}
                   className="bg-[#e04d30] flex items-center justify-center h-[40px] w-[40px] rounded-[12px] shrink-0"
                 >
@@ -508,10 +554,16 @@ const AdminWarehouseCreateReturnImport = () => {
               <div className="box-border flex items-center px-[15px] py-0 shrink-0 bg-white">
                 <div className="bg-white box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
                   <Checkbox
-                    checked={selectedProductIds.length === filteredMockProducts.length && filteredMockProducts.length > 0}
+                    checked={
+                      selectedProductIds.length ===
+                        filteredMockProducts.length &&
+                      filteredMockProducts.length > 0
+                    }
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setSelectedProductIds(filteredMockProducts.map(p => p.id));
+                        setSelectedProductIds(
+                          filteredMockProducts.map((p) => p.id)
+                        );
                       } else {
                         setSelectedProductIds([]);
                       }
@@ -538,10 +590,11 @@ const AdminWarehouseCreateReturnImport = () => {
                     <div className="bg-white box-border flex gap-[8px] h-full items-start overflow-clip px-[5px] py-[14px] w-[450px]">
                       <Checkbox
                         checked={selectedProductIds.includes(product.id)}
-                        onCheckedChange={() => toggleProductSelection(product.id)}
+                        onCheckedChange={() =>
+                          toggleProductSelection(product.id)
+                        }
                       />
-                      <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300">
-                      </div>
+                      <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300"></div>
                       <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-black">
                         {product.name}
                       </p>
@@ -567,7 +620,11 @@ const AdminWarehouseCreateReturnImport = () => {
                 >
                   Huỷ
                 </Button>
-                <Button variant="default" onClick={handleAddProducts} className="h-[36px] text-[14px]">
+                <Button
+                  variant="default"
+                  onClick={handleAddProducts}
+                  className="h-[36px] text-[14px]"
+                >
                   Xác nhận
                 </Button>
               </div>
@@ -580,4 +637,3 @@ const AdminWarehouseCreateReturnImport = () => {
 };
 
 export default AdminWarehouseCreateReturnImport;
-

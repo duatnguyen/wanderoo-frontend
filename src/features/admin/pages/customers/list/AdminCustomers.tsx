@@ -203,9 +203,12 @@ const AdminCustomers: React.FC = () => {
         <h2 className="font-bold text-[#272424] text-[24px] leading-normal whitespace-nowrap min-w-0 overflow-hidden text-ellipsis">
           Danh sách khách hàng
         </h2>
-        <Button onClick={() => navigate("/admin/customers/new")} className="h-[36px] flex-shrink-0">
+        <Button
+          onClick={() => navigate("/admin/customers/new")}
+          className="h-[36px] flex-shrink-0"
+        >
           <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
-          <span className="whitespace-nowrap">Thêm  mới khách hàng</span>
+          <span className="whitespace-nowrap">Thêm mới khách hàng</span>
         </Button>
       </div>
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[12px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
@@ -222,7 +225,11 @@ const AdminCustomers: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer">
                 <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  {statusFilter === "all" ? "Tất cả trạng thái" : statusFilter === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
+                  {statusFilter === "all"
+                    ? "Tất cả trạng thái"
+                    : statusFilter === "active"
+                      ? "Đang kích hoạt"
+                      : "Ngừng kích hoạt"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
@@ -235,7 +242,7 @@ const AdminCustomers: React.FC = () => {
                 Đang kích hoạt
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("disabled")}>
-              Ngừng kích hoạt
+                Ngừng kích hoạt
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -246,7 +253,7 @@ const AdminCustomers: React.FC = () => {
           {/* Table Header */}
           <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full h-[58px]">
             <div className="flex flex-row items-center w-full h-full">
-                  {/* Checkbox column */}
+              {/* Checkbox column */}
               <div className="flex h-full items-center px-[4px] py-[12px] w-8 flex-shrink-0">
                 <CustomCheckbox
                   checked={
@@ -266,7 +273,12 @@ const AdminCustomers: React.FC = () => {
                   <div className="flex items-center gap-[8px]">
                     <Button
                       className="h-[32px] px-[16px] rounded-[10px] bg-[#e04d30] text-white hover:bg-[#d54933] transition-colors duration-150 text-[12px]"
-                      onClick={() => console.log("Activate selected:", Array.from(selectedCustomers))}
+                      onClick={() =>
+                        console.log(
+                          "Activate selected:",
+                          Array.from(selectedCustomers)
+                        )
+                      }
                     >
                       Đang kích hoạt
                     </Button>
@@ -282,19 +294,29 @@ const AdminCustomers: React.FC = () => {
               ) : (
                 <>
                   <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/4 min-w-48 ml-[7px]">
-                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Khách hàng</span>
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Khách hàng
+                    </span>
                   </div>
                   <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/4 min-w-44">
-                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Email</span>
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Email
+                    </span>
                   </div>
                   <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/5 min-w-32">
-                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Số điện thoại</span>
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Số điện thoại
+                    </span>
                   </div>
                   <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/5 min-w-32">
-                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Tổng chi tiêu</span>
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Tổng chi tiêu
+                    </span>
                   </div>
                   <div className="flex gap-[4px] items-center px-[4px] py-[12px] w-1/6 min-w-24">
-                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">Trạng thái</span>
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Trạng thái
+                    </span>
                   </div>
                 </>
               )}
@@ -332,7 +354,9 @@ const AdminCustomers: React.FC = () => {
                         {c.avatar ? (
                           <AvatarImage src={c.avatar} alt={c.name} />
                         ) : (
-                          <AvatarFallback className="text-xs">{c.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback className="text-xs">
+                            {c.name.charAt(0)}
+                          </AvatarFallback>
                         )}
                       </Avatar>
                     </div>
@@ -346,7 +370,9 @@ const AdminCustomers: React.FC = () => {
                       >
                         {c.name}
                       </button>
-                      <span className="font-medium text-[12px] text-[#737373] leading-[1.3]">@{c.username}</span>
+                      <span className="font-medium text-[12px] text-[#737373] leading-[1.3]">
+                        @{c.username}
+                      </span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-1/4 min-w-44">
@@ -381,7 +407,9 @@ const AdminCustomers: React.FC = () => {
                               : "text-[#eb2b0b]"
                           }`}
                         >
-                          {c.status === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
+                          {c.status === "active"
+                            ? "Đang kích hoạt"
+                            : "Ngừng kích hoạt"}
                         </span>
                       </div>
                     </div>

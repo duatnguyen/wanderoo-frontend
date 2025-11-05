@@ -33,7 +33,7 @@ const CHIP_STYLES: Record<
   cancelled: { bg: "#ffdcdc", text: "#eb2b0b", label: "Đã hủy" }, // Red/Pink
   transfer: { bg: "#fff5c5", text: "#e27d00", label: "Chuyển khoản" }, // Yellow/Orange
   cash: { bg: "#dcd2ff", text: "#7f27ff", label: "Tiền mặt" }, // Purple
-  
+
   // Warehouse/import statuses
   processing: { bg: "#cce5ff", text: "#004085", label: "Đang giao dịch" },
   not_imported: { bg: "#ffdcdc", text: "#eb2b0b", label: "Chưa nhập" },
@@ -58,7 +58,10 @@ export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
 
   return (
     <div
-      className={cn("rounded-[10px] px-[8px] h-[24px] w-fit flex items-center", className)}
+      className={cn(
+        "rounded-[10px] px-[8px] h-[24px] w-fit flex items-center",
+        className
+      )}
       style={{ backgroundColor: styles.bg }}
     >
       <span

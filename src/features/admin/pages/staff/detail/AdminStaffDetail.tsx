@@ -161,359 +161,369 @@ const AdminStaffDetail: React.FC = () => {
   return (
     <div className="w-full overflow-x-auto min-h-screen">
       <div className="flex flex-col gap-[8px] items-start w-full max-w-[900px] mx-auto px-[24px] min-w-[870px] pb-[100vh]">
-      {/* Header */}
-      <div className="flex flex-col gap-[8px] items-start justify-center px-0 pt-[10px] pb-0 w-full min-w-[870px]">
-        <div className="flex gap-[10px] items-center w-full min-w-[870px]">
-          <button
-            onClick={() => navigate("/admin/staff")}
-            className="w-5 h-5 flex items-center justify-center cursor-pointer"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#737373]" />
-          </button>
-          <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
-            {staff.name}
-          </h1>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-[8px] items-start w-full min-w-[870px]">
-        {/* Account Information Section */}
-        <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[12px] rounded-[24px] w-full min-w-[870px]">
-          <div className="flex items-center w-full">
-            <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
-              Thông tin tài khoản
-            </h2>
-          </div>
-          <div className="flex items-center justify-between w-full">
-            <div className="flex gap-[10px] items-start">
-              <div className="w-[60px] h-[60px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
-                <Avatar className="w-full h-full">
-                  {staff.avatar ? (
-                    <AvatarImage src={staff.avatar} alt={staff.name} />
-                  ) : (
-                    <AvatarFallback className="text-lg">
-                      {staff.name.charAt(0)}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-              </div>
-              <div className="flex gap-[8px] items-center">
-                <span className="font-semibold text-[16px] text-[#272424] leading-[1.4]">
-                  {staff.fullName}
-                </span>
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="flex items-center cursor-pointer"
-                >
-                  <Pencil className="w-[20px] h-[20px] text-[#1a71f6]" />
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-col gap-[6px] items-end">
-              <div className="bg-[#b2ffb4] flex gap-[10px] items-center justify-center px-[8px] rounded-[10px] h-[24px]">
-                <span className="font-semibold text-[13px] text-[#04910c] leading-[1.4]">
-                  Đang kích hoạt
-                </span>
-              </div>
-            </div>
+        {/* Header */}
+        <div className="flex flex-col gap-[8px] items-start justify-center px-0 pt-[10px] pb-0 w-full min-w-[870px]">
+          <div className="flex gap-[10px] items-center w-full min-w-[870px]">
+            <button
+              onClick={() => navigate("/admin/staff")}
+              className="w-5 h-5 flex items-center justify-center cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#737373]" />
+            </button>
+            <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
+              {staff.name}
+            </h1>
           </div>
         </div>
 
-        {/* Form Section */}
-        <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full min-w-[870px]">
-          {/* First Row: Full Name and Phone */}
-          <div className="flex gap-[50px] items-start w-full">
-            <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
-              <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Họ và tên
-              </label>
-              <FormInput
-                type="text"
-                value={staff.fullName}
-                readOnly
-                className="text-[#272424] text-[14px]"
-                containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-              />
-            </div>
-            <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
-              <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Số điện thoại
-              </label>
-              <FormInput
-                type="tel"
-                value={staff.phone}
-                readOnly
-                className="text-[#272424] text-[14px]"
-                containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-              />
-            </div>
-          </div>
-
-          {/* Second Row: Email and Date of Birth */}
-          <div className="flex gap-[50px] items-start w-full">
-            <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
-              <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Email
-              </label>
-              <FormInput
-                type="email"
-                value={staff.email}
-                readOnly
-                className="text-[#272424] text-[14px]"
-                containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-              />
-            </div>
-            <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
-              <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Ngày sinh
-              </label>
-              <FormInput
-                type="text"
-                value={formatDateForDisplay(staff.dateOfBirth)}
-                readOnly
-                className="text-[14px] font-medium text-[#737373]"
-                containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-                right={
-                  <Calendar className="w-[24px] h-[24px] text-[#454545]" />
-                }
-              />
-            </div>
-          </div>
-
-          {/* Third Row: Password and Gender */}
-          <div className="flex gap-[55px] items-center w-full">
-            <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
-              <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Mật khẩu
-              </label>
-              <FormInput
-                type="password"
-                value={staff.password}
-                readOnly
-                className="text-[#888888] text-[14px]"
-                containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-              />
-            </div>
-            <div className="flex flex-col gap-[10px] h-[54px] items-start justify-center flex-1">
-              <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Giới tính
-              </label>
-              <div className="flex gap-[10px] items-center w-[209px]">
-                <CustomRadio
-                  name="gender"
-                  value="female"
-                  checked={staff.gender === "female"}
-                  readOnly
-                  label="Nữ"
-                />
-                <CustomRadio
-                  name="gender"
-                  value="male"
-                  checked={staff.gender === "male"}
-                  readOnly
-                  label="Nam"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Role Section */}
-        <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[10px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full min-w-[870px]">
-          <div className="flex gap-[50px] items-start w-full">
-            <div className="flex flex-col gap-[6px] items-start flex-1">
-              <div className="flex gap-[4px] items-center">
-                <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
-                  Vai trò nhân viên
-                </label>
-                <HelpCircle className="w-[24px] h-[24px] text-[#888888]" />
-              </div>
-              <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-default">
-                <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  {staff.role}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Edit Modal Overlay */}
-      {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop with blur and light dark overlay */}
-          <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
-            onClick={handleCancel}
-          />
-          {/* Modal Content */}
-          <div
-            className="relative z-50 bg-[#f7f7f7] rounded-[24px] w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center px-[8px] py-[16px]">
-              <h2 className="font-bold text-[#1a1a1b] text-[24px] leading-normal">
-                Sửa thông tin tài khoản
+        <div className="flex flex-col gap-[8px] items-start w-full min-w-[870px]">
+          {/* Account Information Section */}
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[12px] rounded-[24px] w-full min-w-[870px]">
+            <div className="flex items-center w-full">
+              <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+                Thông tin tài khoản
               </h2>
             </div>
-
-            {/* Form Content */}
-            <div className="flex-1 overflow-y-auto px-[8px] py-0 flex flex-col gap-[6px]">
-              {/* Full Name and Phone Row */}
-              <div className="flex gap-[12px] items-start w-full">
-                {/* Full Name */}
-                <div className="flex flex-col gap-[2px] items-start flex-1">
-                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Họ và tên
-                  </label>
-                  <FormInput
-                    type="text"
-                    value={editFormData.fullName}
-                    onChange={(e) =>
-                      handleInputChange("fullName", e.target.value)
-                    }
-                    placeholder="Nhập họ và tên"
-                    className="text-[#272424] text-[14px]"
-                    containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-                  />
+            <div className="flex items-center justify-between w-full">
+              <div className="flex gap-[10px] items-start">
+                <div className="w-[60px] h-[60px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
+                  <Avatar className="w-full h-full">
+                    {staff.avatar ? (
+                      <AvatarImage src={staff.avatar} alt={staff.name} />
+                    ) : (
+                      <AvatarFallback className="text-lg">
+                        {staff.name.charAt(0)}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
                 </div>
+                <div className="flex gap-[8px] items-center">
+                  <span className="font-semibold text-[16px] text-[#272424] leading-[1.4]">
+                    {staff.fullName}
+                  </span>
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="flex items-center cursor-pointer"
+                  >
+                    <Pencil className="w-[20px] h-[20px] text-[#1a71f6]" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-[6px] items-end">
+                <div className="bg-[#b2ffb4] flex gap-[10px] items-center justify-center px-[8px] rounded-[10px] h-[24px]">
+                  <span className="font-semibold text-[13px] text-[#04910c] leading-[1.4]">
+                    Đang kích hoạt
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Phone */}
-                <div className="flex flex-col gap-[2px] items-start flex-1">
-                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Số điện thoại
-                  </label>
-                  <FormInput
-                    type="tel"
-                    value={editFormData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    placeholder="Nhập số điện thoại"
-                    className="text-[#272424] text-[14px]"
-                    containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+          {/* Form Section */}
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full min-w-[870px]">
+            {/* First Row: Full Name and Phone */}
+            <div className="flex gap-[50px] items-start w-full">
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Họ và tên
+                </label>
+                <FormInput
+                  type="text"
+                  value={staff.fullName}
+                  readOnly
+                  className="text-[#272424] text-[14px]"
+                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                />
+              </div>
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Số điện thoại
+                </label>
+                <FormInput
+                  type="tel"
+                  value={staff.phone}
+                  readOnly
+                  className="text-[#272424] text-[14px]"
+                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                />
+              </div>
+            </div>
+
+            {/* Second Row: Email and Date of Birth */}
+            <div className="flex gap-[50px] items-start w-full">
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Email
+                </label>
+                <FormInput
+                  type="email"
+                  value={staff.email}
+                  readOnly
+                  className="text-[#272424] text-[14px]"
+                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                />
+              </div>
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Ngày sinh
+                </label>
+                <FormInput
+                  type="text"
+                  value={formatDateForDisplay(staff.dateOfBirth)}
+                  readOnly
+                  className="text-[14px] font-medium text-[#737373]"
+                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                  right={
+                    <Calendar className="w-[24px] h-[24px] text-[#454545]" />
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Third Row: Password and Gender */}
+            <div className="flex gap-[55px] items-center w-full">
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Mật khẩu
+                </label>
+                <FormInput
+                  type="password"
+                  value={staff.password}
+                  readOnly
+                  className="text-[#888888] text-[14px]"
+                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                />
+              </div>
+              <div className="flex flex-col gap-[10px] h-[54px] items-start justify-center flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Giới tính
+                </label>
+                <div className="flex gap-[10px] items-center w-[209px]">
+                  <CustomRadio
+                    name="gender"
+                    value="female"
+                    checked={staff.gender === "female"}
+                    readOnly
+                    label="Nữ"
+                  />
+                  <CustomRadio
+                    name="gender"
+                    value="male"
+                    checked={staff.gender === "male"}
+                    readOnly
+                    label="Nam"
                   />
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Email and Password Row */}
-              <div className="flex gap-[12px] items-start w-full">
-                {/* Email */}
-                <div className="flex flex-col gap-[2px] items-start flex-1">
-                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Email
+          {/* Role Section */}
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[10px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full min-w-[870px]">
+            <div className="flex gap-[50px] items-start w-full">
+              <div className="flex flex-col gap-[6px] items-start flex-1">
+                <div className="flex gap-[4px] items-center">
+                  <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
+                    Vai trò nhân viên
                   </label>
-                  <FormInput
-                    type="email"
-                    value={editFormData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="Nhập email"
-                    className="text-[#272424] text-[14px]"
-                    containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-                  />
+                  <HelpCircle className="w-[24px] h-[24px] text-[#888888]" />
                 </div>
-
-                {/* Password */}
-                <div className="flex flex-col gap-[2px] items-start flex-1">
-                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Mật khẩu
-                  </label>
-                  <FormInput
-                    type="password"
-                    value={editFormData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
-                    placeholder="Nhập mật khẩu"
-                    className="text-[#888888] text-[14px]"
-                    containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-                  />
+                <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-default">
+                  <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
+                    {staff.role}
+                  </span>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
 
-              {/* Date of Birth and Gender Row */}
-              <div className="flex gap-[12px] items-center w-full">
-                {/* Date of Birth */}
-                <div className="flex flex-col gap-[2px] items-start flex-1">
-                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Ngày sinh
-                  </label>
-                  <FormInput
-                    type="date"
-                    value={editFormData.dateOfBirth}
-                    onChange={(e) =>
-                      handleInputChange("dateOfBirth", e.target.value)
-                    }
-                    className="text-[14px] font-medium text-[#737373]"
-                    containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-                    right={
-                      <Calendar className="w-[24px] h-[24px] text-[#454545]" />
-                    }
-                  />
-                </div>
+        {/* Edit Modal Overlay */}
+        {isEditing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop with blur and light dark overlay */}
+            <div
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+              onClick={handleCancel}
+            />
+            {/* Modal Content */}
+            <div
+              className="relative z-50 bg-[#f7f7f7] rounded-[24px] w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center px-[8px] py-[16px]">
+                <h2 className="font-bold text-[#1a1a1b] text-[24px] leading-normal">
+                  Sửa thông tin tài khoản
+                </h2>
+              </div>
 
-                {/* Gender */}
-                <div className="flex flex-col gap-[2px] items-start justify-center flex-1">
-                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                    Giới tính
-                  </label>
-                  <div className="flex gap-[10px] items-center w-[209px]">
-                    <CustomRadio
-                      name="gender"
-                      value="female"
-                      checked={editFormData.gender === "female"}
-                      onChange={() => handleInputChange("gender", "female")}
-                      label="Nữ"
+              {/* Form Content */}
+              <div className="flex-1 overflow-y-auto px-[8px] py-0 flex flex-col gap-[6px]">
+                {/* Full Name and Phone Row */}
+                <div className="flex gap-[12px] items-start w-full">
+                  {/* Full Name */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Họ và tên
+                    </label>
+                    <FormInput
+                      type="text"
+                      value={editFormData.fullName}
+                      onChange={(e) =>
+                        handleInputChange("fullName", e.target.value)
+                      }
+                      placeholder="Nhập họ và tên"
+                      className="text-[#272424] text-[14px]"
+                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
-                    <CustomRadio
-                      name="gender"
-                      value="male"
-                      checked={editFormData.gender === "male"}
-                      onChange={() => handleInputChange("gender", "male")}
-                      label="Nam"
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Số điện thoại
+                    </label>
+                    <FormInput
+                      type="tel"
+                      value={editFormData.phone}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
+                      placeholder="Nhập số điện thoại"
+                      className="text-[#272424] text-[14px]"
+                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
                   </div>
                 </div>
+
+                {/* Email and Password Row */}
+                <div className="flex gap-[12px] items-start w-full">
+                  {/* Email */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Email
+                    </label>
+                    <FormInput
+                      type="email"
+                      value={editFormData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      placeholder="Nhập email"
+                      className="text-[#272424] text-[14px]"
+                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Mật khẩu
+                    </label>
+                    <FormInput
+                      type="password"
+                      value={editFormData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      placeholder="Nhập mật khẩu"
+                      className="text-[#888888] text-[14px]"
+                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Date of Birth and Gender Row */}
+                <div className="flex gap-[12px] items-center w-full">
+                  {/* Date of Birth */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Ngày sinh
+                    </label>
+                    <FormInput
+                      type="date"
+                      value={editFormData.dateOfBirth}
+                      onChange={(e) =>
+                        handleInputChange("dateOfBirth", e.target.value)
+                      }
+                      className="text-[14px] font-medium text-[#737373]"
+                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                      right={
+                        <Calendar className="w-[24px] h-[24px] text-[#454545]" />
+                      }
+                    />
+                  </div>
+
+                  {/* Gender */}
+                  <div className="flex flex-col gap-[2px] items-start justify-center flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Giới tính
+                    </label>
+                    <div className="flex gap-[10px] items-center w-[209px]">
+                      <CustomRadio
+                        name="gender"
+                        value="female"
+                        checked={editFormData.gender === "female"}
+                        onChange={() => handleInputChange("gender", "female")}
+                        label="Nữ"
+                      />
+                      <CustomRadio
+                        name="gender"
+                        value="male"
+                        checked={editFormData.gender === "male"}
+                        onChange={() => handleInputChange("gender", "male")}
+                        label="Nam"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Role */}
+                <div className="flex flex-col gap-[2px] items-start w-full">
+                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                    Vai trò
+                  </label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="bg-white border-2 border-[#e04d30] flex gap-[6px] h-[50px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-pointer">
+                        <span className="text-[#e04d30] text-[14px] font-semibold leading-[1.4] flex-1 text-left">
+                          {editFormData.role || "Chọn vai trò"}
+                        </span>
+                        <CaretDown className="text-[#e04d30]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-full">
+                      {roleOptions.map((role) => (
+                        <DropdownMenuItem
+                          key={role}
+                          onClick={() => handleInputChange("role", role)}
+                          className="text-[14px]"
+                        >
+                          {role}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
-              {/* Role */}
-              <div className="flex flex-col gap-[2px] items-start w-full">
-                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                  Vai trò
-                </label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="bg-white border-2 border-[#e04d30] flex gap-[6px] h-[50px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-pointer">
-                      <span className="text-[#e04d30] text-[14px] font-semibold leading-[1.4] flex-1 text-left">
-                        {editFormData.role || "Chọn vai trò"}
-                      </span>
-                      <CaretDown className="text-[#e04d30]" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    {roleOptions.map((role) => (
-                      <DropdownMenuItem
-                        key={role}
-                        onClick={() => handleInputChange("role", role)}
-                        className="text-[14px]"
-                      >
-                        {role}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              {/* Footer Buttons */}
+              <div className="flex gap-[10px] items-center justify-end px-[8px] py-[8px]">
+                <Button
+                  variant="secondary"
+                  onClick={handleCancel}
+                  className="text-[14px]"
+                >
+                  Huỷ
+                </Button>
+                <Button onClick={handleSave} className="text-[14px]">
+                  Xác nhận
+                </Button>
               </div>
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="flex gap-[10px] items-center justify-end px-[8px] py-[8px]">
-              <Button variant="secondary" onClick={handleCancel} className="text-[14px]">
-                Huỷ
-              </Button>
-              <Button onClick={handleSave} className="text-[14px]">Xác nhận</Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
       <div className="h-[calc(100vh-100px)]"></div>
     </div>

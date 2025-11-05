@@ -18,20 +18,14 @@ export const PageHeader = ({
   return (
     <div className={className}>
       <div className="flex flex-col gap-1">
-        <h2 className={titleClassName}>
-          {title}
-        </h2>
+        <h2 className={titleClassName}>{title}</h2>
         {subtitle && (
           <p className="text-[#737373] text-[14px] leading-normal">
             {subtitle}
           </p>
         )}
       </div>
-      {actions && (
-        <div className="flex-shrink-0">
-          {actions}
-        </div>
-      )}
+      {actions && <div className="flex-shrink-0">{actions}</div>}
     </div>
   );
 };

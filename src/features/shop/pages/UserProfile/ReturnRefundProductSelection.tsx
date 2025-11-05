@@ -41,10 +41,11 @@ const ReturnRefundProductSelection: React.FC = () => {
   const navigate = useNavigate();
 
   // Get order data from location state
-  const { order, option } = (location.state as {
-    order?: OrderData;
-    option?: "received-with-issue" | "not-received";
-  }) || {};
+  const { order, option } =
+    (location.state as {
+      order?: OrderData;
+      option?: "received-with-issue" | "not-received";
+    }) || {};
 
   const requestType = option || "received-with-issue";
   const isNotReceived = requestType === "not-received";
@@ -69,9 +70,9 @@ const ReturnRefundProductSelection: React.FC = () => {
   const orderData = order || defaultOrder;
 
   // State for selected products with return quantities
-  const [selectedProducts, setSelectedProducts] = useState<Map<string, SelectedProduct>>(
-    new Map()
-  );
+  const [selectedProducts, setSelectedProducts] = useState<
+    Map<string, SelectedProduct>
+  >(new Map());
 
   const handleProductToggle = (product: ProductType) => {
     const newSelected = new Map(selectedProducts);
@@ -187,7 +188,8 @@ const ReturnRefundProductSelection: React.FC = () => {
               Chọn sản phẩm cần Trả hàng và Hoàn tiền
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              Bạn có thể chọn một hoặc nhiều sản phẩm để yêu cầu trả hàng/hoàn tiền
+              Bạn có thể chọn một hoặc nhiều sản phẩm để yêu cầu trả hàng/hoàn
+              tiền
             </p>
 
             {/* Order Info */}
@@ -280,7 +282,8 @@ const ReturnRefundProductSelection: React.FC = () => {
                           <button
                             onClick={() => handleQuantityChange(product.id, 1)}
                             disabled={
-                              selectedProduct?.returnQuantity >= product.quantity
+                              selectedProduct?.returnQuantity >=
+                              product.quantity
                             }
                             className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Tăng số lượng"
@@ -360,4 +363,3 @@ const ReturnRefundProductSelection: React.FC = () => {
 };
 
 export default ReturnRefundProductSelection;
-

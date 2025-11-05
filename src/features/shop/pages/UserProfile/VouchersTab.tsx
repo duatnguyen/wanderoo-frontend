@@ -189,8 +189,8 @@ const VouchersTab: React.FC = () => {
                       {voucher.validAfter
                         ? `Hiệu lực sau: ${voucher.validAfter}`
                         : voucher.expiryDate
-                        ? `HSD: ${voucher.expiryDate}`
-                        : ""}
+                          ? `HSD: ${voucher.expiryDate}`
+                          : ""}
                     </div>
                   </div>
 
