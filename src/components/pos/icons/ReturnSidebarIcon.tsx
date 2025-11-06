@@ -54,4 +54,3 @@ export const ReturnSidebarIcon: React.FC<ReturnSidebarIconProps> = ({
 };
 
 export default ReturnSidebarIcon;
-

@@ -110,7 +110,7 @@ const AdminWarehouseImports = () => {
   const [selectedStatus, setSelectedStatus] = useState("Tất cả trạng thái");
 
   const tabs = [
-{ id: "all", label: "Tất cả" },
+    { id: "all", label: "Tất cả" },
     { id: "processing", label: "Đang giao dịch" },
     { id: "completed", label: "Đã hoàn thành" },
   ];
@@ -170,7 +170,10 @@ const AdminWarehouseImports = () => {
       style: "currency",
       currency: "VND",
       currencyDisplay: "code",
-    }).format(amount).replace("VND", "đ").replace(/\s/g, "");
+    })
+      .format(amount)
+      .replace("VND", "đ")
+      .replace(/\s/g, "");
   };
 
   const formatDate = (dateString: string) => {
@@ -195,7 +198,7 @@ const AdminWarehouseImports = () => {
       </div>
 
       {/* Main Content */}
-<div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-full max-w-full flex-1 overflow-x-auto">
+      <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-full max-w-full flex-1 overflow-x-auto">
         {/* Tab Menu */}
         <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full">
           <TabMenuAccount
@@ -230,17 +233,39 @@ const AdminWarehouseImports = () => {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Tất cả trạng thái")}>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Tất cả trạng thái")}
+                >
                   Tất cả trạng thái
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Đang giao dịch")}>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Đang giao dịch")}
+                >
                   Đang giao dịch
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Đã hoàn thành")}>Đã hoàn thành</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Chưa nhập")}>Chưa nhập</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Đã nhập")}>Đã nhập</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Chưa thanh toán")}>Chưa thanh toán</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Đã thanh toán")}>Đã thanh toán</DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Đã hoàn thành")}
+                >
+                  Đã hoàn thành
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Chưa nhập")}
+                >
+                  Chưa nhập
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedStatus("Đã nhập")}>
+                  Đã nhập
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Chưa thanh toán")}
+                >
+                  Chưa thanh toán
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Đã thanh toán")}
+                >
+                  Đã thanh toán
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -266,7 +291,8 @@ const AdminWarehouseImports = () => {
                   </div>
                   <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
-                      Phương thức <br/>thanh toán
+                      Phương thức <br />
+                      thanh toán
                     </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
@@ -281,7 +307,8 @@ const AdminWarehouseImports = () => {
                   </div>
                   <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
-                      Trạng thái<br/> thanh toán
+                      Trạng thái
+                      <br /> thanh toán
                     </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
@@ -296,7 +323,7 @@ const AdminWarehouseImports = () => {
                   </div>
                   <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center whitespace-nowrap">
-                       SL nhập
+                      SL nhập
                     </span>
                   </div>
                   <div className="flex h-full items-center justify-end xl:justify-center px-[20px] py-[12px] shrink-0 flex-1 min-w-0">
@@ -327,7 +354,11 @@ const AdminWarehouseImports = () => {
                       <div className="flex h-full items-center justify-center px-[8px] py-[12px] shrink-0 flex-1 min-w-0">
                         <span
                           className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-center whitespace-nowrap cursor-pointer hover:underline"
-                          onClick={() => navigate(`/admin/warehouse/imports/${importItem.id}`)}
+                          onClick={() =>
+                            navigate(
+                              `/admin/warehouse/imports/${importItem.id}`
+                            )
+                          }
                         >
                           {importItem.importCode}
                         </span>
@@ -372,7 +403,11 @@ const AdminWarehouseImports = () => {
                       <div className="flex h-full items-center justify-center px-[6px] py-[12px] shrink-0 flex-1 min-w-0">
                         <span
                           className="font-medium text-[13px] text-[#1a71f6] leading-[1.4] text-center whitespace-nowrap cursor-pointer hover:underline"
-                          onClick={() => navigate(`/admin/warehouse/returns/create?importId=${importItem.id}`)}
+                          onClick={() =>
+                            navigate(
+                              `/admin/warehouse/returns/create?importId=${importItem.id}`
+                            )
+                          }
                         >
                           Trả hàng
                         </span>

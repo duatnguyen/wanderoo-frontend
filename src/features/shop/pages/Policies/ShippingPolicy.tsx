@@ -14,8 +14,9 @@ const ShippingPolicy: React.FC = () => {
         {/* Introductory Paragraph */}
         <div className="rounded-lg sm:p-8 mb-2">
           <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-            Wanderoo cam kết giao hàng nhanh chóng, an toàn và đúng hẹn cho mọi đơn hàng
-            trên toàn quốc. Vui lòng tham khảo chi tiết chính sách dưới đây:
+            Wanderoo cam kết giao hàng nhanh chóng, an toàn và đúng hẹn cho mọi
+            đơn hàng trên toàn quốc. Vui lòng tham khảo chi tiết chính sách dưới
+            đây:
           </p>
         </div>
 
@@ -31,12 +32,12 @@ const ShippingPolicy: React.FC = () => {
             </p>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc mb-4">
               <li>
-                Nhân viên Wanderoo sẽ giao hàng tận nơi theo địa chỉ quý khách cung
-                cấp.
+                Nhân viên Wanderoo sẽ giao hàng tận nơi theo địa chỉ quý khách
+                cung cấp.
               </li>
               <li>
-                Thời gian giao hàng được thỏa thuận trước với khách hàng để đảm bảo
-                thuận tiện.
+                Thời gian giao hàng được thỏa thuận trước với khách hàng để đảm
+                bảo thuận tiện.
               </li>
             </ul>
             <p className="text-xs sm:text-sm font-semibold text-gray-900 mb-2">
@@ -44,16 +45,14 @@ const ShippingPolicy: React.FC = () => {
             </p>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
               <li>
-                Hàng hóa được gửi qua các đơn vị vận chuyển uy tín (Giao Hàng Nhanh,
-                Viettel Post, J&T,...)
+                Hàng hóa được gửi qua các đơn vị vận chuyển uy tín (Giao Hàng
+                Nhanh, Viettel Post, J&T,...)
               </li>
               <li>
                 Thời gian nhận hàng:
                 <ul className="space-y-1 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc mt-2">
                   <li>Nội thành Hà Nội: Giao trong ngày hoặc trong 24h.</li>
-                  <li>
-                    Các tỉnh thành khác: 1 – 4 ngày làm việc tùy khu vực.
-                  </li>
+                  <li>Các tỉnh thành khác: 1 – 4 ngày làm việc tùy khu vực.</li>
                 </ul>
               </li>
             </ul>
@@ -65,8 +64,8 @@ const ShippingPolicy: React.FC = () => {
               2. Phí vận chuyển
             </h2>
             <p className="text-xs sm:text-sm text-gray-700 leading-relaxed mb-2">
-              Phí vận chuyển được tính dựa trên biểu phí của đơn vị vận chuyển và
-              trọng lượng thực tế hoặc quy đổi của đơn hàng:
+              Phí vận chuyển được tính dựa trên biểu phí của đơn vị vận chuyển
+              và trọng lượng thực tế hoặc quy đổi của đơn hàng:
             </p>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc mb-4">
               <li>Nội thành Hà Nội: Từ 15.000₫</li>
@@ -78,12 +77,12 @@ const ShippingPolicy: React.FC = () => {
             </p>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
               <li>
-                Phí có thể thay đổi tùy trọng lượng, kích thước hàng hóa, địa điểm giao
-                hàng.
+                Phí có thể thay đổi tùy trọng lượng, kích thước hàng hóa, địa
+                điểm giao hàng.
               </li>
               <li>
-                Wanderoo sẽ thông báo chi phí vận chuyển cụ thể trước khi xác nhận đơn
-                hàng.
+                Wanderoo sẽ thông báo chi phí vận chuyển cụ thể trước khi xác
+                nhận đơn hàng.
               </li>
             </ul>
           </div>
@@ -95,11 +94,13 @@ const ShippingPolicy: React.FC = () => {
             </h2>
             <ul className="space-y-2 text-xs sm:text-sm text-gray-700 ml-4 sm:ml-6 list-disc">
               <li>
-                Quý khách vui lòng kiểm tra tình trạng sản phẩm trước khi thanh toán.
+                Quý khách vui lòng kiểm tra tình trạng sản phẩm trước khi thanh
+                toán.
               </li>
               <li>
-                Trường hợp hàng bị móp méo, ẩm ướt hoặc không còn nguyên vẹn, vui lòng
-                từ chối nhận hàng và liên hệ ngay với Hotline Wanderoo để được hỗ trợ.
+                Trường hợp hàng bị móp méo, ẩm ướt hoặc không còn nguyên vẹn,
+                vui lòng từ chối nhận hàng và liên hệ ngay với Hotline Wanderoo
+                để được hỗ trợ.
               </li>
             </ul>
           </div>

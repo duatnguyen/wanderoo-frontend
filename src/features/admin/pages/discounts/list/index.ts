@@ -1,2 +1,2 @@
 // Discounts List Pages
-export { default } from './AdminDiscounts';
+export { default } from "./AdminDiscounts";

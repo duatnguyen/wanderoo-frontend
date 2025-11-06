@@ -14,7 +14,7 @@ const UserLayout: React.FC = () => {
         userName={user?.name || "User"}
         avatarUrl={user?.avatar}
         cartCount={0}
-        onMenuClick={() => { }}
+        onMenuClick={() => {}}
       />
 
       <main className="flex-1">

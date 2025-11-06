@@ -169,7 +169,8 @@ const AdminDiscounts: React.FC = () => {
             </h2>
           </div>
           <p className="font-medium text-[13px] text-[#e04d30] leading-[1.4] -mt-[2px] whitespace-nowrap">
-            Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để thu hút người mua.
+            Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để
+            thu hút người mua.
           </p>
         </div>
 
@@ -181,21 +182,26 @@ const AdminDiscounts: React.FC = () => {
                 key={index}
                 className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0"
               >
-              <div className="flex gap-[10px] items-start">
-                <div className="flex items-center justify-center w-[24px] h-[24px]">
-                  {voucher.icon}
+                <div className="flex gap-[10px] items-start">
+                  <div className="flex items-center justify-center w-[24px] h-[24px]">
+                    {voucher.icon}
+                  </div>
+                  <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
+                    {voucher.title}
+                  </div>
                 </div>
-                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                  {voucher.title}
+                <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
+                  {voucher.description}
+                </p>
+                <div className="flex justify-end w-full mt-auto">
+                  <Button
+                    className="h-[28px] px-[16px] text-[14px] rounded-[8px]"
+                    onClick={() => handleCreateVoucher(voucher.title)}
+                  >
+                    Tạo
+                  </Button>
                 </div>
               </div>
-              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
-                {voucher.description}
-              </p>
-              <div className="flex justify-end w-full mt-auto">
-                <Button className="h-[28px] px-[16px] text-[14px] rounded-[8px]" onClick={() => handleCreateVoucher(voucher.title)}>Tạo</Button>
-              </div>
-            </div>
             ))}
           </div>
         </div>
@@ -213,21 +219,26 @@ const AdminDiscounts: React.FC = () => {
                 key={index}
                 className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0"
               >
-              <div className="flex gap-[10px] items-start">
-                <div className="flex items-center justify-center w-[24px] h-[24px]">
-                  {voucher.icon}
+                <div className="flex gap-[10px] items-start">
+                  <div className="flex items-center justify-center w-[24px] h-[24px]">
+                    {voucher.icon}
+                  </div>
+                  <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
+                    {voucher.title}
+                  </div>
                 </div>
-                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                  {voucher.title}
+                <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
+                  {voucher.description}
+                </p>
+                <div className="flex justify-end w-full mt-auto">
+                  <Button
+                    className="h-[28px] px-[16px] text-[14px] rounded-[8px]"
+                    onClick={() => handleCreateVoucher(voucher.title)}
+                  >
+                    Tạo
+                  </Button>
                 </div>
               </div>
-              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
-                {voucher.description}
-              </p>
-              <div className="flex justify-end w-full mt-auto">
-                <Button className="h-[28px] px-[16px] text-[14px] rounded-[8px]" onClick={() => handleCreateVoucher(voucher.title)}>Tạo</Button>
-              </div>
-            </div>
             ))}
           </div>
         </div>
@@ -271,12 +282,12 @@ const AdminDiscounts: React.FC = () => {
       {/* Tab Menu + Search (expanded width) */}
       <div className="w-full xl:w-[calc(100%+100px)] -mx-0 xl:-mx-[50px] flex flex-col gap-2">
         <div className="w-full overflow-x-auto xl:overflow-x-visible">
-        <TabMenuAccount
-          tabs={discountTabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
+          <TabMenuAccount
+            tabs={discountTabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
             className="w-auto min-w-fit"
-        />
+          />
         </div>
 
         {/* Search Bar */}
@@ -316,7 +327,8 @@ const AdminDiscounts: React.FC = () => {
                 </th>
                 <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
                   <p className="font-semibold text-[13px] text-[#272424] leading-[1.4] text-center">
-                    Tổng lượt sử<br/> dụng tối đa
+                    Tổng lượt sử
+                    <br /> dụng tối đa
                   </p>
                 </th>
                 <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
@@ -342,7 +354,6 @@ const AdminDiscounts: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-
               {mockVouchers.map((voucher) => (
                 <tr key={voucher.id} className="border-t border-[#d1d1d1]">
                   <td className="px-[12px] py-[14px] align-top">
@@ -372,7 +383,9 @@ const AdminDiscounts: React.FC = () => {
                   <td className="px-[14px] py-[14px] text-center align-middle">
                     {voucher.type === "Voucher khách hàng mới" ? (
                       <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                        Voucher khách<br/>hàng mới
+                        Voucher khách
+                        <br />
+                        hàng mới
                       </p>
                     ) : (
                       <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">

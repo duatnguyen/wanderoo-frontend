@@ -11,20 +11,30 @@ export type OrderTimelineProps = {
   className?: string;
 };
 
-const OrderTimeline: React.FC<OrderTimelineProps> = ({ steps, className = "" }) => {
+const OrderTimeline: React.FC<OrderTimelineProps> = ({
+  steps,
+  className = "",
+}) => {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-4 sm:p-6 ${className}`}>
+    <div
+      className={`bg-white rounded-lg border border-gray-200 p-4 sm:p-6 ${className}`}
+    >
       <div className="relative">
-        {/* Continuous horizontal gray line connecting all steps */}
-        <div className="hidden sm:block absolute top-4 left-8 right-8 h-0.5 bg-gray-300" />
-        
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-0">
+        {/* Continuous horizontal gray line connecting all steps - centered on icons */}
+        <div
+          className="hidden sm:block absolute left-0 right-0 h-0.5 bg-gray-300"
+          style={{
+            top: "16px", // Half of icon height (32px / 2 = 16px)
+          }}
+        />
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-0 relative">
           {steps.map((step, index) => (
             <div
               key={index}
               className="flex flex-col items-center gap-2 sm:flex-1 relative"
             >
-              {/* Icon - positioned above the connecting line */}
+              {/* Icon - positioned so center aligns with the connecting line */}
               <div className="relative z-10">
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -61,9 +71,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ steps, className = "" }) 
                   {step.label}
                 </div>
                 {step.date && step.completed && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {step.date}
-                  </div>
+                  <div className="text-xs text-gray-500 mt-1">{step.date}</div>
                 )}
               </div>
             </div>
@@ -75,4 +83,3 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ steps, className = "" }) 
 };
 
 export default OrderTimeline;
-

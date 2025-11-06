@@ -5,22 +5,41 @@ import { lazy } from "react";
 import { LazyWrapper } from "../../components/common/LazyWrapper";
 
 // Lazy load user/shop pages
-const UserHome = lazy(() => import("../../features/shop/pages/UserProfile/UserHome"));
+const UserHome = lazy(
+  () => import("../../features/shop/pages/UserProfile/UserHome")
+);
 const ProfileLayout = lazy(() => import("../../layouts/ProfileLayout"));
 const BasicInformationTab = lazy(
   () => import("../../features/shop/pages/UserProfile/BasicInformationTab")
 );
-const AddressTab = lazy(() => import("../../features/shop/pages/UserProfile/AddressTab"));
-const PasswordTab = lazy(() => import("../../features/shop/pages/UserProfile/PasswordTab"));
-const PrivacyTab = lazy(() => import("../../features/shop/pages/UserProfile/PrivacyTab"));
-const OrdersTab = lazy(() => import("../../features/shop/pages/UserProfile/OrdersTab"));
+const AddressTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/AddressTab")
+);
+const PasswordTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/PasswordTab")
+);
+const PrivacyTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/PrivacyTab")
+);
+const OrdersTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/OrdersTab")
+);
 const OrderDetailTab = lazy(
   () => import("../../features/shop/pages/UserProfile/OrderDetailTab")
 );
 const ReturnRefundRequest = lazy(
   () => import("../../features/shop/pages/UserProfile/ReturnRefundRequest")
 );
-const VouchersTab = lazy(() => import("../../features/shop/pages/UserProfile/VouchersTab"));
+const ReturnRefundProductSelection = lazy(
+  () =>
+    import("../../features/shop/pages/UserProfile/ReturnRefundProductSelection")
+);
+const ReturnRefundDetail = lazy(
+  () => import("../../features/shop/pages/UserProfile/ReturnRefundDetail")
+);
+const VouchersTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/VouchersTab")
+);
 const LandingPage = lazy(
   () => import("../../features/shop/pages/Main/landingPage")
 );
@@ -61,6 +80,14 @@ export const userRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <ReturnRefundRequest />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "return-refund/select-products",
+    element: (
+      <LazyWrapper>
+        <ReturnRefundProductSelection />
       </LazyWrapper>
     ),
   },
@@ -172,6 +199,14 @@ export const userRoutes: RouteObject[] = [
           </LazyWrapper>
         ),
       },
+      {
+        path: "return-refund/:requestId",
+        element: (
+          <LazyWrapper>
+            <ReturnRefundDetail />
+          </LazyWrapper>
+        ),
+      },
     ],
   },
 ];
@@ -179,7 +214,7 @@ export const userRoutes: RouteObject[] = [
 // Shop routes (can be public or user-specific)
 export const shopRoutes: RouteObject[] = [
   {
-    path: "/shop",
+    index: true,
     element: (
       <LazyWrapper>
         <LandingPage />
@@ -187,7 +222,7 @@ export const shopRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "/shop/products/:productId",
+    path: "products/:productId",
     element: (
       <LazyWrapper>
         <ProductDetail />
@@ -195,7 +230,7 @@ export const shopRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "/shop/cart",
+    path: "cart",
     element: (
       <LazyWrapper>
         <CartPage />
@@ -203,7 +238,7 @@ export const shopRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "/shop/checkout",
+    path: "checkout",
     element: (
       <LazyWrapper>
         <CheckoutPage />

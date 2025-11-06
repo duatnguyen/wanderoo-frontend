@@ -245,7 +245,11 @@ const AdminWarehouseSupplier = () => {
             <DropdownMenuTrigger asChild>
               <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer">
                 <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  {statusFilter === "all" ? "Tất cả trạng thái" : statusFilter === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
+                  {statusFilter === "all"
+                    ? "Tất cả trạng thái"
+                    : statusFilter === "active"
+                      ? "Đang kích hoạt"
+                      : "Ngừng kích hoạt"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
@@ -255,10 +259,10 @@ const AdminWarehouseSupplier = () => {
                 Tất cả trạng thái
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("active")}>
-              Đang kích hoạt
+                Đang kích hoạt
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
-              Ngừng kích hoạt
+                Ngừng kích hoạt
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -357,7 +361,9 @@ const AdminWarehouseSupplier = () => {
                   <div className="flex h-full items-center px-[4px] py-[12px] flex-1 min-w-0 ml-[7px]">
                     <span
                       className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] whitespace-nowrap cursor-pointer hover:underline"
-                      onClick={() => navigate(`/admin/warehouse/supplier/${s.id}`)}
+                      onClick={() =>
+                        navigate(`/admin/warehouse/supplier/${s.id}`)
+                      }
                     >
                       {s.id}
                     </span>

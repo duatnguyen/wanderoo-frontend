@@ -595,16 +595,24 @@ const AdminProductsNew: React.FC = () => {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem onClick={() => handleInputChange("brand", "Nike")}>
+                    <DropdownMenuItem
+                      onClick={() => handleInputChange("brand", "Nike")}
+                    >
                       Nike
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleInputChange("brand", "Adidas")}>
+                    <DropdownMenuItem
+                      onClick={() => handleInputChange("brand", "Adidas")}
+                    >
                       Adidas
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleInputChange("brand", "Puma")}>
+                    <DropdownMenuItem
+                      onClick={() => handleInputChange("brand", "Puma")}
+                    >
                       Puma
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleInputChange("brand", "New Balance")}>
+                    <DropdownMenuItem
+                      onClick={() => handleInputChange("brand", "New Balance")}
+                    >
                       New Balance
                     </DropdownMenuItem>
                   </DropdownMenuContent>

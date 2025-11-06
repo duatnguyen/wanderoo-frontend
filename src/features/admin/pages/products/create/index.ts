@@ -1,2 +1,2 @@
 // Product Create Pages
-export { default } from './AdminProductsNew';
+export { default } from "./AdminProductsNew";

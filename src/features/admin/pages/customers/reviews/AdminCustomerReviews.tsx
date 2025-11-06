@@ -23,9 +23,9 @@ const AdminCustomerReviews = () => {
 
   const [selectedRatings, setSelectedRatings] = useState<string[]>(["all"]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(
-    null
-  );
+  const [dateRange, setDateRange] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
 
@@ -286,7 +286,9 @@ const AdminCustomerReviews = () => {
                     <p className="font-semibold leading-[1.4] opacity-60 relative text-[#272424] text-[14px] whitespace-pre font-['Montserrat']">
                       {review.customerName}
                     </p>
-                    <span className="text-[#e04d30] opacity-70 mx-[8px] select-none">|</span>
+                    <span className="text-[#e04d30] opacity-70 mx-[8px] select-none">
+                      |
+                    </span>
                   </div>
 
                   <div className="flex gap-[8px] grow items-center overflow-clip px-[4px] py-[2px] relative">

@@ -50,7 +50,7 @@ const Register: React.FC = () => {
 
     if (!isPasswordStrongEnough(formData.password)) {
       setError(
-        "Mật khẩu phải có tối thiểu 6 ký tự, chứa ít nhất 1 chữ cái và 1 số",
+        "Mật khẩu phải có tối thiểu 6 ký tự, chứa ít nhất 1 chữ cái và 1 số"
       );
       return;
     }

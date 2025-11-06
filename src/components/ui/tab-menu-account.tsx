@@ -32,7 +32,7 @@ const TabMenuAccount: React.FC<TabMenuAccountProps> = ({
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            style={{ height: '24px' }}
+            style={{ height: "24px" }}
             className={cn(
               "flex gap-[6px] items-center justify-center px-2 py-0 h-[24px] rounded-[8px] flex-1 whitespace-nowrap",
               "font-bold text-[14px] leading-[100%] font-montserrat transition-colors",

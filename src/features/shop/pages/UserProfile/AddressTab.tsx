@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Button from "../../../../components/shop/Button";
-import DropdownList from "../../../../components/shop/DropdownList";
+import { Select } from "antd";
 import { Input, Textarea } from "../../../../components/shop/Input";
+import Checkbox from "../../../../components/shop/Checkbox";
 
 function PlusIcon() {
   return (
@@ -182,8 +183,8 @@ const AddressTab: React.FC = () => {
                 isDefault: formData.isDefault,
               }
             : formData.isDefault
-            ? { ...addr, isDefault: false }
-            : addr
+              ? { ...addr, isDefault: false }
+              : addr
         )
       );
     } else if (isAddingNew) {
@@ -378,40 +379,52 @@ const AddressTab: React.FC = () => {
 
                 <div className="space-y-4">
                   {/* Province/City */}
-                  <DropdownList
-                    label="Tỉnh/Thành Phố"
-                    options={provinces}
-                    value={formData.province}
-                    onChange={(value: string) =>
-                      handleInputChange("province", value)
-                    }
-                    placeholder="Chọn Tỉnh/Thành Phố"
-                    fullWidth
-                  />
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tỉnh/Thành Phố
+                    </label>
+                    <Select
+                      value={formData.province}
+                      onChange={(value: string) =>
+                        handleInputChange("province", value)
+                      }
+                      placeholder="Chọn Tỉnh/Thành Phố"
+                      className="w-full"
+                      options={provinces}
+                    />
+                  </div>
 
                   {/* District */}
-                  <DropdownList
-                    label="Quận/Huyện"
-                    options={districts}
-                    value={formData.district}
-                    onChange={(value: string) =>
-                      handleInputChange("district", value)
-                    }
-                    placeholder="Chọn Quận/Huyện"
-                    fullWidth
-                  />
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Quận/Huyện
+                    </label>
+                    <Select
+                      value={formData.district}
+                      onChange={(value: string) =>
+                        handleInputChange("district", value)
+                      }
+                      placeholder="Chọn Quận/Huyện"
+                      className="w-full"
+                      options={districts}
+                    />
+                  </div>
 
                   {/* Ward/Commune */}
-                  <DropdownList
-                    label="Phường/Xã"
-                    options={wards}
-                    value={formData.ward}
-                    onChange={(value: string) =>
-                      handleInputChange("ward", value)
-                    }
-                    placeholder="Chọn Phường/Xã"
-                    fullWidth
-                  />
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phường/Xã
+                    </label>
+                    <Select
+                      value={formData.ward}
+                      onChange={(value: string) =>
+                        handleInputChange("ward", value)
+                      }
+                      placeholder="Chọn Phường/Xã"
+                      className="w-full"
+                      options={wards}
+                    />
+                  </div>
 
                   {/* Detail Address */}
                   <Textarea
@@ -427,23 +440,14 @@ const AddressTab: React.FC = () => {
               </div>
 
               {/* Default Address Checkbox */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isDefault"
-                  checked={formData.isDefault}
-                  onChange={(e) =>
-                    handleInputChange("isDefault", e.target.checked)
-                  }
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label
-                  htmlFor="isDefault"
-                  className="text-sm sm:text-base text-gray-700 cursor-pointer"
-                >
-                  Đặt làm địa chỉ mặc định
-                </label>
-              </div>
+              <Checkbox
+                id="isDefault"
+                checked={formData.isDefault}
+                onChange={(e) =>
+                  handleInputChange("isDefault", e.target.checked)
+                }
+                label="Đặt làm địa chỉ mặc định"
+              />
             </div>
 
             {/* Footer Buttons */}

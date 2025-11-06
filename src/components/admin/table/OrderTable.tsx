@@ -24,7 +24,11 @@ export interface OrderRowData {
 
 export interface OrderTableProps {
   orders: OrderRowData[];
-  onViewDetail: (orderId: string, orderStatus: string, orderSource: string) => void;
+  onViewDetail: (
+    orderId: string,
+    orderStatus: string,
+    orderSource: string
+  ) => void;
   getPaymentTypeStatus: (paymentType: string) => ChipStatusKey;
   getProcessingStatus: (status: string) => ChipStatusKey;
   getPaymentStatus: (paymentStatus: string) => ChipStatusKey;
@@ -103,7 +107,11 @@ export const OrderTable = ({
 
 export interface OrderRowProps {
   order: OrderRowData;
-  onViewDetail: (orderId: string, orderStatus: string, orderSource: string) => void;
+  onViewDetail: (
+    orderId: string,
+    orderStatus: string,
+    orderSource: string
+  ) => void;
   getPaymentTypeStatus: (paymentType: string) => ChipStatusKey;
   getProcessingStatus: (status: string) => ChipStatusKey;
   getPaymentStatus: (paymentStatus: string) => ChipStatusKey;
@@ -200,7 +208,9 @@ export const OrderRow = ({
           <div className="flex items-center justify-center gap-[8px] px-[16px] py-[12px] w-[180px]">
             <button
               className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer hover:underline"
-              onClick={() => onViewDetail(order.id, order.status, order.category)}
+              onClick={() =>
+                onViewDetail(order.id, order.status, order.category)
+              }
             >
               <DetailIcon size={16} color="#1a71f6" />
               Xem chi tiết

@@ -281,7 +281,7 @@ const AdminSupplierNew = () => {
           onClick={handleSubmit}
           className="px-[24px] py-[12px]"
         >
-          Thêm mới 
+          Thêm mới
         </Button>
       </div>
     </div>

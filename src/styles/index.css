@@ -121,8 +121,16 @@
 
 body {
   margin: 0;
-  font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    "Montserrat",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
 }
 
 #root {
@@ -480,7 +488,7 @@ body {
   .button-group {
     flex-direction: column;
   }
-  
+
   .button-group > * {
     width: 100%;
   }
@@ -752,8 +760,15 @@ body {
 
 /* Sidebar font override to Inter */
 .admin-sidebar-font {
-  font-family: Inter, -apple-system, system-ui, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif !important;
+  font-family:
+    Inter,
+    -apple-system,
+    system-ui,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif !important;
   font-size: 14px; /* đảm bảo đồng nhất 14px */
 }
 
@@ -762,13 +777,11 @@ body {
   opacity: 0;
 }
 
-
-
 /* Enlarge and keep native datepicker icon visible */
 .big-native-picker::-webkit-calendar-picker-indicator {
   opacity: 1;
   width: 24px;
   height: 24px;
-  transform: scale(1.0);
+  transform: scale(1);
   cursor: pointer;
 }

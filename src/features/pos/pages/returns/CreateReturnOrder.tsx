@@ -56,8 +56,7 @@ const CreateReturnOrder: React.FC = () => {
 
   // Calculate totals
   const totalAmount = returnProducts.reduce(
-    (sum, item) =>
-      sum + item.product.price * item.returnQuantity,
+    (sum, item) => sum + item.product.price * item.returnQuantity,
     0
   );
   const discount = 0;
@@ -112,9 +111,7 @@ const CreateReturnOrder: React.FC = () => {
           <h2 className="text-xl font-bold text-[#272424] mb-2">
             Chọn sản phẩm trả hàng
           </h2>
-          {orderId && (
-            <p className="text-sm text-[#737373]">#{orderId}</p>
-          )}
+          {orderId && <p className="text-sm text-[#737373]">#{orderId}</p>}
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -159,7 +156,8 @@ const CreateReturnOrder: React.FC = () => {
                         disabled={item.returnQuantity <= 0}
                         className={cn(
                           "w-7 h-7 flex items-center justify-center border border-[#e7e7e7] rounded text-[#272424] hover:bg-gray-100 transition-colors",
-                          item.returnQuantity <= 0 && "opacity-50 cursor-not-allowed"
+                          item.returnQuantity <= 0 &&
+                            "opacity-50 cursor-not-allowed"
                         )}
                       >
                         <Minus className="w-4 h-4" />
@@ -225,8 +223,8 @@ const CreateReturnOrder: React.FC = () => {
               className="w-full min-h-[100px] p-3 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30] resize-none"
             />
             <p className="text-xs text-[#e04d30] mt-2">
-              ① Chỉ có Admin và nhân viên trong cửa hàng có thể nhìn thấy lý
-              do này
+              ① Chỉ có Admin và nhân viên trong cửa hàng có thể nhìn thấy lý do
+              này
             </p>
           </div>
         </div>
@@ -310,4 +308,3 @@ const CreateReturnOrder: React.FC = () => {
 };
 
 export default CreateReturnOrder;
-

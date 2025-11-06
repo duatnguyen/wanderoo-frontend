@@ -35,9 +35,7 @@ export const POSOrderTabs: React.FC<POSOrderTabsProps> = ({
               key={order.id}
               className={cn(
                 "flex items-center gap-1 sm:gap-2 rounded-md px-2 sm:px-3 py-1.5 transition-colors cursor-pointer flex-shrink-0",
-                isActive
-                  ? "bg-white"
-                  : "bg-white/50 hover:bg-white/75"
+                isActive ? "bg-white" : "bg-white/50 hover:bg-white/75"
               )}
               onClick={() => onOrderSelect?.(order.id)}
             >
@@ -79,4 +77,3 @@ export const POSOrderTabs: React.FC<POSOrderTabsProps> = ({
 };
 
 export default POSOrderTabs;
-

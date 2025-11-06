@@ -107,4 +107,3 @@ const CashBook: React.FC = () => {
 };
 
 export default CashBook;
-
