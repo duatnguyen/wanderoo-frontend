@@ -7,7 +7,7 @@ export interface PageContainerProps {
 
 export const PageContainer = ({
   children,
-  className = "flex flex-col gap-0 items-center w-full max-w-full overflow-hidden",
+  className = "flex flex-col gap-0  w-full max-w-full overflow-hidden",
 }: PageContainerProps) => {
   return (
     <div className={className}>

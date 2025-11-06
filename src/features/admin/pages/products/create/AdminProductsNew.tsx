@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
 import {
@@ -12,9 +12,23 @@ import {
   ContentCard,
 } from "@/components/common";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
+import FormField from "@/components/ui/FormField";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import ProgressIndicator from "@/components/ui/ProgressIndicator";
 import { ChevronDown } from "lucide-react";
 import { Icon } from "@/components/icons";
 import ImageUpload from "@/components/ui/image-upload";
+import type { 
+  ProductFormData, 
+  ProductAttribute, 
+  CurrentAttribute, 
+  ProductVersion, 
+  EditingVersion, 
+  ProductImage, 
+  FormErrors 
+} from "@/types/product";
+import { validateForm, validateField } from "@/utils/productValidation";
+import "@/styles/animations.css";
 
 // Generate all combinations of attribute values (cartesian product)
 const generateCombinations = (
@@ -86,7 +100,7 @@ const FAKE_VERSIONS = [
 ];
 
 const AdminProductsNew: React.FC = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductFormData>({
     productName: "",
     barcode: "",
     category: "",
@@ -103,62 +117,93 @@ const AdminProductsNew: React.FC = () => {
   });
 
   const [showAttributes, setShowAttributes] = useState(false);
-  const [attributes, setAttributes] = useState<
-    Array<{ name: string; values: string[] }>
-  >([]);
-  const [currentAttribute, setCurrentAttribute] = useState({
+  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [currentAttribute, setCurrentAttribute] = useState<CurrentAttribute>({
     name: "",
     value: "",
   });
-
-  const [images, setImages] = useState<
-    Array<{ id: string; url: string; file?: File }>
-  >([]);
-
-  const [versions, setVersions] = useState<
-    Array<{
-      id: string;
-      combination: string[];
-      name: string;
-      price: string;
-      inventory: string;
-      available: string;
-    }>
-  >([]);
-  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(
-    new Set()
-  );
+  const [images, setImages] = useState<ProductImage[]>([]);
+  const [versions, setVersions] = useState<ProductVersion[]>([]);
+  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(new Set());
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
-  const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>(
-    {}
-  );
+  const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>({});
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [priceValues, setPriceValues] = useState<Record<string, string>>({});
   const [applyAllPrice, setApplyAllPrice] = useState("");
   const [showEditVersionModal, setShowEditVersionModal] = useState(false);
-  const [editingVersion, setEditingVersion] = useState<{
-    id: string;
-    name: string;
-    barcode: string;
-    costPrice: string;
-    sellingPrice: string;
-    inventory: string;
-    available: string;
-    image: string;
-  } | null>(null);
+  const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const editVersionFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleInputChange = (field: string, value: string) => {
+  // Form steps for progress indicator
+  const formSteps = [
+    "Thông tin cơ bản",
+    "Thuộc tính & Phiên bản", 
+    "Thông tin vận chuyển",
+    "Hoàn thành"
+  ];
+
+  const handleInputChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
-  };
+    
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
+    
+    // Real-time validation for specific fields
+    const fieldError = validateField(field, value);
+    if (fieldError) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: fieldError,
+      }));
+    }
+  }, [errors]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-  };
+    
+    // Validate form
+    const formErrors = validateForm(formData);
+    
+    // Check if images are required and missing
+    if (images.length === 0) {
+      formErrors.images = "Vui lòng tải lên ít nhất một hình ảnh sản phẩm";
+    }
+    
+    setErrors(formErrors);
+    
+    if (Object.keys(formErrors).length > 0) {
+      console.log("Form has errors:", formErrors);
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log("Form submitted successfully:", formData);
+      
+      // Reset form or navigate to products list
+      // navigate('/admin/products');
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setErrors({ submit: "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData, images]);
 
   const handleCancel = () => {
     console.log("Form cancelled");
@@ -273,39 +318,39 @@ const AdminProductsNew: React.FC = () => {
     setSelectedVersions(new Set());
   };
 
-  // Update versions when attributes change
-  React.useEffect(() => {
+  // Memoized version calculation
+  const generatedVersions = useMemo(() => {
     if (
       attributes.length === 0 ||
       attributes.some((attr) => attr.values.length === 0)
     ) {
-      // Show fake versions when no attributes
-      setVersions(FAKE_VERSIONS);
-      return;
+      return FAKE_VERSIONS;
     }
 
     const valueArrays = attributes.map((attr) => attr.values);
     const combinations = generateCombinations(valueArrays);
 
-    setVersions((prevVersions) => {
-      const newVersions = combinations.map((combination, index) => {
-        const name = combination.join(" / ");
-        const versionId = `version-${index}`;
-        const existing = prevVersions.find((v) => v.name === name);
+    const newVersions = combinations.map((combination, index) => {
+      const name = combination.join(" / ");
+      const versionId = `version-${index}`;
 
-        return {
-          id: versionId,
-          combination,
-          name,
-          price: existing?.price || "",
-          inventory: existing?.inventory || "",
-          available: existing?.available || "",
-        };
-      });
-      // Add fake versions to the generated ones
-      return [...newVersions, ...FAKE_VERSIONS];
+      return {
+        id: versionId,
+        combination,
+        name,
+        price: "",
+        inventory: "",
+        available: "",
+      };
     });
+    
+    return [...newVersions, ...FAKE_VERSIONS];
   }, [attributes]);
+
+  // Update versions when attributes change
+  React.useEffect(() => {
+    setVersions(generatedVersions);
+  }, [generatedVersions]);
 
   const handleVersionToggle = (versionId: string) => {
     setSelectedVersions((prev) => {
@@ -492,16 +537,38 @@ const AdminProductsNew: React.FC = () => {
 
   const selectedCount = selectedVersions.size;
 
+  // Update current step based on form progress
+  React.useEffect(() => {
+    if (formData.productName && formData.brand && formData.description) {
+      setCurrentStep(1);
+      if (showAttributes && attributes.length > 0) {
+        setCurrentStep(2);
+      }
+      if (formData.weight) {
+        setCurrentStep(3);
+      }
+    } else {
+      setCurrentStep(0);
+    }
+  }, [formData, showAttributes, attributes]);
+
   return (
+
     <PageContainer>
       {/* Header */}
-      <div className="flex items-start gap-2">
-        <button className="flex cursor-pointer hover:opacity-70 transition-opacity">
-          <Icon name="arrow-left" size={24} />
-        </button>
-        <h1 className="text-[24px] font-bold text-[#272424] font-montserrat leading-[100%]">
-          Thêm sản phẩm mới
-        </h1>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center">
+          <h1 className="text-[28px] font-bold text-[#272424] font-montserrat leading-[120%]">
+            Thêm sản phẩm mới
+          </h1>
+        </div>
+        
+        {/* Progress Indicator */}
+        <ProgressIndicator 
+          currentStep={currentStep} 
+          steps={formSteps}
+          className="animate-fadeIn"
+        />
       </div>
 
       <ContentCard>
@@ -516,78 +583,91 @@ const AdminProductsNew: React.FC = () => {
           />
 
           {/* Basic Information Section */}
-          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
-            <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
-              Thông tin cơ bản
-            </h2>
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-6 card-hover animate-slideIn">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-[#e04d30] rounded-full flex items-center justify-center text-white font-bold text-sm">
+                1
+              </div>
+              <h2 className="text-[18px] font-bold text-[#272424] font-montserrat">
+                Thông tin cơ bản
+              </h2>
+            </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
               {/* Product Name and Barcode */}
-              <div className="flex gap-4">
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                      *
-                    </span>
-                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                      Tên sản phẩm
-                    </label>
-                  </div>
+              <div className="flex flex-col md:flex-row gap-4">
+                <FormField
+                  label="Tên sản phẩm"
+                  required
+                  error={errors.productName}
+                  success={!errors.productName && formData.productName.length > 2}
+                  hint="Tên sản phẩm nên ngắn gọn và dễ hiểu"
+                  className="flex-1"
+                >
                   <FormInput
                     placeholder="Nhập tên sản phẩm"
                     value={formData.productName}
                     onChange={(e) =>
                       handleInputChange("productName", e.target.value)
                     }
-                    containerClassName="h-[36px] px-4"
+                    containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${
+                      errors.productName ? 'error-border' : 
+                      !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
+                    }`}
                   />
-                </div>
+                </FormField>
 
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                    Mã vạch/barcode
-                  </label>
+                <FormField
+                  label="Mã vạch/barcode"
+                  error={errors.barcode}
+                  hint="Có thể để trống, hệ thống sẽ tự tạo"
+                  className="flex-1"
+                >
                   <FormInput
                     placeholder="Nhập mã vạch"
                     value={formData.barcode}
                     onChange={(e) => handleInputChange("barcode", e.target.value)}
-                    containerClassName="h-[36px] px-4"
+                    containerClassName="h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring"
                   />
-                </div>
+                </FormField>
               </div>
 
               {/* Category and Brand */}
-              <div className="flex gap-4">
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                    Danh mục
-                  </label>
+              <div className="flex flex-col md:flex-row gap-4">
+                <FormField
+                  label="Danh mục"
+                  error={errors.category}
+                  className="flex-1"
+                >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] w-full h-[36px]">
                         <span className="text-[14px] font-semibold text-[#888888]">
-                          Chọn danh mục
+                          {formData.category || "Chọn danh mục"}
                         </span>
                         <ChevronDown className="w-6 h-6 text-[#322f30]" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-full">
-                      <DropdownMenuItem>Thể thao</DropdownMenuItem>
-                      <DropdownMenuItem>Thời trang</DropdownMenuItem>
-                      <DropdownMenuItem>Điện tử</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleInputChange("category", "Thể thao")}>
+                        Thể thao
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleInputChange("category", "Thời trang")}>
+                        Thời trang
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleInputChange("category", "Điện tử")}>
+                        Điện tử
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
+                </FormField>
 
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                      *
-                    </span>
-                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                      Thương hiệu
-                    </label>
-                  </div>
+                <FormField
+                  label="Thương hiệu"
+                  required
+                  error={errors.brand}
+                  className="flex-1"
+                >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] w-full h-[36px]">
@@ -612,19 +692,15 @@ const AdminProductsNew: React.FC = () => {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
+                </FormField>
               </div>
 
               {/* Description */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-1">
-                  <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                    *
-                  </span>
-                  <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                    Mô tả sản phẩm
-                  </label>
-                </div>
+              <FormField
+                label="Mô tả sản phẩm"
+                required
+                error={errors.description}
+              >
                 <textarea
                   className="bg-white border-2 border-[#e04d30] p-4 rounded-[12px] w-full h-[141px] resize-none outline-none text-[14px] font-semibold placeholder:text-[#888888] text-[#888888]"
                   placeholder="Nhập mô tả sản phẩm"
@@ -633,7 +709,7 @@ const AdminProductsNew: React.FC = () => {
                     handleInputChange("description", e.target.value)
                   }
                 />
-              </div>
+              </FormField>
             </div>
           </div>
 
@@ -1148,12 +1224,75 @@ const AdminProductsNew: React.FC = () => {
             </div>
           </div>
 
+          {/* General Error Message */}
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-[12px] p-4">
+              <p className="text-red-600 text-[14px] font-medium">
+                {errors.submit}
+              </p>
+            </div>
+          )}
+
+          {/* Images Error */}
+          {errors.images && (
+            <div className="bg-red-50 border border-red-200 rounded-[12px] p-4">
+              <p className="text-red-600 text-[14px] font-medium">
+                {errors.images}
+              </p>
+            </div>
+          )}
+
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2.5">
-            <Button variant="secondary" onClick={handleCancel}>
-              Huỷ
-            </Button>
-            <Button type="submit">Thêm sản phẩm</Button>
+          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="text-sm text-gray-500">
+              {Object.keys(errors).length > 0 ? (
+                <span className="text-red-500 animate-shake">
+                  ⚠️ Vui lòng kiểm tra lại thông tin
+                </span>
+              ) : formData.productName && formData.brand && formData.description ? (
+                <span className="text-green-600 animate-fadeIn">
+                  ✅ Thông tin cơ bản đã đầy đủ
+                </span>
+              ) : (
+                <span>Điền thông tin để tiếp tục</span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="secondary" 
+                onClick={handleCancel} 
+                disabled={isSubmitting}
+                className="btn-secondary-enhanced"
+              >
+                Huỷ
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="btn-primary-enhanced px-8"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Đang lưu...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span>Thêm sản phẩm</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path 
+                        d="M5 12h14m-7-7l7 7-7 7" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </ContentCard>
