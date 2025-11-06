@@ -1,16 +1,16 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import ProductCard from "../../../../components/shop/ProductCard";
 import CategoryTabMenu from "../../../../components/shop/CategoryTabMenu";
 import Button from "../../../../components/shop/Button";
 import { productsData } from "../../data/productsData";
+import { useCart } from "../../../../context/CartContext";
 import mainBanner from "../../../../assets/images/banner/main-page-banner.png";
 import subBanner from "../../../../assets/images/banner/sub-banner.png";
 
 const LandingPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { getCartCount } = useCart();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Sample categories data
@@ -55,10 +55,13 @@ const LandingPage: React.FC = () => {
   // Featured products - first 8 products
   const featuredProducts = productsData.slice(0, 8);
 
+  // Today's suggestions - next 8 products (to show variety)
+  const todaySuggestions = productsData.slice(8, 16);
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header
-        cartCount={0}
+        cartCount={getCartCount()}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
@@ -208,7 +211,7 @@ const LandingPage: React.FC = () => {
             <div className="flex-1">
               <div className="inline-block">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  Sản phẩm mới nhất
+                  Gợi ý hôm nay
                 </h2>
               </div>
             </div>
@@ -225,7 +228,7 @@ const LandingPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {featuredProducts.slice(0, 4).map((product) => (
+            {todaySuggestions.map((product) => (
               <ProductCard
                 key={product.id}
                 id={product.id}

@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
 import { Textarea } from "../../../../components/shop/Input";
+import { useCart } from "../../../../context/CartContext";
+import { getProductById } from "../../data/productsData";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -29,6 +31,7 @@ type CheckoutItem = {
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
+  const { cartItems, getCartCount } = useCart();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [notes, setNotes] = useState("");
 
@@ -40,41 +43,25 @@ const CheckoutPage: React.FC = () => {
     isDefault: true,
   };
 
-  // Sample cart items - in real app, fetch from cart context
-  const checkoutItems: CheckoutItem[] = [
-    {
-      id: "1",
-      name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
-      imageUrl: "",
-      price: 100000,
-      quantity: 1,
-      variant: "Đen, Size S",
-    },
-    {
-      id: "2",
-      name: "Lều mái vòm 2 người Snowline Shelter Dom...",
-      imageUrl: "",
-      price: 100000,
-      quantity: 1,
-      variant: "Đen, Size S",
-    },
-    {
-      id: "3",
-      name: "Lều Dã Ngoại Bến Đẹp Rần ri - Đồ Câu Simano",
-      imageUrl: "",
-      price: 100000,
-      quantity: 1,
-      variant: "Đen, Size S",
-    },
-    {
-      id: "4",
-      name: "Giày leo núi cổ cao Clorts Trekking Shoes....",
-      imageUrl: "",
-      price: 100000,
-      quantity: 1,
-      variant: "Đỏ đen, Size 37",
-    },
-  ];
+  // Map cart items to checkout items with product data
+  const checkoutItems: CheckoutItem[] = useMemo(() => {
+    return cartItems
+      .map((cartItem) => {
+        const product = getProductById(cartItem.productId);
+        if (!product) return null;
+
+        return {
+          id: cartItem.productId.toString(),
+          name: product.name,
+          description: product.description,
+          imageUrl: product.imageUrl || "",
+          price: product.price,
+          quantity: cartItem.quantity,
+          variant: cartItem.variant,
+        } as CheckoutItem;
+      })
+      .filter((item): item is CheckoutItem => item !== null);
+  }, [cartItems]);
 
   const subtotal = checkoutItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -84,15 +71,10 @@ const CheckoutPage: React.FC = () => {
   const discountCode = 0;
   const total = subtotal + shippingFee - discountCode;
 
-  const totalItems = checkoutItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
-
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header
-        cartCount={totalItems}
+        cartCount={getCartCount()}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
@@ -121,7 +103,7 @@ const CheckoutPage: React.FC = () => {
         </section>
 
         {/* Checkout Content */}
-        <section className="w-full bg-white py-8">
+        <section className="w-full bg-gray-50 py-8">
           <div className="max-w-[1200px] mx-auto px-4">
             <h1 className="text-[32px] font-bold text-gray-900 mb-8">
               Thanh toán

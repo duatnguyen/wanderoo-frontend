@@ -214,7 +214,7 @@ export const userRoutes: RouteObject[] = [
 // Shop routes (can be public or user-specific)
 export const shopRoutes: RouteObject[] = [
   {
-    path: "/shop",
+    index: true,
     element: (
       <LazyWrapper>
         <LandingPage />
@@ -222,7 +222,7 @@ export const shopRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "/shop/products/:productId",
+    path: "products/:productId",
     element: (
       <LazyWrapper>
         <ProductDetail />
@@ -230,7 +230,7 @@ export const shopRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "/shop/cart",
+    path: "cart",
     element: (
       <LazyWrapper>
         <CartPage />
@@ -238,7 +238,7 @@ export const shopRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "/shop/checkout",
+    path: "checkout",
     element: (
       <LazyWrapper>
         <CheckoutPage />

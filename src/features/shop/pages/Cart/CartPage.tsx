@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
@@ -6,6 +6,8 @@ import Button from "../../../../components/shop/Button";
 import ProductCard from "../../../../components/shop/ProductCard";
 import { Select } from "antd";
 import Checkbox from "../../../../components/shop/Checkbox";
+import { useCart } from "../../../../context/CartContext";
+import { getProductById } from "../../data/productsData";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -19,8 +21,9 @@ function formatCurrencyVND(value: number) {
   }
 }
 
-type CartItem = {
+type CartItemDisplay = {
   id: string;
+  productId: string | number;
   name: string;
   description?: string;
   imageUrl: string;
@@ -33,88 +36,56 @@ type CartItem = {
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
+  const { cartItems, updateQuantity, removeFromCart, addToCart, getCartCount } =
+    useCart();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
-  // Sample cart data - in real app, fetch from API or context
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: "1",
-      name: "Gậy Leo Núi Có Đệm Lò Xo Dài",
-      description: "110-135cm, Gậy Trekking",
-      imageUrl: "",
-      price: 100000,
-      quantity: 1,
-      variant: "Đen",
-      variantOptions: [
-        { label: "Đen", value: "Đen" },
-        { label: "Xám", value: "Xám" },
-        { label: "Cam", value: "Cam" },
-      ],
-    },
-    {
-      id: "2",
-      name: "Ba lô ngoài trời CAMEL CROWN",
-      description: "Túi leo núi chuyên nghiệp",
-      imageUrl: "",
-      price: 100000,
-      quantity: 1,
-      variant: "Đen",
-      variantOptions: [
-        { label: "Đen", value: "Đen" },
-        { label: "Xanh", value: "Xanh" },
-        { label: "Đỏ", value: "Đỏ" },
-      ],
-    },
-    {
-      id: "3",
-      name: "Giày thể thao leo núi CAMEL CROWN",
-      description: "FB12235182",
-      imageUrl: "",
-      price: 100000,
-      quantity: 1,
-      variant: "Xám, Size 35",
-      variantOptions: [
-        { label: "Đen, Size 35", value: "Đen, Size 35" },
-        { label: "Xám, Size 35", value: "Xám, Size 35" },
-        { label: "Xám, Size 36", value: "Xám, Size 36" },
-      ],
-    },
-    {
-      id: "4",
-      name: "Tất Xỏ Ngón Chạy Bộ Chạy Trail",
-      description: "Leo Núi- Hạn Chế Phồng",
-      imageUrl: "",
-      price: 100000,
-      quantity: 1,
-      variant: "Đen, Size giày 36",
-      variantOptions: [
-        { label: "Đen, Size giày 36", value: "Đen, Size giày 36" },
-        { label: "Đen, Size giày 37", value: "Đen, Size giày 37" },
-        { label: "Xám, Size giày 36", value: "Xám, Size giày 36" },
-      ],
-    },
-  ]);
+  // Map cart items to display format with product data
+  const cartItemsDisplay: CartItemDisplay[] = useMemo(() => {
+    return cartItems
+      .map((cartItem) => {
+        const product = getProductById(cartItem.productId);
+        if (!product) return null;
 
-  const handleQuantityChange = (id: string, change: number) => {
-    setCartItems((items) =>
-      items.map((item) => {
-        if (item.id === id) {
-          const newQuantity = item.quantity + change;
-          return { ...item, quantity: Math.max(1, newQuantity) };
-        }
-        return item;
+        return {
+          id: `${cartItem.productId}-${cartItem.variant || "default"}`,
+          productId: cartItem.productId,
+          name: product.name,
+          description: product.description,
+          imageUrl: product.imageUrl || "",
+          price: product.price,
+          originalPrice: product.originalPrice,
+          quantity: cartItem.quantity,
+          variant: cartItem.variant,
+          variantOptions: product.variantOptions,
+        } as CartItemDisplay;
       })
+      .filter((item): item is CartItemDisplay => item !== null);
+  }, [cartItems]);
+
+  const handleQuantityChange = (productId: string | number, change: number) => {
+    const cartItem = cartItems.find(
+      (item) => item.productId.toString() === productId.toString()
     );
+    if (cartItem) {
+      const newQuantity = cartItem.quantity + change;
+      updateQuantity(productId, Math.max(1, newQuantity));
+    }
   };
 
-  const handleRemoveItem = (id: string) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
-    setSelectedItems((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
-    });
+  const handleRemoveItem = (productId: string | number) => {
+    removeFromCart(productId);
+    const itemId = cartItemsDisplay.find(
+      (item) => item.productId.toString() === productId.toString()
+    )?.id;
+    if (itemId) {
+      setSelectedItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+    }
   };
 
   const handleSelectItem = (id: string) => {
@@ -130,32 +101,39 @@ const CartPage: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectedItems.size === cartItems.length) {
+    if (selectedItems.size === cartItemsDisplay.length) {
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(cartItems.map((item) => item.id)));
+      setSelectedItems(new Set(cartItemsDisplay.map((item) => item.id)));
     }
   };
 
   const handleDeleteSelected = () => {
-    setCartItems((items) =>
-      items.filter((item) => !selectedItems.has(item.id))
-    );
+    selectedItems.forEach((itemId) => {
+      const cartItem = cartItemsDisplay.find((item) => item.id === itemId);
+      if (cartItem) {
+        removeFromCart(cartItem.productId);
+      }
+    });
     setSelectedItems(new Set());
   };
 
-  const handleVariantChange = (id: string, variant: string) => {
-    setCartItems((items) =>
-      items.map((item) => {
-        if (item.id === id) {
-          return { ...item, variant };
-        }
-        return item;
-      })
-    );
+  const handleVariantChange = (productId: string | number, variant: string) => {
+    const product = getProductById(productId);
+    if (product) {
+      const cartItem = cartItems.find(
+        (item) => item.productId.toString() === productId.toString()
+      );
+      if (cartItem) {
+        // Remove old item and add new one with different variant
+        removeFromCart(productId);
+        // Add back with new variant
+        addToCart(product, cartItem.quantity, variant);
+      }
+    }
   };
 
-  const selectedCartItems = cartItems.filter((item) =>
+  const selectedCartItems = cartItemsDisplay.filter((item) =>
     selectedItems.has(item.id)
   );
   const totalSelectedItems = selectedCartItems.reduce(
@@ -208,9 +186,9 @@ const CartPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header
-        cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
+        cartCount={getCartCount()}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
@@ -232,13 +210,13 @@ const CartPage: React.FC = () => {
         </section>
 
         {/* Cart Content */}
-        <section className="w-full bg-white py-8">
+        <section className="w-full bg-gray-50 py-8">
           <div className="max-w-[1200px] mx-auto px-4">
             <h1 className="text-[32px] font-bold text-gray-900 mb-8">
               Giỏ hàng của bạn
             </h1>
 
-            {cartItems.length === 0 ? (
+            {cartItemsDisplay.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-gray-600 text-lg mb-4">
                   Giỏ hàng của bạn đang trống
@@ -277,7 +255,7 @@ const CartPage: React.FC = () => {
 
                   {/* Cart Items Rows */}
                   <div className="divide-y divide-gray-200">
-                    {cartItems.map((item) => (
+                    {cartItemsDisplay.map((item) => (
                       <div
                         key={item.id}
                         className="grid grid-cols-12 gap-4 px-4 py-4 items-start hover:bg-gray-50 transition-colors"
@@ -310,7 +288,7 @@ const CartPage: React.FC = () => {
                                 <Select
                                   value={item.variant}
                                   onChange={(value) =>
-                                    handleVariantChange(item.id, value)
+                                    handleVariantChange(item.productId, value)
                                   }
                                   className="w-[180px]"
                                   options={item.variantOptions}
@@ -335,7 +313,9 @@ const CartPage: React.FC = () => {
                         <div className="col-span-2 flex justify-center pt-2">
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => handleQuantityChange(item.id, -1)}
+                              onClick={() =>
+                                handleQuantityChange(item.productId, -1)
+                              }
                               disabled={item.quantity <= 1}
                               className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               aria-label="Giảm số lượng"
@@ -358,7 +338,9 @@ const CartPage: React.FC = () => {
                               className="w-12 h-8 text-center border border-gray-300 rounded text-sm font-medium"
                             />
                             <button
-                              onClick={() => handleQuantityChange(item.id, 1)}
+                              onClick={() =>
+                                handleQuantityChange(item.productId, 1)
+                              }
                               className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
                               aria-label="Tăng số lượng"
                             >
@@ -386,7 +368,7 @@ const CartPage: React.FC = () => {
                         {/* Remove Button */}
                         <div className="col-span-2 flex justify-center pt-2">
                           <button
-                            onClick={() => handleRemoveItem(item.id)}
+                            onClick={() => handleRemoveItem(item.productId)}
                             className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
                             aria-label="Xóa sản phẩm"
                           >
@@ -412,13 +394,13 @@ const CartPage: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <Checkbox
                         checked={
-                          cartItems.length > 0 &&
-                          selectedItems.size === cartItems.length
+                          cartItemsDisplay.length > 0 &&
+                          selectedItems.size === cartItemsDisplay.length
                         }
                         onChange={handleSelectAll}
                       />
                       <span className="text-gray-700">
-                        Chọn tất cả ({cartItems.length})
+                        Chọn tất cả ({cartItemsDisplay.length})
                       </span>
                       <button
                         onClick={handleDeleteSelected}
@@ -460,7 +442,7 @@ const CartPage: React.FC = () => {
         </section>
 
         {/* Recommended Products Section */}
-        {cartItems.length > 0 && (
+        {cartItemsDisplay.length > 0 && (
           <section className="w-full bg-gray-50 py-10">
             <div className="max-w-[1200px] mx-auto px-4">
               <div className="mb-8 flex items-center justify-between">

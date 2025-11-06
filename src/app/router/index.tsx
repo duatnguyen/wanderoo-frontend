@@ -5,6 +5,7 @@ import { Suspense } from "react";
 // Layouts
 import AdminLayout from "../../layouts/AdminLayout";
 import POSLayout from "../../layouts/POSLayout";
+import ShopLayout from "../../layouts/ShopLayout";
 
 // Pages
 import Login from "../../pages/auth/Login";
@@ -58,7 +59,11 @@ export const router = createBrowserRouter([
   },
 
   // Shop routes (public - landing page)
-  ...shopRoutes,
+  {
+    path: "/shop",
+    element: <ShopLayout />,
+    children: shopRoutes,
+  },
 
   // User routes (temporarily public for UI development)
   {
