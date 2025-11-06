@@ -3,23 +3,10 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
-import ProductCard from "../../../../components/shop/ProductCard";
-import { Select } from "antd";
-import Checkbox from "../../../../components/shop/Checkbox";
 import { useCart } from "../../../../context/CartContext";
 import { getProductById } from "../../data/productsData";
-
-function formatCurrencyVND(value: number) {
-  try {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return `${value.toLocaleString("vi-VN")}đ`;
-  }
-}
+import CartTable from "../../../../components/shop/Cart/CartTable";
+import RecommendedProducts from "../../../../components/shop/Cart/RecommendedProducts";
 
 type CartItemDisplay = {
   id: string;
@@ -133,18 +120,6 @@ const CartPage: React.FC = () => {
     }
   };
 
-  const selectedCartItems = cartItemsDisplay.filter((item) =>
-    selectedItems.has(item.id)
-  );
-  const totalSelectedItems = selectedCartItems.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
-  const totalAmount = selectedCartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
   // Recommended products
   const recommendedProducts = [
     {
@@ -230,258 +205,23 @@ const CartPage: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              <div className="w-full">
-                {/* Cart Table */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Table Header */}
-                  <div className="bg-gray-100 grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-200">
-                    <div className="col-span-1"></div>
-                    <div className="col-span-4 font-semibold text-gray-700">
-                      Sản phẩm
-                    </div>
-                    <div className="col-span-1 font-semibold text-gray-700 text-center">
-                      Đơn giá
-                    </div>
-                    <div className="col-span-2 font-semibold text-gray-700 text-center">
-                      Số lượng
-                    </div>
-                    <div className="col-span-2 font-semibold text-gray-700 text-center">
-                      Thành tiền
-                    </div>
-                    <div className="col-span-2 font-semibold text-gray-700 text-center">
-                      Thao tác
-                    </div>
-                  </div>
-
-                  {/* Cart Items Rows */}
-                  <div className="divide-y divide-gray-200">
-                    {cartItemsDisplay.map((item) => (
-                      <div
-                        key={item.id}
-                        className="grid grid-cols-12 gap-4 px-4 py-4 items-start hover:bg-gray-50 transition-colors"
-                      >
-                        {/* Checkbox */}
-                        <div className="col-span-1 flex items-start pt-2">
-                          <Checkbox
-                            checked={selectedItems.has(item.id)}
-                            onChange={() => handleSelectItem(item.id)}
-                          />
-                        </div>
-
-                        {/* Product Info */}
-                        <div className="col-span-4 flex gap-3">
-                          <div className="w-20 h-20 rounded border border-gray-300 bg-transparent flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-gray-900 mb-1 line-clamp-2">
-                              {item.name}
-                            </h3>
-                            {item.description && (
-                              <p className="text-sm text-gray-500 mb-2 line-clamp-1">
-                                {item.description}
-                              </p>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">
-                                Phân loại hàng:
-                              </span>
-                              {item.variantOptions ? (
-                                <Select
-                                  value={item.variant}
-                                  onChange={(value) =>
-                                    handleVariantChange(item.productId, value)
-                                  }
-                                  className="w-[180px]"
-                                  options={item.variantOptions}
-                                />
-                              ) : (
-                                <span className="text-sm text-gray-700">
-                                  {item.variant || "Mặc định"}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Unit Price */}
-                        <div className="col-span-1 text-center pt-2">
-                          <div className="text-gray-900 font-medium">
-                            {formatCurrencyVND(item.price)}
-                          </div>
-                        </div>
-
-                        {/* Quantity */}
-                        <div className="col-span-2 flex justify-center pt-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() =>
-                                handleQuantityChange(item.productId, -1)
-                              }
-                              disabled={item.quantity <= 1}
-                              className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              aria-label="Giảm số lượng"
-                            >
-                              <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="M5 12h14" />
-                              </svg>
-                            </button>
-                            <input
-                              type="number"
-                              value={item.quantity}
-                              readOnly
-                              className="w-12 h-8 text-center border border-gray-300 rounded text-sm font-medium"
-                            />
-                            <button
-                              onClick={() =>
-                                handleQuantityChange(item.productId, 1)
-                              }
-                              className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors"
-                              aria-label="Tăng số lượng"
-                            >
-                              <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                              >
-                                <path d="M12 5v14M5 12h14" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Total */}
-                        <div className="col-span-2 text-center pt-2">
-                          <div className="text-gray-900 font-semibold">
-                            {formatCurrencyVND(item.price * item.quantity)}
-                          </div>
-                        </div>
-
-                        {/* Remove Button */}
-                        <div className="col-span-2 flex justify-center pt-2">
-                          <button
-                            onClick={() => handleRemoveItem(item.productId)}
-                            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                            aria-label="Xóa sản phẩm"
-                          >
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              className="text-gray-600"
-                            >
-                              <path d="M18 6L6 18M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Table Footer */}
-                  <div className="bg-white border-t border-gray-200 px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Checkbox
-                        checked={
-                          cartItemsDisplay.length > 0 &&
-                          selectedItems.size === cartItemsDisplay.length
-                        }
-                        onChange={handleSelectAll}
-                      />
-                      <span className="text-gray-700">
-                        Chọn tất cả ({cartItemsDisplay.length})
-                      </span>
-                      <button
-                        onClick={handleDeleteSelected}
-                        disabled={selectedItems.size === 0}
-                        className="text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                      >
-                        Xóa
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <div className="text-sm text-gray-600">
-                          Tổng cộng ({totalSelectedItems} sản phẩm):
-                        </div>
-                        <div
-                          className={`text-xl font-bold ${
-                            totalSelectedItems === 0
-                              ? "text-red-600"
-                              : "text-gray-900"
-                          }`}
-                        >
-                          {formatCurrencyVND(totalAmount)}
-                        </div>
-                      </div>
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        onClick={() => navigate("/shop/checkout")}
-                        disabled={selectedItems.size === 0}
-                      >
-                        Mua Hàng
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CartTable
+                items={cartItemsDisplay}
+                selectedItems={selectedItems}
+                onSelectItem={handleSelectItem}
+                onSelectAll={handleSelectAll}
+                onQuantityChange={handleQuantityChange}
+                onRemoveItem={handleRemoveItem}
+                onVariantChange={handleVariantChange}
+                onDeleteSelected={handleDeleteSelected}
+                onCheckout={() => navigate("/shop/checkout")}
+              />
             )}
           </div>
         </section>
 
-        {/* Recommended Products Section */}
         {cartItemsDisplay.length > 0 && (
-          <section className="w-full bg-gray-50 py-10">
-            <div className="max-w-[1200px] mx-auto px-4">
-              <div className="mb-8 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="inline-block">
-                    <h2 className="text-[32px] font-bold text-gray-900">
-                      Sản phẩm gợi ý
-                    </h2>
-                  </div>
-                </div>
-                <a
-                  href="#"
-                  className="text-blue-600 text-[16px] font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate("/shop");
-                  }}
-                >
-                  Xem tất cả &gt;&gt;
-                </a>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {recommendedProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    imageUrl={product.imageUrl}
-                    name={product.name}
-                    price={product.price}
-                    originalPrice={product.originalPrice}
-                    rating={product.rating}
-                    discountPercent={product.discountPercent}
-                    onClick={() => navigate(`/shop/products/${product.id}`)}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
+          <RecommendedProducts products={recommendedProducts} />
         )}
       </main>
 

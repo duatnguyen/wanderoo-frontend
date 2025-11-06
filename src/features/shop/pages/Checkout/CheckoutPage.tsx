@@ -6,18 +6,9 @@ import Button from "../../../../components/shop/Button";
 import { Textarea } from "../../../../components/shop/Input";
 import { useCart } from "../../../../context/CartContext";
 import { getProductById } from "../../data/productsData";
-
-function formatCurrencyVND(value: number) {
-  try {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return `${value.toLocaleString("vi-VN")}đ`;
-  }
-}
+import ShippingAddress from "../../../../components/shop/Checkout/ShippingAddress";
+import ProductsTable from "../../../../components/shop/Checkout/ProductsTable";
+import OrderSummary from "../../../../components/shop/Checkout/OrderSummary";
 
 type CheckoutItem = {
   id: string;
@@ -110,103 +101,15 @@ const CheckoutPage: React.FC = () => {
             </h1>
 
             <div className="space-y-6">
-              {/* Shipping Address Section */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Địa chỉ nhận hàng
-                </h2>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-semibold text-gray-900">
-                        {shippingAddress.name}
-                      </span>
-                      <span className="text-gray-600">
-                        {shippingAddress.phone}
-                      </span>
-                    </div>
-                    <p className="text-gray-700">{shippingAddress.address}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {shippingAddress.isDefault && (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-lg">
-                        Mặc định
-                      </span>
-                    )}
-                    <button
-                      onClick={() => console.log("Change address")}
-                      className="text-blue-600 hover:text-blue-700 transition-colors"
-                    >
-                      Thay đổi
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ShippingAddress
+                name={shippingAddress.name}
+                phone={shippingAddress.phone}
+                address={shippingAddress.address}
+                isDefault={shippingAddress.isDefault}
+                onChange={() => console.log("Change address")}
+              />
 
-              {/* Products Table Section */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div className="p-4 border-b border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Sản phẩm
-                  </h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                          Sản phẩm
-                        </th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                          Đơn giá
-                        </th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                          Số lượng
-                        </th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
-                          Thành tiền
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {checkoutItems.map((item) => (
-                        <tr key={item.id}>
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-16 h-16 rounded border border-gray-300 bg-transparent" />
-                              <div>
-                                <p className="font-medium text-gray-900 mb-1">
-                                  {item.name}
-                                </p>
-                                {item.variant && (
-                                  <p className="text-sm text-gray-500">
-                                    Phân loại hàng: {item.variant}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className="text-gray-900 font-medium">
-                              {formatCurrencyVND(item.price)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className="text-gray-900">
-                              {item.quantity}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className="text-gray-900 font-semibold">
-                              {formatCurrencyVND(item.price * item.quantity)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <ProductsTable items={checkoutItems} />
 
               {/* Discount Code, Notes, and Shipping Method */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -272,31 +175,12 @@ const CheckoutPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Order Summary */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-gray-700">
-                      <span>Tổng tiền hàng</span>
-                      <span>{formatCurrencyVND(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-700">
-                      <span>Tổng tiền phí vận chuyển</span>
-                      <span>{formatCurrencyVND(shippingFee)}</span>
-                    </div>
-                    <div className="flex justify-between text-gray-700">
-                      <span>Mã giảm giá</span>
-                      <span>{formatCurrencyVND(discountCode)}</span>
-                    </div>
-                    <div className="border-t border-gray-300 pt-3 mt-3">
-                      <div className="flex justify-between">
-                        <span className="font-bold text-gray-900">
-                          Tổng tiền thanh toán
-                        </span>
-                        <span className="font-bold text-[#18345c] text-lg">
-                          {formatCurrencyVND(total)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  <OrderSummary
+                    subtotal={subtotal}
+                    shippingFee={shippingFee}
+                    discountCode={discountCode}
+                    total={total}
+                  />
                 </div>
               </div>
 
