@@ -11,6 +11,7 @@ const OrdersTab: React.FC = () => {
   const [activeTab, setActiveTab] = useState<OrderStatus>("all");
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   // Use shared orders data
   const orders = ordersData;
@@ -20,6 +21,18 @@ const OrdersTab: React.FC = () => {
     () => filterOrders(orders, activeTab, startDate, endDate),
     [orders, activeTab, startDate, endDate]
   );
+
+  const handleToggleExpand = (orderId: string) => {
+    setExpandedOrders((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -53,6 +66,8 @@ const OrdersTab: React.FC = () => {
               key={order.id}
               order={order}
               formatCurrency={formatCurrencyVND}
+              isExpanded={expandedOrders.has(order.id)}
+              onToggleExpand={() => handleToggleExpand(order.id)}
             />
           ))
         )}

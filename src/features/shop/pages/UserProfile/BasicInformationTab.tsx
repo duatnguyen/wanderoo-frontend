@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { Form, Input, Radio, DatePicker, Upload, message } from "antd";
-import type { UploadFile, UploadProps } from "antd";
-import { CameraOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
-import ButtonComponent from "../../../../components/shop/Button";
+import React, { useState, useRef } from "react";
+import { Input, DatePicker } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
+import Button from "../../../../components/shop/Button";
+import CustomRadio from "../../../../components/ui/custom-radio";
 
 interface UserData {
   fullName: string;
@@ -15,10 +14,8 @@ interface UserData {
 }
 
 const BasicInformationTab: React.FC = () => {
-  const [form] = Form.useForm();
-  const [isEditing, setIsEditing] = useState(false);
-  const [avatarFileList, setAvatarFileList] = useState<UploadFile[]>([]);
-  const [userData] = useState<UserData>({
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [userData, setUserData] = useState<UserData>({
     fullName: "Thanh",
     email: "thanh@gmail.com",
     phone: "0812345678",
@@ -27,323 +24,360 @@ const BasicInformationTab: React.FC = () => {
     avatar: "https://randomuser.me/api/portraits/men/32.jpg",
   });
 
-  useEffect(() => {
-    if (isEditing) {
-      // Parse dateOfBirth if it's a valid date string, otherwise use null
-      const dateOfBirth = userData.dateOfBirth.includes("**")
-        ? null
-        : dayjs(userData.dateOfBirth, "DD/MM/YYYY");
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [tempValues, setTempValues] = useState<{
+    email?: string;
+    phone?: string;
+    dateOfBirth?: Dayjs | null;
+  }>({});
 
-      form.setFieldsValue({
-        fullName: userData.fullName,
-        email: userData.email,
-        phone: userData.phone,
-        gender: userData.gender,
-        dateOfBirth: dateOfBirth,
+  // Mask email: show first 2 chars, then asterisks, then @domain
+  const maskEmail = (email: string): string => {
+    const [localPart, domain] = email.split("@");
+    if (localPart.length <= 2) return email;
+    const visible = localPart.substring(0, 2);
+    const masked = "*".repeat(Math.max(11, localPart.length - 2));
+    return `${visible}${masked}@${domain}`;
+  };
+
+  // Mask phone: show first 2 digits, then asterisks
+  const maskPhone = (phone: string): string => {
+    if (phone.length <= 2) return phone;
+    const visible = phone.substring(0, 2);
+    const masked = "*".repeat(phone.length - 2);
+    return `${visible}${masked}`;
+  };
+
+  const formatDateForInput = (dateString: string): Dayjs | null => {
+    // If it's in DD/MM/YYYY format, convert to Dayjs object
+    if (dateString.includes("/") && !dateString.includes("**")) {
+      const [day, month, year] = dateString.split("/");
+      return dayjs(`${year}-${month}-${day}`, "YYYY-MM-DD");
+    }
+    return null;
+  };
+
+  const handleSave = () => {
+    if (editingField) {
+      if (editingField === "email" && tempValues.email) {
+        setUserData({ ...userData, email: tempValues.email });
+      } else if (editingField === "phone" && tempValues.phone) {
+        setUserData({ ...userData, phone: tempValues.phone });
+      } else if (editingField === "dateOfBirth" && tempValues.dateOfBirth) {
+        setUserData({
+          ...userData,
+          dateOfBirth: tempValues.dateOfBirth.format("DD/MM/YYYY"),
+        });
+      }
+      setEditingField(null);
+      setTempValues({});
+    } else {
+      // Save full name and gender
+      console.log("Saving user data:", userData);
+    }
+  };
+
+  const handleChangeClick = (field: "email" | "phone" | "dateOfBirth") => {
+    setEditingField(field);
+    if (field === "email") {
+      setTempValues({ ...tempValues, email: userData.email });
+    } else if (field === "phone") {
+      setTempValues({ ...tempValues, phone: userData.phone });
+    } else if (field === "dateOfBirth") {
+      setTempValues({
+        ...tempValues,
+        dateOfBirth: formatDateForInput(userData.dateOfBirth),
       });
     }
-  }, [isEditing, form, userData]);
+  };
 
-  const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      console.log("Saving user data:", {
-        ...values,
-        dateOfBirth: values.dateOfBirth
-          ? values.dateOfBirth.format("DD/MM/YYYY")
-          : userData.dateOfBirth,
-      });
-      setIsEditing(false);
-      message.success("Cập nhật thông tin thành công");
-    } catch (error) {
-      console.error("Validation failed:", error);
+  const handleCancelEdit = () => {
+    setEditingField(null);
+    setTempValues({});
+  };
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Vui lòng chọn file hình ảnh");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      alert("Kích thước file không được vượt quá 5MB");
+      return;
+    }
+
+    // Read file and update avatar
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setUserData({
+          ...userData,
+          avatar: e.target.result as string,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (event.target) {
+      event.target.value = "";
     }
   };
 
-  const handleAvatarChange: UploadProps["onChange"] = (info) => {
-    let fileList = [...info.fileList];
-    fileList = fileList.slice(-1); // Only keep the last file
-    setAvatarFileList(fileList);
-
-    if (info.file.status === "done") {
-      message.success(`${info.file.name} file uploaded successfully`);
-    } else if (info.file.status === "error") {
-      message.error(`${info.file.name} file upload failed.`);
-    }
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    form.resetFields();
-    setIsEditing(false);
+  const handleChooseAvatar = () => {
+    fileInputRef.current?.click();
   };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-      {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-          Hồ sơ của tôi
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600">
-          Quản lý thông tin hồ sơ để bảo mật tài khoản
-        </p>
-      </div>
+      {/* Form and Avatar Layout */}
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        {/* Left Column - Form */}
+        <div className="flex-1 space-y-10">
+          {/* Full Name */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <label className="text-sm font-medium text-gray-700 w-32 flex-shrink-0">
+              Họ và tên
+            </label>
+            <div className="flex-1">
+              <Input
+                type="text"
+                value={userData.fullName}
+                onChange={(e) =>
+                  setUserData({ ...userData, fullName: e.target.value })
+                }
+                className="w-full"
+                size="large"
+              />
+            </div>
+          </div>
 
-      {/* Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Form Fields */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1 w-[70%]">
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={{
-              fullName: userData.fullName,
-              email: userData.email,
-              phone: userData.phone,
-              gender: userData.gender,
-            }}
-          >
-            {/* Full Name */}
-            {isEditing ? (
-              <Form.Item
-                label="Họ và tên"
-                name="fullName"
-                rules={[
-                  { required: true, message: "Vui lòng nhập họ và tên" },
-                  {
-                    min: 2,
-                    message: "Họ và tên phải có ít nhất 2 ký tự",
-                  },
-                ]}
-              >
-                <Input
-                  placeholder="Nhập họ và tên"
-                  className="text-gray-900 !h-12"
-                  size="large"
-                />
-              </Form.Item>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Họ và tên
-                </label>
-                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-900 text-sm sm:text-base">
-                  {userData.fullName}
-                </div>
-              </div>
-            )}
-
-            {/* Email */}
-            {isEditing ? (
-              <Form.Item
-                label="Email"
-                name="email"
-                rules={[
-                  { required: true, message: "Vui lòng nhập email" },
-                  {
-                    type: "email",
-                    message: "Email không hợp lệ",
-                  },
-                ]}
-              >
-                <Input
-                  type="email"
-                  placeholder="Nhập email"
-                  className="text-gray-900 !h-12"
-                  size="large"
-                />
-              </Form.Item>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-900 text-sm sm:text-base break-all">
-                  {userData.email}
-                </div>
-              </div>
-            )}
-
-            {/* Phone */}
-            {isEditing ? (
-              <Form.Item
-                label="Số điện thoại"
-                name="phone"
-                rules={[
-                  { required: true, message: "Vui lòng nhập số điện thoại" },
-                  {
-                    pattern: /^[0-9]{10,11}$/,
-                    message: "Số điện thoại không hợp lệ",
-                  },
-                ]}
-              >
-                <Input
-                  type="tel"
-                  placeholder="Nhập số điện thoại"
-                  className="text-gray-900 !h-12"
-                  size="large"
-                />
-              </Form.Item>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số điện thoại
-                </label>
-                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-900 text-sm sm:text-base">
-                  {userData.phone}
-                </div>
-              </div>
-            )}
-
-            {/* Gender */}
-            {isEditing ? (
-              <Form.Item
-                label="Giới tính"
-                name="gender"
-                rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
-              >
-                <Radio.Group>
-                  <Radio value="male">Nam</Radio>
-                  <Radio value="female">Nữ</Radio>
-                </Radio.Group>
-              </Form.Item>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Giới tính
-                </label>
-                <div className="flex items-center gap-4 sm:gap-6">
-                  <span className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-900 text-sm sm:text-base">
-                    {userData.gender === "male" ? "Nam" : "Nữ"}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Date of Birth */}
-            {isEditing ? (
-              <Form.Item
-                label="Ngày sinh"
-                name="dateOfBirth"
-                rules={[
-                  { required: false },
-                  {
-                    validator: (_, value) => {
-                      if (!value) return Promise.resolve();
-                      const age = dayjs().diff(value, "year");
-                      if (age < 0) {
-                        return Promise.reject(
-                          new Error("Ngày sinh không thể ở tương lai")
-                        );
-                      }
-                      if (age > 120) {
-                        return Promise.reject(
-                          new Error("Ngày sinh không hợp lệ")
-                        );
-                      }
-                      return Promise.resolve();
-                    },
-                  },
-                ]}
-              >
-                <DatePicker
-                  format="DD/MM/YYYY"
-                  placeholder="Chọn ngày sinh"
-                  className="w-full !h-12"
-                  size="large"
-                  disabledDate={(current) => {
-                    return current && current > dayjs().endOf("day");
-                  }}
-                />
-              </Form.Item>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ngày sinh
-                </label>
-                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-100 rounded-lg text-gray-900 text-sm sm:text-base">
-                  {userData.dateOfBirth}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            {isEditing ? (
-              <div className="pt-2 sm:pt-4 flex gap-3">
-                <ButtonComponent
-                  variant="primary"
-                  size="lg"
-                  onClick={handleSave}
-                  className="w-full sm:w-auto px-6 sm:px-8"
-                >
-                  Lưu
-                </ButtonComponent>
-                <ButtonComponent
-                  variant="outline"
-                  size="lg"
-                  onClick={handleCancel}
-                  className="w-full sm:w-auto px-6 sm:px-8"
-                >
-                  Hủy
-                </ButtonComponent>
-              </div>
-            ) : (
-              <div className="pt-2 sm:pt-4">
-                <ButtonComponent
-                  variant="primary"
-                  size="lg"
-                  onClick={handleEdit}
-                  className="w-full sm:w-auto px-6 sm:px-8"
-                >
-                  Chỉnh sửa
-                </ButtonComponent>
-              </div>
-            )}
-          </Form>
-        </div>
-
-        {/* Right Column - Profile Picture Upload */}
-        <div className="lg:col-span-1 order-1 lg:order-2">
-          <div className="flex flex-col items-center lg:items-start">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mb-3 sm:mb-4 rounded-lg overflow-hidden border-2 border-gray-200 relative">
-              {avatarFileList.length > 0 && avatarFileList[0].thumbUrl ? (
-                <img
-                  src={avatarFileList[0].thumbUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
+          {/* Email */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <label className="text-sm font-medium text-gray-700 w-32 flex-shrink-0">
+              Email
+            </label>
+            <div className="flex-1 flex items-center gap-2">
+              {editingField === "email" ? (
+                <>
+                  <Input
+                    type="email"
+                    value={tempValues.email || ""}
+                    onChange={(e) =>
+                      setTempValues({ ...tempValues, email: e.target.value })
+                    }
+                    placeholder="Nhập email"
+                    className="flex-1"
+                    size="large"
+                  />
+                  <Button
+                    variant="link"
+                    onClick={handleSave}
+                    className="text-sm whitespace-nowrap"
+                  >
+                    Lưu
+                  </Button>
+                  <Button
+                    variant="link"
+                    onClick={handleCancelEdit}
+                    className="text-sm whitespace-nowrap !text-gray-600 hover:!text-gray-700"
+                  >
+                    Hủy
+                  </Button>
+                </>
               ) : (
-                <img
-                  src={userData.avatar}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
+                <>
+                  <span className="text-gray-900">
+                    {maskEmail(userData.email)}
+                  </span>
+                  <Button
+                    variant="link"
+                    onClick={() => handleChangeClick("email")}
+                    className="text-sm whitespace-nowrap"
+                  >
+                    Thay đổi
+                  </Button>
+                </>
               )}
             </div>
-            <Upload
-              fileList={avatarFileList}
-              onChange={handleAvatarChange}
-              beforeUpload={() => false}
-              listType="picture"
-              maxCount={1}
-              accept="image/*"
-            >
-              <ButtonComponent
-                variant="outline"
-                size="md"
-                className="w-full sm:w-auto"
-              >
-                <span className="flex items-center gap-2">
-                  <CameraOutlined />
-                  Chọn ảnh
-                </span>
-              </ButtonComponent>
-            </Upload>
           </div>
+
+          {/* Phone */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <label className="text-sm font-medium text-gray-700 w-32 flex-shrink-0">
+              Số điện thoại
+            </label>
+            <div className="flex-1 flex items-center gap-2">
+              {editingField === "phone" ? (
+                <>
+                  <Input
+                    type="tel"
+                    value={tempValues.phone || ""}
+                    onChange={(e) =>
+                      setTempValues({ ...tempValues, phone: e.target.value })
+                    }
+                    placeholder="Nhập số điện thoại"
+                    className="flex-1"
+                    size="large"
+                  />
+                  <Button
+                    variant="link"
+                    onClick={handleSave}
+                    className="text-sm whitespace-nowrap"
+                  >
+                    Lưu
+                  </Button>
+                  <Button
+                    variant="link"
+                    onClick={handleCancelEdit}
+                    className="text-sm whitespace-nowrap !text-gray-600 hover:!text-gray-700"
+                  >
+                    Hủy
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-gray-900">
+                    {maskPhone(userData.phone)}
+                  </span>
+                  <Button
+                    variant="link"
+                    onClick={() => handleChangeClick("phone")}
+                    className="text-sm whitespace-nowrap"
+                  >
+                    Thay đổi
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Gender */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <label className="text-sm font-medium text-gray-700 w-32 flex-shrink-0">
+              Giới tính
+            </label>
+            <div className="flex-1 flex items-center gap-6">
+              <CustomRadio
+                name="gender"
+                value="male"
+                checked={userData.gender === "male"}
+                onChange={(e) =>
+                  setUserData({
+                    ...userData,
+                    gender: e.target.value as "male" | "female",
+                  })
+                }
+                label="Nam"
+              />
+              <CustomRadio
+                name="gender"
+                value="female"
+                checked={userData.gender === "female"}
+                onChange={(e) =>
+                  setUserData({
+                    ...userData,
+                    gender: e.target.value as "male" | "female",
+                  })
+                }
+                label="Nữ"
+              />
+            </div>
+          </div>
+
+          {/* Date of Birth */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <label className="text-sm font-medium text-gray-700 w-32 flex-shrink-0">
+              Ngày sinh
+            </label>
+            <div className="flex-1 flex items-center gap-2">
+              {editingField === "dateOfBirth" ? (
+                <>
+                  <DatePicker
+                    value={tempValues.dateOfBirth}
+                    onChange={(date) =>
+                      setTempValues({
+                        ...tempValues,
+                        dateOfBirth: date,
+                      })
+                    }
+                    format="DD/MM/YYYY"
+                    placeholder="Chọn ngày sinh"
+                    className="flex-1"
+                    size="large"
+                    disabledDate={(current) => {
+                      return current && current > dayjs().endOf("day");
+                    }}
+                  />
+                  <Button
+                    variant="link"
+                    onClick={handleSave}
+                    className="text-sm whitespace-nowrap"
+                  >
+                    Lưu
+                  </Button>
+                  <Button
+                    variant="link"
+                    onClick={handleCancelEdit}
+                    className="text-sm whitespace-nowrap !text-gray-600 hover:!text-gray-700"
+                  >
+                    Hủy
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-gray-900">{userData.dateOfBirth}</span>
+                  <Button
+                    variant="link"
+                    onClick={() => handleChangeClick("dateOfBirth")}
+                    className="text-sm whitespace-nowrap"
+                  >
+                    Thay đổi
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleSave}
+              className="!bg-[#ff6b35] hover:!bg-[#e55a2b] !border-[#ff6b35] hover:!border-[#e55a2b]"
+            >
+              Lưu
+            </Button>
+          </div>
+        </div>
+
+        {/* Right Column - Avatar Upload */}
+        <div className="flex-shrink-0 flex flex-col items-center lg:items-start">
+          <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mb-4 rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+            <img
+              src={userData.avatar}
+              alt="Avatar"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <Button variant="outline" size="md" onClick={handleChooseAvatar}>
+            Chọn ảnh
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
         </div>
       </div>
     </div>

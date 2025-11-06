@@ -6,10 +6,25 @@ import OrderProductItem from "./OrderProductItem";
 interface OrderCardProps {
   order: Order;
   formatCurrency: (value: number) => string;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-const OrderCard: React.FC<OrderCardProps> = ({ order, formatCurrency }) => {
+const OrderCard: React.FC<OrderCardProps> = ({
+  order,
+  formatCurrency,
+  isExpanded = false,
+  onToggleExpand,
+}) => {
   const navigate = useNavigate();
+
+  // Determine which products to display
+  const displayedProducts = isExpanded
+    ? order.products
+    : order.products.slice(0, 1);
+
+  // Check if there are more products to show
+  const hasMoreProducts = order.products.length > 1;
 
   const handleViewDetails = () => {
     // If order status is "return", navigate to return/refund detail page
@@ -80,11 +95,28 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, formatCurrency }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {/* Order Header */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div
+        className={`px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${
+          hasMoreProducts && onToggleExpand
+            ? "cursor-pointer hover:bg-gray-100 transition-colors"
+            : ""
+        }`}
+        onClick={hasMoreProducts && onToggleExpand ? onToggleExpand : undefined}
+      >
         <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
           <span className="font-medium">Đơn hàng: #{order.id}</span>
           <span className="hidden sm:inline">|</span>
           <span>Ngày đặt hàng: {order.orderDate}</span>
+          {hasMoreProducts && (
+            <>
+              <span className="hidden sm:inline">|</span>
+              <span className="text-blue-600 text-xs sm:text-sm">
+                {isExpanded
+                  ? `Thu gọn (${order.products.length} sản phẩm)`
+                  : `Xem thêm ${order.products.length - 1} sản phẩm`}
+              </span>
+            </>
+          )}
         </div>
         <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 text-xs sm:text-sm font-medium rounded-lg">
           {order.statusLabel}
@@ -93,7 +125,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, formatCurrency }) => {
 
       {/* Order Products */}
       <div className="px-4 sm:px-6 py-4 sm:py-6">
-        {order.products.map((product) => (
+        {displayedProducts.map((product) => (
           <OrderProductItem
             key={product.id}
             product={product}
@@ -112,7 +144,10 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, formatCurrency }) => {
             </span>
           </div>
           <button
-            onClick={handleViewDetails}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleViewDetails();
+            }}
             className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base self-start sm:self-auto transition-colors"
           >
             Xem chi tiết &gt;&gt;

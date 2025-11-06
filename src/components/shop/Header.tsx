@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingBag, Menu } from "lucide-react";
-import SearchForm from "./SearchForm";
+import { Input } from "antd";
 import CategoryDropdown from "./CategoryDropdown";
 import shopLogo from "../../assets/icons/ShopLogo.png";
+
+const { Search: SearchInput } = Input;
 
 function Logo({ onClick }: { onClick: () => void }) {
   return (
@@ -143,9 +145,19 @@ const Header: React.FC<HeaderProps> = ({
         />
       </div>
       <div className="flex-1 max-w-[800px]">
-        <SearchForm
+        <SearchInput
           placeholder="Bạn muốn mua gì hôm nay?"
-          variant="secondary"
+          className="w-full"
+          styles={{
+            input: {
+              backgroundColor: "#f6f6f6",
+              borderColor: "#454545",
+            },
+          }}
+          onSearch={(value) => {
+            // Handle search logic here
+            console.log("Search:", value);
+          }}
         />
       </div>
       <div className="flex items-center gap-4 min-w-[150px] pl-5">
