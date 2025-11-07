@@ -2,11 +2,11 @@ import React from "react";
 import ProductCard from "../ProductCard";
 import type { Product } from "../../../features/shop/data/productsData";
 
-interface TodaySuggestionsSectionProps {
+interface NewProductsSectionProps {
   products: Product[];
 }
 
-const TodaySuggestionsSection: React.FC<TodaySuggestionsSectionProps> = ({
+const NewProductsSection: React.FC<NewProductsSectionProps> = ({
   products,
 }) => {
   return (
@@ -15,9 +15,7 @@ const TodaySuggestionsSection: React.FC<TodaySuggestionsSectionProps> = ({
         <div className="mb-6 flex items-center justify-between">
           <div className="flex-1">
             <div className="inline-block">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Gợi ý hôm nay
-              </h2>
+              <h2 className="text-2xl font-bold text-gray-900">Sản phẩm mới</h2>
             </div>
           </div>
           <a
@@ -52,4 +50,4 @@ const TodaySuggestionsSection: React.FC<TodaySuggestionsSectionProps> = ({
   );
 };
 
-export default TodaySuggestionsSection;
+export default NewProductsSection;

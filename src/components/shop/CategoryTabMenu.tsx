@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, type FC } from "react";
+import { useState, useRef, useEffect, type FC } from "react";
 
 export type SubCategory = {
   id: string;
@@ -8,6 +8,7 @@ export type SubCategory = {
 export type MainCategory = {
   id: string;
   label: string;
+  image?: string;
   subcategories?: SubCategory[];
   disabled?: boolean;
 };
@@ -47,7 +48,7 @@ const CategoryTabMenu: FC<CategoryTabMenuProps> = ({
   }, [openIdx]);
 
   return (
-    <div className={clsx("flex gap-4 relative", className)} ref={menuRef}>
+    <div className={clsx("flex gap-6 relative", className)} ref={menuRef}>
       {categories.map((cat, idx) => {
         const isActive = mainValue ? cat.id === mainValue : openIdx === idx;
         const hasSub =
@@ -57,10 +58,7 @@ const CategoryTabMenu: FC<CategoryTabMenuProps> = ({
             <button
               type="button"
               className={clsx(
-                "px-5 py-2 text-[15px] font-semibold rounded-[8px] border border-[#454545] bg-white min-w-[120px] focus:z-10 transition",
-                isActive
-                  ? "bg-[#18345c] border-[#18345c] text-white"
-                  : "text-[#454545] hover:bg-gray-50",
+                "flex flex-col items-center gap-2 px-2 py-2 text-[14px] font-medium bg-transparent focus:z-10 transition-opacity hover:opacity-80",
                 cat.disabled && "opacity-50 cursor-not-allowed"
               )}
               disabled={cat.disabled}
@@ -71,7 +69,16 @@ const CategoryTabMenu: FC<CategoryTabMenuProps> = ({
                 onMainChange?.(cat.id);
               }}
             >
-              {cat.label}
+              <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden">
+                {cat.image ? (
+                  <img
+                    src={cat.image}
+                    alt={cat.label}
+                    className="w-full h-full object-cover"
+                  />
+                ) : null}
+              </div>
+              <span className="text-[#454545] text-center">{cat.label}</span>
             </button>
             {hasSub && openIdx === idx && (
               <div className="absolute left-0 mt-2 w-auto min-w-[150px] bg-white border border-gray-200 rounded-[6px] shadow-xl z-30">

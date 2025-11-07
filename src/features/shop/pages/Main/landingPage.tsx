@@ -9,6 +9,8 @@ import BannerSection from "../../../../components/shop/Main/BannerSection";
 import FlashSaleSection from "../../../../components/shop/Main/FlashSaleSection";
 import FeaturedProductsSection from "../../../../components/shop/Main/FeaturedProductsSection";
 import SubBannerSection from "../../../../components/shop/Main/SubBannerSection";
+import NewProductsSection from "../../../../components/shop/Main/NewProductsSection";
+import GroupBannerSection from "../../../../components/shop/Main/GroupBannerSection";
 import TodaySuggestionsSection from "../../../../components/shop/Main/TodaySuggestionsSection";
 
 const LandingPage: React.FC = () => {
@@ -18,34 +20,39 @@ const LandingPage: React.FC = () => {
   // Sample categories data
   const categories = [
     {
-      id: "all",
-      label: "Tất cả",
+      id: "tent",
+      label: "Lều cắm trại",
       subcategories: [],
     },
     {
-      id: "camping",
-      label: "Đồ cắm trại",
-      subcategories: [
-        { id: "tents", label: "Lều trại" },
-        { id: "sleeping", label: "Đồ ngủ" },
-        { id: "cooking", label: "Đồ nấu ăn" },
-      ],
+      id: "shoes",
+      label: "Giày",
+      subcategories: [],
     },
     {
-      id: "outdoor",
-      label: "Thể thao ngoài trời",
-      subcategories: [
-        { id: "hiking", label: "Đồ leo núi" },
-        { id: "water", label: "Đồ dùng dưới nước" },
-      ],
+      id: "sandals",
+      label: "Dép Sandal",
+      subcategories: [],
     },
     {
-      id: "accessories",
-      label: "Phụ kiện",
-      subcategories: [
-        { id: "backpacks", label: "Ba lô" },
-        { id: "tools", label: "Dụng cụ" },
-      ],
+      id: "chair",
+      label: "Ghế gấp gọn",
+      subcategories: [],
+    },
+    {
+      id: "hat",
+      label: "Mũ leo núi",
+      subcategories: [],
+    },
+    {
+      id: "backpack",
+      label: "Balo leo núi",
+      subcategories: [],
+    },
+    {
+      id: "sleeping-bag",
+      label: "Túi ngủ",
+      subcategories: [],
     },
   ];
 
@@ -54,14 +61,17 @@ const LandingPage: React.FC = () => {
     (product) => (product.discountPercent || 0) >= 41
   );
 
-  // Featured products - first 8 products
-  const featuredProducts = productsData.slice(0, 8);
+  // Featured products - first 5 products (best sellers)
+  const featuredProducts = productsData.slice(0, 5);
 
-  // Today's suggestions - next 8 products (to show variety)
-  const todaySuggestions = productsData.slice(8, 16);
+  // New products - next 5 products
+  const newProducts = productsData.slice(5, 10);
+
+  // Today's suggestions - 10 products in 2 rows (5 products per row)
+  const todaySuggestions = productsData.slice(10, 20);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-white justify-center flex flex-col">
       <Header
         cartCount={getCartCount()}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -81,6 +91,10 @@ const LandingPage: React.FC = () => {
       <FeaturedProductsSection products={featuredProducts} />
 
       <SubBannerSection />
+
+      <NewProductsSection products={newProducts} />
+
+      <GroupBannerSection />
 
       <TodaySuggestionsSection products={todaySuggestions} />
 

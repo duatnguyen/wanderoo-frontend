@@ -9,9 +9,9 @@ interface FlashSaleSectionProps {
 
 const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
   return (
-    <section className="w-full bg-gray-100 py-6">
+    <section className="w-full py-6">
       <div className="max-w-[1000px] mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-gray-100 rounded-lg shadow-md p-4">
           <div className="mb-4">
             <h2 className="text-2xl font-bold text-red-600 uppercase flex items-center gap-1">
               F
@@ -31,10 +31,10 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
             </h2>
           </div>
 
-          <div className="relative">
+          <div className="relative flex items-center">
             {/* Product Cards Carousel */}
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-              {products.map((product) => (
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 flex-1">
+              {products.slice(0, 5).map((product) => (
                 <div key={product.id} className="flex-shrink-0 w-[200px]">
                   <ProductCard
                     id={product.id}
@@ -55,7 +55,7 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
               variant="icon"
               size="md"
               shape="pill"
-              className="absolute right-0 top-1/2 -translate-y-1/2 -translate-x-4 shadow-lg z-10 bg-white hover:bg-gray-50"
+              className="absolute right-0 top-1/2 -translate-y-1/2 shadow-lg z-10 bg-white hover:bg-gray-50 border border-gray-200 flex-shrink-0"
               aria-label="Xem thêm sản phẩm flash sale"
             >
               <svg
@@ -66,7 +66,7 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
                 className="text-gray-700"
               >
                 <path
-                  d="M9 18L15 12L9 6"
+                  d="M9 6L15 12L9 18"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
@@ -82,4 +82,3 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
 };
 
 export default FlashSaleSection;
-
