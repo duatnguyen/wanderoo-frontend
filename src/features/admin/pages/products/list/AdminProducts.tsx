@@ -4,11 +4,13 @@ import ProductItem from "../../../../../components/admin/table/ProductItem";
 import ProductTableHeader from "../../../../../components/admin/table/ProductTableHeader";
 import type { Product } from "../../../../../types/types";
 import {
-  TabMenuAccount,
+  TabMenuWithBadge,
   PageContainer,
   ContentCard,
+  type TabItemWithBadge,
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
+import { useMemo } from "react";
 // Mock data for products
 const mockProducts: Product[] = [
   {
@@ -100,11 +102,33 @@ const AdminProducts: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const tabs = [
-    { id: "all", label: "Tất cả" },
-    { id: "active", label: "Đang hoạt động" },
-    { id: "inactive", label: "Chưa được đăng" },
-  ];
+  // Calculate product counts by status
+  const productCounts = useMemo(() => {
+    const counts = {
+      all: mockProducts.length,
+      active: 0,
+      inactive: 0,
+    };
+
+    mockProducts.forEach(product => {
+      // Logic để phân loại sản phẩm theo trạng thái
+      // Ví dụ: dựa trên inventory hoặc các field khác
+      if (product.inventory > 0) {
+        counts.active++;
+      } else {
+        counts.inactive++;
+      }
+    });
+
+    return counts;
+  }, []);
+
+  // Create tabs with badge counts
+  const tabsWithCounts: TabItemWithBadge[] = useMemo(() => [
+    { id: "all", label: "Tất cả", count: productCounts.all },
+    { id: "active", label: "Đang hoạt động", count: productCounts.active },
+    { id: "inactive", label: "Chưa được đăng", count: productCounts.inactive },
+  ], [productCounts]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -155,10 +179,22 @@ const AdminProducts: React.FC = () => {
   // Filter products based on search and tab
   const filteredProducts = mockProducts.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchValue.toLowerCase());
-    
-    // Add tab filtering logic here if needed
-    return matchesSearch;
+      product.sku.toLowerCase().includes(searchValue.toLowerCase());
+
+    // Filter by tab status
+    const matchesTab = (() => {
+      switch (activeTab) {
+        case 'active':
+          return product.inventory > 0;
+        case 'inactive':
+          return product.inventory === 0;
+        case 'all':
+        default:
+          return true;
+      }
+    })();
+
+    return matchesSearch && matchesTab;
   });
 
   // Calculate pagination
@@ -174,22 +210,16 @@ const AdminProducts: React.FC = () => {
           <h1 className="font-bold text-base text-[24px] text-[#272424] font-['Montserrat']">
             Danh sách sản phẩm
           </h1>
-          <span className="text-sm text-[#6b7280] font-medium">
-            ({filteredProducts.length} sản phẩm)
-          </span>
         </div>
       </div>
 
-      {/* Tab Menu */}
-
-      <div className="flex flex-col gap-[8px] items-center py-[5px] relative rounded-[20px] w-full flex-shrink-0">
-        <TabMenuAccount
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          className="w-full mx-auto"
-        />
-      </div>
+      {/* Tab Menu with Badge Counts */}
+      <TabMenuWithBadge
+        tabs={tabsWithCounts}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        className="w-full mx-auto"
+      />
       {/* Main Content */}
       <ContentCard>
         {/* Search Bar */}
@@ -202,7 +232,7 @@ const AdminProducts: React.FC = () => {
 
         {/* Table Section */}
         {/* Table Container with Scroll */}
-        <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[10px] w-full min-w-[1200px]">
+        <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[10px] w-full">
           {/* Table Header */}
           <ProductTableHeader
             selectAll={selectAll}

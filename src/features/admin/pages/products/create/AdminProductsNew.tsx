@@ -18,14 +18,14 @@ import ProgressIndicator from "@/components/ui/ProgressIndicator";
 import { ChevronDown } from "lucide-react";
 import { Icon } from "@/components/icons";
 import ImageUpload from "@/components/ui/image-upload";
-import type { 
-  ProductFormData, 
-  ProductAttribute, 
-  CurrentAttribute, 
-  ProductVersion, 
-  EditingVersion, 
-  ProductImage, 
-  FormErrors 
+import type {
+  ProductFormData,
+  ProductAttribute,
+  CurrentAttribute,
+  ProductVersion,
+  EditingVersion,
+  ProductImage,
+  FormErrors
 } from "@/types/product";
 import { validateForm, validateField } from "@/utils/productValidation";
 import "@/styles/animations.css";
@@ -141,7 +141,7 @@ const AdminProductsNew: React.FC = () => {
   // Form steps for progress indicator
   const formSteps = [
     "Thông tin cơ bản",
-    "Thuộc tính & Phiên bản", 
+    "Thuộc tính & Phiên bản",
     "Thông tin vận chuyển",
     "Hoàn thành"
   ];
@@ -151,7 +151,7 @@ const AdminProductsNew: React.FC = () => {
       ...prev,
       [field]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({
@@ -159,7 +159,7 @@ const AdminProductsNew: React.FC = () => {
         [field]: "",
       }));
     }
-    
+
     // Real-time validation for specific fields
     const fieldError = validateField(field, value);
     if (fieldError) {
@@ -172,29 +172,29 @@ const AdminProductsNew: React.FC = () => {
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     const formErrors = validateForm(formData);
-    
+
     // Check if images are required and missing
     if (images.length === 0) {
       formErrors.images = "Vui lòng tải lên ít nhất một hình ảnh sản phẩm";
     }
-    
+
     setErrors(formErrors);
-    
+
     if (Object.keys(formErrors).length > 0) {
       console.log("Form has errors:", formErrors);
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       console.log("Form submitted successfully:", formData);
-      
+
       // Reset form or navigate to products list
       // navigate('/admin/products');
     } catch (error) {
@@ -343,7 +343,7 @@ const AdminProductsNew: React.FC = () => {
         available: "",
       };
     });
-    
+
     return [...newVersions, ...FAKE_VERSIONS];
   }, [attributes]);
 
@@ -562,10 +562,10 @@ const AdminProductsNew: React.FC = () => {
             Thêm sản phẩm mới
           </h1>
         </div>
-        
+
         {/* Progress Indicator */}
-        <ProgressIndicator 
-          currentStep={currentStep} 
+        <ProgressIndicator
+          currentStep={currentStep}
           steps={formSteps}
           className="animate-fadeIn"
         />
@@ -610,10 +610,9 @@ const AdminProductsNew: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("productName", e.target.value)
                     }
-                    containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${
-                      errors.productName ? 'error-border' : 
-                      !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
-                    }`}
+                    containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${errors.productName ? 'error-border' :
+                        !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
+                      }`}
                   />
                 </FormField>
 
@@ -1257,18 +1256,18 @@ const AdminProductsNew: React.FC = () => {
                 <span>Điền thông tin để tiếp tục</span>
               )}
             </div>
-            
+
             <div className="flex items-center gap-3">
-              <Button 
-                variant="secondary" 
-                onClick={handleCancel} 
+              <Button
+                variant="secondary"
+                onClick={handleCancel}
                 disabled={isSubmitting}
                 className="btn-secondary-enhanced"
               >
                 Huỷ
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting}
                 className="btn-primary-enhanced px-8"
               >
@@ -1281,11 +1280,11 @@ const AdminProductsNew: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span>Thêm sản phẩm</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path 
-                        d="M5 12h14m-7-7l7 7-7 7" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
+                      <path
+                        d="M5 12h14m-7-7l7 7-7 7"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                     </svg>

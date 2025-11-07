@@ -2,17 +2,17 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  TabMenuAccount,
   PageContainer,
   ContentCard,
   PageHeader,
   TableFilters,
   OrderTableHeader,
   OrderTableRow,
+  TabMenuWithBadge,
   type FilterOption,
   type OrderTableColumn,
+  type TabItemWithBadge,
 } from "@/components/common";
-import type { TabItem } from "@/components/ui/tab-menu-account";
 import { Pagination } from "@/components/ui/pagination";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
 import {
@@ -180,15 +180,7 @@ const mockOrders = [
   },
 ];
 
-// Order tabs data
-const orderTabs: TabItem[] = [
-  { id: "all", label: "Tất cả" },
-  { id: "pending", label: "Chờ xác nhận" },
-  { id: "confirmed", label: "Đã xác nhận" },
-  { id: "shipping", label: "Đang giao" },
-  { id: "completed", label: "Đã hoàn thành" },
-  { id: "returned", label: "Đã hủy" },
-];
+
 
 const AdminOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -197,6 +189,34 @@ const AdminOrders: React.FC = () => {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+
+  // Calculate order counts by status
+  const orderCounts = useMemo(() => {
+    const counts = {
+      all: orders.length,
+      pending: 0,
+      confirmed: 0,
+      shipping: 0,
+      completed: 0,
+      returned: 0,
+    };
+
+    orders.forEach(order => {
+      counts[order.tabStatus as keyof typeof counts]++;
+    });
+
+    return counts;
+  }, [orders]);
+
+  // Create order tabs with counts
+  const orderTabsWithCounts: TabItemWithBadge[] = useMemo(() => [
+    { id: "all", label: "Tất cả", count: orderCounts.all },
+    { id: "pending", label: "Chờ xác nhận", count: orderCounts.pending },
+    { id: "confirmed", label: "Đã xác nhận", count: orderCounts.confirmed },
+    { id: "shipping", label: "Đang giao", count: orderCounts.shipping },
+    { id: "completed", label: "Đã hoàn thành", count: orderCounts.completed },
+    { id: "returned", label: "Đã hủy", count: orderCounts.returned },
+  ], [orderCounts]);
 
   // Map payment type to chip status
   const getPaymentTypeStatus = (paymentType: string): ChipStatusKey => {
@@ -332,18 +352,16 @@ const AdminOrders: React.FC = () => {
 
   return (
     <PageContainer>
-      {/* Page Header */}
+      {/* Page Header with Order Count */}
       <PageHeader title="Danh sách đơn hàng" />
 
-      {/* Tab Menu */}
-      <div className="w-full shrink-0 mb-[10px] overflow-x-auto">
-        <TabMenuAccount
-          tabs={orderTabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          className="min-w-[600px]"
-        />
-      </div>
+      {/* Tab Menu with Badge Counts */}
+      <TabMenuWithBadge
+        tabs={orderTabsWithCounts}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        className="min-w-[600px]"
+      />
 
       {/* Content Card */}
       <ContentCard >
@@ -379,8 +397,6 @@ const AdminOrders: React.FC = () => {
             </DropdownMenu>
           }
         />
-
-        <h1 className="font-bold text-[20px] mb-0">101 đơn hàng</h1>
 
         {/* Order Table */}
         <div className="w-full flex flex-col gap-2 -mt-[4px]">

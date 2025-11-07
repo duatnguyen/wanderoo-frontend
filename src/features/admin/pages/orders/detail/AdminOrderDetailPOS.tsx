@@ -1,13 +1,13 @@
 // src/pages/admin/AdminOrderDetailPOS.tsx
 import React, { useState } from "react";
-import { ArrowLeft, Wallet, Package, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Wallet, Package, FileText, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 // Mock data cho order detail POS
 const orderDetail = {
   id: "8F878Q29",
-  status: "Đã hoàn thành",
+  status: "Chờ xác nhận", // Đổi thành "Đã hoàn thành", "Đang giao", "Đã hủy" để test các trạng thái khác
   source: "POS",
   customer: {
     name: "buiminhhang",
@@ -60,7 +60,7 @@ const orderDetail = {
 // Payment Summary Component with Dropdown
 const PaymentSummary: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
@@ -77,7 +77,7 @@ const PaymentSummary: React.FC = () => {
   return (
     <div className="border border-[#e7e7e7] box-border relative rounded-bl-[6px] rounded-br-[6px] shrink-0 w-full bg-white">
       {/* Collapsed View - Always Visible */}
-      <div 
+      <div
         className="flex items-center justify-between px-[16px] py-[12px] cursor-pointer hover:bg-[#f8f9fa] transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -94,7 +94,7 @@ const PaymentSummary: React.FC = () => {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-[8px]">
           <p className="font-montserrat font-bold text-[18px] leading-[1.3] text-[#28a745]">
             {formatCurrency(totalAmount)}
@@ -110,24 +110,21 @@ const PaymentSummary: React.FC = () => {
         <div className="border-t border-[#e7e7e7] px-[16px] py-[12px] bg-[#fafbfc]">
           <div className="space-y-[8px]">
             {summaryData.map((item, index) => (
-              <div 
+              <div
                 key={index}
-                className={`flex items-center justify-between py-[4px] ${
-                  item.isTotal ? 'border-t border-[#e7e7e7] pt-[8px]' : ''
-                }`}
+                className={`flex items-center justify-between py-[4px] ${item.isTotal ? 'border-t border-[#e7e7e7] pt-[8px]' : ''
+                  }`}
               >
-                <p className={`font-montserrat ${
-                  item.isTotal 
-                    ? 'font-semibold text-[14px] text-[#272424]' 
-                    : 'font-medium text-[13px] text-[#737373]'
-                }`}>
+                <p className={`font-montserrat ${item.isTotal
+                  ? 'font-semibold text-[14px] text-[#272424]'
+                  : 'font-medium text-[13px] text-[#737373]'
+                  }`}>
                   {item.label}
                 </p>
-                <p className={`font-montserrat ${
-                  item.isTotal 
-                    ? 'font-bold text-[16px] text-[#28a745]' 
-                    : 'font-medium text-[13px] text-[#272424]'
-                }`}>
+                <p className={`font-montserrat ${item.isTotal
+                  ? 'font-bold text-[16px] text-[#28a745]'
+                  : 'font-medium text-[13px] text-[#272424]'
+                  }`}>
                   {formatCurrency(item.amount)}
                 </p>
               </div>
@@ -139,6 +136,56 @@ const PaymentSummary: React.FC = () => {
   );
 };
 
+// Action Buttons Component
+const ActionButtons: React.FC<{ status: string; onConfirm: () => void; onCancel: () => void }> = ({
+  status,
+  onConfirm,
+  onCancel
+}) => {
+  if (status !== "Chờ xác nhận") {
+    return null;
+  }
+
+  return (
+    <div className="bg-white border-2 border-[#e7e7e7] rounded-[8px] p-[20px] w-full">
+      <div className="flex flex-col gap-[12px] w-full">
+        {/* Header */}
+        <div className="flex items-center gap-[8px] mb-[8px]">
+          <div className="w-[4px] h-[20px] bg-[#e04d30] rounded-[2px]"></div>
+          <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+            Thao tác với đơn hàng
+          </h3>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-[12px] items-stretch sm:items-center justify-end w-full">
+          <button
+            onClick={onCancel}
+            className="flex items-center justify-center gap-[8px] px-[20px] py-[12px] bg-[#dc3545] hover:bg-[#c82333] active:bg-[#bd2130] text-white font-montserrat font-semibold text-[14px] rounded-[8px] transition-all duration-200 shadow-sm hover:shadow-md min-h-[44px]"
+          >
+            <X className="w-[18px] h-[18px]" />
+            Hủy đơn hàng
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex items-center justify-center gap-[8px] px-[20px] py-[12px] bg-[#28a745] hover:bg-[#218838] active:bg-[#1e7e34] text-white font-montserrat font-semibold text-[14px] rounded-[8px] transition-all duration-200 shadow-sm hover:shadow-md min-h-[44px]"
+          >
+            <Check className="w-[18px] h-[18px]" />
+            Xác nhận đơn hàng
+          </button>
+        </div>
+
+        {/* Note */}
+        <div className="bg-[#fff3cd] border border-[#ffeaa7] rounded-[6px] p-[12px] mt-[8px]">
+          <p className="font-montserrat font-medium text-[12px] text-[#856404] leading-[1.4]">
+            <strong>Lưu ý:</strong> Sau khi xác nhận, đơn hàng sẽ chuyển sang trạng thái "Đã xác nhận" và không thể hủy.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminOrderDetailPOS: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -146,6 +193,37 @@ const AdminOrderDetailPOS: React.FC = () => {
 
   const handleBackClick = () => {
     navigate(-1);
+  };
+
+  const handleConfirmOrder = () => {
+    // Xử lý xác nhận đơn hàng
+    console.log("Confirming order:", orderId);
+
+    // Hiển thị thông báo xác nhận
+    if (window.confirm("Bạn có chắc chắn muốn xác nhận đơn hàng này?")) {
+      // TODO: Thêm API call để cập nhật trạng thái đơn hàng
+      alert("Đơn hàng đã được xác nhận thành công!");
+
+      // Có thể redirect về trang danh sách đơn hàng
+      // navigate("/admin/orders");
+    }
+  };
+
+  const handleCancelOrder = () => {
+    // Xử lý hủy đơn hàng
+    console.log("Canceling order:", orderId);
+
+    // Hiển thị thông báo xác nhận hủy
+    if (window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác.")) {
+      const reason = prompt("Vui lòng nhập lý do hủy đơn hàng:");
+      if (reason) {
+        // TODO: Thêm API call để hủy đơn hàng với lý do
+        alert(`Đơn hàng đã được hủy với lý do: ${reason}`);
+
+        // Có thể redirect về trang danh sách đơn hàng
+        // navigate("/admin/orders");
+      }
+    }
   };
 
   // Function to get order data based on orderId
@@ -394,30 +472,28 @@ const AdminOrderDetailPOS: React.FC = () => {
           <div className="w-full overflow-x-auto">
             <div className="flex flex-col items-start relative rounded-[8px] w-full min-w-[700px]">
               {/* Table Header - Fixed */}
-              <div className="flex items-start relative shrink-0 w-full sticky top-0 z-10 bg-white">
-                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] relative rounded-tl-[6px] self-stretch shrink-0 w-[60px] min-w-[60px]">
-                  <div className="box-border flex gap-[8px] h-full items-center overflow-clip pb-[15px] pt-[14px] px-[8px] relative rounded-[inherit]">
-                    <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
-                      STT
-                    </p>
-                  </div>
+              <div className="flex items-center relative shrink-0 w-full sticky top-0 z-10 bg-white">
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[8px] items-center justify-center p-[12px] relative rounded-tl-[6px] shrink-0 w-[60px] min-w-[60px]">
+                  <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
+                    STT
+                  </p>
                 </div>
-                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-start pb-[15px] pt-[14px] px-[12px] relative self-stretch flex-1 min-w-[200px]">
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[8px] items-center justify-start p-[12px] relative flex-1 min-w-[200px]">
                   <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
                     Sản phẩm
                   </p>
                 </div>
-                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center pb-[15px] pt-[14px] px-[12px] relative self-stretch w-[100px] min-w-[100px]">
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center p-[12px] relative w-[100px] min-w-[100px]">
                   <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
                     Đơn giá
                   </p>
                 </div>
-                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center pb-[15px] pt-[14px] px-[12px] relative self-stretch w-[80px] min-w-[80px]">
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-center p-[12px] relative w-[80px] min-w-[80px]">
                   <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
                     SL
                   </p>
                 </div>
-                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-end pb-[15px] pt-[14px] px-[12px] relative rounded-tr-[6px] self-stretch w-[120px] min-w-[120px]">
+                <div className="bg-[#f6f6f6] border-[0px_0px_1px] border-[#e7e7e7] box-border flex gap-[4px] items-center justify-end p-[12px] relative rounded-tr-[6px] w-[120px] min-w-[120px]">
                   <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#272424] text-[12px] text-nowrap">
                     Thành tiền
                   </p>
@@ -477,6 +553,13 @@ const AdminOrderDetailPOS: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Action Buttons */}
+      <ActionButtons
+        status={currentOrder.status}
+        onConfirm={handleConfirmOrder}
+        onCancel={handleCancelOrder}
+      />
     </div>
   );
 };
