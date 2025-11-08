@@ -459,9 +459,9 @@ export const adminNavSections: AdminNavSection[] = [
       },
       {
         label: "POS",
-        path: "/pos",
+        path: "/pos/sales",
         icon: icons.pos,
-        activeMatch: "/pos",
+        activeMatch: "/pos/sales",
       },
     ],
   },

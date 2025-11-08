@@ -72,7 +72,14 @@ const AdminCreateVoucherPrivate = lazy(
       "../../features/admin/pages/discounts/create/AdminCreateVoucherPrivate"
     )
 );
-const AdminPOS = lazy(() => import("../../features/pos/pages/sales/POSSales"));
+
+// POS Pages
+const POSSales = lazy(() => import("../../features/pos/pages/sales/POSSales"));
+const POSOrderManagement = lazy(() => import("../../features/pos/pages/orders/OrderManagement"));
+const POSReturnOrderManagement = lazy(() => import("../../features/pos/pages/returns/ReturnOrderManagement"));
+const POSCreateReturnOrder = lazy(() => import("../../features/pos/pages/returns/CreateReturnOrder"));
+const POSInventoryLookup = lazy(() => import("../../features/pos/pages/inventory/InventoryLookup"));
+const POSCashBook = lazy(() => import("../../features/pos/pages/cashbook/CashBook"));
 
 const AdminWarehouseReturnsImport = lazy(
   () =>
@@ -528,11 +535,60 @@ export const adminRoutes: RouteObject[] = [
       </LazyWrapper>
     ),
   },
+  // POS Routes - Point of Sale System
   {
     path: "channels/pos",
     element: (
       <LazyWrapper>
-        <AdminPOS />
+        <POSSales />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/sales",
+    element: (
+      <LazyWrapper>
+        <POSSales />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/orders",
+    element: (
+      <LazyWrapper>
+        <POSOrderManagement />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/returns",
+    element: (
+      <LazyWrapper>
+        <POSReturnOrderManagement />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/returns/create",
+    element: (
+      <LazyWrapper>
+        <POSCreateReturnOrder />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/inventory",
+    element: (
+      <LazyWrapper>
+        <POSInventoryLookup />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/cashbook",
+    element: (
+      <LazyWrapper>
+        <POSCashBook />
       </LazyWrapper>
     ),
   },

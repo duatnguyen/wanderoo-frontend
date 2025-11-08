@@ -27,38 +27,38 @@ const sidebarItems: Array<{
   label: string;
   rotated?: boolean;
 }> = [
-  {
-    id: "cart",
-    icon: ShoppingCartSidebarIcon,
-    label: "Cart",
-  },
-  {
-    id: "invoices",
-    icon: FileInvoiceSidebarIcon,
-    label: "Invoices",
-  },
-  {
-    id: "products",
-    icon: PackageSearchSidebarIcon,
-    label: "Products",
-  },
-  {
-    id: "receipts",
-    icon: ReturnSidebarIcon,
-    label: "Receipts",
-    rotated: true,
-  },
-  {
-    id: "payments",
-    icon: UsdCircleSidebarIcon,
-    label: "Payments",
-  },
-  {
-    id: "reports",
-    icon: ChartSimpleSidebarIcon,
-    label: "Reports",
-  },
-];
+    {
+      id: "cart",
+      icon: ShoppingCartSidebarIcon,
+      label: "Cart",
+    },
+    {
+      id: "invoices",
+      icon: FileInvoiceSidebarIcon,
+      label: "Invoices",
+    },
+    {
+      id: "products",
+      icon: PackageSearchSidebarIcon,
+      label: "Products",
+    },
+    {
+      id: "receipts",
+      icon: ReturnSidebarIcon,
+      label: "Receipts",
+      rotated: true,
+    },
+    {
+      id: "payments",
+      icon: UsdCircleSidebarIcon,
+      label: "Payments",
+    },
+    {
+      id: "reports",
+      icon: ChartSimpleSidebarIcon,
+      label: "Reports",
+    },
+  ];
 
 export const POSSidebar: React.FC<POSSidebarProps> = ({
   activeItem = "cart",
@@ -68,7 +68,7 @@ export const POSSidebar: React.FC<POSSidebarProps> = ({
   return (
     <div
       className={cn(
-        "relative bg-white border-[#454545] border-[0.5px] border-solid h-full w-[75px] flex flex-col items-center pt-3 pb-3 overflow-y-auto",
+        "relative bg-white border-r border-[#e7e7e7] h-full w-[75px] flex flex-col items-center pt-3 pb-3 overflow-y-auto",
         className
       )}
     >
