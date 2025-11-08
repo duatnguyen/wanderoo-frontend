@@ -611,7 +611,7 @@ const AdminProductsNew: React.FC = () => {
                       handleInputChange("productName", e.target.value)
                     }
                     containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${errors.productName ? 'error-border' :
-                        !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
+                      !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
                       }`}
                   />
                 </FormField>

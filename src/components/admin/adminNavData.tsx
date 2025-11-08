@@ -348,10 +348,23 @@ export const adminNavSections: AdminNavSection[] = [
         ],
       },
       {
-        label: "Vận chuyển",
-        path: "/admin/shipping",
-        icon: icons.shipping,
-        activeMatch: "/admin/shipping",
+        label: "Khách hàng",
+        icon: icons.customers,
+        activeMatch: "/admin/customers/allcustomers",
+        submenu: [
+          {
+            label: "Danh sách khách hàng",
+            path: "/admin/customers/all",
+            icon: icons.customers,
+            activeMatch: "/admin/customers/all",
+          },
+          {
+            label: "Đánh giá",
+            path: "/admin/customers/reviews",
+            icon: icons.customers,
+            activeMatch: "/admin/customers/reviews",
+          },
+        ],
       },
       {
         label: "Sản phẩm",
@@ -404,23 +417,16 @@ export const adminNavSections: AdminNavSection[] = [
         ],
       },
       {
-        label: "Khách hàng",
-        icon: icons.customers,
-        activeMatch: "/admin/customers/allcustomers",
-        submenu: [
-          {
-            label: "Danh sách khách hàng",
-            path: "/admin/customers/all",
-            icon: icons.customers,
-            activeMatch: "/admin/customers/all",
-          },
-          {
-            label: "Đánh giá",
-            path: "/admin/customers/reviews",
-            icon: icons.customers,
-            activeMatch: "/admin/customers/reviews",
-          },
-        ],
+        label: "Mã giảm giá",
+        path: "/admin/discounts",
+        activeMatch: "/admin/discounts",
+        icon: icons.discounts,
+      },
+      {
+        label: "Vận chuyển",
+        path: "/admin/shipping",
+        icon: icons.shipping,
+        activeMatch: "/admin/shipping",
       },
       {
         label: "Sổ quỹ",
@@ -429,22 +435,16 @@ export const adminNavSections: AdminNavSection[] = [
         activeMatch: "/admin/accounting",
       },
       {
-        label: "Nhân viên",
-        path: "/admin/staff",
-        icon: icons.staff,
-        activeMatch: "/admin/staff",
-      },
-      {
         label: "Báo cáo",
         path: "/admin/reports",
         icon: icons.reports,
         activeMatch: "/admin/reports",
       },
       {
-        label: "Mã giảm giá",
-        path: "/admin/discounts",
-        activeMatch: "/admin/discounts",
-        icon: icons.discounts,
+        label: "Nhân viên",
+        path: "/admin/staff",
+        icon: icons.staff,
+        activeMatch: "/admin/staff",
       },
     ],
   },

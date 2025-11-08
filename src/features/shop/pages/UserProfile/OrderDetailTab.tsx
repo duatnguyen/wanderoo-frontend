@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import OrderTimeline, {
   type TimelineStep,
-} from "../../../../components/common/OrderTimeline";
+} from "../../../../components/admin/order/OrderTimeline";
 import Button from "../../components/Button";
 import ActionButton from "../../components/ActionButton";
 import ProductReviewModal from "../../components/ProductReviewModal";

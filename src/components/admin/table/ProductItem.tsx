@@ -22,9 +22,7 @@ const ProductItem: React.FC<ProductItemProps> = ({
     const hasVariants = product.variants && product.variants.length > 0;
 
     const toggleExpanded = () => {
-        if (hasVariants) {
-            setIsExpanded(!isExpanded);
-        }
+        setIsExpanded(!isExpanded);
     };
 
     return (
@@ -47,19 +45,18 @@ const ProductItem: React.FC<ProductItemProps> = ({
                         </div>
 
                         {/* Dropdown button positioned before image for better UX */}
-                        {hasVariants && (
-                            <button
-                                onClick={toggleExpanded}
-                                className="flex-shrink-0 p-1 hover:bg-gray-200 rounded transition-colors"
-                                title={isExpanded ? "Thu gọn variants" : "Mở rộng variants"}
-                            >
-                                {isExpanded ? (
-                                    <ChevronDown className="w-3 h-3 text-gray-500" />
-                                ) : (
-                                    <ChevronRight className="w-3 h-3 text-gray-500" />
-                                )}
-                            </button>
-                        )}
+                        <button
+                            onClick={toggleExpanded}
+                            className={`flex-shrink-0 p-1 hover:bg-gray-200 rounded transition-colors ${!hasVariants ? 'opacity-50 cursor-default' : ''}`}
+                            title={hasVariants ? (isExpanded ? "Thu gọn variants" : "Mở rộng variants") : "Sản phẩm không có variants"}
+                            disabled={!hasVariants}
+                        >
+                            {isExpanded ? (
+                                <ChevronDown className="w-3 h-3 text-gray-500" />
+                            ) : (
+                                <ChevronRight className="w-3 h-3 text-gray-500" />
+                            )}
+                        </button>
 
                         <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0 overflow-hidden">
                             {product.image ? (
