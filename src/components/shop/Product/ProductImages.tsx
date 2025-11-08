@@ -14,7 +14,7 @@ const ProductImages: React.FC<ProductImagesProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <div className="relative aspect-square bg-transparent rounded-lg overflow-hidden">
+      <div className="relative aspect-square bg-transparent rounded-lg overflow-hidden max-w-md mx-auto">
         <div className="w-full h-full border border-gray-300 rounded-lg" />
         {product.discountPercent && (
           <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-[16px] rounded-[4px] px-3 py-1 flex items-center gap-1">
