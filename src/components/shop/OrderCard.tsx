@@ -1,6 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import type { Order } from "../../features/shop/pages/UserProfile/ordersData";
+import type { ChipStatusKey } from "../ui/chip-status";
+import { ChipStatus } from "../ui/chip-status";
 import OrderProductItem from "./OrderProductItem";
 
 interface OrderCardProps {
@@ -25,6 +27,26 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
   // Check if there are more products to show
   const hasMoreProducts = order.products.length > 1;
+
+  // Map order status to chip status
+  const getChipStatus = (status: string): ChipStatusKey => {
+    switch (status) {
+      case "pending":
+        return "pending";
+      case "confirmed":
+        return "confirmed";
+      case "shipping":
+        return "shipping";
+      case "delivered":
+        return "delivered";
+      case "cancelled":
+        return "cancelled";
+      case "return":
+        return "return";
+      default:
+        return "default";
+    }
+  };
 
   const handleViewDetails = () => {
     // If order status is "return", navigate to return/refund detail page
@@ -118,9 +140,10 @@ const OrderCard: React.FC<OrderCardProps> = ({
             </>
           )}
         </div>
-        <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 text-xs sm:text-sm font-medium rounded-lg">
-          {order.statusLabel}
-        </span>
+        <ChipStatus
+          status={getChipStatus(order.status)}
+          labelOverride={order.statusLabel}
+        />
       </div>
 
       {/* Order Products */}

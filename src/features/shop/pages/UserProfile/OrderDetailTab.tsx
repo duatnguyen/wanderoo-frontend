@@ -356,36 +356,38 @@ const OrderDetailTab: React.FC = () => {
 
         {/* Order Status Tracker */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-          <Steps
-            direction="horizontal"
-            current={order.statusSteps.filter((s) => s.completed).length - 1}
-            items={order.statusSteps.map((step) => ({
-              status: step.completed ? "finish" : "wait",
-              title: (
-                <div className="flex flex-col items-center text-center">
-                  <div
-                    className={`text-sm font-semibold ${
-                      step.completed ? "text-[#ea5b0c]" : "text-gray-500"
-                    }`}
-                  >
-                    {step.label}
-                  </div>
-                  {step.date && step.completed && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      {step.date}
+          <div className="overflow-x-auto">
+            <Steps
+              direction="horizontal"
+              current={order.statusSteps.filter((s) => s.completed).length - 1}
+              items={order.statusSteps.map((step) => ({
+                status: step.completed ? "finish" : "wait",
+                title: (
+                  <div className="flex flex-col items-center text-center max-w-[120px] sm:max-w-[150px]">
+                    <div
+                      className={`text-xs sm:text-sm font-semibold whitespace-normal break-words ${
+                        step.completed ? "text-[#ea5b0c]" : "text-gray-500"
+                      }`}
+                    >
+                      {step.label}
                     </div>
-                  )}
-                </div>
-              ),
-              icon: step.completed ? (
-                <div className="w-8 h-8 rounded-lg bg-orange-200 flex items-center justify-center">
-                  <CheckOutlined className="text-white text-sm" />
-                </div>
-              ) : (
-                <div className="w-8 h-8 rounded-lg bg-white border-2 border-gray-300" />
-              ),
-            }))}
-          />
+                    {step.date && step.completed && (
+                      <div className="text-xs text-gray-500 mt-1 whitespace-nowrap">
+                        {step.date}
+                      </div>
+                    )}
+                  </div>
+                ),
+                icon: step.completed ? (
+                  <div className="w-8 h-8 rounded-lg bg-orange-200 flex items-center justify-center flex-shrink-0">
+                    <CheckOutlined className="text-white text-sm" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-white border-2 border-gray-300 flex-shrink-0" />
+                ),
+              }))}
+            />
+          </div>
         </div>
 
         {/* Customer Information */}

@@ -1,27 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
 import Button from "../../../../components/shop/Button";
 import { Select } from "antd";
 import { Input, Textarea } from "../../../../components/shop/Input";
 import Checkbox from "../../../../components/shop/Checkbox";
-
-function PlusIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M10 4V16M4 10H16"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 type Address = {
   id: string;
@@ -236,7 +218,7 @@ const AddressTab: React.FC = () => {
             onClick={handleAddNew}
             className="flex items-center gap-2"
           >
-            <PlusIcon />
+            <Plus size={20} />
             <span>Thêm địa chỉ mới</span>
           </Button>
         </div>
@@ -269,15 +251,15 @@ const AddressTab: React.FC = () => {
                     <span className="text-gray-700 text-sm sm:text-base">
                       {address.phone}
                     </span>
+                    {address.isDefault && (
+                      <span className="inline-block px-3 py-1 border border-red-500 text-red-600 text-xs sm:text-sm font-medium rounded">
+                        Địa chỉ mặc định
+                      </span>
+                    )}
                   </div>
                   <p className="text-gray-700 text-sm sm:text-base mb-2">
                     {address.address}
                   </p>
-                  {address.isDefault && (
-                    <span className="inline-block px-3 py-1 border border-red-500 text-red-600 text-xs sm:text-sm font-medium rounded">
-                      Mặc định
-                    </span>
-                  )}
                 </div>
 
                 {/* Actions */}
@@ -322,7 +304,7 @@ const AddressTab: React.FC = () => {
                 onClick={handleAddNew}
                 className="flex items-center gap-2 mx-auto"
               >
-                <PlusIcon />
+                <Plus size={20} />
                 <span>Thêm địa chỉ mới</span>
               </Button>
             </div>

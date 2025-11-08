@@ -1,5 +1,7 @@
 import React from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Check } from "lucide-react";
+import { Steps } from "antd";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -43,23 +45,6 @@ interface ReturnRefundDetailData {
   description: string;
   images: string[];
   statusSteps: ReturnRefundStatus[];
-}
-
-function ArrowLeftIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 12H5M12 19l-7-7 7-7" />
-    </svg>
-  );
 }
 
 const ReturnRefundDetail: React.FC = () => {
@@ -135,7 +120,7 @@ const ReturnRefundDetail: React.FC = () => {
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
-          <ArrowLeftIcon />
+          <ArrowLeft size={24} />
           <span className="text-sm sm:text-base">Quay lại</span>
         </button>
         <div className="text-sm text-gray-600 text-right">
@@ -148,64 +133,37 @@ const ReturnRefundDetail: React.FC = () => {
       <div className="space-y-6">
         {/* Status Timeline */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-          <div className="relative">
-            {/* Continuous horizontal gray line */}
-            <div
-              className="hidden sm:block absolute left-0 right-0 h-0.5 bg-gray-300"
-              style={{ top: "16px" }}
-            />
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-0 relative">
-              {data.statusSteps.map((step) => (
-                <div
-                  key={step.id}
-                  className="flex flex-col items-center gap-2 sm:flex-1 relative"
-                >
-                  {/* Icon */}
-                  <div className="relative z-10">
+          <div className="overflow-x-auto">
+            <Steps
+              direction="horizontal"
+              current={data.statusSteps.filter((s) => s.completed).length - 1}
+              items={data.statusSteps.map((step) => ({
+                status: step.completed ? "finish" : "wait",
+                title: (
+                  <div className="flex flex-col items-center text-center max-w-[120px] sm:max-w-[150px]">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        step.completed
-                          ? "bg-blue-600 text-white"
-                          : "bg-white border-2 border-gray-300"
-                      }`}
-                    >
-                      {step.completed && (
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-white"
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Text Content */}
-                  <div className="flex flex-col items-center text-center mt-2">
-                    <div
-                      className={`text-sm font-medium ${
-                        step.completed ? "text-blue-600" : "text-gray-500"
+                      className={`text-xs sm:text-sm font-semibold whitespace-normal break-words ${
+                        step.completed ? "text-[#ea5b0c]" : "text-gray-500"
                       }`}
                     >
                       {step.label}
                     </div>
                     {step.date && step.completed && (
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-gray-500 mt-1 whitespace-nowrap">
                         {step.date}
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
+                ),
+                icon: step.completed ? (
+                  <div className="w-8 h-8 rounded-lg bg-orange-200 flex items-center justify-center flex-shrink-0">
+                    <Check size={14} className="text-white" strokeWidth={3} />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-white border-2 border-gray-300 flex-shrink-0" />
+                ),
+              }))}
+            />
           </div>
         </div>
 
