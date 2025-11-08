@@ -24,8 +24,12 @@ export const OrderTableHeader = ({
           <div
             key={column.title}
             className={`bg-[#f6f6f6] flex items-center ${
-              index === 0 ? "rounded-l-[6px]" : index === columns.length - 1 ? "rounded-r-[6px]" : ""
-            } px-[8px] py-[12px] ${column.width} ${column.minWidth || ""} ${
+              index === 0
+                ? "rounded-l-[6px]"
+                : index === columns.length - 1
+                  ? "rounded-r-[6px]"
+                  : ""
+            } px-[16px] py-[14px] ${column.width} ${column.minWidth || ""} ${
               column.className || "justify-center"
             }`}
           >
@@ -54,7 +58,11 @@ export interface OrderRowProps {
     paymentStatus: string;
     category: string;
   };
-  onViewDetail: (orderId: string, orderStatus: string, orderSource: string) => void;
+  onViewDetail: (
+    orderId: string,
+    orderStatus: string,
+    orderSource: string
+  ) => void;
   getPaymentTypeStatus: (paymentType: string) => any;
   getProcessingStatus: (status: string) => any;
   getPaymentStatus: (paymentStatus: string) => any;
@@ -67,7 +75,6 @@ export const OrderTableRow = ({
   getProcessingStatus,
   getPaymentStatus,
 }: OrderRowProps) => {
-
   return (
     <div className="w-full">
       {/* Customer Header Row */}
@@ -151,8 +158,10 @@ export const OrderTableRow = ({
           {/* Actions Column - 100px */}
           <div className="flex items-center justify-center gap-[4px] px-[8px] py-[12px] w-[100px]">
             <button
-              className="flex gap-[4px] items-center font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.3] cursor-pointer hover:underline text-center"
-              onClick={() => onViewDetail(order.id, order.status, order.category)}
+              className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer hover:underline"
+              onClick={() =>
+                onViewDetail(order.id, order.status, order.category)
+              }
             >
               <DetailIcon size={14} color="#1a71f6" />
               Chi tiết

@@ -1,11 +1,14 @@
-
 interface CaretDownProps {
   className?: string;
   width?: number;
   height?: number;
 }
 
-export function CaretDown({ className, width = 11, height = 5 }: CaretDownProps) {
+export function CaretDown({
+  className,
+  width = 11,
+  height = 5,
+}: CaretDownProps) {
   return (
     <svg
       width={width}

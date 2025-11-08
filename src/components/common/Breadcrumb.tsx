@@ -34,17 +34,15 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
           {separator}
         </>
       )}
-      
+
       {breadcrumbs.map((item, index) => {
         const isLast = index === breadcrumbs.length - 1;
         const isCurrent = location.pathname === item.path;
-        
+
         return (
           <React.Fragment key={item.path}>
             {isLast || isCurrent ? (
-              <span className="text-gray-900 font-medium">
-                {item.label}
-              </span>
+              <span className="text-gray-900 font-medium">{item.label}</span>
             ) : (
               <Link
                 to={item.path}
@@ -53,12 +51,8 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
                 {item.label}
               </Link>
             )}
-            
-            {!isLast && (
-              <span className="flex items-center">
-                {separator}
-              </span>
-            )}
+
+            {!isLast && <span className="flex items-center">{separator}</span>}
           </React.Fragment>
         );
       })}
@@ -67,9 +61,11 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
 };
 
 // Specialized POS Breadcrumb with POS-specific styling
-export const POSBreadcrumb: React.FC<{ className?: string }> = ({ className }) => {
+export const POSBreadcrumb: React.FC<{ className?: string }> = ({
+  className,
+}) => {
   return (
-    <Breadcrumb 
+    <Breadcrumb
       className={cn("bg-white px-4 py-2 border-b border-gray-200", className)}
       showHome={false}
     />

@@ -265,7 +265,7 @@ const AdminDiscounts: React.FC = () => {
           onEnd={handleEnd}
         />
       </div>
-    </PageContainer >
+    </PageContainer>
   );
 };
 

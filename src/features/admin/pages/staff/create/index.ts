@@ -1,2 +1,2 @@
 // Staff Create Pages
-export { default } from './AdminStaffNew';
+export { default } from "./AdminStaffNew";

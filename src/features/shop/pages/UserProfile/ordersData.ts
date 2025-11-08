@@ -1,0 +1,405 @@
+// Shared orders data for OrdersTab and OrderDetailTab
+
+export type OrderStatus =
+  | "all"
+  | "pending"
+  | "confirmed"
+  | "shipping"
+  | "delivered"
+  | "cancelled"
+  | "return";
+
+export type Order = {
+  id: string;
+  orderDate: string;
+  status: OrderStatus;
+  statusLabel: string;
+  products: {
+    id: string;
+    imageUrl: string;
+    name: string;
+    price: number;
+    originalPrice?: number;
+    variant?: string;
+    variantColor?: string;
+  }[];
+  totalPayment: number;
+};
+
+// Mock orders data - shared between OrdersTab and OrderDetailTab
+export const ordersData: Order[] = [
+  // Pending orders
+  {
+    id: "WB0303168601",
+    orderDate: "28/08/2025",
+    status: "pending",
+    statusLabel: "Chờ xác nhận",
+    products: [
+      {
+        id: "p1",
+        imageUrl: "",
+        name: "Ba lô trekking 40L chống nước",
+        price: 850000,
+        originalPrice: 1200000,
+        variant: "Đen",
+        variantColor: "gray",
+      },
+      {
+        id: "p2",
+        imageUrl: "",
+        name: "Giày leo núi cao cổ",
+        price: 1200000,
+        originalPrice: 1500000,
+        variant: "Nâu, Size 42",
+      },
+    ],
+    totalPayment: 2050000,
+  },
+  {
+    id: "WB0303168602",
+    orderDate: "27/08/2025",
+    status: "pending",
+    statusLabel: "Chờ xác nhận",
+    products: [
+      {
+        id: "p3",
+        imageUrl: "",
+        name: "Túi ngủ mùa đông 3 mùa",
+        price: 650000,
+        originalPrice: 890000,
+      },
+    ],
+    totalPayment: 650000,
+  },
+
+  // Confirmed orders
+  {
+    id: "WB0303168603",
+    orderDate: "26/08/2025",
+    status: "confirmed",
+    statusLabel: "Đã xác nhận",
+    products: [
+      {
+        id: "c1",
+        imageUrl: "",
+        name: "Bếp gas du lịch mini",
+        price: 450000,
+        originalPrice: 650000,
+        variant: "Cam",
+        variantColor: "orange",
+      },
+      {
+        id: "c2",
+        imageUrl: "",
+        name: "Bộ nồi nấu ăn 3 món",
+        price: 320000,
+        originalPrice: 450000,
+      },
+      {
+        id: "c3",
+        imageUrl: "",
+        name: "Đèn pin LED siêu sáng",
+        price: 280000,
+        originalPrice: 380000,
+      },
+    ],
+    totalPayment: 1050000,
+  },
+  {
+    id: "WB0303168604",
+    orderDate: "25/08/2025",
+    status: "confirmed",
+    statusLabel: "Đã xác nhận",
+    products: [
+      {
+        id: "c4",
+        imageUrl: "",
+        name: "Ghế xếp du lịch nhẹ",
+        price: 320000,
+        originalPrice: 450000,
+      },
+    ],
+    totalPayment: 320000,
+  },
+
+  // Shipping orders
+  {
+    id: "WB0303168605",
+    orderDate: "24/08/2025",
+    status: "shipping",
+    statusLabel: "Đang vận chuyển",
+    products: [
+      {
+        id: "s1",
+        imageUrl: "",
+        name: "Áo khoác gió chống nước",
+        price: 750000,
+        originalPrice: 950000,
+        variant: "Xanh navy",
+        variantColor: "blue",
+      },
+      {
+        id: "s2",
+        imageUrl: "",
+        name: "Quần leo núi chống nước",
+        price: 680000,
+        originalPrice: 850000,
+        variant: "Đen, Size M",
+      },
+      {
+        id: "s3",
+        imageUrl: "",
+        name: "Mũ chống nắng",
+        price: 150000,
+        originalPrice: 200000,
+      },
+      {
+        id: "s4",
+        imageUrl: "",
+        name: "Găng tay leo núi",
+        price: 180000,
+        originalPrice: 250000,
+      },
+    ],
+    totalPayment: 1760000,
+  },
+  {
+    id: "WB0303168606",
+    orderDate: "23/08/2025",
+    status: "shipping",
+    statusLabel: "Đang vận chuyển",
+    products: [
+      {
+        id: "s5",
+        imageUrl: "",
+        name: "Bộ dụng cụ đa năng",
+        price: 180000,
+        originalPrice: 250000,
+      },
+      {
+        id: "s6",
+        imageUrl: "",
+        name: "Bình nước thể thao 1L",
+        price: 120000,
+        originalPrice: 180000,
+      },
+    ],
+    totalPayment: 300000,
+  },
+
+  // Delivered orders
+  {
+    id: "WB0303168523",
+    orderDate: "22/08/2025",
+    status: "delivered",
+    statusLabel: "Đã giao hàng",
+    products: [
+      {
+        id: "d1",
+        imageUrl: "",
+        name: "Lều mái vòm cho 2 người - MT500 xám (SIMOND)",
+        price: 1200000,
+        originalPrice: 1500000,
+      },
+      {
+        id: "d2",
+        imageUrl: "",
+        name: "Túi ngủ mùa đông giữ nhiệt",
+        price: 890000,
+        originalPrice: 1200000,
+      },
+      {
+        id: "d3",
+        imageUrl: "",
+        name: "Thảm cắm trại chống thấm",
+        price: 450000,
+        originalPrice: 650000,
+      },
+      {
+        id: "d4",
+        imageUrl: "",
+        name: "Đèn lều LED",
+        price: 250000,
+        originalPrice: 350000,
+      },
+      {
+        id: "d5",
+        imageUrl: "",
+        name: "Dây căng lều",
+        price: 80000,
+        originalPrice: 120000,
+      },
+    ],
+    totalPayment: 2870000,
+  },
+  {
+    id: "WB0303168524",
+    orderDate: "21/08/2025",
+    status: "delivered",
+    statusLabel: "Đã giao hàng",
+    products: [
+      {
+        id: "d6",
+        imageUrl: "",
+        name: "Lều cắm trại 222 người - MH100 trắng/Xanh (QUECHUA)",
+        price: 199000,
+        originalPrice: 230000,
+      },
+    ],
+    totalPayment: 199000,
+  },
+  {
+    id: "WB0303168525",
+    orderDate: "20/08/2025",
+    status: "delivered",
+    statusLabel: "Đã giao hàng",
+    products: [
+      {
+        id: "d7",
+        imageUrl: "",
+        name: "Lều cắm trại 3 người - MH100 trắng/Xanh",
+        price: 199000,
+        originalPrice: 330000,
+        variant: "Đen",
+        variantColor: "gray",
+      },
+      {
+        id: "d8",
+        imageUrl: "",
+        name: "Gậy leo núi có đệm lò xo",
+        price: 450000,
+        originalPrice: 600000,
+        variant: "Xám",
+      },
+    ],
+    totalPayment: 649000,
+  },
+
+  // Cancelled orders
+  {
+    id: "WB0303168522",
+    orderDate: "19/08/2025",
+    status: "cancelled",
+    statusLabel: "Đã hủy",
+    products: [
+      {
+        id: "ca1",
+        imageUrl: "",
+        name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
+        price: 199000,
+        originalPrice: 230000,
+        variant: "xanh",
+        variantColor: "green",
+      },
+    ],
+    totalPayment: 199000,
+  },
+  {
+    id: "WB0303168607",
+    orderDate: "18/08/2025",
+    status: "cancelled",
+    statusLabel: "Đã hủy",
+    products: [
+      {
+        id: "ca2",
+        imageUrl: "",
+        name: "Ba lô du lịch 50L",
+        price: 1290000,
+        originalPrice: 1800000,
+        variant: "Xanh",
+        variantColor: "blue",
+      },
+      {
+        id: "ca3",
+        imageUrl: "",
+        name: "Vali du lịch 24 inch",
+        price: 2200000,
+        originalPrice: 3000000,
+      },
+      {
+        id: "ca4",
+        imageUrl: "",
+        name: "Túi đựng giày du lịch",
+        price: 150000,
+        originalPrice: 200000,
+      },
+    ],
+    totalPayment: 3640000,
+  },
+
+  // Return/Refund orders
+  {
+    id: "WB0303168608",
+    orderDate: "17/08/2025",
+    status: "return",
+    statusLabel: "Trả hàng / Hoàn tiền",
+    products: [
+      {
+        id: "r1",
+        imageUrl: "",
+        name: "Giày thể thao leo núi CAMEL CROWN",
+        price: 1000000,
+        originalPrice: 1300000,
+        variant: "Xám, Size 38",
+      },
+      {
+        id: "r2",
+        imageUrl: "",
+        name: "Tất xỏ ngón chạy bộ",
+        price: 120000,
+        originalPrice: 180000,
+        variant: "Đen, Size 36",
+      },
+    ],
+    totalPayment: 1120000,
+  },
+  {
+    id: "WB0303168609",
+    orderDate: "16/08/2025",
+    status: "return",
+    statusLabel: "Trả hàng / Hoàn tiền",
+    products: [
+      {
+        id: "r3",
+        imageUrl: "",
+        name: "Bếp nướng BBQ đa năng",
+        price: 650000,
+        originalPrice: 1200000,
+      },
+      {
+        id: "r4",
+        imageUrl: "",
+        name: "Bộ đồ nấu ăn du lịch 8 món",
+        price: 450000,
+        originalPrice: 850000,
+      },
+      {
+        id: "r5",
+        imageUrl: "",
+        name: "Kìm đa năng",
+        price: 180000,
+        originalPrice: 250000,
+      },
+      {
+        id: "r6",
+        imageUrl: "",
+        name: "Dao đa năng",
+        price: 120000,
+        originalPrice: 180000,
+      },
+      {
+        id: "r7",
+        imageUrl: "",
+        name: "Đèn pin cầm tay",
+        price: 200000,
+        originalPrice: 300000,
+      },
+    ],
+    totalPayment: 1600000,
+  },
+];
+
+// Helper function to get order by ID
+export const getOrderById = (orderId: string): Order | undefined => {
+  return ordersData.find((order) => order.id === orderId);
+};

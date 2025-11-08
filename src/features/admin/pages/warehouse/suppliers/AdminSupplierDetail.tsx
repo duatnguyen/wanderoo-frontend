@@ -77,7 +77,10 @@ const AdminSupplierDetail = () => {
 
   return (
     <div className="w-full overflow-x-auto min-h-screen">
-      <div className="flex flex-col gap-[8px] items-start w-full mx-auto px-[24px] min-w-[1070px]" style={{ maxWidth: 'calc(100% - 500px)' }}>
+      <div
+        className="flex flex-col gap-[8px] items-start w-full mx-auto px-[24px] min-w-[1070px]"
+        style={{ maxWidth: "calc(100% - 500px)" }}
+      >
         {/* Header with Back Button */}
         <div className="flex items-center justify-between gap-[8px] pt-[10px] pb-0 w-full min-w-[1070px]">
           <div className="flex items-center gap-[8px]">
@@ -92,10 +95,18 @@ const AdminSupplierDetail = () => {
             </h1>
           </div>
           <div className="flex gap-[12px] items-center">
-            <Button variant="secondary" onClick={() => navigate(-1)} className="text-[14px]">
+            <Button
+              variant="secondary"
+              onClick={() => navigate(-1)}
+              className="text-[14px]"
+            >
               Huỷ
             </Button>
-            <Button variant="default" onClick={() => console.log("Save clicked")} className="text-[14px]">
+            <Button
+              variant="default"
+              onClick={() => console.log("Save clicked")}
+              className="text-[14px]"
+            >
               Lưu
             </Button>
           </div>
@@ -107,77 +118,85 @@ const AdminSupplierDetail = () => {
           <div className="flex flex-col gap-[8px] items-start flex-1">
             {/* Card 1 - Supplier Code and Statistics */}
             <div className="bg-white border border-[#d1d1d1] rounded-[8px] w-full">
-          {/* Header with Supplier Code and Date Filters */}
-          <div className="border-b border-[#d1d1d1] flex items-center justify-between p-[16px]">
-            <div className="flex items-center">
-              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-                Mã NCC: {mockSupplierData.id}
-              </p>
-            </div>
-            <div className="flex gap-[16px] items-center">
-              {/* Date Range Input 1 */}
-              <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center w-[160px]">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className={`flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold w-full ${startDate ? 'text-[#272424]' : 'text-[#737373]'}`}
-                  placeholder="/"
-                />
+              {/* Header with Supplier Code and Date Filters */}
+              <div className="border-b border-[#d1d1d1] flex items-center justify-between p-[16px]">
+                <div className="flex items-center">
+                  <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                    Mã NCC: {mockSupplierData.id}
+                  </p>
+                </div>
+                <div className="flex gap-[16px] items-center">
+                  {/* Date Range Input 1 */}
+                  <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center w-[160px]">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className={`flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold w-full ${startDate ? "text-[#272424]" : "text-[#737373]"}`}
+                      placeholder="/"
+                    />
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="text-[#737373]">−</div>
+
+                  {/* Date Range Input 2 */}
+                  <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center w-[160px]">
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className={`flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold w-full ${endDate ? "text-[#272424]" : "text-[#737373]"}`}
+                      placeholder="/"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Arrow */}
-              <div className="text-[#737373]">−</div>
-
-              {/* Date Range Input 2 */}
-              <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center w-[160px]">
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className={`flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold w-full ${endDate ? 'text-[#272424]' : 'text-[#737373]'}`}
-                  placeholder="/"
-                />
+              {/* Statistics Cards */}
+              <div className="flex items-center justify-between px-[16px] py-[16px]">
+                <div className="flex flex-col gap-[8px] items-center">
+                  <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
+                    Đơn nhập
+                    <br />
+                    đã tạo
+                  </p>
+                  <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
+                    1 đơn
+                  </p>
+                </div>
+                <div className="flex flex-col gap-[8px] items-center">
+                  <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
+                    Đơn nhập
+                    <br />
+                    chưa thanh toán
+                  </p>
+                  <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
+                    1 đơn
+                  </p>
+                </div>
+                <div className="flex flex-col gap-[8px] items-center">
+                  <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
+                    Đơn trả
+                    <br />
+                    đã tạo
+                  </p>
+                  <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
+                    1 đơn
+                  </p>
+                </div>
+                <div className="flex flex-col gap-[8px] items-center">
+                  <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
+                    Đơn trả
+                    <br />
+                    chưa hoàn tiền
+                  </p>
+                  <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
+                    1 đơn
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Statistics Cards */}
-          <div className="flex items-center justify-between px-[16px] py-[16px]">
-            <div className="flex flex-col gap-[8px] items-center">
-              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                Đơn nhập<br />đã tạo
-              </p>
-              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-                1 đơn
-              </p>
-            </div>
-            <div className="flex flex-col gap-[8px] items-center">
-              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                Đơn nhập<br />chưa thanh toán
-              </p>
-              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-                1 đơn
-              </p>
-            </div>
-            <div className="flex flex-col gap-[8px] items-center">
-              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                Đơn trả<br />đã tạo
-              </p>
-              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-                1 đơn
-              </p>
-            </div>
-            <div className="flex flex-col gap-[8px] items-center">
-              <p className="font-semibold text-[#272424] text-[14px] leading-[1.4] text-center">
-                Đơn trả<br />chưa hoàn tiền
-              </p>
-              <p className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-                1 đơn
-              </p>
-            </div>
-          </div>
-          </div>
 
             {/* Card 2 - Order History Table */}
             <div className="bg-white border border-[#d1d1d1] rounded-[8px] w-full">
@@ -309,7 +328,7 @@ const AdminSupplierDetail = () => {
                 </div>
                 <div className="flex-1 text-right break-words whitespace-normal">
                   <p className="font-semibold text-[#1a1a1b] text-[14px] leading-[1.4]">
-                    {formData.address.replace(/Hà Nội/g, 'Hà\u00A0Nội')}
+                    {formData.address.replace(/Hà Nội/g, "Hà\u00A0Nội")}
                   </p>
                 </div>
               </div>

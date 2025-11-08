@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.vite
+*.min.js
+*.min.css
+coverage
+.next
+.nuxt
+.cache
+

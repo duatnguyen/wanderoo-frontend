@@ -256,9 +256,7 @@ const AdminAddCustomer = () => {
         <div className="flex flex-col gap-[8px]">
           <FormInput
             value={formData.note}
-            onChange={(e) =>
-              setFormData({ ...formData, note: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
             placeholder="Nhập ghi chú (Nếu có)"
             containerClassName="h-[50px] px-[12px] py-0"
           />
@@ -267,10 +265,18 @@ const AdminAddCustomer = () => {
 
       {/* Action Buttons */}
       <div className="flex gap-[12px] justify-end py-[16px] w-full">
-        <Button variant="secondary" onClick={() => navigate(-1)} className="text-[14px]">
+        <Button
+          variant="secondary"
+          onClick={() => navigate(-1)}
+          className="text-[14px]"
+        >
           Huỷ
         </Button>
-        <Button variant="default" onClick={handleSubmit} className="text-[14px]">
+        <Button
+          variant="default"
+          onClick={handleSubmit}
+          className="text-[14px]"
+        >
           Thêm mới
         </Button>
       </div>
@@ -279,6 +285,3 @@ const AdminAddCustomer = () => {
 };
 
 export default AdminAddCustomer;
-
-
-

@@ -6,12 +6,22 @@ import { LazyWrapper } from "../../components/common/LazyWrapper";
 import { POS_ROUTES } from "./routes.constants";
 
 // Lazy load POS pages - Organized by feature modules
-const POSSales = lazy(() => import("../../features/pos/pages/sales"));
-const OrderManagement = lazy(() => import("../../features/pos/pages/orders"));
-const InventoryLookup = lazy(() => import("../../features/pos/pages/inventory"));
-const ReturnOrderManagement = lazy(() => import("../../features/pos/pages/returns/ReturnOrderManagement"));
-const CreateReturnOrder = lazy(() => import("../../features/pos/pages/returns/CreateReturnOrder"));
-const CashBook = lazy(() => import("../../features/pos/pages/cashbook"));
+const POSSales = lazy(() => import("../../features/pos/pages/sales/POSSales"));
+const OrderManagement = lazy(
+  () => import("../../features/pos/pages/orders/OrderManagement")
+);
+const InventoryLookup = lazy(
+  () => import("../../features/pos/pages/inventory/InventoryLookup")
+);
+const ReturnOrderManagement = lazy(
+  () => import("../../features/pos/pages/returns/ReturnOrderManagement")
+);
+const CreateReturnOrder = lazy(
+  () => import("../../features/pos/pages/returns/CreateReturnOrder")
+);
+const CashBook = lazy(
+  () => import("../../features/pos/pages/cashbook/CashBook")
+);
 
 export const posRoutes: RouteObject[] = [
   // Default POS route - redirect to sales
@@ -19,7 +29,7 @@ export const posRoutes: RouteObject[] = [
     index: true,
     element: <Navigate to={POS_ROUTES.SALES} replace />,
   },
-  
+
   // POS Sales (Main POS interface)
   {
     path: "sales",
@@ -38,7 +48,7 @@ export const posRoutes: RouteObject[] = [
       </LazyWrapper>
     ),
   },
-  
+
   // Inventory Lookup
   {
     path: "inventory",
@@ -48,7 +58,7 @@ export const posRoutes: RouteObject[] = [
       </LazyWrapper>
     ),
   },
-  
+
   // Return Order Management
   {
     path: "returns",
@@ -73,7 +83,7 @@ export const posRoutes: RouteObject[] = [
       },
     ],
   },
-  
+
   // Cash Book / Financial Management
   {
     path: "cashbook",
@@ -83,7 +93,7 @@ export const posRoutes: RouteObject[] = [
       </LazyWrapper>
     ),
   },
-  
+
   // Catch-all route for POS - redirect to sales
   {
     path: "*",

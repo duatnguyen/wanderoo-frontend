@@ -1,97 +1,47 @@
-import React from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import {
-  PersonIcon,
-  DocumentIcon,
-  TicketIcon,
-} from "../components/shop/ProfileIcons";
-
-type MenuItem = {
-  id: string;
-  label: string;
-  path: string;
-  icon?: React.ReactNode;
-};
+import React, { useState } from "react";
+import { Outlet } from "react-router-dom";
+import { Menu } from "lucide-react";
+import ProfileSidebar from "../components/shop/ProfileSidebar";
 
 const ProfileLayout: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const menuItems: MenuItem[] = [
-    {
-      id: "basicinformation",
-      label: "Hồ sơ",
-      path: "/user/profile/basicinformation",
-      icon: <PersonIcon />,
-    },
-    { id: "address", label: "Địa chỉ", path: "/user/profile/address" },
-    { id: "password", label: "Đổi mật khẩu", path: "/user/profile/password" },
-    {
-      id: "privacy",
-      label: "Thiết lập riêng tư",
-      path: "/user/profile/privacy",
-    },
-    {
-      id: "orders",
-      label: "Đơn mua",
-      path: "/user/profile/orders",
-      icon: <DocumentIcon />,
-    },
-    {
-      id: "vouchers",
-      label: "Kho voucher",
-      path: "/user/profile/vouchers",
-      icon: <TicketIcon />,
-    },
-  ];
-
-  const activeMenuId =
-    menuItems.find(
-      (item) =>
-        location.pathname === item.path ||
-        location.pathname.startsWith(item.path + "/")
-    )?.id || "basicinformation";
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="bg-gray-50">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+    <div className="bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden py-4">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Menu size={24} />
+            <span className="font-medium">Menu</span>
+          </button>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8">
+          {/* Overlay for mobile */}
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+
           {/* Left Sidebar - Menu */}
-          <aside className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-                Tài khoản của tôi
-              </h3>
-              <nav className="space-y-1 sm:space-y-2">
-                {menuItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(item.path)}
-                    className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-colors text-sm sm:text-base ${activeMenuId === item.id
-                        ? "bg-[#18345c] text-white"
-                        : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {item.icon && (
-                      <span
-                        className={
-                          activeMenuId === item.id
-                            ? "text-white"
-                            : "text-gray-600"
-                        }
-                      >
-                        {item.icon}
-                      </span>
-                    )}
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </aside>
+          <div
+            className={`fixed lg:static inset-y-0 left-0 z-50 lg:z-auto transform ${
+              isSidebarOpen
+                ? "translate-x-0"
+                : "-translate-x-full lg:translate-x-0"
+            } transition-transform duration-300 ease-in-out lg:transition-none`}
+          >
+            <ProfileSidebar onClose={() => setIsSidebarOpen(false)} />
+          </div>
 
           {/* Main Content */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 lg:pl-0">
             <Outlet />
           </div>
         </div>

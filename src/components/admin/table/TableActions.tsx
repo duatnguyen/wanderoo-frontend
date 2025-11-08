@@ -21,7 +21,9 @@ export const TableActions = ({
   className = "flex items-center gap-3",
   children,
 }: TableActionsProps) => {
-  const getButtonStyles = (variant: "primary" | "secondary" | "danger" = "primary") => {
+  const getButtonStyles = (
+    variant: "primary" | "secondary" | "danger" = "primary"
+  ) => {
     const baseStyles = "h-9 px-4 rounded-lg transition-all duration-200 font-medium text-sm";
     
     switch (variant) {

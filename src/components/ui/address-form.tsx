@@ -42,8 +42,11 @@ const AddressForm: React.FC<AddressFormProps> = ({
     isDefault: initialData.isDefault || false,
   });
 
-  const handleInputChange = (field: keyof AddressFormData, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (
+    field: keyof AddressFormData,
+    value: string | boolean
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -65,7 +68,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-[10px] items-start px-[15px] pb-[15px] w-full">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-[10px] items-start px-[15px] pb-[15px] w-full"
+      >
         {/* Full Name */}
         <FormInput
           label="Họ và tên"
@@ -101,7 +107,9 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
-                <span className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.province ? 'text-black' : 'text-[#888888]'}`}>
+                <span
+                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.province ? "text-black" : "text-[#888888]"}`}
+                >
                   {formData.province || "Chọn tỉnh thành phố"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
@@ -128,7 +136,9 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
-                <span className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.district ? 'text-black' : 'text-[#888888]'}`}>
+                <span
+                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.district ? "text-black" : "text-[#888888]"}`}
+                >
                   {formData.district || "Chọn Quận/Huyện"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
@@ -155,7 +165,9 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
-                <span className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.ward ? 'text-black' : 'text-[#888888]'}`}>
+                <span
+                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.ward ? "text-black" : "text-[#888888]"}`}
+                >
                   {formData.ward || "Chọn Phường/Xã"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
@@ -184,7 +196,9 @@ const AddressForm: React.FC<AddressFormProps> = ({
             <input
               type="text"
               value={formData.detailAddress}
-              onChange={(e) => handleInputChange("detailAddress", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("detailAddress", e.target.value)
+              }
               placeholder="Nhập địa chỉ chi tiết của bạn"
               className="border-0 outline-none text-[14px] font-semibold text-black placeholder:text-[#888888] bg-transparent flex-1"
             />
@@ -206,16 +220,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
 
         {/* Action Buttons */}
         <div className="flex gap-[10px] items-center justify-end px-0 py-[12px] w-full">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="secondary" onClick={onCancel}>
             Huỷ
           </Button>
-          <Button type="submit">
-            Xác nhận
-          </Button>
+          <Button type="submit">Xác nhận</Button>
         </div>
       </form>
     </div>

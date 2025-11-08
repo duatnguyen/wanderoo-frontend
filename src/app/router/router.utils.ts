@@ -1,6 +1,11 @@
 // src/app/router/router.utils.ts
 import { useNavigate, useLocation } from "react-router-dom";
-import { POS_ROUTES, ADMIN_ROUTES, USER_ROUTES, AUTH_ROUTES } from "./routes.constants";
+import {
+  POS_ROUTES,
+  ADMIN_ROUTES,
+  USER_ROUTES,
+  AUTH_ROUTES,
+} from "./routes.constants";
 
 /**
  * Custom hook for POS navigation
@@ -17,15 +22,16 @@ export const usePOSNavigation = () => {
     goToInventory: () => navigate(POS_ROUTES.INVENTORY),
     goToCashBook: () => navigate(POS_ROUTES.CASHBOOK),
     goToReturns: () => navigate(POS_ROUTES.RETURNS.BASE),
-    goToCreateReturn: (orderId: string) => navigate(POS_ROUTES.RETURNS.CREATE(orderId)),
-    
+    goToCreateReturn: (orderId: string) =>
+      navigate(POS_ROUTES.RETURNS.CREATE(orderId)),
+
     // Current route checks
     isOnSales: () => location.pathname === POS_ROUTES.SALES,
     isOnOrders: () => location.pathname === POS_ROUTES.ORDERS,
     isOnInventory: () => location.pathname === POS_ROUTES.INVENTORY,
     isOnCashBook: () => location.pathname === POS_ROUTES.CASHBOOK,
     isOnReturns: () => location.pathname.startsWith(POS_ROUTES.RETURNS.BASE),
-    
+
     // Current path
     currentPath: location.pathname,
   };
@@ -44,13 +50,13 @@ export const useAdminNavigation = () => {
     goToOrders: () => navigate(ADMIN_ROUTES.ORDERS),
     goToUsers: () => navigate(ADMIN_ROUTES.USERS),
     goToSettings: () => navigate(ADMIN_ROUTES.SETTINGS),
-    
+
     isOnDashboard: () => location.pathname === ADMIN_ROUTES.DASHBOARD,
     isOnProducts: () => location.pathname === ADMIN_ROUTES.PRODUCTS,
     isOnOrders: () => location.pathname === ADMIN_ROUTES.ORDERS,
     isOnUsers: () => location.pathname === ADMIN_ROUTES.USERS,
     isOnSettings: () => location.pathname === ADMIN_ROUTES.SETTINGS,
-    
+
     currentPath: location.pathname,
   };
 };
@@ -67,12 +73,12 @@ export const useUserNavigation = () => {
     goToProfile: () => navigate(USER_ROUTES.PROFILE),
     goToOrders: () => navigate(USER_ROUTES.ORDERS),
     goToFavorites: () => navigate(USER_ROUTES.FAVORITES),
-    
+
     isOnHome: () => location.pathname === USER_ROUTES.HOME,
     isOnProfile: () => location.pathname === USER_ROUTES.PROFILE,
     isOnOrders: () => location.pathname === USER_ROUTES.ORDERS,
     isOnFavorites: () => location.pathname === USER_ROUTES.FAVORITES,
-    
+
     currentPath: location.pathname,
   };
 };
@@ -89,10 +95,10 @@ export const useAuthNavigation = () => {
     goToRegister: () => navigate(AUTH_ROUTES.REGISTER),
     goToForgotPassword: () => navigate(AUTH_ROUTES.FORGOT_PASSWORD),
     goToResetPassword: () => navigate(AUTH_ROUTES.RESET_PASSWORD),
-    
+
     isOnLogin: () => location.pathname === AUTH_ROUTES.LOGIN,
     isOnRegister: () => location.pathname === AUTH_ROUTES.REGISTER,
-    
+
     currentPath: location.pathname,
   };
 };
@@ -102,41 +108,47 @@ export const useAuthNavigation = () => {
  */
 export const useBreadcrumb = () => {
   const location = useLocation();
-  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const pathSegments = location.pathname.split("/").filter(Boolean);
 
   const getBreadcrumb = () => {
     const breadcrumbs = [];
-    
-    if (pathSegments[0] === 'pos') {
-      breadcrumbs.push({ label: 'POS System', path: POS_ROUTES.BASE });
-      
+
+    if (pathSegments[0] === "pos") {
+      breadcrumbs.push({ label: "POS System", path: POS_ROUTES.BASE });
+
       switch (pathSegments[1]) {
-        case 'sales':
-          breadcrumbs.push({ label: 'Sales', path: POS_ROUTES.SALES });
+        case "sales":
+          breadcrumbs.push({ label: "Sales", path: POS_ROUTES.SALES });
           break;
-        case 'orders':
-          breadcrumbs.push({ label: 'Order Management', path: POS_ROUTES.ORDERS });
+        case "orders":
+          breadcrumbs.push({
+            label: "Order Management",
+            path: POS_ROUTES.ORDERS,
+          });
           break;
-        case 'inventory':
-          breadcrumbs.push({ label: 'Inventory Lookup', path: POS_ROUTES.INVENTORY });
+        case "inventory":
+          breadcrumbs.push({
+            label: "Inventory Lookup",
+            path: POS_ROUTES.INVENTORY,
+          });
           break;
-        case 'returns':
-          breadcrumbs.push({ label: 'Returns', path: POS_ROUTES.RETURNS.BASE });
-          if (pathSegments[2] === 'create' && pathSegments[3]) {
-            breadcrumbs.push({ 
-              label: `Create Return for Order ${pathSegments[3]}`, 
-              path: POS_ROUTES.RETURNS.CREATE(pathSegments[3]) 
+        case "returns":
+          breadcrumbs.push({ label: "Returns", path: POS_ROUTES.RETURNS.BASE });
+          if (pathSegments[2] === "create" && pathSegments[3]) {
+            breadcrumbs.push({
+              label: `Create Return for Order ${pathSegments[3]}`,
+              path: POS_ROUTES.RETURNS.CREATE(pathSegments[3]),
             });
           }
           break;
-        case 'cashbook':
-          breadcrumbs.push({ label: 'Cash Book', path: POS_ROUTES.CASHBOOK });
+        case "cashbook":
+          breadcrumbs.push({ label: "Cash Book", path: POS_ROUTES.CASHBOOK });
           break;
       }
     }
-    
+
     // Add similar logic for admin, user routes...
-    
+
     return breadcrumbs;
   };
 
@@ -153,11 +165,11 @@ export const routeGuards = {
   requireAuth: (user: any) => {
     return !!user; // Simple auth check
   },
-  
+
   requireRole: (user: any, requiredRole: string) => {
     return user && user.role === requiredRole;
   },
-  
+
   requirePermission: (user: any, permission: string) => {
     return user && user.permissions && user.permissions.includes(permission);
   },

@@ -10,8 +10,6 @@ interface AdminSidebarProps {
   activePath: string;
 }
 
-
-
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   

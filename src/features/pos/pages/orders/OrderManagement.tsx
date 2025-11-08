@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import OrderSearchPanel, { type Order } from "../../../../components/pos/OrderSearchPanel";
+import OrderSearchPanel, {
+  type Order,
+} from "../../../../components/pos/OrderSearchPanel";
 import OrderDetailsPanel, {
   type OrderDetails,
 } from "../../../../components/pos/OrderDetailsPanel";

@@ -565,4 +565,3 @@ const AdminOrderDetailPOS: React.FC = () => {
 };
 
 export default AdminOrderDetailPOS;
-

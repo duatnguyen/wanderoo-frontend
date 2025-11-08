@@ -60,7 +60,9 @@ const ReviewResponseModal: React.FC<ReviewResponseModalProps> = ({
           <Button variant="secondary" onClick={onClose} className="text-[14px]">
             Huỷ
           </Button>
-          <Button onClick={handleSubmit} className="text-[14px]">Xác nhận</Button>
+          <Button onClick={handleSubmit} className="text-[14px]">
+            Xác nhận
+          </Button>
         </div>
       </div>
     </div>

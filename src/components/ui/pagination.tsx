@@ -30,10 +30,12 @@ export const Pagination: React.FC<Readonly<PaginationProps>> = ({
   };
 
   return (
-    <div className={cn(
-      "bg-white border border-[#e7e7e7] rounded-[12px] flex items-center justify-between px-[30px] py-[10px] w-full",
-      className
-    )}>
+    <div
+      className={cn(
+        "bg-white border border-[#e7e7e7] rounded-[12px] flex items-center justify-between px-[30px] py-[10px] w-full",
+        className
+      )}
+    >
       {/* Left side - Display info (hidden on small screens) */}
       <div className="hidden md:flex gap-[3px] items-start">
         <p className="text-[12px] text-[#737373] font-normal leading-[1.5] whitespace-pre">
@@ -49,7 +51,7 @@ export const Pagination: React.FC<Readonly<PaginationProps>> = ({
           className={cn(
             "h-9 w-9 rounded-full flex items-center justify-center text-[#9ca3af]",
             "hover:bg-gray-50 hover:text-[#6b7280] transition-colors",
-            "disabled:opacity-40 disabled:cursor-not-allowed",
+            "disabled:opacity-40 disabled:cursor-not-allowed"
           )}
           aria-label="Trang trước"
         >
@@ -71,7 +73,7 @@ export const Pagination: React.FC<Readonly<PaginationProps>> = ({
           className={cn(
             "h-9 w-9 rounded-full flex items-center justify-center text-[#9ca3af]",
             "hover:bg-gray-50 hover:text-[#6b7280] transition-colors",
-            "disabled:opacity-40 disabled:cursor-not-allowed",
+            "disabled:opacity-40 disabled:cursor-not-allowed"
           )}
           aria-label="Trang tiếp"
         >

@@ -453,9 +453,9 @@ export const adminNavSections: AdminNavSection[] = [
     items: [
       {
         label: "Website",
-        path: "/admin/channels/website",
+        path: "/shop",
         icon: icons.website,
-        activeMatch: "/admin/channels/website",
+        activeMatch: "/shop",
       },
       {
         label: "POS",

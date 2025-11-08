@@ -140,14 +140,20 @@ const AdminWarehouseReturnsImport = () => {
     window.addEventListener("focus", handleStorageChange);
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener("returnImportStatusUpdated", handleCustomUpdate);
+      window.removeEventListener(
+        "returnImportStatusUpdated",
+        handleCustomUpdate
+      );
       window.removeEventListener("focus", handleStorageChange);
     };
   }, []);
 
   // Load status updates from localStorage and merge with mock data
   const returns = useMemo(() => {
-    const storedStatuses = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("returnImportStatuses") || "{}") : {};
+    const storedStatuses =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("returnImportStatuses") || "{}")
+        : {};
     return mockReturns.map((item) => {
       const storedStatus = storedStatuses[item.id];
       if (storedStatus) {
@@ -192,8 +198,12 @@ const AdminWarehouseReturnsImport = () => {
         importItem.importCode
           .toLowerCase()
           .includes(importSearchTerm.toLowerCase()) ||
-        importItem.supplier.toLowerCase().includes(importSearchTerm.toLowerCase()) ||
-        importItem.createdBy.toLowerCase().includes(importSearchTerm.toLowerCase());
+        importItem.supplier
+          .toLowerCase()
+          .includes(importSearchTerm.toLowerCase()) ||
+        importItem.createdBy
+          .toLowerCase()
+          .includes(importSearchTerm.toLowerCase());
       return matchesSearch;
     });
   }, [importSearchTerm]);
@@ -223,7 +233,9 @@ const AdminWarehouseReturnsImport = () => {
   };
 
   const importItemsPerPage = 10;
-  const importTotalPages = Math.ceil(filteredImports.length / importItemsPerPage);
+  const importTotalPages = Math.ceil(
+    filteredImports.length / importItemsPerPage
+  );
   const paginatedImports = useMemo(() => {
     const startIndex = (importCurrentPage - 1) * importItemsPerPage;
     return filteredImports.slice(startIndex, startIndex + importItemsPerPage);
@@ -237,7 +249,7 @@ const AdminWarehouseReturnsImport = () => {
   };
 
   const getReturnStatusChip = (status: ReturnImport["returnStatus"]) => {
-if (status === "returned") {
+    if (status === "returned") {
       return <ChipStatus status="completed" />;
     } else if (status === "pending_return") {
       return <ChipStatus status="processing" />;
@@ -294,13 +306,19 @@ if (status === "returned") {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Tất cả trạng thái")}>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Tất cả trạng thái")}
+                >
                   Tất cả trạng thái
-</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Đã hoàn trả")}>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Đã hoàn trả")}
+                >
                   Đã hoàn trả
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSelectedStatus("Chưa hoàn trả")}>
+                <DropdownMenuItem
+                  onClick={() => setSelectedStatus("Chưa hoàn trả")}
+                >
                   Chưa hoàn trả
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -333,21 +351,27 @@ if (status === "returned") {
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Phương thức<br />thanh toán
+                      Phương thức
+                      <br />
+                      thanh toán
                     </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Trạng thái<br />hoàn hàng
+                      Trạng thái
+                      <br />
+                      hoàn hàng
                     </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
                     <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
-                      Trạng thái<br />hoàn tiền
+                      Trạng thái
+                      <br />
+                      hoàn tiền
                     </span>
                   </div>
                   <div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
-<span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
                       Nhà cung cấp
                     </span>
                   </div>
@@ -382,17 +406,25 @@ if (status === "returned") {
                   <div className="flex items-center w-full">
                     <div className="flex flex-row items-center w-full">
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
-                        <span 
+                        <span
                           className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-center cursor-pointer hover:underline"
-                          onClick={() => navigate(`/admin/warehouse/returns/${returnItem.id}`)}
+                          onClick={() =>
+                            navigate(
+                              `/admin/warehouse/returns/${returnItem.id}`
+                            )
+                          }
                         >
                           {returnItem.returnCode}
                         </span>
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
-                        <span 
+                        <span
                           className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] text-center cursor-pointer hover:underline"
-                          onClick={() => navigate(`/admin/warehouse/imports/${returnItem.importCode}`)}
+                          onClick={() =>
+                            navigate(
+                              `/admin/warehouse/imports/${returnItem.importCode}`
+                            )
+                          }
                         >
                           {returnItem.importCode}
                         </span>
@@ -402,7 +434,7 @@ if (status === "returned") {
                           {formatDate(returnItem.createdDate)}
                         </span>
                       </div>
-<div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
+                      <div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
                         {getPaymentMethodChip(returnItem.paymentMethod)}
                       </div>
                       <div className="flex h-full items-center justify-center px-[4px] py-[12px] flex-1 min-w-0">
@@ -451,7 +483,7 @@ if (status === "returned") {
 
       {/* Import Selection Modal */}
       {isImportModalOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           onClick={() => setIsImportModalOpen(false)}
         >

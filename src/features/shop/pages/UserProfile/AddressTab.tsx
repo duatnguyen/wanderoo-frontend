@@ -1,45 +1,9 @@
 import React, { useState, useEffect } from "react";
-import Button from "../../components/Button";
-import DropdownList from "../../components/DropdownList";
-
-function PlusIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M10 4V16M4 10H16"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M5 7.5L10 12.5L15 7.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import { Plus } from "lucide-react";
+import Button from "../../../../components/shop/Button";
+import { Select } from "antd";
+import { Input, Textarea } from "../../../../components/shop/Input";
+import Checkbox from "../../../../components/shop/Checkbox";
 
 type Address = {
   id: string;
@@ -201,8 +165,8 @@ const AddressTab: React.FC = () => {
                 isDefault: formData.isDefault,
               }
             : formData.isDefault
-            ? { ...addr, isDefault: false }
-            : addr
+              ? { ...addr, isDefault: false }
+              : addr
         )
       );
     } else if (isAddingNew) {
@@ -254,7 +218,7 @@ const AddressTab: React.FC = () => {
             onClick={handleAddNew}
             className="flex items-center gap-2"
           >
-            <PlusIcon />
+            <Plus size={20} />
             <span>Thêm địa chỉ mới</span>
           </Button>
         </div>
@@ -287,15 +251,15 @@ const AddressTab: React.FC = () => {
                     <span className="text-gray-700 text-sm sm:text-base">
                       {address.phone}
                     </span>
+                    {address.isDefault && (
+                      <span className="inline-block px-3 py-1 border border-red-500 text-red-600 text-xs sm:text-sm font-medium rounded">
+                        Địa chỉ mặc định
+                      </span>
+                    )}
                   </div>
                   <p className="text-gray-700 text-sm sm:text-base mb-2">
                     {address.address}
                   </p>
-                  {address.isDefault && (
-                    <span className="inline-block px-3 py-1 border border-red-500 text-red-600 text-xs sm:text-sm font-medium rounded">
-                      Mặc định
-                    </span>
-                  )}
                 </div>
 
                 {/* Actions */}
@@ -340,7 +304,7 @@ const AddressTab: React.FC = () => {
                 onClick={handleAddNew}
                 className="flex items-center gap-2 mx-auto"
               >
-                <PlusIcon />
+                <Plus size={20} />
                 <span>Thêm địa chỉ mới</span>
               </Button>
             </div>
@@ -372,32 +336,22 @@ const AddressTab: React.FC = () => {
             {/* Form Content */}
             <div className="px-6 py-6 space-y-6">
               {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Họ và tên
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Nhập họ và tên của bạn"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-                />
-              </div>
+              <Input
+                label="Họ và tên"
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Nhập họ và tên của bạn"
+              />
 
               {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số điện thoại
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  placeholder="Nhập số điện thoại của bạn"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-                />
-              </div>
+              <Input
+                label="Số điện thoại"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                placeholder="Nhập số điện thoại của bạn"
+              />
 
               {/* Address Section */}
               <div>
@@ -407,83 +361,75 @@ const AddressTab: React.FC = () => {
 
                 <div className="space-y-4">
                   {/* Province/City */}
-                  <div>
+                  <div className="w-full">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Tỉnh/Thành Phố
                     </label>
-                    <DropdownList
-                      options={provinces}
+                    <Select
                       value={formData.province}
-                      onChange={(value) => handleInputChange("province", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("province", value)
+                      }
                       placeholder="Chọn Tỉnh/Thành Phố"
                       className="w-full"
+                      options={provinces}
                     />
                   </div>
 
                   {/* District */}
-                  <div>
+                  <div className="w-full">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Quận/Huyện
                     </label>
-                    <DropdownList
-                      options={districts}
+                    <Select
                       value={formData.district}
-                      onChange={(value) => handleInputChange("district", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("district", value)
+                      }
                       placeholder="Chọn Quận/Huyện"
                       className="w-full"
+                      options={districts}
                     />
                   </div>
 
                   {/* Ward/Commune */}
-                  <div>
+                  <div className="w-full">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Phường/Xã
                     </label>
-                    <DropdownList
-                      options={wards}
+                    <Select
                       value={formData.ward}
-                      onChange={(value) => handleInputChange("ward", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("ward", value)
+                      }
                       placeholder="Chọn Phường/Xã"
                       className="w-full"
+                      options={wards}
                     />
                   </div>
 
                   {/* Detail Address */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Địa chỉ chi tiết
-                    </label>
-                    <textarea
-                      value={formData.detailAddress}
-                      onChange={(e) =>
-                        handleInputChange("detailAddress", e.target.value)
-                      }
-                      placeholder="Nhập địa chỉ chi tiết"
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-none text-sm sm:text-base"
-                    />
-                  </div>
+                  <Textarea
+                    label="Địa chỉ chi tiết"
+                    value={formData.detailAddress}
+                    onChange={(e) =>
+                      handleInputChange("detailAddress", e.target.value)
+                    }
+                    placeholder="Nhập địa chỉ chi tiết"
+                    rows={3}
+                  />
                 </div>
               </div>
 
               {/* Default Address Checkbox */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isDefault"
-                  checked={formData.isDefault}
-                  onChange={(e) =>
-                    handleInputChange("isDefault", e.target.checked)
-                  }
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label
-                  htmlFor="isDefault"
-                  className="text-sm sm:text-base text-gray-700 cursor-pointer"
-                >
-                  Đặt làm địa chỉ mặc định
-                </label>
-              </div>
+              <Checkbox
+                id="isDefault"
+                checked={formData.isDefault}
+                onChange={(e) =>
+                  handleInputChange("isDefault", e.target.checked)
+                }
+                label="Đặt làm địa chỉ mặc định"
+              />
             </div>
 
             {/* Footer Buttons */}
@@ -513,4 +459,3 @@ const AddressTab: React.FC = () => {
 };
 
 export default AddressTab;
-

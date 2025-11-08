@@ -45,4 +45,3 @@ export const POSPagination: React.FC<POSPaginationProps> = ({
 };
 
 export default POSPagination;
-

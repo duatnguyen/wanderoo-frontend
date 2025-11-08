@@ -106,7 +106,7 @@ const AdminWarehouseCreateImport = () => {
         availableStock: product.availableStock,
       }))
       .filter((product) => !products.some((p) => p.id === product.id));
-    
+
     setProducts((prev) => [...prev, ...newProducts]);
     setIsProductFormOpen(false);
     setSelectedProductIds([]);
@@ -115,7 +115,9 @@ const AdminWarehouseCreateImport = () => {
   const handleUpdateQuantity = (productId: string, quantity: number) => {
     setProducts((prev) =>
       prev.map((product) =>
-        product.id === productId ? { ...product, quantity: Math.max(1, quantity) } : product
+        product.id === productId
+          ? { ...product, quantity: Math.max(1, quantity) }
+          : product
       )
     );
   };
@@ -123,7 +125,9 @@ const AdminWarehouseCreateImport = () => {
   const handleUpdatePrice = (productId: string, price: number) => {
     setProducts((prev) =>
       prev.map((product) =>
-        product.id === productId ? { ...product, price: Math.max(0, price) } : product
+        product.id === productId
+          ? { ...product, price: Math.max(0, price) }
+          : product
       )
     );
   };
@@ -207,7 +211,7 @@ const AdminWarehouseCreateImport = () => {
                 <Icon name="plus" size={16} color="#e04d30" strokeWidth={3} />
               </Button>
             </div>
-            
+
             {/* Products Table */}
             {products.length > 0 && (
               <div className="w-[calc(100%+48px)] mt-4 -mx-[24px]">
@@ -227,7 +231,7 @@ const AdminWarehouseCreateImport = () => {
                   </div>
                   <div className="w-[40px] flex-shrink-0 flex justify-center pr-[8px]"></div>
                 </div>
-                
+
                 {/* Products List */}
                 <div className="flex flex-col">
                   {products.map((product) => (
@@ -237,43 +241,52 @@ const AdminWarehouseCreateImport = () => {
                     >
                       {/* Product Info */}
                       <div className="flex-[2] min-w-0 flex items-start gap-3">
-                        <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300">
-                        </div>
+                        <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300"></div>
                         <span className="font-['Montserrat'] font-normal text-[14px] text-[#272424] truncate min-w-0">
                           {product.name}
                         </span>
                       </div>
-                      
+
                       {/* Quantity */}
                       <div className="flex-1 flex justify-center">
                         <input
                           type="number"
                           value={product.quantity}
-                          onChange={(e) => handleUpdateQuantity(product.id, parseInt(e.target.value) || 1)}
+                          onChange={(e) =>
+                            handleUpdateQuantity(
+                              product.id,
+                              parseInt(e.target.value) || 1
+                            )
+                          }
                           className="w-20 text-center border border-[#d1d1d1] rounded px-2 py-1 text-[12px] font-['Montserrat'] focus:border-[#e04d30] focus:outline-none"
                           min="1"
                         />
                       </div>
-                      
+
                       {/* Unit Price */}
                       <div className="flex-1 flex justify-center">
                         <input
                           type="number"
                           value={product.price}
-                          onChange={(e) => handleUpdatePrice(product.id, parseFloat(e.target.value) || 0)}
+                          onChange={(e) =>
+                            handleUpdatePrice(
+                              product.id,
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
                           className="w-20 text-center border border-[#d1d1d1] rounded px-2 py-1 text-[12px] font-['Montserrat'] focus:border-[#e04d30] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
                           min="0"
                           step="1000"
                         />
                       </div>
-                      
+
                       {/* Total Amount */}
                       <div className="flex-1 flex justify-center">
                         <span className="font-['Montserrat'] font-semibold text-[14px] text-[#272424]">
                           {formatCurrency(product.quantity * product.price)}
                         </span>
                       </div>
-                      
+
                       {/* Remove Button */}
                       <div className="w-[40px] flex-shrink-0 flex justify-center pr-[8px]">
                         <button
@@ -383,10 +396,18 @@ const AdminWarehouseCreateImport = () => {
 
           {/* Action Buttons */}
           <div className="flex gap-[10px] items-center justify-end shrink-0 w-full mt-2">
-            <Button onClick={handleCancel} variant="secondary" className="flex-shrink-0 h-[36px] text-[14px]">
+            <Button
+              onClick={handleCancel}
+              variant="secondary"
+              className="flex-shrink-0 h-[36px] text-[14px]"
+            >
               Huỷ
             </Button>
-            <Button onClick={handleConfirm} variant="default" className="flex-shrink-0 h-[36px] text-[14px]">
+            <Button
+              onClick={handleConfirm}
+              variant="default"
+              className="flex-shrink-0 h-[36px] text-[14px]"
+            >
               Xác nhận
             </Button>
           </div>
@@ -395,7 +416,7 @@ const AdminWarehouseCreateImport = () => {
 
       {/* Product Selection Modal */}
       {isProductFormOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           onClick={() => setIsProductFormOpen(false)}
         >
@@ -404,101 +425,108 @@ const AdminWarehouseCreateImport = () => {
             className="relative z-10 w-[700px] max-h-[90vh] bg-white flex flex-col rounded-lg shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-              <div className="bg-white flex flex-col rounded-lg overflow-hidden">
-                {/* Search Header */}
-                <div className="border-b border-[#e7e7e7] flex gap-2 items-center px-[16px] py-[30px] shrink-0 bg-white">
-                  <div className="border-[1.6px] border-[#e04d30] border-solid box-border flex gap-[4px] grow items-center px-[16px] py-[8px] rounded-[12px] bg-white">
-                    <input
-                      type="text"
-                      value={productFormSearch}
-                      onChange={(e) => setProductFormSearch(e.target.value)}
-                      placeholder="Tìm kiếm"
-                      className="font-['Montserrat'] font-normal leading-[1.5] text-[12px] text-[#949494] grow outline-none bg-transparent"
-                    />
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="shrink-0"
-                    >
-                      <path
-                        d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
-                        stroke="#454545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M21 21L16.65 16.65"
-                        stroke="#454545"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <button 
-                    onClick={() => navigate("/admin/products/new")}
-                    className="bg-[#e04d30] flex items-center justify-center h-[40px] w-[40px] rounded-[12px] shrink-0"
+            <div className="bg-white flex flex-col rounded-lg overflow-hidden">
+              {/* Search Header */}
+              <div className="border-b border-[#e7e7e7] flex gap-2 items-center px-[16px] py-[30px] shrink-0 bg-white">
+                <div className="border-[1.6px] border-[#e04d30] border-solid box-border flex gap-[4px] grow items-center px-[16px] py-[8px] rounded-[12px] bg-white">
+                  <input
+                    type="text"
+                    value={productFormSearch}
+                    onChange={(e) => setProductFormSearch(e.target.value)}
+                    placeholder="Tìm kiếm"
+                    className="font-['Montserrat'] font-normal leading-[1.5] text-[12px] text-[#949494] grow outline-none bg-transparent"
+                  />
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="shrink-0"
                   >
-                    <span className="font-['Montserrat'] font-light text-[32px] text-white leading-[1.5]">
-                      +
-                    </span>
-                  </button>
-                </div>
-
-                {/* Table Header */}
-                <div className="box-border flex items-center px-[15px] py-0 shrink-0 bg-white">
-                  <div className="bg-white box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
-                    <Checkbox
-                      checked={selectedProductIds.length === filteredMockProducts.length && filteredMockProducts.length > 0}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedProductIds(filteredMockProducts.map(p => p.id));
-                        } else {
-                          setSelectedProductIds([]);
-                        }
-                      }}
+                    <path
+                      d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
+                      stroke="#454545"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                    <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#454545]">
-                      Sản phẩm
-                    </p>
-                  </div>
-                  <div className="bg-white box-border flex gap-[4px] grow h-[50px] items-center justify-center p-[14px]">
-                    <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
-                      Có thể bán
-                    </p>
-                  </div>
+                    <path
+                      d="M21 21L16.65 16.65"
+                      stroke="#454545"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
+                <button
+                  onClick={() => navigate("/admin/products/new")}
+                  className="bg-[#e04d30] flex items-center justify-center h-[40px] w-[40px] rounded-[12px] shrink-0"
+                >
+                  <span className="font-['Montserrat'] font-light text-[32px] text-white leading-[1.5]">
+                    +
+                  </span>
+                </button>
+              </div>
 
-                {/* Product List */}
-                <div className="box-border flex flex-col max-h-[400px] items-start px-[15px] py-0 overflow-y-auto bg-white">
-                  {filteredMockProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="border-b border-[#e7e7e7] box-border flex items-center w-full bg-white"
-                    >
-                      <div className="bg-white box-border flex gap-[8px] h-full items-start overflow-clip px-[5px] py-[14px] w-[450px]">
-                        <Checkbox
-                          checked={selectedProductIds.includes(product.id)}
-                          onCheckedChange={() => toggleProductSelection(product.id)}
-                        />
-                        <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300">
-                        </div>
-                        <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-black">
-                          {product.name}
-                        </p>
-                      </div>
-                      <div className="bg-white box-border flex gap-[4px] grow h-full items-center justify-center p-[14px]">
-                        <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
-                          {product.availableStock}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+              {/* Table Header */}
+              <div className="box-border flex items-center px-[15px] py-0 shrink-0 bg-white">
+                <div className="bg-white box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
+                  <Checkbox
+                    checked={
+                      selectedProductIds.length ===
+                        filteredMockProducts.length &&
+                      filteredMockProducts.length > 0
+                    }
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedProductIds(
+                          filteredMockProducts.map((p) => p.id)
+                        );
+                      } else {
+                        setSelectedProductIds([]);
+                      }
+                    }}
+                  />
+                  <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#454545]">
+                    Sản phẩm
+                  </p>
                 </div>
+                <div className="bg-white box-border flex gap-[4px] grow h-[50px] items-center justify-center p-[14px]">
+                  <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
+                    Có thể bán
+                  </p>
+                </div>
+              </div>
+
+              {/* Product List */}
+              <div className="box-border flex flex-col max-h-[400px] items-start px-[15px] py-0 overflow-y-auto bg-white">
+                {filteredMockProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="border-b border-[#e7e7e7] box-border flex items-center w-full bg-white"
+                  >
+                    <div className="bg-white box-border flex gap-[8px] h-full items-start overflow-clip px-[5px] py-[14px] w-[450px]">
+                      <Checkbox
+                        checked={selectedProductIds.includes(product.id)}
+                        onCheckedChange={() =>
+                          toggleProductSelection(product.id)
+                        }
+                      />
+                      <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300"></div>
+                      <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-black">
+                        {product.name}
+                      </p>
+                    </div>
+                    <div className="bg-white box-border flex gap-[4px] grow h-full items-center justify-center p-[14px]">
+                      <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
+                        {product.availableStock}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
               {/* Footer Buttons */}
               <div className="box-border flex gap-[10px] items-center justify-end px-[16px] py-[12px] shrink-0 bg-white rounded-b-lg">
@@ -512,7 +540,11 @@ const AdminWarehouseCreateImport = () => {
                 >
                   Huỷ
                 </Button>
-                <Button variant="default" onClick={handleAddProducts} className="h-[36px] text-[14px]">
+                <Button
+                  variant="default"
+                  onClick={handleAddProducts}
+                  className="h-[36px] text-[14px]"
+                >
                   Xác nhận
                 </Button>
               </div>
