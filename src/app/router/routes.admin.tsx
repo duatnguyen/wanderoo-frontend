@@ -307,6 +307,14 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
+    path: "customers/all",
+    element: (
+      <LazyWrapper>
+        <AdminCustomers />
+      </LazyWrapper>
+    ),
+  },
+  {
     path: "customers",
     element: (
       <LazyWrapper>

@@ -6,7 +6,12 @@ import { ArrowLeft } from "lucide-react";
 import CityDropdown from "@/components/ui/city-dropdown";
 import DistrictDropdown from "@/components/ui/district-dropdown";
 import WardDropdown from "@/components/ui/ward-dropdown";
-
+import {
+  TabMenuWithBadge,
+  PageContainer,
+  ContentCard,
+  type TabItemWithBadge,
+} from "@/components/common";
 const AdminSupplierNew = () => {
   document.title = "Thêm nhà cung cấp | Wanderoo";
   const navigate = useNavigate();
@@ -90,9 +95,9 @@ const AdminSupplierNew = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[4px] items-center w-full max-w-[903px] mx-auto">
+    <PageContainer>
       {/* Header */}
-      <div className="flex items-center gap-[12px] w-full -mt-[15px]">
+      <div className="flex items-center gap-[12px] w-full">
         <button
           onClick={() => navigate("/admin/warehouse/supplier")}
           className="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] hover:bg-gray-100 transition-colors"
@@ -103,188 +108,189 @@ const AdminSupplierNew = () => {
           Thêm mới nhà cung cấp
         </h2>
       </div>
+      <ContentCard>
+        {/* General Information Table */}
+        <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
+          <div className="flex items-center justify-between w-full">
+            <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
+              Thông tin chung
+            </h3>
+          </div>
 
-      {/* General Information Table */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
-        <div className="flex items-center justify-between w-full">
-          <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
-            Thông tin chung
-          </h3>
+          <form onSubmit={handleSubmit} className="w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[12px] w-full">
+              {/* Tên nhà cung cấp */}
+              <div className="flex flex-col gap-[4px]">
+                <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
+                  Tên nhà cung cấp <span className="text-red-500">*</span>
+                </label>
+                <FormInput
+                  value={formData.supplierName}
+                  onChange={(e) =>
+                    handleInputChange("supplierName", e.target.value)
+                  }
+                  placeholder="Nhập tên nhà cung cấp"
+                  className={errors.supplierName ? "border-red-500" : ""}
+                  containerClassName="h-[36px] px-[12px] py-0"
+                />
+                {errors.supplierName && (
+                  <span className="text-red-500 text-[12px]">
+                    {errors.supplierName}
+                  </span>
+                )}
+              </div>
+
+              {/* Số điện thoại */}
+              <div className="flex flex-col gap-[4px]">
+                <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
+                  Số điện thoại <span className="text-red-500">*</span>
+                </label>
+                <FormInput
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  placeholder="Nhập số điện thoại"
+                  className={errors.phone ? "border-red-500" : ""}
+                  containerClassName="h-[36px] px-[12px] py-0"
+                />
+                {errors.phone && (
+                  <span className="text-red-500 text-[12px]">{errors.phone}</span>
+                )}
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-[8px]">
+                <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <FormInput
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="Nhập email"
+                  className={errors.email ? "border-red-500" : ""}
+                  containerClassName="h-[36px] px-[12px] py-0"
+                />
+                {errors.email && (
+                  <span className="text-red-500 text-[12px]">{errors.email}</span>
+                )}
+              </div>
+            </div>
+          </form>
         </div>
 
-        <form onSubmit={handleSubmit} className="w-full">
+        {/* Address Information Table */}
+        <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
+          <div className="flex items-center justify-between w-full">
+            <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
+              Thông tin địa chỉ
+            </h3>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[12px] w-full">
-            {/* Tên nhà cung cấp */}
+            {/* Tỉnh/Thành phố */}
             <div className="flex flex-col gap-[4px]">
               <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
-                Tên nhà cung cấp <span className="text-red-500">*</span>
+                Tỉnh/Thành phố <span className="text-red-500">*</span>
               </label>
-              <FormInput
-                value={formData.supplierName}
-                onChange={(e) =>
-                  handleInputChange("supplierName", e.target.value)
-                }
-                placeholder="Nhập tên nhà cung cấp"
-                className={errors.supplierName ? "border-red-500" : ""}
-                containerClassName="h-[36px] px-[12px] py-0"
+              <CityDropdown
+                value={formData.city}
+                onValueChange={(value) => handleInputChange("city", value)}
+                error={!!errors.city}
               />
-              {errors.supplierName && (
+              {errors.city && (
+                <span className="text-red-500 text-[12px]">{errors.city}</span>
+              )}
+            </div>
+
+            {/* Quận/Huyện */}
+            <div className="flex flex-col gap-[4px]">
+              <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
+                Quận/Huyện <span className="text-red-500">*</span>
+              </label>
+              <DistrictDropdown
+                value={formData.district}
+                onValueChange={(value) => handleInputChange("district", value)}
+                error={!!errors.district}
+              />
+              {errors.district && (
                 <span className="text-red-500 text-[12px]">
-                  {errors.supplierName}
+                  {errors.district}
                 </span>
               )}
             </div>
 
-            {/* Số điện thoại */}
-            <div className="flex flex-col gap-[4px]">
-              <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
-                Số điện thoại <span className="text-red-500">*</span>
-              </label>
-              <FormInput
-                value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                placeholder="Nhập số điện thoại"
-                className={errors.phone ? "border-red-500" : ""}
-                containerClassName="h-[36px] px-[12px] py-0"
-              />
-              {errors.phone && (
-                <span className="text-red-500 text-[12px]">{errors.phone}</span>
-              )}
-            </div>
-
-            {/* Email */}
+            {/* Phường/Xã */}
             <div className="flex flex-col gap-[8px]">
               <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
-                Email <span className="text-red-500">*</span>
+                Phường/Xã <span className="text-red-500">*</span>
+              </label>
+              <WardDropdown
+                value={formData.ward}
+                onValueChange={(value) => handleInputChange("ward", value)}
+                error={!!errors.ward}
+              />
+              {errors.ward && (
+                <span className="text-red-500 text-[12px]">{errors.ward}</span>
+              )}
+            </div>
+
+            {/* Địa chỉ chi tiết - moved to the last (bottom-right) position */}
+            <div className="flex flex-col gap-[8px]">
+              <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
+                Địa chỉ chi tiết <span className="text-red-500">*</span>
               </label>
               <FormInput
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="Nhập email"
-                className={errors.email ? "border-red-500" : ""}
+                value={formData.street}
+                onChange={(e) => handleInputChange("street", e.target.value)}
+                placeholder="Nhập địa chỉ chi tiết"
+                className={errors.street ? "border-red-500" : ""}
                 containerClassName="h-[36px] px-[12px] py-0"
               />
-              {errors.email && (
-                <span className="text-red-500 text-[12px]">{errors.email}</span>
+              {errors.street && (
+                <span className="text-red-500 text-[12px]">{errors.street}</span>
               )}
             </div>
           </div>
-        </form>
-      </div>
-
-      {/* Address Information Table */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
-        <div className="flex items-center justify-between w-full">
-          <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
-            Thông tin địa chỉ
-          </h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-[12px] w-full">
-          {/* Tỉnh/Thành phố */}
-          <div className="flex flex-col gap-[4px]">
-            <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
-              Tỉnh/Thành phố <span className="text-red-500">*</span>
-            </label>
-            <CityDropdown
-              value={formData.city}
-              onValueChange={(value) => handleInputChange("city", value)}
-              error={!!errors.city}
-            />
-            {errors.city && (
-              <span className="text-red-500 text-[12px]">{errors.city}</span>
-            )}
+        {/* Note Field */}
+        <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
+          <div className="flex items-center justify-between w-full">
+            <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
+              Ghi chú
+            </h3>
           </div>
 
-          {/* Quận/Huyện */}
-          <div className="flex flex-col gap-[4px]">
-            <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
-              Quận/Huyện <span className="text-red-500">*</span>
-            </label>
-            <DistrictDropdown
-              value={formData.district}
-              onValueChange={(value) => handleInputChange("district", value)}
-              error={!!errors.district}
-            />
-            {errors.district && (
-              <span className="text-red-500 text-[12px]">
-                {errors.district}
-              </span>
-            )}
-          </div>
-
-          {/* Phường/Xã */}
-          <div className="flex flex-col gap-[8px]">
-            <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
-              Phường/Xã <span className="text-red-500">*</span>
-            </label>
-            <WardDropdown
-              value={formData.ward}
-              onValueChange={(value) => handleInputChange("ward", value)}
-              error={!!errors.ward}
-            />
-            {errors.ward && (
-              <span className="text-red-500 text-[12px]">{errors.ward}</span>
-            )}
-          </div>
-
-          {/* Địa chỉ chi tiết - moved to the last (bottom-right) position */}
-          <div className="flex flex-col gap-[8px]">
-            <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
-              Địa chỉ chi tiết <span className="text-red-500">*</span>
-            </label>
+          <div className="w-full">
             <FormInput
-              value={formData.street}
-              onChange={(e) => handleInputChange("street", e.target.value)}
-              placeholder="Nhập địa chỉ chi tiết"
-              className={errors.street ? "border-red-500" : ""}
-              containerClassName="h-[36px] px-[12px] py-0"
+              value={formData.note}
+              onChange={(e) => handleInputChange("note", e.target.value)}
+              placeholder="Nhập ghi chú (nếu có)"
+              containerClassName="h-[50px] px-[12px] py-0"
             />
-            {errors.street && (
-              <span className="text-red-500 text-[12px]">{errors.street}</span>
-            )}
           </div>
         </div>
-      </div>
 
-      {/* Note Field */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[10px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
-        <div className="flex items-center justify-between w-full">
-          <h3 className="font-bold text-[#272424] text-[20px] leading-normal mb-[2px]">
-            Ghi chú
-          </h3>
+        {/* Action Buttons */}
+        <div className="flex gap-[12px] items-center justify-end w-full">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleCancel}
+            className="px-[24px] py-[12px]"
+          >
+            Hủy
+          </Button>
+          <Button
+            type="submit"
+            onClick={handleSubmit}
+            className="px-[24px] py-[12px]"
+          >
+            Thêm mới
+          </Button>
         </div>
-
-        <div className="w-full">
-          <FormInput
-            value={formData.note}
-            onChange={(e) => handleInputChange("note", e.target.value)}
-            placeholder="Nhập ghi chú (nếu có)"
-            containerClassName="h-[50px] px-[12px] py-0"
-          />
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex gap-[12px] items-center justify-end w-full">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={handleCancel}
-          className="px-[24px] py-[12px]"
-        >
-          Hủy
-        </Button>
-        <Button
-          type="submit"
-          onClick={handleSubmit}
-          className="px-[24px] py-[12px]"
-        >
-          Thêm mới 
-        </Button>
-      </div>
-    </div>
+      </ContentCard>
+    </PageContainer>
   );
 };
 
