@@ -15,8 +15,8 @@ const SidebarFooter: React.FC<SidebarFooterProps> = ({
   onToggleExpand,
 }) => {
   return (
-    <div className="mt-auto">
-      <div className="h-[49px]" />
+    <div className="mb-2">
+      <div className="h-[20px]" />
       <div className="-mx-[16px] h-px bg-white/15" />
       <div className="mt-2 space-y-1.5 [&>a]:pl-5 [&>div]:pl-5">
         {adminFooterNav.items.map((item: AdminNavItem, index: number) => (

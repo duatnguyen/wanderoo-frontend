@@ -19,7 +19,7 @@ export const OrderTableHeader = ({
 }: OrderTableHeaderProps) => {
   return (
     <div className={className}>
-      <div className="flex items-center w-full">
+      <div className="flex items-center w-full pr-[17px]">
         {columns.map((column, index) => (
           <div
             key={column.title}
@@ -33,8 +33,12 @@ export const OrderTableHeader = ({
               column.className || "justify-center"
             }`}
           >
-            <p className={`font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.2] whitespace-pre-line ${column.className?.includes('justify-start') ? 'text-left' : 'text-center'}`}>
-              {column.title.includes("&") ? column.title.replace("&", "&\n") : column.title}
+            <p
+              className={`font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.2] whitespace-pre-line ${column.className?.includes("justify-start") ? "text-left" : "text-center"}`}
+            >
+              {column.title.includes("&")
+                ? column.title.replace("&", "&\n")
+                : column.title}
             </p>
           </div>
         ))}
@@ -97,8 +101,8 @@ export const OrderTableRow = ({
       {/* Product Row - Only show first product */}
       {order.products[0] && (
         <div className="flex border-b border-x rounded-b-[6px] border-[#e7e7e7] w-full">
-          {/* Product Name Column - flex-1 với min-width 280px */}
-          <div className="flex items-start gap-2 px-[12px] py-[12px] flex-1 min-w-[280px]">
+          {/* Sản phẩm Column - flex-1 with min-w-[260px] to match header */}
+          <div className="flex items-start gap-2 px-[8px] py-[12px] flex-1 min-w-[260px] justify-start">
             <img
               src={order.products[0].image}
               alt={order.products[0].name}
@@ -114,9 +118,9 @@ export const OrderTableRow = ({
             </div>
           </div>
 
-          {/* Price & Payment Type Column - 140px */}
-          <div className="flex flex-col items-center justify-center gap-[4px] px-[8px] py-[12px] w-[140px]">
-            <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3] text-center">
+          {/* Giá và T.toán Column - w-[140px] min-w-[100px] to match header */}
+          <div className="flex flex-col items-start justify-center gap-[4px] px-[8px] py-[12px] w-[140px] min-w-[100px]">
+            <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3]">
               {order.products[0].price}
             </p>
             <ChipStatus
@@ -125,40 +129,40 @@ export const OrderTableRow = ({
             />
           </div>
 
-          {/* Source Column - 80px */}
-          <div className="flex items-center justify-center px-[8px] py-[12px] w-[80px]">
-            <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3] text-center">
+          {/* Nguồn Column - w-[80px] min-w-[80px] to match header */}
+          <div className="flex items-center px-[8px] py-[12px] w-[80px] min-w-[80px] justify-start">
+            <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3]">
               {order.category}
             </p>
           </div>
 
-          {/* Shipping Column - 100px */}
-          <div className="flex items-center justify-center px-[8px] py-[12px] w-[100px]">
-            <p className="font-montserrat font-medium text-[#888] text-[12px] leading-[1.3] text-center">
+          {/* Vận chuyển Column - w-[100px] min-w-[100px] to match header */}
+          <div className="flex items-center px-[8px] py-[12px] w-[100px] min-w-[100px] justify-start">
+            <p className="font-montserrat font-medium text-[#888] text-[12px] leading-[1.3]">
               Giao hàng
             </p>
           </div>
 
-          {/* Processing Status Column - 140px */}
-          <div className="flex items-center justify-center px-[8px] py-[12px] w-[140px]">
+          {/* TT Đơn hàng Column - w-[140px] min-w-[140px] to match header */}
+          <div className="flex items-center px-[8px] py-[12px] w-[140px] min-w-[140px] justify-start">
             <ChipStatus
               status={getProcessingStatus(order.status)}
               labelOverride={order.status}
             />
           </div>
 
-          {/* Payment Status Column - 140px */}
-          <div className="flex items-center justify-center px-[8px] py-[12px] w-[140px]">
+          {/* TT Thanh toán Column - w-[140px] min-w-[140px] to match header */}
+          <div className="flex items-center px-[8px] py-[12px] w-[140px] min-w-[140px] justify-start">
             <ChipStatus
               status={getPaymentStatus(order.paymentStatus)}
               labelOverride={order.paymentStatus}
             />
           </div>
 
-          {/* Actions Column - 100px */}
-          <div className="flex items-center justify-center gap-[4px] px-[8px] py-[12px] w-[100px]">
+          {/* Thao tác Column - w-[100px] min-w-[100px] to match header */}
+          <div className="flex items-center gap-[4px] px-[8px] py-[12px] w-[100px] min-w-[100px] justify-start">
             <button
-              className="flex gap-[6px] items-center font-montserrat font-medium text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer hover:underline"
+              className="flex gap-[4px] items-center font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.3] cursor-pointer hover:underline"
               onClick={() =>
                 onViewDetail(order.id, order.status, order.category)
               }

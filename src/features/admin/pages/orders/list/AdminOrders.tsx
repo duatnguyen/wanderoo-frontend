@@ -6,8 +6,7 @@ import {
   ContentCard,
   PageHeader,
   TableFilters,
-  OrderTableHeader,
-  OrderTableRow,
+  OrderTable,
   TabMenuWithBadge,
   type FilterOption,
   type OrderTableColumn,
@@ -317,7 +316,7 @@ const AdminOrders: React.FC = () => {
       className: "justify-start",
     },
     {
-      title: "Giá và T.toán",
+      title: "Tổng tiền",
       width: "w-[140px]",
       minWidth: "min-w-[100px]",
       className: "justify-start",
@@ -403,31 +402,14 @@ const AdminOrders: React.FC = () => {
         />
 
         {/* Order Table */}
-        <div className="w-full flex flex-col gap-2 -mt-[4px]">
-          {/* Fixed Table Header */}
-          <div className="sticky top-0 z-10 bg-white">
-            <OrderTableHeader
-              columns={orderTableColumns}
-              className="bg-white w-full"
-            />
-          </div>
-
-          {/* Scrollable Table Body */}
-          <div className="w-full max-h-[500px] overflow-y-auto">
-            <div className="flex flex-col gap-[12px] w-full">
-              {paginatedOrders.map((order) => (
-                <OrderTableRow
-                  key={order.id}
-                  order={order}
-                  onViewDetail={handleViewOrderDetail}
-                  getPaymentTypeStatus={getPaymentTypeStatus}
-                  getProcessingStatus={getProcessingStatus}
-                  getPaymentStatus={getPaymentStatus}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <OrderTable
+          columns={orderTableColumns}
+          orders={paginatedOrders}
+          onViewDetail={handleViewOrderDetail}
+          getPaymentTypeStatus={getPaymentTypeStatus}
+          getProcessingStatus={getProcessingStatus}
+          getPaymentStatus={getPaymentStatus}
+        />
 
         {/* Pagination */}
         <Pagination
