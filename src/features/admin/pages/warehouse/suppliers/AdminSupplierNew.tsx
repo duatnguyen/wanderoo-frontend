@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
@@ -153,7 +153,9 @@ const AdminSupplierNew = () => {
                   containerClassName="h-[36px] px-[12px] py-0"
                 />
                 {errors.phone && (
-                  <span className="text-red-500 text-[12px]">{errors.phone}</span>
+                  <span className="text-red-500 text-[12px]">
+                    {errors.phone}
+                  </span>
                 )}
               </div>
 
@@ -171,7 +173,9 @@ const AdminSupplierNew = () => {
                   containerClassName="h-[36px] px-[12px] py-0"
                 />
                 {errors.email && (
-                  <span className="text-red-500 text-[12px]">{errors.email}</span>
+                  <span className="text-red-500 text-[12px]">
+                    {errors.email}
+                  </span>
                 )}
               </div>
             </div>
@@ -247,7 +251,9 @@ const AdminSupplierNew = () => {
                 containerClassName="h-[36px] px-[12px] py-0"
               />
               {errors.street && (
-                <span className="text-red-500 text-[12px]">{errors.street}</span>
+                <span className="text-red-500 text-[12px]">
+                  {errors.street}
+                </span>
               )}
             </div>
           </div>

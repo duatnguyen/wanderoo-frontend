@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
@@ -119,8 +119,8 @@ const AdminWarehouseImports = () => {
   const tabCounts = useMemo(() => {
     const counts = {
       all: imports.length,
-      processing: imports.filter(item => item.status === 'processing').length,
-      completed: imports.filter(item => item.status === 'completed').length,
+      processing: imports.filter((item) => item.status === "processing").length,
+      completed: imports.filter((item) => item.status === "completed").length,
     };
     return counts;
   }, [imports]);
@@ -159,8 +159,6 @@ const AdminWarehouseImports = () => {
     }
     return null;
   };
-
-
 
   const getImportStatusChip = (status: WarehouseImport["importStatus"]) => {
     if (status === "not_imported" || status === "imported") {
@@ -347,7 +345,9 @@ const AdminWarehouseImports = () => {
                   <div className="col-span-1 text-center">
                     <span
                       className="font-semibold text-[12px] text-[#1a71f6] cursor-pointer hover:underline"
-                      onClick={() => navigate(`/admin/warehouse/imports/${importItem.id}`)}
+                      onClick={() =>
+                        navigate(`/admin/warehouse/imports/${importItem.id}`)
+                      }
                     >
                       {importItem.importCode}
                     </span>
@@ -367,12 +367,18 @@ const AdminWarehouseImports = () => {
                     {getPaymentStatusChip(importItem.paymentStatus)}
                   </div>
                   <div className="col-span-2 text-center">
-                    <span className="font-medium text-[#272424] text-[12px] truncate block" title={importItem.supplier}>
+                    <span
+                      className="font-medium text-[#272424] text-[12px] truncate block"
+                      title={importItem.supplier}
+                    >
                       {importItem.supplier}
                     </span>
                   </div>
                   <div className="col-span-2 text-center">
-                    <span className="font-medium text-[#272424] text-[12px] truncate block" title={importItem.createdBy}>
+                    <span
+                      className="font-medium text-[#272424] text-[12px] truncate block"
+                      title={importItem.createdBy}
+                    >
                       {importItem.createdBy}
                     </span>
                   </div>
@@ -382,14 +388,21 @@ const AdminWarehouseImports = () => {
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
-                    <span className="font-medium text-[#272424] text-[12px]" title={formatCurrency(importItem.totalValue)}>
+                    <span
+                      className="font-medium text-[#272424] text-[12px]"
+                      title={formatCurrency(importItem.totalValue)}
+                    >
                       {(importItem.totalValue / 1000000).toFixed(0)}M
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
                     <span
                       className="font-medium text-[12px] text-[#1a71f6] cursor-pointer hover:underline"
-                      onClick={() => navigate(`/admin/warehouse/returns/create?importId=${importItem.id}`)}
+                      onClick={() =>
+                        navigate(
+                          `/admin/warehouse/returns/create?importId=${importItem.id}`
+                        )
+                      }
                     >
                       Trả hàng
                     </span>
@@ -402,7 +415,9 @@ const AdminWarehouseImports = () => {
                     <div>
                       <span
                         className="font-semibold text-[14px] text-[#1a71f6] cursor-pointer hover:underline"
-                        onClick={() => navigate(`/admin/warehouse/imports/${importItem.id}`)}
+                        onClick={() =>
+                          navigate(`/admin/warehouse/imports/${importItem.id}`)
+                        }
                       >
                         {importItem.importCode}
                       </span>
@@ -419,18 +434,24 @@ const AdminWarehouseImports = () => {
                   <div className="space-y-1">
                     <div className="flex justify-between text-[12px]">
                       <span className="text-gray-600">Nhà cung cấp:</span>
-                      <span className="font-medium text-right max-w-[60%] truncate" title={importItem.supplier}>
+                      <span
+                        className="font-medium text-right max-w-[60%] truncate"
+                        title={importItem.supplier}
+                      >
                         {importItem.supplier}
                       </span>
                     </div>
                     <div className="flex justify-between text-[12px]">
                       <span className="text-gray-600">Người tạo:</span>
-                      <span className="font-medium">{importItem.createdBy}</span>
+                      <span className="font-medium">
+                        {importItem.createdBy}
+                      </span>
                     </div>
                     <div className="flex justify-between text-[11px]">
                       <span className="text-gray-600">SL / Giá trị:</span>
                       <span className="font-medium">
-                        {importItem.totalItems} / {(importItem.totalValue / 1000000).toFixed(0)}M
+                        {importItem.totalItems} /{" "}
+                        {(importItem.totalValue / 1000000).toFixed(0)}M
                       </span>
                     </div>
                   </div>
@@ -441,7 +462,11 @@ const AdminWarehouseImports = () => {
                     </div>
                     <span
                       className="font-medium text-[12px] text-[#1a71f6] cursor-pointer hover:underline bg-blue-50 px-3 py-1 rounded-lg"
-                      onClick={() => navigate(`/admin/warehouse/returns/create?importId=${importItem.id}`)}
+                      onClick={() =>
+                        navigate(
+                          `/admin/warehouse/returns/create?importId=${importItem.id}`
+                        )
+                      }
                     >
                       Trả hàng
                     </span>
@@ -463,7 +488,6 @@ const AdminWarehouseImports = () => {
       </ContentCard>
     </PageContainer>
   );
-
 };
 
 export default AdminWarehouseImports;

@@ -1,12 +1,17 @@
-﻿// src/pages/admin/AdminOrderDetailWebsite.tsx
+// src/pages/admin/AdminOrderDetailWebsite.tsx
 import React, { useState } from "react";
-import { ArrowLeft, MapPin, Truck, Wallet, Package, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Truck,
+  Wallet,
+  Package,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  PageContainer,
-  ContentCard,
-} from "@/components/common";
+import { PageContainer, ContentCard } from "@/components/common";
 // Mock data cho order detail Website
 const getMockOrderData = (status: string) => {
   const baseOrder = {
@@ -160,7 +165,11 @@ const PaymentSummaryWebsite: React.FC<{ orderData: any }> = ({ orderData }) => {
     { label: "Tổng tiền sản phẩm", amount: orderData.summary.subtotal },
     { label: "Tổng phí vận chuyển", amount: orderData.summary.shipping },
     { label: "Phụ phí", amount: orderData.summary.fee },
-    { label: "Doanh thu đơn hàng", amount: orderData.summary.total, isTotal: true },
+    {
+      label: "Doanh thu đơn hàng",
+      amount: orderData.summary.total,
+      isTotal: true,
+    },
   ];
 
   return (
@@ -201,22 +210,25 @@ const PaymentSummaryWebsite: React.FC<{ orderData: any }> = ({ orderData }) => {
             {summaryData.map((item, index) => (
               <div
                 key={index}
-                className={`flex items-center justify-between py-[4px] ${item.isTotal ? 'border-t border-[#e7e7e7] pt-[8px]' : ''
-                  }`}
+                className={`flex items-center justify-between py-[4px] ${
+                  item.isTotal ? "border-t border-[#e7e7e7] pt-[8px]" : ""
+                }`}
               >
                 <p
-                  className={`font-montserrat ${item.isTotal
-                    ? 'font-semibold text-[14px] text-[#272424]'
-                    : 'font-medium text-[13px] text-[#737373]'
-                    }`}
+                  className={`font-montserrat ${
+                    item.isTotal
+                      ? "font-semibold text-[14px] text-[#272424]"
+                      : "font-medium text-[13px] text-[#737373]"
+                  }`}
                 >
                   {item.label}
                 </p>
                 <p
-                  className={`font-montserrat ${item.isTotal
-                    ? 'font-bold text-[16px] text-[#28a745]'
-                    : 'font-medium text-[13px] text-[#272424]'
-                    }`}
+                  className={`font-montserrat ${
+                    item.isTotal
+                      ? "font-bold text-[16px] text-[#28a745]"
+                      : "font-medium text-[13px] text-[#272424]"
+                  }`}
                 >
                   {formatCurrency(item.amount)}
                 </p>
@@ -230,7 +242,10 @@ const PaymentSummaryWebsite: React.FC<{ orderData: any }> = ({ orderData }) => {
 };
 
 // Payment Information Component with Dropdown for Website
-const PaymentInformationWebsite: React.FC<{ orderData: any; disabled?: boolean }> = ({ orderData, disabled = false }) => {
+const PaymentInformationWebsite: React.FC<{
+  orderData: any;
+  disabled?: boolean;
+}> = ({ orderData, disabled = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const formatCurrency = (amount: number) => {
@@ -241,13 +256,18 @@ const PaymentInformationWebsite: React.FC<{ orderData: any; disabled?: boolean }
     { label: "Tổng tiền sản phẩm", amount: orderData.payment.subtotal },
     { label: "Phí vận chuyển", amount: orderData.payment.shipping },
     { label: "Mã giảm giá của shop", amount: orderData.payment.discount },
-    { label: "Tổng tiền thanh toán", amount: orderData.payment.total, isTotal: true },
+    {
+      label: "Tổng tiền thanh toán",
+      amount: orderData.payment.total,
+      isTotal: true,
+    },
   ];
 
   return (
     <div
-      className={`bg-white border-2 border-[#e7e7e7] box-border relative rounded-[8px] w-full overflow-hidden min-w-0 ${disabled ? "opacity-50" : ""
-        }`}
+      className={`bg-white border-2 border-[#e7e7e7] box-border relative rounded-[8px] w-full overflow-hidden min-w-0 ${
+        disabled ? "opacity-50" : ""
+      }`}
     >
       {/* Collapsed View - Always Visible */}
       <div
@@ -283,8 +303,9 @@ const PaymentInformationWebsite: React.FC<{ orderData: any; disabled?: boolean }
               {paymentData.map((item, index) => (
                 <p
                   key={index}
-                  className={`font-montserrat ${item.isTotal ? 'font-semibold' : 'font-medium'
-                    } relative shrink-0 text-[14px]`}
+                  className={`font-montserrat ${
+                    item.isTotal ? "font-semibold" : "font-medium"
+                  } relative shrink-0 text-[14px]`}
                 >
                   {item.label}
                 </p>
@@ -294,8 +315,9 @@ const PaymentInformationWebsite: React.FC<{ orderData: any; disabled?: boolean }
               {paymentData.map((item, index) => (
                 <p
                   key={index}
-                  className={`font-montserrat ${item.isTotal ? 'font-semibold' : 'font-medium'
-                    } relative shrink-0 text-[14px]`}
+                  className={`font-montserrat ${
+                    item.isTotal ? "font-semibold" : "font-medium"
+                  } relative shrink-0 text-[14px]`}
                 >
                   {formatCurrency(item.amount)}
                 </p>
@@ -312,10 +334,12 @@ const PaymentInformationWebsite: React.FC<{ orderData: any; disabled?: boolean }
 const DeliveryConfirmationPopupWebsite: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (deliveryMethod: 'self' | 'pickup') => void;
+  onConfirm: (deliveryMethod: "self" | "pickup") => void;
   orderData: any;
 }> = ({ isOpen, onClose, onConfirm, orderData }) => {
-  const [selectedMethod, setSelectedMethod] = useState<'self' | 'pickup' | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<
+    "self" | "pickup" | null
+  >(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -347,19 +371,19 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
   // Handle ESC key press and prevent body scroll
   React.useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen && !isSubmitting) {
+      if (event.key === "Escape" && isOpen && !isSubmitting) {
         handleClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscKey);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscKey);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscKey);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscKey);
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, isSubmitting]);
 
@@ -372,7 +396,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
     >
       <div
         className="bg-white rounded-[20px] shadow-2xl max-w-[520px] w-full overflow-hidden animate-in zoom-in-95 duration-300"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-[#e04d30] to-[#d63924] px-6 py-4 relative">
@@ -395,8 +419,18 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
               disabled={isSubmitting}
               className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors disabled:opacity-50"
             >
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -433,25 +467,44 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Self Delivery Option */}
               <button
-                onClick={() => setSelectedMethod('self')}
+                onClick={() => setSelectedMethod("self")}
                 disabled={isSubmitting}
-                className={`group relative p-4 rounded-[14px] border-2 transition-all duration-200 ${selectedMethod === 'self'
-                  ? 'border-[#1a71f6] bg-[#1a71f6]/5 shadow-lg shadow-blue-500/20'
-                  : 'border-gray-200 bg-white hover:border-[#1a71f6]/50 hover:shadow-md'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`group relative p-4 rounded-[14px] border-2 transition-all duration-200 ${
+                  selectedMethod === "self"
+                    ? "border-[#1a71f6] bg-[#1a71f6]/5 shadow-lg shadow-blue-500/20"
+                    : "border-gray-200 bg-white hover:border-[#1a71f6]/50 hover:shadow-md"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex flex-col items-center text-center space-y-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${selectedMethod === 'self'
-                    ? 'bg-[#1a71f6] text-white'
-                    : 'bg-gray-100 text-gray-600 group-hover:bg-[#1a71f6]/10 group-hover:text-[#1a71f6]'
-                    }`}>
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                      selectedMethod === "self"
+                        ? "bg-[#1a71f6] text-white"
+                        : "bg-gray-100 text-gray-600 group-hover:bg-[#1a71f6]/10 group-hover:text-[#1a71f6]"
+                    }`}
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                   </div>
                   <div>
-                    <p className={`font-montserrat font-semibold text-[13px] leading-tight transition-colors ${selectedMethod === 'self' ? 'text-[#1a71f6]' : 'text-gray-900'
-                      }`}>
+                    <p
+                      className={`font-montserrat font-semibold text-[13px] leading-tight transition-colors ${
+                        selectedMethod === "self"
+                          ? "text-[#1a71f6]"
+                          : "text-gray-900"
+                      }`}
+                    >
                       Tự mang hàng
                     </p>
                     <p className="font-montserrat font-medium text-[11px] text-gray-500 mt-1">
@@ -459,10 +512,20 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
                     </p>
                   </div>
                 </div>
-                {selectedMethod === 'self' && (
+                {selectedMethod === "self" && (
                   <div className="absolute top-2 right-2 w-5 h-5 bg-[#1a71f6] rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   </div>
                 )}
@@ -470,23 +533,32 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
 
               {/* Courier Pickup Option */}
               <button
-                onClick={() => setSelectedMethod('pickup')}
+                onClick={() => setSelectedMethod("pickup")}
                 disabled={isSubmitting}
-                className={`group relative p-4 rounded-[14px] border-2 transition-all duration-200 ${selectedMethod === 'pickup'
-                  ? 'border-[#e04d30] bg-[#e04d30]/5 shadow-lg shadow-red-500/20'
-                  : 'border-gray-200 bg-white hover:border-[#e04d30]/50 hover:shadow-md'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`group relative p-4 rounded-[14px] border-2 transition-all duration-200 ${
+                  selectedMethod === "pickup"
+                    ? "border-[#e04d30] bg-[#e04d30]/5 shadow-lg shadow-red-500/20"
+                    : "border-gray-200 bg-white hover:border-[#e04d30]/50 hover:shadow-md"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <div className="flex flex-col items-center text-center space-y-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${selectedMethod === 'pickup'
-                    ? 'bg-[#e04d30] text-white'
-                    : 'bg-gray-100 text-gray-600 group-hover:bg-[#e04d30]/10 group-hover:text-[#e04d30]'
-                    }`}>
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                      selectedMethod === "pickup"
+                        ? "bg-[#e04d30] text-white"
+                        : "bg-gray-100 text-gray-600 group-hover:bg-[#e04d30]/10 group-hover:text-[#e04d30]"
+                    }`}
+                  >
                     <Truck className="w-6 h-6" />
                   </div>
                   <div>
-                    <p className={`font-montserrat font-semibold text-[13px] leading-tight transition-colors ${selectedMethod === 'pickup' ? 'text-[#e04d30]' : 'text-gray-900'
-                      }`}>
+                    <p
+                      className={`font-montserrat font-semibold text-[13px] leading-tight transition-colors ${
+                        selectedMethod === "pickup"
+                          ? "text-[#e04d30]"
+                          : "text-gray-900"
+                      }`}
+                    >
                       Shipper đến lấy
                     </p>
                     <p className="font-montserrat font-medium text-[11px] text-gray-500 mt-1">
@@ -494,10 +566,20 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
                     </p>
                   </div>
                 </div>
-                {selectedMethod === 'pickup' && (
+                {selectedMethod === "pickup" && (
                   <div className="absolute top-2 right-2 w-5 h-5 bg-[#e04d30] rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   </div>
                 )}
@@ -507,25 +589,48 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
 
           {/* Selection Info */}
           {selectedMethod && (
-            <div className={`p-4 rounded-[12px] border animate-in slide-in-from-top-2 duration-300 ${selectedMethod === 'self'
-              ? 'bg-blue-50 border-blue-200'
-              : 'bg-red-50 border-red-200'
-              }`}>
+            <div
+              className={`p-4 rounded-[12px] border animate-in slide-in-from-top-2 duration-300 ${
+                selectedMethod === "self"
+                  ? "bg-blue-50 border-blue-200"
+                  : "bg-red-50 border-red-200"
+              }`}
+            >
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedMethod === 'self' ? 'bg-blue-100' : 'bg-red-100'
-                  }`}>
-                  <svg className={`w-4 h-4 ${selectedMethod === 'self' ? 'text-blue-600' : 'text-red-600'
-                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    selectedMethod === "self" ? "bg-blue-100" : "bg-red-100"
+                  }`}
+                >
+                  <svg
+                    className={`w-4 h-4 ${
+                      selectedMethod === "self"
+                        ? "text-blue-600"
+                        : "text-red-600"
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
                 <div>
-                  <p className={`font-montserrat font-medium text-[13px] ${selectedMethod === 'self' ? 'text-blue-800' : 'text-red-800'
-                    }`}>
-                    {selectedMethod === 'self'
-                      ? 'Bạn sẽ tự mang hàng đến bưu cục gần nhất'
-                      : 'Shipper sẽ đến địa chỉ của shop để lấy hàng'
-                    }
+                  <p
+                    className={`font-montserrat font-medium text-[13px] ${
+                      selectedMethod === "self"
+                        ? "text-blue-800"
+                        : "text-red-800"
+                    }`}
+                  >
+                    {selectedMethod === "self"
+                      ? "Bạn sẽ tự mang hàng đến bưu cục gần nhất"
+                      : "Shipper sẽ đến địa chỉ của shop để lấy hàng"}
                   </p>
                 </div>
               </div>
@@ -554,8 +659,18 @@ const DeliveryConfirmationPopupWebsite: React.FC<{
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                   <span>Xác nhận giao hàng</span>
                 </>
@@ -575,22 +690,25 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
   onConfirm: (reason: string) => void;
   orderData: any;
 }> = ({ isOpen, onClose, onConfirm, orderData }) => {
-  const [selectedReason, setSelectedReason] = useState<string>('');
-  const [customReason, setCustomReason] = useState<string>('');
+  const [selectedReason, setSelectedReason] = useState<string>("");
+  const [customReason, setCustomReason] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const cancelReasons = [
-    'Khách hàng yêu cầu hủy',
-    'Sản phẩm hết hàng',
-    'Thông tin giao hàng không chính xác',
-    'Khách hàng không liên lạc được',
-    'Sản phẩm bị lỗi/hỏng',
-    'Giá sản phẩm thay đổi',
-    'Khác (tự nhập lý do)'
+    "Khách hàng yêu cầu hủy",
+    "Sản phẩm hết hàng",
+    "Thông tin giao hàng không chính xác",
+    "Khách hàng không liên lạc được",
+    "Sản phẩm bị lỗi/hỏng",
+    "Giá sản phẩm thay đổi",
+    "Khác (tự nhập lý do)",
   ];
 
   const handleSubmit = async () => {
-    const finalReason = selectedReason === 'Khác (tự nhập lý do)' ? customReason.trim() : selectedReason;
+    const finalReason =
+      selectedReason === "Khác (tự nhập lý do)"
+        ? customReason.trim()
+        : selectedReason;
 
     if (!finalReason) {
       alert("Vui lòng chọn hoặc nhập lý do hủy đơn hàng!");
@@ -601,8 +719,8 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
     try {
       await onConfirm(finalReason);
       // Reset form
-      setSelectedReason('');
-      setCustomReason('');
+      setSelectedReason("");
+      setCustomReason("");
       onClose();
     } catch (error) {
       console.error("Error canceling order:", error);
@@ -613,8 +731,8 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setSelectedReason('');
-      setCustomReason('');
+      setSelectedReason("");
+      setCustomReason("");
       onClose();
     }
   };
@@ -622,19 +740,19 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
   // Handle ESC key press and prevent body scroll
   React.useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen && !isSubmitting) {
+      if (event.key === "Escape" && isOpen && !isSubmitting) {
         handleClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscKey);
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleEscKey);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscKey);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleEscKey);
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, isSubmitting]);
 
@@ -647,15 +765,25 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
     >
       <div
         className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-[#dc3545] to-[#c82333] px-6 py-4 relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
                 </svg>
               </div>
               <div>
@@ -672,8 +800,18 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
               disabled={isSubmitting}
               className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors disabled:opacity-50"
             >
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -702,8 +840,18 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
           <div className="bg-amber-50 border border-amber-200 rounded-[12px] p-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
-                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                <svg
+                  className="w-4 h-4 text-amber-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
                 </svg>
               </div>
               <div>
@@ -711,7 +859,8 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
                   Lưu ý quan trọng
                 </p>
                 <p className="font-montserrat font-medium text-[13px] text-amber-700 mt-1">
-                  Hành động này không thể hoàn tác. Đơn hàng sẽ bị hủy vĩnh viễn và khách hàng sẽ được thông báo.
+                  Hành động này không thể hoàn tác. Đơn hàng sẽ bị hủy vĩnh viễn
+                  và khách hàng sẽ được thông báo.
                 </p>
               </div>
             </div>
@@ -730,10 +879,11 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
               {cancelReasons.map((reason, index) => (
                 <label
                   key={index}
-                  className={`flex items-center p-4 rounded-[12px] border-2 cursor-pointer transition-all duration-200 ${selectedReason === reason
-                    ? 'border-[#dc3545] bg-red-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                    } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex items-center p-4 rounded-[12px] border-2 cursor-pointer transition-all duration-200 ${
+                    selectedReason === reason
+                      ? "border-[#dc3545] bg-red-50"
+                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <input
                     type="radio"
@@ -744,8 +894,13 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
                     disabled={isSubmitting}
                     className="w-4 h-4 text-[#dc3545] border-gray-300 focus:ring-[#dc3545] focus:ring-2"
                   />
-                  <span className={`ml-3 font-montserrat font-medium text-[14px] ${selectedReason === reason ? 'text-[#dc3545]' : 'text-gray-700'
-                    }`}>
+                  <span
+                    className={`ml-3 font-montserrat font-medium text-[14px] ${
+                      selectedReason === reason
+                        ? "text-[#dc3545]"
+                        : "text-gray-700"
+                    }`}
+                  >
                     {reason}
                   </span>
                 </label>
@@ -753,7 +908,7 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
             </div>
 
             {/* Custom Reason Input */}
-            {selectedReason === 'Khác (tự nhập lý do)' && (
+            {selectedReason === "Khác (tự nhập lý do)" && (
               <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
                 <label className="block font-montserrat font-medium text-[14px] text-gray-700 mb-2">
                   Nhập lý do cụ thể
@@ -788,7 +943,8 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
               disabled={
                 isSubmitting ||
                 !selectedReason ||
-                (selectedReason === 'Khác (tự nhập lý do)' && customReason.trim().length < 10)
+                (selectedReason === "Khác (tự nhập lý do)" &&
+                  customReason.trim().length < 10)
               }
               className="flex-1 sm:flex-none px-8 py-3 bg-[#dc3545] hover:bg-[#c82333] active:bg-[#bd2130] text-white font-montserrat font-semibold text-[14px] rounded-[12px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 min-w-[160px]"
             >
@@ -799,8 +955,18 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
                   </svg>
                   <span>Xác nhận hủy đơn hàng</span>
                 </>
@@ -814,11 +980,11 @@ const CancelOrderConfirmationPopupWebsite: React.FC<{
 };
 
 // Action Buttons Component for Website
-const ActionButtonsWebsite: React.FC<{ status: string; onConfirm: () => void; onCancel: () => void }> = ({
-  status,
-  onConfirm,
-  onCancel
-}) => {
+const ActionButtonsWebsite: React.FC<{
+  status: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}> = ({ status, onConfirm, onCancel }) => {
   if (status !== "Chờ xác nhận") {
     return null;
   }
@@ -840,8 +1006,16 @@ const ActionButtonsWebsite: React.FC<{ status: string; onConfirm: () => void; on
             onClick={onCancel}
             className="flex items-center justify-center gap-[8px] px-[20px] py-[12px] bg-[#dc3545] hover:bg-[#c82333] active:bg-[#bd2130] text-white font-montserrat font-semibold text-[14px] rounded-[8px] transition-all duration-200 shadow-sm hover:shadow-md min-h-[44px]"
           >
-            <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            <svg
+              className="w-[18px] h-[18px]"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
             </svg>
             Hủy đơn hàng
           </button>
@@ -849,8 +1023,16 @@ const ActionButtonsWebsite: React.FC<{ status: string; onConfirm: () => void; on
             onClick={onConfirm}
             className="flex items-center justify-center gap-[8px] px-[20px] py-[12px] bg-[#28a745] hover:bg-[#218838] active:bg-[#1e7e34] text-white font-montserrat font-semibold text-[14px] rounded-[8px] transition-all duration-200 shadow-sm hover:shadow-md min-h-[44px]"
           >
-            <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            <svg
+              className="w-[18px] h-[18px]"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
             Xác nhận đơn hàng
           </button>
@@ -859,7 +1041,8 @@ const ActionButtonsWebsite: React.FC<{ status: string; onConfirm: () => void; on
         {/* Note */}
         <div className="bg-[#fff3cd] border border-[#ffeaa7] rounded-[6px] p-[12px] mt-[8px]">
           <p className="font-montserrat font-medium text-[12px] text-[#856404] leading-[1.4]">
-            <strong>Lưu ý:</strong> Sau khi xác nhận, đơn hàng sẽ chuyển sang trạng thái "Đã xác nhận" và không thể hủy.
+            <strong>Lưu ý:</strong> Sau khi xác nhận, đơn hàng sẽ chuyển sang
+            trạng thái "Đã xác nhận" và không thể hủy.
           </p>
         </div>
       </div>
@@ -888,15 +1071,25 @@ const AdminOrderDetailWebsite: React.FC = () => {
     setShowDeliveryPopup(true);
   };
 
-  const handleDeliveryConfirm = async (deliveryMethod: 'self' | 'pickup') => {
-    console.log("Confirming order:", orderId, "with delivery method:", deliveryMethod);
+  const handleDeliveryConfirm = async (deliveryMethod: "self" | "pickup") => {
+    console.log(
+      "Confirming order:",
+      orderId,
+      "with delivery method:",
+      deliveryMethod
+    );
 
     try {
       // TODO: Thêm API call để cập nhật trạng thái đơn hàng và phương thức giao hàng
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
 
-      alert(`Đơn hàng đã được xác nhận thành công với phương thức: ${deliveryMethod === 'self' ? 'Tự mang ra bưu cục' : 'Đơn vị vận chuyển đến lấy'
-        }!`);
+      alert(
+        `Đơn hàng đã được xác nhận thành công với phương thức: ${
+          deliveryMethod === "self"
+            ? "Tự mang ra bưu cục"
+            : "Đơn vị vận chuyển đến lấy"
+        }!`
+      );
 
       // Có thể redirect về trang danh sách đơn hàng hoặc cập nhật state
       // navigate("/admin/orders");
@@ -917,7 +1110,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
     try {
       // TODO: Thêm API call để hủy đơn hàng với lý do
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
 
       alert(`Đơn hàng đã được hủy thành công với lý do: ${reason}`);
 
@@ -1072,7 +1265,8 @@ const AdminOrderDetailWebsite: React.FC = () => {
   // Get timeline text based on order status (for collapsed view)
   const getTimelineText = () => {
     const steps = getTimelineSteps();
-    const currentStep = steps.find(step => step.isCurrent) || steps[steps.length - 1];
+    const currentStep =
+      steps.find((step) => step.isCurrent) || steps[steps.length - 1];
     return {
       status: currentStep.status,
       date: currentStep.date,
@@ -1153,16 +1347,40 @@ const AdminOrderDetailWebsite: React.FC = () => {
                   ) : currentOrder.status === "Đã hoàn thành" ? (
                     <Package className="w-5 h-5 text-[#04910c]" />
                   ) : currentOrder.status === "Chờ xác nhận" ? (
-                    <svg className="w-5 h-5 text-[#737373]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-[#737373]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   ) : currentOrder.status === "Đã xác nhận" ? (
-                    <svg className="w-5 h-5 text-[#28A745]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-[#28A745]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 text-[#eb2b0b]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-[#eb2b0b]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   )}
                 </div>
@@ -1170,7 +1388,9 @@ const AdminOrderDetailWebsite: React.FC = () => {
                   <p className="font-montserrat font-medium text-[14px] text-black text-opacity-70 leading-[1.4]">
                     Trạng thái đơn hàng
                   </p>
-                  <p className={`font-montserrat font-bold ${statusCardStyle.text} text-[18px] leading-[1.2] truncate`}>
+                  <p
+                    className={`font-montserrat font-bold ${statusCardStyle.text} text-[18px] leading-[1.2] truncate`}
+                  >
                     {currentOrder.status}
                   </p>
                 </div>
@@ -1182,13 +1402,29 @@ const AdminOrderDetailWebsite: React.FC = () => {
               <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-200 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="flex items-center justify-center w-[40px] h-[40px] bg-white rounded-full shadow-sm">
                   {currentOrder.source === "Website" ? (
-                    <svg className="w-5 h-5 text-[#272424]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-[#272424]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z"
+                        clipRule="evenodd"
+                      />
                       <path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V9a1 1 0 00-1-1h-1V7z" />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 text-[#272424]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm2 2a1 1 0 000 2h.01a1 1 0 100-2H5zm3 0a1 1 0 000 2h3a1 1 0 100-2H8z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-[#272424]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm2 2a1 1 0 000 2h.01a1 1 0 100-2H5zm3 0a1 1 0 000 2h3a1 1 0 100-2H8z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   )}
                 </div>
@@ -1207,8 +1443,16 @@ const AdminOrderDetailWebsite: React.FC = () => {
             <div className="flex-1 min-w-0">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="flex items-center justify-center w-[40px] h-[40px] bg-white rounded-full shadow-sm">
-                  <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 text-blue-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="flex flex-col gap-[4px] flex-1 min-w-0">
@@ -1232,7 +1476,6 @@ const AdminOrderDetailWebsite: React.FC = () => {
                 Thông tin WEBSITE
               </h3>
             </div>
-
 
             {/* Shipping Address Section */}
             <div className="flex gap-[14px] items-start w-full">
@@ -1310,15 +1553,19 @@ const AdminOrderDetailWebsite: React.FC = () => {
               <div className="flex flex-col sm:flex-row h-auto sm:h-[77px] items-start justify-between p-[12px] gap-[8px] sm:gap-0">
                 <div className="box-border flex gap-[10px] items-start p-[10px] relative shrink-0 min-w-0 flex-1">
                   <div
-                    className={`flex items-center justify-center relative self-stretch shrink-0 flex-shrink-0 ${currentOrder.status === "Đang giao" ? "w-[33px]" : "w-[35px]"
-                      }`}
+                    className={`flex items-center justify-center relative self-stretch shrink-0 flex-shrink-0 ${
+                      currentOrder.status === "Đang giao"
+                        ? "w-[33px]"
+                        : "w-[35px]"
+                    }`}
                   >
                     <div className="flex-none h-full rotate-[90deg]">
                       <div
-                        className={`h-full relative ${currentOrder.status === "Đang giao"
-                          ? "w-[33px]"
-                          : "w-[35px]"
-                          }`}
+                        className={`h-full relative ${
+                          currentOrder.status === "Đang giao"
+                            ? "w-[33px]"
+                            : "w-[35px]"
+                        }`}
                       >
                         <div className="absolute inset-[-1px]">
                           <svg
@@ -1326,15 +1573,20 @@ const AdminOrderDetailWebsite: React.FC = () => {
                               currentOrder.status === "Đang giao" ? "33" : "35"
                             }
                             height="1"
-                            viewBox={`0 0 ${currentOrder.status === "Đang giao" ? "33" : "35"
-                              } 1`}
+                            viewBox={`0 0 ${
+                              currentOrder.status === "Đang giao" ? "33" : "35"
+                            } 1`}
                             fill="none"
                             className="stroke-[#737373]"
                           >
                             <line
                               x1="0"
                               y1="0.5"
-                              x2={currentOrder.status === "Đang giao" ? "33" : "35"}
+                              x2={
+                                currentOrder.status === "Đang giao"
+                                  ? "33"
+                                  : "35"
+                              }
                               y2="0.5"
                               strokeWidth="1"
                             />
@@ -1345,13 +1597,21 @@ const AdminOrderDetailWebsite: React.FC = () => {
                   </div>
                   {currentOrder.status === "Đang giao" ? (
                     <div className="flex flex-col font-montserrat font-medium gap-[5px] items-start leading-[normal] text-[10px] text-[#04910c] relative shrink-0 min-w-0">
-                      <p className="leading-[1.4] break-words">{getTimelineText().status}</p>
-                      <p className="leading-[1.4] whitespace-nowrap">{getTimelineText().date}</p>
+                      <p className="leading-[1.4] break-words">
+                        {getTimelineText().status}
+                      </p>
+                      <p className="leading-[1.4] whitespace-nowrap">
+                        {getTimelineText().date}
+                      </p>
                     </div>
                   ) : (
                     <div className="flex flex-col font-inter font-bold gap-[5px] items-start leading-[normal] text-[14px] text-[#04910c] relative shrink-0 min-w-0">
-                      <p className="leading-[normal] break-words">{getTimelineText().status}</p>
-                      <p className="leading-[normal] whitespace-nowrap">{getTimelineText().date}</p>
+                      <p className="leading-[normal] break-words">
+                        {getTimelineText().status}
+                      </p>
+                      <p className="leading-[normal] whitespace-nowrap">
+                        {getTimelineText().date}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1362,7 +1622,9 @@ const AdminOrderDetailWebsite: React.FC = () => {
                   <span className="font-inter font-bold text-[12px] leading-[normal] text-[#888888]">
                     {isTimelineExpanded ? "Thu gọn" : "Mở rộng"}
                   </span>
-                  <div className={`relative shrink-0 size-[18px] transition-transform ${isTimelineExpanded ? "rotate-180" : ""}`}>
+                  <div
+                    className={`relative shrink-0 size-[18px] transition-transform ${isTimelineExpanded ? "rotate-180" : ""}`}
+                  >
                     <svg
                       width="18"
                       height="18"
@@ -1391,33 +1653,61 @@ const AdminOrderDetailWebsite: React.FC = () => {
                     </h3>
                     <div className="flex flex-col gap-[12px]">
                       {getTimelineSteps().map((step, index) => (
-                        <div key={step.id} className="flex items-start gap-[12px]">
+                        <div
+                          key={step.id}
+                          className="flex items-start gap-[12px]"
+                        >
                           {/* Timeline Icon */}
                           <div className="flex flex-col items-center gap-[4px] shrink-0">
-                            <div className={`w-[12px] h-[12px] rounded-full border-2 ${step.isCompleted
-                              ? step.isCurrent
-                                ? "bg-[#04910c] border-[#04910c]"
-                                : "bg-[#28a745] border-[#28a745]"
-                              : step.isCurrent
-                                ? "bg-[#ffc107] border-[#ffc107]"
-                                : "bg-white border-[#d1d1d1]"
-                              }`}>
+                            <div
+                              className={`w-[12px] h-[12px] rounded-full border-2 ${
+                                step.isCompleted
+                                  ? step.isCurrent
+                                    ? "bg-[#04910c] border-[#04910c]"
+                                    : "bg-[#28a745] border-[#28a745]"
+                                  : step.isCurrent
+                                    ? "bg-[#ffc107] border-[#ffc107]"
+                                    : "bg-white border-[#d1d1d1]"
+                              }`}
+                            >
                               {step.isCompleted && (
-                                <svg width="8" height="6" viewBox="0 0 8 6" fill="none" className="m-[2px]">
-                                  <path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <svg
+                                  width="8"
+                                  height="6"
+                                  viewBox="0 0 8 6"
+                                  fill="none"
+                                  className="m-[2px]"
+                                >
+                                  <path
+                                    d="M1 3L3 5L7 1"
+                                    stroke="white"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
                                 </svg>
                               )}
                             </div>
                             {index < getTimelineSteps().length - 1 && (
-                              <div className={`w-[2px] h-[20px] ${step.isCompleted ? "bg-[#28a745]" : "bg-[#d1d1d1]"
-                                }`} />
+                              <div
+                                className={`w-[2px] h-[20px] ${
+                                  step.isCompleted
+                                    ? "bg-[#28a745]"
+                                    : "bg-[#d1d1d1]"
+                                }`}
+                              />
                             )}
                           </div>
 
                           {/* Timeline Content */}
                           <div className="flex flex-col gap-[2px] min-w-0 flex-1">
-                            <p className={`font-montserrat font-medium text-[14px] leading-[1.4] ${step.isCurrent ? "text-[#04910c]" : "text-[#272424]"
-                              }`}>
+                            <p
+                              className={`font-montserrat font-medium text-[14px] leading-[1.4] ${
+                                step.isCurrent
+                                  ? "text-[#04910c]"
+                                  : "text-[#272424]"
+                              }`}
+                            >
                               {step.status}
                             </p>
                             {step.date && (
@@ -1455,8 +1745,9 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
           {/* Payment Table */}
           <div
-            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-x-auto ${currentOrder.status === "Đã hủy" ? "opacity-50" : ""
-              }`}
+            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-x-auto ${
+              currentOrder.status === "Đã hủy" ? "opacity-50" : ""
+            }`}
           >
             <div className="w-full">
               <div className="box-border flex gap-[6px] items-center px-[6px] py-01 mb-2 relative shrink-0 w-full">
