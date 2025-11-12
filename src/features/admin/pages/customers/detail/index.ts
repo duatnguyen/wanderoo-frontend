@@ -1,2 +1,2 @@
-// Customer Detail Pages  
-export { default } from './AdminCustomerDetail';
+// Customer Detail Pages
+export { default } from "./AdminCustomerDetail";

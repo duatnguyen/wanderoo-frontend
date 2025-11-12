@@ -27,7 +27,7 @@ const ProfileTab: React.FC = () => {
     <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
       {/* Header */}
       <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
           Hồ sơ của tôi
         </h1>
         <p className="text-sm sm:text-base text-gray-600">
@@ -69,9 +69,7 @@ const ProfileTab: React.FC = () => {
               <input
                 type="text"
                 value={userData.fullName}
-                onChange={(e) =>
-                  handleInputChange("fullName", e.target.value)
-                }
+                onChange={(e) => handleInputChange("fullName", e.target.value)}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
               />
             ) : (
@@ -123,9 +121,7 @@ const ProfileTab: React.FC = () => {
                   name="gender"
                   value="male"
                   checked={userData.gender === "male"}
-                  onChange={(e) =>
-                    handleInputChange("gender", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("gender", e.target.value)}
                   className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm sm:text-base text-gray-700">Nam</span>
@@ -136,9 +132,7 @@ const ProfileTab: React.FC = () => {
                   name="gender"
                   value="female"
                   checked={userData.gender === "female"}
-                  onChange={(e) =>
-                    handleInputChange("gender", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("gender", e.target.value)}
                   className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm sm:text-base text-gray-700">NỮ</span>
@@ -202,4 +196,3 @@ const ProfileTab: React.FC = () => {
 };
 
 export default ProfileTab;
-

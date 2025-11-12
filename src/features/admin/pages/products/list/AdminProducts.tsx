@@ -1,15 +1,96 @@
 import React, { useState } from "react";
-import TabMenuAccount from "@/components/ui/tab-menu-account";
 import SearchBar from "@/components/ui/search-bar";
-import CaretDown from "@/components/ui/caret-down";
-import CustomCheckbox from "@/components/ui/custom-checkbox";
-import { Button } from "@/components/ui/button";
+import ProductItem from "../../../../../components/admin/table/ProductItem";
+import ProductTableHeader from "../../../../../components/admin/table/ProductTableHeader";
+import type { Product } from "../../../../../types/types";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  TabMenuWithBadge,
+  PageContainer,
+  ContentCard,
+  type TabItemWithBadge,
+} from "@/components/common";
+import { Pagination } from "@/components/ui/pagination";
+import { useMemo } from "react";
+// Mock data for products
+const mockProducts: Product[] = [
+  {
+    id: "1",
+    name: "Giày leo núi nữ cổ thấp Humtto Hiking Shoes 140134B-4",
+    image: "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=300&h=300&fit=crop&crop=center",
+    sku: "SKU01",
+    barcode: "",
+    inventory: 0,
+    availableToSell: 0,
+    webQuantity: 400000,
+    posQuantity: 0,
+    sellingPrice: "600.000đ",
+    costPrice: "400.000đ",
+    variants: [
+      {
+        id: "v1-1",
+        name: "Size 36",
+        sku: "SKU01-40B",
+        barcode: "8930195417609",
+        inventory: 0,
+        availableToSell: 0,
+        webQuantity: 0,
+        posQuantity: 0,
+        sellingPrice: "600.000đ",
+        costPrice: "400.000đ",
+      },
+      {
+        id: "v1-2",
+        name: "Size 37",
+        sku: "SKU01-40C",
+        barcode: "8930195417610",
+        inventory: 0,
+        availableToSell: 0,
+        webQuantity: 0,
+        posQuantity: 0,
+        sellingPrice: "600.000đ",
+        costPrice: "400.000đ",
+      },
+      {
+        id: "v1-3",
+        name: "Size 38",
+        sku: "SKU01-40D",
+        barcode: "8930195417611",
+        inventory: 0,
+        availableToSell: 0,
+        webQuantity: 0,
+        posQuantity: 0,
+        sellingPrice: "600.000đ",
+        costPrice: "400.000đ",
+      },
+    ],
+  },
+  {
+    id: "2",
+    name: "Giày thể thao nam Nike Air Max",
+    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop&crop=center",
+    sku: "SKU02",
+    barcode: "1234567890123",
+    inventory: 15,
+    availableToSell: 15,
+    webQuantity: 10,
+    posQuantity: 5,
+    sellingPrice: "2.500.000đ",
+    costPrice: "1.800.000đ",
+  },
+  {
+    id: "3",
+    name: "Áo khoác nữ Adidas Originals",
+    image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=300&h=300&fit=crop&crop=center",
+    sku: "SKU03",
+    barcode: "9876543210987",
+    inventory: 8,
+    availableToSell: 8,
+    webQuantity: 5,
+    posQuantity: 3,
+    sellingPrice: "1.200.000đ",
+    costPrice: "800.000đ",
+  },
+];
 
 const AdminProducts: React.FC = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -18,29 +99,59 @@ const AdminProducts: React.FC = () => {
     new Set()
   );
   const [selectAll, setSelectAll] = useState(false);
+  const [isIndeterminate, setIsIndeterminate] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  const tabs = [
-    { id: "all", label: "Tất cả" },
-    { id: "active", label: "Đang hoạt động" },
-    { id: "inactive", label: "Chưa được đăng" },
-  ];
+  // Calculate product counts by status
+  const productCounts = useMemo(() => {
+    const counts = {
+      all: mockProducts.length,
+      active: 0,
+      inactive: 0,
+    };
+
+    mockProducts.forEach(product => {
+      // Logic để phân loại sản phẩm theo trạng thái
+      // Ví dụ: dựa trên inventory hoặc các field khác
+      if (product.inventory > 0) {
+        counts.active++;
+      } else {
+        counts.inactive++;
+      }
+    });
+
+    return counts;
+  }, []);
+
+  // Create tabs with badge counts
+  const tabsWithCounts: TabItemWithBadge[] = useMemo(() => [
+    { id: "all", label: "Tất cả", count: productCounts.all },
+    { id: "active", label: "Đang hoạt động", count: productCounts.active },
+    { id: "inactive", label: "Chưa được đăng", count: productCounts.inactive },
+  ], [productCounts]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
+    setCurrentPage(1); // Reset to first page when changing tabs
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchValue(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      // Select first 3 product IDs (mock data)
-      setSelectedProducts(new Set(["1", "2", "3"]));
+      // Select all filtered product IDs (only visible products)
+      const visibleIds = filteredProducts.map(p => p.id);
+      setSelectedProducts(new Set(visibleIds));
       setSelectAll(true);
+      setIsIndeterminate(false);
     } else {
       setSelectedProducts(new Set());
       setSelectAll(false);
+      setIsIndeterminate(false);
     }
   };
 
@@ -51,635 +162,297 @@ const AdminProducts: React.FC = () => {
     } else {
       newSelected.add(productId);
     }
+
     setSelectedProducts(newSelected);
-    setSelectAll(false);
+
+    // Update checkbox states based on selection
+    const totalVisible = filteredProducts.length;
+    const selectedCount = newSelected.size;
+
+    if (selectedCount === 0) {
+      setSelectAll(false);
+      setIsIndeterminate(false);
+    } else if (selectedCount === totalVisible) {
+      setSelectAll(true);
+      setIsIndeterminate(false);
+    } else {
+      setSelectAll(false);
+      setIsIndeterminate(true);
+    }
   };
 
   const handleClearSelection = () => {
     setSelectedProducts(new Set());
     setSelectAll(false);
+    setIsIndeterminate(false);
   };
 
+  // Bulk Actions Handlers
+  const handleBulkDelete = () => {
+    if (selectedProducts.size === 0) return;
+
+    const productNames = Array.from(selectedProducts)
+      .map(id => mockProducts.find(p => p.id === id)?.name)
+      .filter(Boolean)
+      .slice(0, 3) // Show first 3 names
+      .join(', ');
+
+    const moreCount = selectedProducts.size - 3;
+    const displayText = selectedProducts.size <= 3
+      ? productNames
+      : `${productNames}${moreCount > 0 ? ` và ${moreCount} sản phẩm khác` : ''}`;
+
+    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedProducts.size} sản phẩm?\n\n${displayText}`)) {
+      console.log('Deleting products:', Array.from(selectedProducts));
+      // TODO: Implement actual deletion
+      handleClearSelection();
+      alert(`Đã xóa ${selectedProducts.size} sản phẩm thành công!`);
+    }
+  };
+
+  const handleBulkHide = () => {
+    if (selectedProducts.size === 0) return;
+
+    console.log('Hiding products:', Array.from(selectedProducts));
+    // TODO: Implement actual hiding
+    handleClearSelection();
+    alert(`Đã ẩn ${selectedProducts.size} sản phẩm thành công!`);
+  };
+
+  const handleBulkExport = () => {
+    if (selectedProducts.size === 0) return;
+
+    console.log('Exporting products:', Array.from(selectedProducts));
+    // TODO: Implement actual export
+    alert(`Đang xuất dữ liệu ${selectedProducts.size} sản phẩm...`);
+  };
+
+  const handleViewMore = (productId: string) => {
+    console.log("View more product:", productId);
+  };
+
+  const handleUpdate = (productId: string) => {
+    console.log("Update product:", productId);
+  };
+
+  // Keyboard shortcuts handler
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl+A or Cmd+A to select all
+      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+        event.preventDefault();
+        handleSelectAll(true);
+      }
+
+      // Escape to clear selection
+      if (event.key === 'Escape' && selectedProducts.size > 0) {
+        handleClearSelection();
+      }
+
+      // Delete key to delete selected products
+      if (event.key === 'Delete' && selectedProducts.size > 0) {
+        event.preventDefault();
+        handleBulkDelete();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedProducts.size]);
+
+  // Filter products based on search and tab
+  const filteredProducts = useMemo(() => {
+    return mockProducts.filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+        product.sku.toLowerCase().includes(searchValue.toLowerCase());
+
+      // Filter by tab status
+      const matchesTab = (() => {
+        switch (activeTab) {
+          case 'active':
+            return product.inventory > 0;
+          case 'inactive':
+            return product.inventory === 0;
+          case 'all':
+          default:
+            return true;
+        }
+      })();
+
+      return matchesSearch && matchesTab;
+    });
+  }, [searchValue, activeTab]);
+
+  // Reset selection when filters change
+  React.useEffect(() => {
+    handleClearSelection();
+  }, [searchValue, activeTab, currentPage]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+
   return (
-    <div className="flex flex-col w-full gap-1">
+    <PageContainer>
       {/* Header */}
-      <div className="flex items-center justify-between py-[4px] px-0 min-h-[32px] w-full">
-        <h1 className="font-bold text-base text-[24px] text-[#272424] font-['Montserrat']">
-          Danh sách sản phẩm
-        </h1>
+      <div className="flex items-center justify-between px-0 min-h-[32px] w-full">
+        <div className="flex items-center gap-2">
+          <h1 className="font-bold text-base text-[24px] text-[#272424] font-['Montserrat']">
+            Danh sách sản phẩm
+          </h1>
+        </div>
       </div>
 
+      {/* Tab Menu with Badge Counts */}
+      <TabMenuWithBadge
+        tabs={tabsWithCounts}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        className="w-full mx-auto"
+      />
       {/* Main Content */}
-      <div className="bg-white border border-[#e7e7e7] flex flex-col items-start relative rounded-[20px] w-full">
-        {/* Tab Menu */}
-        <div className="flex flex-col gap-[8px] items-center px-[15px] py-[8px] relative rounded-[20px] w-full flex-shrink-0">
-          <TabMenuAccount
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            className="w-full mx-auto"
+      <ContentCard>
+        {/* Search Bar and Tips */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between w-full">
+          <SearchBar
+            value={searchValue}
+            onChange={handleSearchChange}
+            placeholder="Tìm kiếm sản phẩm..."
+            className="w-full max-w-md"
           />
-        </div>
 
-        {/* Search Section */}
-        <div className="flex flex-col gap-[8px] items-center px-3 sm:px-[15px] py-[8px] relative rounded-[20px] w-full flex-shrink-0">
-          <div className="flex gap-[8px] items-center justify-left relative w-full">
-            <div className="flex flex-row items-center self-stretch w-full sm:w-auto">
-              <SearchBar
-                value={searchValue}
-                onChange={handleSearchChange}
-                placeholder="Tìm kiếm sản phẩm..."
-                className="w-full sm:w-[500px]"
-              />
+          {/* Quick Tips for Selection */}
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="hidden lg:flex items-center gap-4 bg-gray-50 px-3 py-2 rounded-lg">
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Ctrl</kbd>
+                <span>+</span>
+                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">A</kbd>
+                <span className="text-xs">Chọn tất cả</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Esc</kbd>
+                <span className="text-xs">Bỏ chọn</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Del</kbd>
+                <span className="text-xs">Xóa</span>
+              </span>
             </div>
           </div>
-        </div>
-
-        {/* Product Count */}
-        <div className="px-3 sm:px-[15px] pb-[8px] flex-shrink-0">
-          <h2 className="text-sm sm:text-[16px] font-bold text-[#272424] font-['Montserrat']">
-            3 sản phẩm
-          </h2>
         </div>
 
         {/* Table Section */}
-        <div className="flex flex-col items-start px-3 sm:px-[15px] py-0 relative rounded-[16px] w-full">
-          {/* Table Container with Scroll */}
-          <div className="w-full overflow-x-auto pb-4">
-            <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full min-w-[1200px]">
-              {/* Table Header */}
-              {selectedProducts.size > 0 ? (
-                /* Selection Header */
-                <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full h-[68px]">
-                  <div className="flex flex-row items-center w-full h-full gap-[12px]">
-                    <div
-                      className="min-w-[24px] flex-shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <CustomCheckbox
-                        checked={selectAll}
-                        onChange={handleSelectAll}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                    <span className="font-semibold text-[#272424] text-[12px] leading-[1.5] whitespace-nowrap">
-                      Đã chọn {selectedProducts.size} sản phẩm
-                    </span>
-                    <div className="flex gap-[6px] items-center">
-                      <Button
-                        variant="secondary"
-                        onClick={handleClearSelection}
-                      >
-                        Xóa
-                      </Button>
-                      <Button>Ẩn</Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="secondary">
-                            Thao tác khác
-                            <CaretDown />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            Hiển thị trên kênh
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>Ẩn khỏi kênh</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Normal Header */
-                <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full h-[68px]">
-                  <div className="flex flex-row items-center w-full h-full">
-                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-12 flex-shrink-0">
-                      <div
-                        className="flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <CustomCheckbox
-                          checked={selectAll}
-                          onChange={handleSelectAll}
-                          className="w-[24px] h-[24px]"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-1/4 min-w-48">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
-                        Tên sản phẩm
-                      </span>
-                    </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        SKU
-                      </span>
-                    </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        Barcode
-                      </span>
-                    </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/12 min-w-16">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        Tồn kho
-                      </span>
-                    </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/12 min-w-16">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        Có bán
-                      </span>
-                    </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/10 min-w-20">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        SL web
-                      </span>
-                    </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/10 min-w-20">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        SL POS
-                      </span>
-                    </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/10 min-w-20">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        Giá bán
-                      </span>
-                    </div>
-                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/10 min-w-20">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        Giá vốn
-                      </span>
-                    </div>
-                    <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
-                        Thao tác
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+        {/* Table Container with Scroll */}
+        <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start w-full rounded-[16px]">
+          {/* Table Header */}
+          <ProductTableHeader
+            selectAll={selectAll}
+            isIndeterminate={isIndeterminate}
+            selectedCount={selectedProducts.size}
+            totalCount={filteredProducts.length}
+            onSelectAll={handleSelectAll}
+            onClearSelection={handleClearSelection}
+            onBulkDelete={handleBulkDelete}
+            onBulkHide={handleBulkHide}
+            onBulkExport={handleBulkExport}
+            showSelectionActions={selectedProducts.size > 0}
+          />          {/* Table Body */}
+          <div className={`w-full transition-all duration-200 ${selectedProducts.size > 0 ? 'ring-2 ring-blue-200 ring-opacity-50 rounded-b-[16px]' : 'rounded-b-[16px]'} overflow-hidden`}>
+            {paginatedProducts.map((product) => (
+              <ProductItem
+                key={product.id}
+                product={product}
+                isSelected={selectedProducts.has(product.id)}
+                onSelect={handleProductSelect}
+                onViewMore={handleViewMore}
+                onUpdate={handleUpdate}
+              />
+            ))}
+          </div>
 
-              {/* Table Body */}
-              {/* Sample Product Row */}
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  {/* Checkbox Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-12 flex-shrink-0">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("1")}
-                        onChange={() => handleProductSelect("1")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  {/* Product Name with Image */}
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-1/4 min-w-48">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0">
-                      {/* Product Image Placeholder */}
-                    </div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Giày leo núi nữ cổ thấp Humtto Hiking Shoes 140134B-4
-                    </p>
-                  </div>
-                  {/* SKU */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU01
-                    </span>
-                  </div>
-                  {/* Barcode */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      ---
-                    </span>
-                  </div>
-                  {/* Inventory */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Available to Sell */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Sold on Website */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.000đ
-                    </span>
-                  </div>
-                  {/* Sold on POS */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Selling Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      600.000đ
-                    </span>
-                  </div>
-                  {/* Cost Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.00đ
-                    </span>
-                  </div>
-                  {/* Actions */}
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
+          {/* No products message */}
+          {paginatedProducts.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+              <svg className="w-12 h-12 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              <p className="text-lg font-medium">Không tìm thấy sản phẩm</p>
+              <p className="text-sm mt-1">
+                {searchValue ? `Không có sản phẩm nào khớp với "${searchValue}"` : 'Danh sách sản phẩm trống'}
+              </p>
+            </div>
+          )}
+        </div>
+        {/* Pagination - Full Width */}
+        <Pagination
+          current={currentPage}
+          total={totalPages}
+          onChange={setCurrentPage}
+        />
+      </ContentCard>
 
-              {/* Variant Row 1 - Size 36 */}
-              <div className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-100">
-                <div className="flex flex-row items-center w-full">
-                  {/* Empty Checkbox Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    {/* No checkbox for variants */}
-                  </div>
-                  {/* Variant Name */}
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] flex-shrink-0">
-                      {/* No image for variants */}
-                    </div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Size 36
-                    </p>
-                  </div>
-                  {/* SKU */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center whitespace-pre-line">
-                      SKU phân loại:{"\n"}SKU01-40B
-                    </span>
-                  </div>
-                  {/* Barcode */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195417609
-                    </span>
-                  </div>
-                  {/* Inventory */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Available to Sell */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Sold on Website */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.000đ
-                    </span>
-                  </div>
-                  {/* Sold on POS */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Selling Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      600.000đ
-                    </span>
-                  </div>
-                  {/* Cost Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.00đ
-                    </span>
-                  </div>
-                  {/* Empty Actions Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    {/* No actions for variants */}
-                  </div>
-                </div>
-              </div>
 
-              {/* Variant Row 2 - Size 37 */}
-              <div className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-100">
-                <div className="flex flex-row items-center w-full">
-                  {/* Empty Checkbox Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    {/* No checkbox for variants */}
-                  </div>
-                  {/* Variant Name */}
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] flex-shrink-0">
-                      {/* No image for variants */}
-                    </div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Size 37
-                    </p>
-                  </div>
-                  {/* SKU */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center whitespace-pre-line">
-                      SKU phân loại:{"\n"}SKU01-40C
-                    </span>
-                  </div>
-                  {/* Barcode */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195417610
-                    </span>
-                  </div>
-                  {/* Inventory */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Available to Sell */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Sold on Website */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.000đ
-                    </span>
-                  </div>
-                  {/* Sold on POS */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Selling Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      600.000đ
-                    </span>
-                  </div>
-                  {/* Cost Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.00đ
-                    </span>
-                  </div>
-                  {/* Empty Actions Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    {/* No actions for variants */}
-                  </div>
-                </div>
-              </div>
 
-              {/* Variant Row 3 - Size 38 */}
-              <div className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center px-[12px] py-0 w-full hover:bg-gray-100">
-                <div className="flex flex-row items-center w-full">
-                  {/* Empty Checkbox Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    {/* No checkbox for variants */}
-                  </div>
-                  {/* Variant Name */}
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] flex-shrink-0">
-                      {/* No image for variants */}
-                    </div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Size 38
-                    </p>
-                  </div>
-                  {/* SKU */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center whitespace-pre-line">
-                      SKU phân loại:{"\n"}SKU01-40D
-                    </span>
-                  </div>
-                  {/* Barcode */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      8930195417611
-                    </span>
-                  </div>
-                  {/* Inventory */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Available to Sell */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Sold on Website */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.000đ
-                    </span>
-                  </div>
-                  {/* Sold on POS */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Selling Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      600.000đ
-                    </span>
-                  </div>
-                  {/* Cost Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.00đ
-                    </span>
-                  </div>
-                  {/* Empty Actions Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    {/* No actions for variants */}
-                  </div>
-                </div>
+      {/* Floating Selection Actions for Mobile */}
+      {selectedProducts.size > 0 && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 lg:hidden">
+          <div className="bg-white border border-gray-200 rounded-full shadow-lg px-6 py-3 flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-bold">{selectedProducts.size}</span>
               </div>
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  {/* Checkbox Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("1")}
-                        onChange={() => handleProductSelect("1")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  {/* Product Name with Image */}
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0">
-                      {/* Product Image Placeholder */}
-                    </div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Giày leo núi nữ cổ thấp Humtto Hiking Shoes 140134B-4
-                    </p>
-                  </div>
-                  {/* SKU */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU01
-                    </span>
-                  </div>
-                  {/* Barcode */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      ---
-                    </span>
-                  </div>
-                  {/* Inventory */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Available to Sell */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Sold on Website */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.000đ
-                    </span>
-                  </div>
-                  {/* Sold on POS */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Selling Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      600.000đ
-                    </span>
-                  </div>
-                  {/* Cost Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.00đ
-                    </span>
-                  </div>
-                  {/* Actions */}
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-50">
-                <div className="flex flex-row items-center w-full">
-                  {/* Checkbox Column */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-[60px] min-w-[60px]">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <CustomCheckbox
-                        checked={selectedProducts.has("1")}
-                        onChange={() => handleProductSelect("1")}
-                        className="w-[24px] h-[24px]"
-                      />
-                    </div>
-                  </div>
-                  {/* Product Name with Image */}
-                  <div className="flex h-full items-center gap-[8px] px-[12px] py-[14px] w-[500px] min-w-[500px]">
-                    <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0">
-                      {/* Product Image Placeholder */}
-                    </div>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] flex-1">
-                      Giày leo núi nữ cổ thấp Humtto Hiking Shoes 140134B-4
-                    </p>
-                  </div>
-                  {/* SKU */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      SKU01
-                    </span>
-                  </div>
-                  {/* Barcode */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      ---
-                    </span>
-                  </div>
-                  {/* Inventory */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Available to Sell */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Sold on Website */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[140px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.000đ
-                    </span>
-                  </div>
-                  {/* Sold on POS */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[120px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      0
-                    </span>
-                  </div>
-                  {/* Selling Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      600.000đ
-                    </span>
-                  </div>
-                  {/* Cost Price */}
-                  <div className="flex h-full items-center justify-center px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
-                      400.00đ
-                    </span>
-                  </div>
-                  {/* Actions */}
-                  <div className="flex h-full flex-col items-center justify-center gap-[16px] px-[12px] py-[14px] flex-1 min-w-[100px]">
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Xem thêm
-                    </p>
-                    <p className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center cursor-pointer hover:text-[#e04d30]">
-                      Cập nhật
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <span className="text-sm font-medium text-gray-700">đã chọn</span>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleBulkExport}
+                className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
+                title="Xuất Excel"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
+
+              <button
+                onClick={handleBulkHide}
+                className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full transition-colors"
+                title="Ẩn sản phẩm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                </svg>
+              </button>
+
+              <button
+                onClick={handleBulkDelete}
+                className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                title="Xóa sản phẩm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+
+              <button
+                onClick={handleClearSelection}
+                className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
+                title="Bỏ chọn tất cả"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </PageContainer>
   );
 };
 

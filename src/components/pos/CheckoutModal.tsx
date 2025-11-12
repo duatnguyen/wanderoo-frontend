@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Wallet, Smartphone } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -95,29 +95,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       {/* Modal Content */}
       <div
-        className="relative z-50 bg-white rounded-[24px] p-6 w-full max-w-[500px] shadow-2xl animate-scaleIn"
+        className="relative z-50 bg-white rounded-[24px] w-full max-w-[500px] shadow-2xl animate-scaleIn overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
-            Thanh toán
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-[#737373]" />
-          </button>
+        <div className="px-6 pt-6 pb-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
+              Thanh toán
+            </h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-[#737373]" />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* Divider */}
+        <div className="border-b border-gray-200"></div>
+
+        {/* Form Content */}
+        <div className="px-6 pt-6 pb-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Payment Method Selection */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-base font-semibold text-[#272424]">
-              Thanh toán
-            </h3>
             <div className="flex gap-4">
               {/* Cash Payment */}
               <button
@@ -258,9 +262,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <input
                   type="text"
                   value={
-                    amountPaid
-                      ? formatCurrency(parseFloat(amountPaid))
-                      : ""
+                    amountPaid ? formatCurrency(parseFloat(amountPaid)) : ""
                   }
                   onChange={handleAmountPaidChange}
                   placeholder="0₫"
@@ -297,11 +299,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <span className="text-sm font-bold">Hoàn tất</span>
             </Button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
 };
 
 export default CheckoutModal;
-

@@ -37,8 +37,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
 
   const variantStyles = {
     primary: "bg-[#ea5b0c] text-white border-[#ea5b0c] hover:bg-[#d5510b]",
-    outline:
-      "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200",
+    outline: "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200",
     ghost: "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200",
   };
 
@@ -81,12 +80,12 @@ const ActionButton: React.FC<ActionButtonProps> = ({
           />
 
           {/* Menu */}
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
             {options.map((option) => (
               <button
                 key={option.id}
                 onClick={() => handleOptionClick(option.onClick)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap"
               >
                 {option.label}
               </button>
@@ -99,4 +98,3 @@ const ActionButton: React.FC<ActionButtonProps> = ({
 };
 
 export default ActionButton;
-

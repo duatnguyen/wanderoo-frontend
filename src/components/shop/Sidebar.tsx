@@ -40,7 +40,9 @@ const Sidebar: FC<SidebarProps> = ({
         className
       )}
     >
-      {logo && <div className="mb-8 flex items-center justify-center">{logo}</div>}
+      {logo && (
+        <div className="mb-8 flex items-center justify-center">{logo}</div>
+      )}
       <nav className="flex-1 flex flex-col gap-8">
         {sections.map((section, si) => (
           <div key={si}>
@@ -66,7 +68,11 @@ const Sidebar: FC<SidebarProps> = ({
                       disabled={item.disabled}
                       onClick={() => !item.disabled && onChange?.(item.value)}
                     >
-                      {item.icon && <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>}
+                      {item.icon && (
+                        <span className="w-5 h-5 flex items-center justify-center">
+                          {item.icon}
+                        </span>
+                      )}
                       <span>{item.label}</span>
                     </button>
                   </li>

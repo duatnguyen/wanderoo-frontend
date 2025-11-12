@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import OrderSearchPanel, { type Order } from "../../../../components/pos/OrderSearchPanel";
+import OrderSearchPanel, {
+  type Order,
+} from "../../../../components/pos/OrderSearchPanel";
 import OrderDetailsPanel, {
   type OrderDetails,
 } from "../../../../components/pos/OrderDetailsPanel";
@@ -45,6 +47,60 @@ const OrderManagement: React.FC = () => {
           name: "Vòng Đuổi Muỗi Di Động - Bảo Vệ Gia Đình Khỏi Muỗi Đốt, Thiết Kế Hiện Đại",
           image:
             "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=150&h=150&fit=crop",
+          variant: "Xanh",
+          price: 100000,
+          quantity: 1,
+        },
+        {
+          id: "2",
+          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
+          image:
+            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
+          variant: "Xanh",
+          price: 100000,
+          quantity: 1,
+        },
+        {
+          id: "2",
+          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
+          image:
+            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
+          variant: "Xanh",
+          price: 100000,
+          quantity: 1,
+        },
+        {
+          id: "2",
+          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
+          image:
+            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
+          variant: "Xanh",
+          price: 100000,
+          quantity: 1,
+        },
+        {
+          id: "2",
+          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
+          image:
+            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
+          variant: "Xanh",
+          price: 100000,
+          quantity: 1,
+        },
+        {
+          id: "2",
+          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
+          image:
+            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
+          variant: "Xanh",
+          price: 100000,
+          quantity: 1,
+        },
+        {
+          id: "2",
+          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
+          image:
+            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
           variant: "Xanh",
           price: 100000,
           quantity: 1,

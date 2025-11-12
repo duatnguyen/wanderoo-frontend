@@ -84,7 +84,9 @@ const AdminStaffNew: React.FC = () => {
                 <FormInput
                   type="text"
                   value={formData.fullName}
-                  onChange={(e) => handleInputChange("fullName", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("fullName", e.target.value)
+                  }
                   placeholder="Nhập họ và tên của bạn"
                   containerClassName="h-[36px] px-[12px] py-0"
                 />
@@ -146,7 +148,9 @@ const AdminStaffNew: React.FC = () => {
                 <FormInput
                   type="text"
                   value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("password", e.target.value)
+                  }
                   placeholder="Nhập mật khẩu của bạn"
                   containerClassName="h-[36px] px-[12px] py-0"
                 />

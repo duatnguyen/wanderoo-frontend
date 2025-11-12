@@ -71,4 +71,3 @@ export const POSProvider: React.FC<POSProviderProps> = ({
     </POSContext.Provider>
   );
 };
-

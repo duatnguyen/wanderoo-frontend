@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./animations.css";
 
 /* Animations */
 @keyframes fadeIn {
@@ -121,8 +122,16 @@
 
 body {
   margin: 0;
-  font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    "Montserrat",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
 }
 
 #root {
@@ -322,31 +331,6 @@ body {
   max-width: none;
 }
 
-/* Responsive Table Classes */
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  min-width: 0; /* Allow table to shrink */
-}
-
-.table-responsive-sm {
-  width: 100%;
-  overflow-x: auto;
-  min-width: 640px; /* sm breakpoint */
-}
-
-.table-responsive-md {
-  width: 100%;
-  overflow-x: auto;
-  min-width: 768px; /* md breakpoint */
-}
-
-.table-responsive-lg {
-  width: 100%;
-  overflow-x: auto;
-  min-width: 1024px; /* lg breakpoint */
-}
-
 /* Admin Layout Classes */
 .admin-page-container {
   width: 100%;
@@ -400,29 +384,6 @@ body {
   border-radius: 0.75rem;
   border: 1px solid #e5e7eb;
   background-color: white;
-}
-
-.table-header {
-  background-color: #f9fafb;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.table-body {
-  background-color: white;
-}
-
-.table-row {
-  border-bottom: 1px solid #f3f4f6;
-  transition: background-color 0.15s ease;
-}
-
-.table-row:hover {
-  background-color: #f9fafb;
-}
-
-.table-row:last-child {
-  border-bottom: none;
 }
 
 /* Responsive Utility Classes */
@@ -480,7 +441,7 @@ body {
   .button-group {
     flex-direction: column;
   }
-  
+
   .button-group > * {
     width: 100%;
   }
@@ -752,8 +713,15 @@ body {
 
 /* Sidebar font override to Inter */
 .admin-sidebar-font {
-  font-family: Inter, -apple-system, system-ui, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif !important;
+  font-family:
+    Inter,
+    -apple-system,
+    system-ui,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif !important;
   font-size: 14px; /* đảm bảo đồng nhất 14px */
 }
 
@@ -762,13 +730,11 @@ body {
   opacity: 0;
 }
 
-
-
 /* Enlarge and keep native datepicker icon visible */
 .big-native-picker::-webkit-calendar-picker-indicator {
   opacity: 1;
   width: 24px;
   height: 24px;
-  transform: scale(1.0);
+  transform: scale(1);
   cursor: pointer;
 }

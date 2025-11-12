@@ -54,7 +54,9 @@ export const DataTable = <T extends Record<string, any>>({
   headerClassName = "",
   rowClassName = "",
 }: DataTableProps<T>) => {
-  const isAllSelected = data.length > 0 && data.every(record => selectedRows.has(getRowId(record)));
+  const isAllSelected =
+    data.length > 0 &&
+    data.every((record) => selectedRows.has(getRowId(record)));
 
   const handleSelectAll = (checked: boolean) => {
     onSelectAll?.(checked);
@@ -102,7 +104,9 @@ export const DataTable = <T extends Record<string, any>>({
       {/* Table */}
       <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
         {/* Table Header */}
-        <div className={`bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full h-[58px] ${headerClassName}`}>
+        <div
+          className={`bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full h-[58px] ${headerClassName}`}
+        >
           <div className="flex flex-row items-center w-full h-full">
             {/* Checkbox column */}
             {selectable && (
@@ -131,9 +135,8 @@ export const DataTable = <T extends Record<string, any>>({
                     key={column.key}
                     className={`flex gap-[6px] items-center px-[4px] py-[12px] ${
                       column.width || "flex-1"
-                    } ${column.minWidth ? `min-w-[${column.minWidth}]` : ""} ${
-                      column.className || ""
-                    }`}
+                    } ${column.className || ""}`}
+                    style={column.minWidth ? { minWidth: column.minWidth } : undefined}
                   >
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       {column.title}
@@ -160,7 +163,9 @@ export const DataTable = <T extends Record<string, any>>({
                     <input
                       type="checkbox"
                       checked={selectedRows.has(getRowId(record))}
-                      onChange={(e) => handleSelectRow(record, e.target.checked)}
+                      onChange={(e) =>
+                        handleSelectRow(record, e.target.checked)
+                      }
                       onClick={(e) => e.stopPropagation()}
                       className="w-[18px] h-[18px] rounded border-2 border-gray-300"
                     />
@@ -173,17 +178,16 @@ export const DataTable = <T extends Record<string, any>>({
                     key={column.key}
                     className={`flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] ${
                       column.width || "flex-1"
-                    } ${column.minWidth ? `min-w-[${column.minWidth}]` : ""} ${
-                      column.className || ""
-                    }`}
+                    } ${column.className || ""}`}
+                    style={column.minWidth ? { minWidth: column.minWidth } : undefined}
                   >
-                    {column.render
-                      ? column.render(record[column.key], record, index)
-                      : (
-                        <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-                          {record[column.key]}
-                        </span>
-                      )}
+                    {column.render ? (
+                      column.render(record[column.key], record, index)
+                    ) : (
+                      <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
+                        {record[column.key]}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>

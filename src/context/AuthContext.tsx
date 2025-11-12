@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         email: credentials.email,
         name:
           credentials.email === "admin@example.com"
-            ? "Admin User"
+            ? "Thanh"
             : "Regular User",
         role: credentials.email === "admin@example.com" ? "admin" : "user",
         createdAt: new Date(),

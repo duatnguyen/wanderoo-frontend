@@ -1,78 +1,428 @@
 // src/pages/admin/AdminDiscounts.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { SearchBar } from "@/components/ui/search-bar";
 import TabMenuAccount from "@/components/ui/tab-menu-account";
 import type { TabItem } from "@/components/ui/tab-menu-account";
+import { PageHeader } from "@/components/admin/table/PageHeader";
+import { PageContainer } from "@/components/admin/table/PageLayout";
+import { TableFilters } from "@/components/admin/table/TableFilters";
+import { TableActions } from "@/components/admin/table/TableActions";
+import { DiscountTable } from "@/components/admin/table/DiscountTable";
+import { VoucherCreationSection } from "@/components/admin/voucher/VoucherCreationSection";
 import {
   CoinDiscountIcon,
   CreditCardPercentIcon,
   ReceiptDiscountIcon,
   TicketDiscountIcon,
 } from "@/components/icons/discount";
+import type {
+  Voucher,
+  VoucherOrder,
+  VoucherOrderSummary,
+  VoucherProduct,
+} from "@/types/voucher";
+import VoucherOrdersModal from "@/components/admin/voucher/VoucherOrdersModal";
 
-interface Voucher {
-  id: string;
-  code: string;
-  name: string;
-  type: string;
-  products: string;
-  discount: string;
-  maxUsage: number;
-  used: number;
-  display: string;
-  startDate: string;
-  endDate: string;
-  status: "Đang diễn ra" | "Sắp diễn ra" | "Đã kết thúc";
-}
-
-// Mock data
-const mockVouchers: Voucher[] = [
+const sampleProducts: VoucherProduct[] = [
   {
-    id: "1",
-    code: "KJAJHSS",
-    name: "KHACH MOI",
-    type: "Voucher khách hàng mới",
-    products: "Tất cả sản phẩm",
-    discount: "5.000đ",
-    maxUsage: 50,
-    used: 1,
-    display: "Website",
-    startDate: "12:00 17/3/2023",
-    endDate: "12:00 17/3/2024",
-    status: "Đang diễn ra",
+    id: "PRO-001",
+    name: "Giày leo núi nữ Humtto Hiking Shoes 14013",
+    image: "/placeholder-product.jpg",
+    barcode: "MS:HUMTTO14013",
+    price: 1299000,
+    available: 12,
+    quantity: 1,
   },
   {
-    id: "2",
-    code: "KJAJHSS",
-    name: "KHACH MOI",
-    type: "Voucher khách hàng mới",
-    products: "Tất cả sản phẩm",
-    discount: "5.000đ",
-    maxUsage: 50,
-    used: 1,
-    display: "Website",
-    startDate: "12:00 17/3/2023",
-    endDate: "12:00 17/3/2024",
-    status: "Đang diễn ra",
+    id: "PRO-002",
+    name: "Giày chạy trail ON Cloudventure Ice Heron",
+    image: "/placeholder-product.jpg",
+    barcode: "MS:ONCLOUDVENTURE",
+    price: 3490000,
+    available: 8,
+    quantity: 1,
   },
   {
-    id: "3",
-    code: "KJAJHSS",
-    name: "KHACH MOI",
-    type: "Voucher khách hàng mới",
-    products: "Tất cả sản phẩm",
-    discount: "5.000đ",
-    maxUsage: 50,
-    used: 1,
-    display: "Website",
-    startDate: "12:00 17/3/2023",
-    endDate: "12:00 17/3/2024",
-    status: "Đang diễn ra",
+    id: "PRO-003",
+    name: "Bình giữ nhiệt Hydro Flask 621ml",
+    image: "/placeholder-product.jpg",
+    barcode: "MS:HYDROFLASK621",
+    price: 890000,
+    available: 25,
+    quantity: 2,
   },
 ];
 
+const formatDisplayDate = (iso: string) => {
+  if (!iso) return "";
+  const date = new Date(iso);
+  const time = date.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const day = date.toLocaleDateString("vi-VN");
+  return `${time} ${day}`;
+};
+
+const mockVouchers: Voucher[] = [
+  {
+    id: "SHOP-001",
+    code: "SHOP5",
+    name: "Tháng 3 - Giảm 5% toàn shop",
+    type: "Voucher toàn shop",
+    voucherCategory: "Khuyến Mãi",
+    products: "Tất cả sản phẩm",
+    discount: "5%",
+    maxUsage: 200,
+    used: 48,
+    savedCount: 512,
+    display: "Website",
+    startDate: formatDisplayDate("2024-03-01T08:00:00"),
+    endDate: formatDisplayDate("2024-04-01T23:59:00"),
+    status: "Đang diễn ra",
+    editData: {
+      voucherName: "Tháng 3 - Giảm 5% toàn shop",
+      voucherCode: "SHOP5",
+      description: "Khuyến mãi đầu xuân áp dụng cho toàn bộ sản phẩm.",
+      startDate: "2024-03-01T08:00:00",
+      endDate: "2024-04-01T23:59:00",
+      discountType: "percentage",
+      discountValue: "5",
+      maxDiscountLimit: "limited",
+      maxDiscountValue: "50000",
+      minOrderAmount: "300000",
+      maxUsage: "200",
+      maxUsagePerCustomer: "2",
+      displaySetting: "website",
+    },
+  },
+  {
+    id: "PRO-001",
+    code: "GEAR50",
+    name: "Combo đồ leo núi - Giảm 50K",
+    type: "Voucher sản phẩm",
+    voucherCategory: "Khuyến Mãi",
+    products: "3 sản phẩm được chọn",
+    discount: "50.000đ",
+    maxUsage: 120,
+    used: 5,
+    savedCount: 86,
+    display: "POS + Website",
+    startDate: formatDisplayDate("2024-04-05T09:00:00"),
+    endDate: formatDisplayDate("2024-05-05T22:00:00"),
+    status: "Sắp diễn ra",
+    editData: {
+      voucherName: "Combo đồ leo núi - Giảm 50K",
+      voucherCode: "GEAR50",
+      description: "Ưu đãi cho nhóm sản phẩm leo núi bán chạy.",
+      startDate: "2024-04-05T09:00:00",
+      endDate: "2024-05-05T22:00:00",
+      discountType: "fixed",
+      discountValue: "50000",
+      maxDiscountLimit: "unlimited",
+      minOrderAmount: "500000",
+      maxUsage: "120",
+      maxUsagePerCustomer: "1",
+      displaySetting: "pos-website",
+      appliedProducts: sampleProducts,
+    },
+  },
+  {
+    id: "NEW-001",
+    code: "WELCOME20",
+    name: "Khách hàng mới - Giảm 20%",
+    type: "Voucher khách hàng mới",
+    voucherCategory: "Khuyến Mãi",
+    products: "Tất cả sản phẩm",
+    discount: "20%",
+    maxUsage: 500,
+    used: 132,
+    savedCount: 218,
+    display: "Website",
+    startDate: formatDisplayDate("2024-01-15T00:00:00"),
+    endDate: formatDisplayDate("2024-06-30T23:59:00"),
+    status: "Đang diễn ra",
+    editData: {
+      voucherName: "Khách hàng mới - Giảm 20%",
+      voucherCode: "WELCOME20",
+      description: "Chào mừng khách hàng mới lần đầu mua sắm tại shop.",
+      startDate: "2024-01-15T00:00:00",
+      endDate: "2024-06-30T23:59:00",
+      discountType: "percentage",
+      discountValue: "20",
+      maxDiscountLimit: "limited",
+      maxDiscountValue: "80000",
+      minOrderAmount: "200000",
+      maxUsage: "500",
+      maxUsagePerCustomer: "1",
+      displaySetting: "website",
+    },
+  },
+  {
+    id: "RET-001",
+    code: "RETURN15",
+    name: "Khách hàng mua lại - Giảm 15%",
+    type: "Voucher khách hàng mua lại",
+    voucherCategory: "Khuyến Mãi",
+    products: "Tất cả sản phẩm",
+    discount: "15%",
+    maxUsage: 300,
+    used: 74,
+    savedCount: 190,
+    display: "Website",
+    startDate: formatDisplayDate("2024-02-01T09:30:00"),
+    endDate: formatDisplayDate("2024-04-30T21:00:00"),
+    status: "Đang diễn ra",
+    editData: {
+      voucherName: "Khách hàng mua lại - Giảm 15%",
+      voucherCode: "RETURN15",
+      description: "Tri ân khách hàng đã từng mua sắm tại shop.",
+      startDate: "2024-02-01T09:30:00",
+      endDate: "2024-04-30T21:00:00",
+      discountType: "percentage",
+      discountValue: "15",
+      maxDiscountLimit: "limited",
+      maxDiscountValue: "70000",
+      minOrderAmount: "250000",
+      maxUsage: "300",
+      maxUsagePerCustomer: "2",
+      displaySetting: "website",
+      totalSpendingAmount: "5000000",
+      spendingDays: "60",
+    },
+  },
+  {
+    id: "PRI-001",
+    code: "VIP2024",
+    name: "Voucher VIP nội bộ - 10%",
+    type: "Voucher riêng tư",
+    voucherCategory: "Chương trình nội bộ",
+    products: "Tất cả sản phẩm",
+    discount: "10%",
+    maxUsage: 80,
+    used: 80,
+    savedCount: 64,
+    display: "POS",
+    startDate: formatDisplayDate("2023-10-01T08:00:00"),
+    endDate: formatDisplayDate("2024-01-01T22:00:00"),
+    status: "Đã kết thúc",
+    editData: {
+      voucherName: "Voucher VIP nội bộ - 10%",
+      voucherCode: "VIP2024",
+      description: "Ưu đãi dành riêng cho nhân viên và đối tác.",
+      startDate: "2023-10-01T08:00:00",
+      endDate: "2024-01-01T22:00:00",
+      discountType: "percentage",
+      discountValue: "10",
+      maxDiscountLimit: "unlimited",
+      minOrderAmount: "0",
+      maxUsage: "80",
+      maxUsagePerCustomer: "3",
+      displaySetting: "pos",
+    },
+  },
+];
+
+const defaultSummary: VoucherOrderSummary = {
+  totalOrders: 0,
+  totalDiscountAmount: 0,
+  totalRevenue: 0,
+};
+
+const createSummary = (orders: VoucherOrder[]): VoucherOrderSummary => {
+  return orders.reduce(
+    (acc, order) => {
+      acc.totalOrders += 1;
+      acc.totalDiscountAmount += order.discountAmount;
+      acc.totalRevenue += order.totalAmount;
+      return acc;
+    },
+    { ...defaultSummary }
+  );
+};
+
+const voucherOrdersData: Record<
+  string,
+  { orders: VoucherOrder[]; summary: VoucherOrderSummary }
+> = {
+  "SHOP-001": (() => {
+    const orders: VoucherOrder[] = [
+      {
+        id: "order-1",
+        code: "250826TT6YWKXG",
+        items: [
+          {
+            id: "item-1",
+            name: "Áo khoác leo núi cao cấp",
+            image: "https://via.placeholder.com/80x80.png?text=SP1",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 34500,
+        totalAmount: 300000,
+        orderDate: "26/08/2025",
+        status: "Đang xử lý",
+      },
+      {
+        id: "order-2",
+        code: "250901B563VJWU",
+        items: [
+          {
+            id: "item-2",
+            name: "Đầm dạ hội hè",
+            image: "https://via.placeholder.com/80x80.png?text=SP2",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 53300,
+        totalAmount: 0,
+        orderDate: "01/09/2025",
+        status: "Đã hủy",
+      },
+      {
+        id: "order-3",
+        code: "250904K83X45ER",
+        items: [
+          {
+            id: "item-3",
+            name: "Đầm công sở kẻ caro",
+            image: "https://via.placeholder.com/80x80.png?text=SP3",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 42800,
+        totalAmount: 320000,
+        orderDate: "04/09/2025",
+        status: "Đang giao",
+      },
+      {
+        id: "order-4",
+        code: "250905P0AYWQGB",
+        items: [
+          {
+            id: "item-4",
+            name: "Set trang phục vũ công",
+            image: "https://via.placeholder.com/80x80.png?text=SP4",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 36500,
+        totalAmount: 320000,
+        orderDate: "05/09/2025",
+        status: "Đã giao",
+      },
+      {
+        id: "order-5",
+        code: "250906RA1V74TR",
+        items: [
+          {
+            id: "item-5",
+            name: "Mô hình anime Hatsune",
+            image: "https://via.placeholder.com/80x80.png?text=SP5",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 55000,
+        totalAmount: 320000,
+        orderDate: "06/09/2025",
+        status: "Đã hoàn thành",
+      },
+      {
+        id: "order-6",
+        code: "250907TVAVAFN0",
+        items: [
+          {
+            id: "item-6",
+            name: "Tượng mô hình nghệ thuật",
+            image: "https://via.placeholder.com/80x80.png?text=SP6",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 134000,
+        totalAmount: 650000,
+        orderDate: "07/09/2025",
+        status: "Đang giao",
+      },
+    ];
+    return {
+      orders,
+      summary: createSummary(orders),
+    };
+  })(),
+  "NEW-001": (() => {
+    const orders: VoucherOrder[] = [
+      {
+        id: "order-7",
+        code: "2508209CRMBY9R",
+        items: [
+          {
+            id: "item-7",
+            name: "Quần jean trơn xanh đậm",
+            image: "https://via.placeholder.com/80x80.png?text=SP7",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 53750,
+        totalAmount: 330000,
+        orderDate: "20/08/2025",
+        status: "Đã hoàn thành",
+      },
+      {
+        id: "order-8",
+        code: "250820BPT70UB9",
+        items: [
+          {
+            id: "item-8",
+            name: "Váy dự tiệc công chúa",
+            image: "https://via.placeholder.com/80x80.png?text=SP8",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 32500,
+        totalAmount: 0,
+        orderDate: "20/08/2025",
+        status: "Đã hủy",
+      },
+      {
+        id: "order-9",
+        code: "250821BVDVQTVP",
+        items: [
+          {
+            id: "item-9",
+            name: "Trang phục múa truyền thống",
+            image: "https://via.placeholder.com/80x80.png?text=SP9",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 62756,
+        totalAmount: 0,
+        orderDate: "21/08/2025",
+        status: "Đang xử lý",
+      },
+      {
+        id: "order-10",
+        code: "250825R79R66SX",
+        items: [
+          {
+            id: "item-10",
+            name: "Mô hình robot sưu tầm",
+            image: "https://via.placeholder.com/80x80.png?text=SP10",
+            quantity: 1,
+          },
+        ],
+        discountAmount: 46300,
+        totalAmount: 0,
+        orderDate: "25/08/2025",
+        status: "Đang giao",
+      },
+    ];
+    return {
+      orders,
+      summary: createSummary(orders),
+    };
+  })(),
+};
 // Tab data
 const discountTabs: TabItem[] = [
   { id: "all", label: "Tất cả" },
@@ -116,315 +466,168 @@ const voucherTypes = {
   },
 };
 
+const voucherRouteMap: Record<string, string> = {
+  "Voucher toàn shop": "/admin/discounts/new/shop-wide",
+  "Voucher sản phẩm": "/admin/discounts/new/product",
+  "Voucher khách hàng mới": "/admin/discounts/new/new-customer",
+  "Voucher khách hàng mua lại": "/admin/discounts/new/returning-customer",
+  "Voucher riêng tư": "/admin/discounts/new/private",
+};
+
 const AdminDiscounts: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedRows, setSelectedRows] = useState<Set<string | number>>(new Set());
+  const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case "Đang diễn ra":
-        return "bg-[#b2ffb4] text-[#04910c]";
-      case "Sắp diễn ra":
-        return "bg-[#cce5ff] text-[#0066cc]";
-      case "Đã kết thúc":
-        return "bg-[#f6f6f6] text-[#737373]";
-      default:
-        return "bg-[#f6f6f6] text-[#737373]";
+  // Filter vouchers based on active tab and search term
+  const filteredVouchers = mockVouchers.filter((voucher) => {
+    const matchesTab = activeTab === "all" ||
+      (activeTab === "ongoing" && voucher.status === "Đang diễn ra") ||
+      (activeTab === "upcoming" && voucher.status === "Sắp diễn ra") ||
+      (activeTab === "ended" && voucher.status === "Đã kết thúc");
+
+    const matchesSearch = voucher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      voucher.code.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesTab && matchesSearch;
+  });
+
+  // Selection handlers
+  const handleSelectRow = (id: string | number, checked: boolean) => {
+    const newSelected = new Set(selectedRows);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
     }
+    setSelectedRows(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredVouchers.map(v => v.id));
+      setSelectedRows(allIds);
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  // Action handlers
+  const handleEdit = (voucher: Voucher) => {
+    const route = voucherRouteMap[voucher.type] || "/admin/discounts/new";
+    navigate(route, { state: { mode: "edit", voucher } });
+  };
+
+  const handleViewOrders = (voucher: Voucher) => {
+    setSelectedVoucher(voucher);
+    setIsOrdersModalOpen(true);
+  };
+
+  const handleEnd = (voucher: Voucher) => {
+    console.log("End voucher:", voucher);
+    // End voucher logic
+  };
+
+  const handleBulkDelete = () => {
+    console.log("Delete selected vouchers:", Array.from(selectedRows));
+    // Bulk delete logic
+    setSelectedRows(new Set());
+  };
+
+  const handleBulkEdit = () => {
+    console.log("Edit selected vouchers:", Array.from(selectedRows));
+    // Bulk edit logic
   };
 
   const handleCreateVoucher = (type: string) => {
     console.log("Creating voucher of type:", type);
-    // Map voucher types to different routes
-    const routeMap: Record<string, string> = {
-      "Voucher toàn shop": "/admin/discounts/new/shop-wide",
-      "Voucher sản phẩm": "/admin/discounts/new/product",
-      "Voucher khách hàng mới": "/admin/discounts/new/new-customer",
-      "Voucher khách hàng mua lại": "/admin/discounts/new/returning-customer",
-      "Voucher riêng tư": "/admin/discounts/new/private",
-    };
-    const route = routeMap[type] || "/admin/discounts/new";
+    const route = voucherRouteMap[type] || "/admin/discounts/new";
     navigate(route);
   };
 
   return (
-    <div className="flex flex-col gap-[6px] px-1 xl:px-[50px] pt-0 pb-[12px] w-full -mt-[7px]">
+    <PageContainer>
       {/* Header */}
-      <div className="flex flex-col gap-[4px] h-[54px] items-start justify-center px-0 py-0 w-full">
-        <div className="flex gap-[20px] items-center justify-start px-0 py-0 w-full -ml-1 xl:-ml-[50px]">
-          <h1 className="font-bold text-[24px] text-[#272424] leading-[normal] text-left">
-            Danh sách mã giảm giá
-          </h1>
-        </div>
-      </div>
+      <PageHeader
+        title="Danh sách mã giảm giá"
+        className="flex items-center justify-between w-full mb-2 flex-nowrap gap-2"
+      />
 
       {/* Create Voucher Section */}
-      <div className="bg-white border border-[#d1d1d1] rounded-[24px] pt-[12px] px-[24px] pb-[24px] flex flex-col w-full -mt-[10px] overflow-x-auto">
-        {/* Create Voucher Header */}
-        <div className="flex flex-col gap-[2px] items-start justify-center px-0 py-0 w-full flex-shrink-0">
-          <div className="flex gap-[20px] items-center px-0 py-0 w-full">
-            <h2 className="font-bold text-[20px] text-[#272424] leading-[normal]">
-              Tạo voucher
-            </h2>
-          </div>
-          <p className="font-medium text-[13px] text-[#e04d30] leading-[1.4] -mt-[2px] whitespace-nowrap">
-            Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để thu hút người mua.
-          </p>
-        </div>
+      <VoucherCreationSection
+        voucherTypes={voucherTypes}
+        onCreateVoucher={handleCreateVoucher}
+      />
 
-        {/* Conversion Section - subheading removed per request */}
-        <div className="w-full min-w-[1000px]">
-          <div className="flex gap-[20px] items-center justify-start">
-            {voucherTypes.conversion.map((voucher, index) => (
-              <div
-                key={index}
-                className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0"
-              >
-              <div className="flex gap-[10px] items-start">
-                <div className="flex items-center justify-center w-[24px] h-[24px]">
-                  {voucher.icon}
-                </div>
-                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                  {voucher.title}
-                </div>
-              </div>
-              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
-                {voucher.description}
-              </p>
-              <div className="flex justify-end w-full mt-auto">
-                <Button className="h-[28px] px-[16px] text-[14px] rounded-[8px]" onClick={() => handleCreateVoucher(voucher.title)}>Tạo</Button>
-              </div>
-            </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Target Customer Section */}
-        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4 flex-shrink-0">
-          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
-            Tập trung vào nhóm khách hàng mục tiêu
-          </h3>
-        </div>
-        <div className="w-full min-w-[1000px]">
-          <div className="flex gap-[20px] items-center justify-start">
-            {voucherTypes.targetCustomer.map((voucher, index) => (
-              <div
-                key={index}
-                className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0"
-              >
-              <div className="flex gap-[10px] items-start">
-                <div className="flex items-center justify-center w-[24px] h-[24px]">
-                  {voucher.icon}
-                </div>
-                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                  {voucher.title}
-                </div>
-              </div>
-              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
-                {voucher.description}
-              </p>
-              <div className="flex justify-end w-full mt-auto">
-                <Button className="h-[28px] px-[16px] text-[14px] rounded-[8px]" onClick={() => handleCreateVoucher(voucher.title)}>Tạo</Button>
-              </div>
-            </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Private Channel Section */}
-        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4 flex-shrink-0">
-          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
-            Tập trung vào kênh hiển thị riêng tư
-          </h3>
-        </div>
-        <div className="w-full min-w-[1000px]">
-          <div className="flex gap-[20px] items-center justify-start">
-            <div className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0">
-              <div className="flex gap-[10px] items-start">
-                <div className="flex items-center justify-center w-[24px] h-[24px]">
-                  {voucherTypes.privateChannel.icon}
-                </div>
-                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                  {voucherTypes.privateChannel.title}
-                </div>
-              </div>
-              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
-                {voucherTypes.privateChannel.description}
-              </p>
-              <div className="flex justify-end w-full mt-auto">
-                <Button
-                  className="h-[28px] px-[16px] text-[14px] rounded-[8px]"
-                  onClick={() =>
-                    handleCreateVoucher(voucherTypes.privateChannel.title)
-                  }
-                >
-                  Tạo
-                </Button>
-              </div>
-            </div>
-            <div className="w-[500px] flex-shrink-0" />
-          </div>
-        </div>
-      </div>
-
-      {/* Tab Menu + Search (expanded width) */}
-      <div className="w-full xl:w-[calc(100%+100px)] -mx-0 xl:-mx-[50px] flex flex-col gap-2">
-        <div className="w-full overflow-x-auto xl:overflow-x-visible">
+      {/* Tab Menu */}
+      <div className="w-full overflow-x-auto xl:overflow-x-visible mb-4">
         <TabMenuAccount
           tabs={discountTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-            className="w-auto min-w-fit"
-        />
-        </div>
-
-        {/* Search Bar */}
-        <SearchBar
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Tìm kiếm mã giảm giá"
-          className="w-full xl:w-[500px]"
+          className="w-auto min-w-fit"
         />
       </div>
 
-      {/* Voucher Table */}
-      <div className="w-full overflow-x-auto xl:overflow-x-visible">
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] w-full overflow-hidden min-w-[900px]">
-          <table className="w-full border-collapse min-w-[900px]">
-            <thead>
-              <tr>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[12px] py-[15px] text-left rounded-tl-[12px]">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4] whitespace-nowrap">
-                    Tên voucher|Mã voucher
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Loại mã
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    SP áp dụng
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Giảm giá
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4] text-center">
-                    Tổng lượt sử<br/> dụng tối đa
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Đã dùng
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Hiển thị
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Thời gian lưu
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center rounded-tr-[12px]">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Thao tác
-                  </p>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-
-              {mockVouchers.map((voucher) => (
-                <tr key={voucher.id} className="border-t border-[#d1d1d1]">
-                  <td className="px-[12px] py-[14px] align-top">
-                    <div className="flex gap-[10px] items-center">
-                      <div className="flex items-center justify-center w-[24px] h-[24px]">
-                        <CreditCardPercentIcon size={24} color="#292D32" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex flex-col gap-[4px] items-start justify-center">
-                          <div
-                            className={`flex gap-[10px] items-start px-[8px] py-[6px] rounded-[6px] ${getStatusBadgeClass(
-                              voucher.status
-                            )}`}
-                          >
-                            <p className="font-bold text-[13px] leading-[normal]">
-                              {voucher.status}
-                            </p>
-                          </div>
-                          <div className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                            <p className="mb-0">{voucher.name}</p>
-                            <p>Mã voucher: {voucher.code}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    {voucher.type === "Voucher khách hàng mới" ? (
-                      <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                        Voucher khách<br/>hàng mới
-                      </p>
-                    ) : (
-                      <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                        {voucher.type}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.products}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.discount}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.maxUsage}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.used}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.display}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <div className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      <p className="mb-0">{voucher.startDate} -</p>
-                      <p>{voucher.endDate}</p>
-                    </div>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <div className="font-semibold text-[13px] text-[#1a71f6] leading-[1.4] cursor-pointer">
-                      <p className="mb-0 hover:opacity-70">Chỉnh sửa</p>
-                      <p className="mb-0 hover:opacity-70">Đơn hàng</p>
-                      <p className="hover:opacity-70">Kết thúc</p>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Search and Table Card */}
+      <div className="bg-white border border-[#d1d1d1] rounded-[24px] pt-[16px] px-[16px] pb-[16px] flex flex-col w-full">
+        {/* Search and Actions */}
+        <div className="mb-3">
+          <TableFilters
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Tìm kiếm mã giảm giá"
+            searchClassName="flex-1 min-w-0 max-w-md"
+            actions={selectedRows.size > 0 ? (
+              <TableActions
+                selectedCount={selectedRows.size}
+                itemName="voucher"
+                actions={[
+                  {
+                    label: "Chỉnh sửa",
+                    onClick: handleBulkEdit,
+                    variant: "secondary"
+                  },
+                  {
+                    label: "Xóa",
+                    onClick: handleBulkDelete,
+                    variant: "danger"
+                  }
+                ]}
+              />
+            ) : undefined}
+          />
         </div>
+
+        {/* Voucher Table */}
+        <DiscountTable
+          vouchers={filteredVouchers}
+          selectedRows={selectedRows}
+          onSelectRow={handleSelectRow}
+          onSelectAll={handleSelectAll}
+          onEdit={handleEdit}
+          onViewOrders={handleViewOrders}
+          onEnd={handleEnd}
+        />
       </div>
-    </div>
+      <VoucherOrdersModal
+        isOpen={isOrdersModalOpen}
+        voucher={selectedVoucher}
+        orders={selectedVoucher ? voucherOrdersData[selectedVoucher.id]?.orders ?? [] : []}
+        summary={
+          selectedVoucher
+            ? voucherOrdersData[selectedVoucher.id]?.summary ?? defaultSummary
+            : defaultSummary
+        }
+        onClose={() => {
+          setIsOrdersModalOpen(false);
+          setSelectedVoucher(null);
+        }}
+      />
+    </PageContainer>
   );
 };
 

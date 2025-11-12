@@ -1,130 +1,49 @@
-import React from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import {
-  PersonIcon,
-  DocumentIcon,
-  TicketIcon,
-  EditPencilIcon,
-} from "../components/shop/ProfileIcons";
-import { useAuthCtx } from "../app/providers/AuthProvider";
-
-type MenuItem = {
-  id: string;
-  label: string;
-  path: string;
-  icon?: React.ReactNode;
-};
+import React, { useState } from "react";
+import { Outlet } from "react-router-dom";
+import { Menu } from "lucide-react";
+import ProfileSidebar from "../components/shop/ProfileSidebar";
 
 const ProfileLayout: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { state } = useAuthCtx();
-  const { user } = state;
-
-  // Get user data with fallback to mock data
-  const userData = {
-    fullName: user?.name || "Thanh",
-    avatar: user?.avatar || "https://randomuser.me/api/portraits/men/32.jpg",
-  };
-
-  const menuItems: MenuItem[] = [
-    {
-      id: "basicinformation",
-      label: "Hồ sơ",
-      path: "/user/profile/basicinformation",
-      icon: <PersonIcon />,
-    },
-    { id: "address", label: "Địa chỉ", path: "/user/profile/address" },
-    { id: "password", label: "Đổi mật khẩu", path: "/user/profile/password" },
-    {
-      id: "privacy",
-      label: "Thiết lập riêng tư",
-      path: "/user/profile/privacy",
-    },
-    {
-      id: "orders",
-      label: "Đơn mua",
-      path: "/user/profile/orders",
-      icon: <DocumentIcon />,
-    },
-    {
-      id: "vouchers",
-      label: "Kho voucher",
-      path: "/user/profile/vouchers",
-      icon: <TicketIcon />,
-    },
-  ];
-
-  const activeMenuId =
-    menuItems.find(
-      (item) =>
-        location.pathname === item.path ||
-        location.pathname.startsWith(item.path + "/")
-    )?.id || "basicinformation";
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="bg-gray-50">
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8">
-        {/* Left Sidebar - Menu */}
-        <aside className="w-full lg:w-64 flex-shrink-0 pl-0">
-          <div className="px-5 sm:p-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-              Tài khoản của tôi
-            </h3>
+    <div className="bg-gray-50 h-full">
+      <div className="w-full px-4 h-full flex flex-col">
+        {/* Mobile Menu Button */}
+        <div className="lg:hidden py-4">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Menu size={24} />
+            <span className="font-medium">Menu</span>
+          </button>
+        </div>
 
-            {/* User Summary */}
-            <div className="flex flex-col items-start gap-3 sm:gap-4 mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-gray-200">
-              <img
-                src={userData.avatar}
-                alt="Avatar"
-                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0 w-full">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
-                  {userData.fullName}
-                </h3>
-                <button
-                  onClick={() => navigate("/user/profile/basicinformation")}
-                  className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors text-sm"
-                >
-                  <EditPencilIcon />
-                  <span className="font-medium">Sửa hồ sơ</span>
-                </button>
-              </div>
-            </div>
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8 w-full items-start flex-1 min-h-0">
+          {/* Overlay for mobile */}
+          {isSidebarOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
 
-            <nav className="space-y-1 sm:space-y-2">
-              {menuItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-colors text-sm sm:text-base ${
-                    activeMenuId === item.id
-                      ? "bg-[#18345c] text-white"
-                      : "text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  {item.icon && (
-                    <span
-                      className={
-                        activeMenuId === item.id
-                          ? "text-white"
-                          : "text-gray-600"
-                      }
-                    >
-                      {item.icon}
-                    </span>
-                  )}
-                  <span className="font-medium">{item.label}</span>
-                </button>
-              ))}
-            </nav>
+          {/* Left Sidebar - Menu */}
+          <div
+            className={`fixed lg:static inset-y-0 left-0 z-50 lg:z-auto transform ${
+              isSidebarOpen
+                ? "translate-x-0"
+                : "-translate-x-full lg:translate-x-0"
+            } transition-transform duration-300 ease-in-out lg:transition-none`}
+          >
+            <ProfileSidebar onClose={() => setIsSidebarOpen(false)} />
           </div>
-        </aside>
 
-        {/* Main Content */}
-        <div className="flex-1 min-w-0 pr-4 sm:pr-6 lg:pr-8">
-          <Outlet />
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 lg:pl-0 h-full">
+            <Outlet />
+          </div>
         </div>
       </div>
     </div>

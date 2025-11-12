@@ -2,19 +2,11 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../../../../components/shop/Button";
 import { Textarea, Input } from "../../../../components/shop/Input";
-import DropdownList from "../../../../components/shop/DropdownList";
+import { Select } from "antd";
 import MediaUpload from "../../../../components/shop/MediaUpload";
 
 function formatCurrencyVND(value: number) {
-  try {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return `${value.toLocaleString("vi-VN")}đ`;
-  }
+  return `${value.toLocaleString("vi-VN")}đ`;
 }
 
 interface ProductType {
@@ -27,21 +19,18 @@ interface ProductType {
   quantity: number;
 }
 
-interface OrderData {
-  id: string;
-  orderDate: string;
-  product: ProductType;
-}
+// OrderData interface is no longer needed, using order object with id and orderDate
 
 const ReturnRefundRequest: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get order, product, and option data from route state
-  const { order, product, option } =
+  // Get order, product/products, and option data from route state
+  const { order, product, products, option } =
     (location.state as {
-      order?: OrderData;
+      order?: { id: string; orderDate: string };
       product?: ProductType;
+      products?: ProductType[]; // For multiple products from selection page
       option?: "received-with-issue" | "not-received";
     }) || {};
 
@@ -49,22 +38,27 @@ const ReturnRefundRequest: React.FC = () => {
   const isNotReceived = requestType === "not-received";
 
   // Default data if not passed via state (for development/testing)
-  const defaultOrder: OrderData = {
+  const defaultOrder = {
     id: "WB0303168522",
     orderDate: "25/08/2025",
-    product: {
+  };
+
+  const orderData = order || defaultOrder;
+
+  // Handle multiple products or single product
+  const selectedProducts = products || (product ? [product] : []);
+
+  // For backward compatibility, use first product as productData
+  const productData = product ||
+    selectedProducts[0] || {
       id: "1",
-      imageUrl: "/api/placeholder/100/100",
+      imageUrl: "",
       name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
       price: 199000,
       originalPrice: 230000,
       variant: "Đen",
       quantity: 1,
-    },
-  };
-
-  const orderData = order || defaultOrder;
-  const productData = product || orderData.product;
+    };
 
   // Form state
   const [reason, setReason] = useState("");
@@ -84,10 +78,19 @@ const ReturnRefundRequest: React.FC = () => {
       return;
     }
 
+    // Calculate total refund amount from all selected products
+    const totalRefundAmount = selectedProducts.reduce(
+      (sum, p) => sum + p.price * (p.quantity || 1),
+      0
+    );
+
     // Submit the return/refund request
     console.log("Return/refund request submitted:", {
       orderId: orderData.id,
-      productId: productData.id,
+      products: selectedProducts.map((p) => ({
+        id: p.id,
+        quantity: p.quantity || 1,
+      })),
       requestType: requestType,
       reason,
       description,
@@ -95,14 +98,18 @@ const ReturnRefundRequest: React.FC = () => {
       videos: isNotReceived ? [] : videos,
       bankInfo,
       email,
-      refundAmount: productData.price,
+      refundAmount: totalRefundAmount,
     });
 
     // Navigate back or show success message
     // navigate("/user/profile/orders");
   };
 
-  const refundAmount = productData.price;
+  // Calculate total refund amount from all selected products
+  const refundAmount = selectedProducts.reduce(
+    (sum, p) => sum + p.price * (p.quantity || 1),
+    0
+  );
 
   return (
     <div className="bg-gray-50 min-h-screen py-6 sm:py-8">
@@ -129,7 +136,7 @@ const ReturnRefundRequest: React.FC = () => {
             </p>
           </div>
 
-          {/* Selected Product Section */}
+          {/* Selected Products Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
               Sản phẩm đã chọn
@@ -140,34 +147,38 @@ const ReturnRefundRequest: React.FC = () => {
                 <span>|</span>
                 <span>Ngày đặt hàng: {orderData.orderDate}</span>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-200">
-                <img
-                  src={productData.imageUrl}
-                  alt={productData.name}
-                  className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-gray-200 flex-shrink-0"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "https://via.placeholder.com/100";
-                  }}
-                />
-                <div className="flex-1">
-                  <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-2">
-                    {productData.name}
-                  </h3>
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <span className="text-base sm:text-lg font-semibold text-red-600">
-                      {formatCurrencyVND(productData.price)}
-                    </span>
-                    {productData.variant && (
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
-                        {productData.variant}
-                      </span>
-                    )}
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                {selectedProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="flex flex-col sm:flex-row gap-4"
+                  >
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg border border-gray-300 bg-transparent flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-2">
+                        {product.name}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="text-base sm:text-lg font-semibold text-red-600">
+                          {formatCurrencyVND(product.price)}
+                        </span>
+                        {product.originalPrice && (
+                          <span className="text-[12px] text-gray-500 line-through">
+                            {formatCurrencyVND(product.originalPrice)}
+                          </span>
+                        )}
+                        {product.variant && (
+                          <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700">
+                            {product.variant}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        Số lượng: {product.quantity || 1}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-700">
-                    Số lượng: {productData.quantity}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -175,27 +186,32 @@ const ReturnRefundRequest: React.FC = () => {
           {/* Return/Refund Form Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-6">
-              Chọn sản phẩm cần Trả hàng và Hoàn tiền
+              Thông tin yêu cầu trả hàng/hoàn tiền
             </h2>
 
             <div className="space-y-6">
               {/* Reason Dropdown */}
-              <DropdownList
-                label="Lý do"
-                value={reason}
-                onChange={(value) => setReason(value)}
-                required
-                options={[
-                  { value: "", label: "Chọn lý do" },
-                  { value: "empty-package", label: "Thùng hàng rỗng" },
-                  { value: "not-received", label: "Chưa nhận được hàng" },
-                  { value: "broken", label: "Bể vỡ" },
-                  { value: "wrong-model", label: "Sai mẫu" },
-                  { value: "defective", label: "Hàng lỗi" },
-                  { value: "different-description", label: "Khác mô tả" },
-                  { value: "other", label: "Lý do khác" },
-                ]}
-              />
+              <div className="w-full">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  value={reason}
+                  onChange={(value) => setReason(value)}
+                  placeholder="Chọn lý do"
+                  className="w-full"
+                  options={[
+                    { value: "", label: "Chọn lý do" },
+                    { value: "empty-package", label: "Thùng hàng rỗng" },
+                    { value: "not-received", label: "Chưa nhận được hàng" },
+                    { value: "broken", label: "Bể vỡ" },
+                    { value: "wrong-model", label: "Sai mẫu" },
+                    { value: "defective", label: "Hàng lỗi" },
+                    { value: "different-description", label: "Khác mô tả" },
+                    { value: "other", label: "Lý do khác" },
+                  ]}
+                />
+              </div>
 
               {/* Description Textarea */}
               <Textarea

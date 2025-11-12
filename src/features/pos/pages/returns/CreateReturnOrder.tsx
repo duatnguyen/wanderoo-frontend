@@ -56,8 +56,7 @@ const CreateReturnOrder: React.FC = () => {
 
   // Calculate totals
   const totalAmount = returnProducts.reduce(
-    (sum, item) =>
-      sum + item.product.price * item.returnQuantity,
+    (sum, item) => sum + item.product.price * item.returnQuantity,
     0
   );
   const discount = 0;
@@ -108,126 +107,140 @@ const CreateReturnOrder: React.FC = () => {
     <div className="h-full flex overflow-hidden bg-gray-50">
       {/* Left Column - Product Selection */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="bg-white p-6 border-b border-[#e7e7e7]">
-          <h2 className="text-xl font-bold text-[#272424] mb-2">
-            Chọn sản phẩm trả hàng
-          </h2>
-          {orderId && (
-            <p className="text-sm text-[#737373]">#{orderId}</p>
-          )}
-        </div>
-
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Product List */}
-          {returnProducts.map((item) => (
-            <div
-              key={item.product.id}
-              className="bg-white border border-[#e7e7e7] rounded-lg p-4"
-            >
-              <div className="flex items-center gap-4">
-                {/* Product Image */}
-                {item.product.image && (
-                  <img
-                    src={item.product.image}
-                    alt={item.product.name}
-                    className="w-[70px] h-[70px] rounded-lg object-cover border border-[#e7e7e7] flex-shrink-0"
-                  />
-                )}
-
-                {/* Product Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-2">
+          {/* Card 1: Chọn sản phẩm trả hàng + Lý do (theo ảnh 2) */}
+          <div className="bg-white border border-[#e7e7e7] rounded-lg shadow-sm">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b border-[#e7e7e7]">
+              <h2 className="text-lg font-semibold text-[#272424]">
+                Chọn sản phẩm trả hàng
+              </h2>
+            </div>
+            {/* Body: Product list (một item demo như ảnh) */}
+            <div className="px-4 pt-3 pb-4 space-y-4">
+              {orderId && (
+                <p className="text-lg font-semibold text-[#272424]">
+                  #{orderId}
+                </p>
+              )}
+              {returnProducts.map((item) => (
+                <div
+                  key={item.product.id}
+                  className="rounded-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Hình ảnh */}
+                    {item.product.image && (
+                      <img
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="w-[64px] h-[64px] rounded-lg object-cover border border-[#e7e7e7] flex-shrink-0"
+                      />
+                    )}
+                    {/* Thông tin + điều chỉnh số lượng + tổng tiền */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#272424] mb-1">
-                        {item.product.name}
-                      </p>
-                      <p className="text-sm text-[#272424]">
-                        {formatCurrency(item.product.price)}
-                      </p>
-                    </div>
-
-                    {/* Quantity Selector */}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          handleQuantityChange(
-                            item.product.id,
-                            item.returnQuantity - 1,
-                            item.product.quantity
-                          )
-                        }
-                        disabled={item.returnQuantity <= 0}
-                        className={cn(
-                          "w-7 h-7 flex items-center justify-center border border-[#e7e7e7] rounded text-[#272424] hover:bg-gray-100 transition-colors",
-                          item.returnQuantity <= 0 && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <div className="text-sm text-[#272424] font-medium min-w-[60px] text-center">
-                        {item.returnQuantity}/{item.product.quantity}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[15px] font-medium text-[#272424] mb-1 line-clamp-2">
+                            {item.product.name}
+                          </p>
+                          <p className="text-sm text-[#272424]">
+                            {formatCurrency(item.product.price)}
+                          </p>
+                        </div>
+                        {/* Điều chỉnh số lượng theo style ảnh 2 */}
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.product.id,
+                                item.returnQuantity - 1,
+                                item.product.quantity
+                              )
+                            }
+                            disabled={item.returnQuantity <= 0}
+                            className={cn(
+                              "w-7 h-7 flex items-center justify-center rounded-full border border-[#e7e7e7] text-[#272424] hover:bg-gray-100 transition-colors",
+                              item.returnQuantity <= 0 && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <div className="text-sm text-[#272424] font-medium min-w-[52px] text-center border-b border-[#cfcfcf]">
+                            {item.returnQuantity}/{item.product.quantity}
+                          </div>
+                          <button
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.product.id,
+                                item.returnQuantity + 1,
+                                item.product.quantity
+                              )
+                            }
+                            disabled={item.returnQuantity >= item.product.quantity}
+                            className={cn(
+                              "w-7 h-7 flex items-center justify-center rounded-full border border-[#e7e7e7] text-[#272424] hover:bg-gray-100 transition-colors",
+                              item.returnQuantity >= item.product.quantity &&
+                                "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {/* Tổng tiền */}
+                        <div className="text-right min-w-[100px]">
+                          <p className="text-sm font-medium text-[#272424]">
+                            {formatCurrency(
+                              item.product.price * item.returnQuantity
+                            )}
+                          </p>
+                        </div>
                       </div>
-                      <button
-                        onClick={() =>
-                          handleQuantityChange(
-                            item.product.id,
-                            item.returnQuantity + 1,
-                            item.product.quantity
-                          )
-                        }
-                        disabled={item.returnQuantity >= item.product.quantity}
-                        className={cn(
-                          "w-7 h-7 flex items-center justify-center border border-[#e7e7e7] rounded text-[#272424] hover:bg-gray-100 transition-colors",
-                          item.returnQuantity >= item.product.quantity &&
-                            "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
                     </div>
-
-                    {/* Total */}
-                    <div className="text-right min-w-[100px]">
-                      <p className="text-sm font-medium text-[#272424]">
-                        {formatCurrency(
-                          item.product.price * item.returnQuantity
-                        )}
-                      </p>
-                    </div>
+                  </div>
+                </div>
+              ))}
+              {/* Lý do chọn trả hàng */}
+              <div>
+                <p className="text-[15px] font-semibold text-[#272424] mb-2">
+                  Lí do chọn trả hàng
+                </p>
+                <div className="bg-[#f5f5f5] rounded-md">
+                  <div className="p-2.5">
+                    <SimpleDropdown
+                      value={returnProducts[0]?.reason || ""}
+                      onValueChange={(reason) =>
+                        handleReasonChange(returnProducts[0]?.product.id || "", reason)
+                      }
+                      options={returnReasons}
+                      placeholder="Chọn lý do"
+                    />
                   </div>
                 </div>
               </div>
             </div>
-          ))}
-
-          {/* Reason Section */}
-          <div className="bg-white border border-[#e7e7e7] rounded-lg p-4">
-            <h3 className="text-sm font-medium text-[#272424] mb-3">
-              Lí do chọn trả hàng
-            </h3>
-            <SimpleDropdown
-              value={returnProducts[0]?.reason || ""}
-              onValueChange={(reason) =>
-                handleReasonChange(returnProducts[0]?.product.id || "", reason)
-              }
-              options={returnReasons}
-              placeholder="Chọn lý do"
-            />
           </div>
-
-          {/* Note Section */}
-          <div className="bg-white border border-[#e7e7e7] rounded-lg p-4">
-            <h3 className="text-sm font-medium text-[#272424] mb-3">Ghi chú</h3>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Nhập ghi chú..."
-              className="w-full min-h-[100px] p-3 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30] resize-none"
-            />
-            <p className="text-xs text-[#e04d30] mt-2">
-              ① Chỉ có Admin và nhân viên trong cửa hàng có thể nhìn thấy lý
-              do này
-            </p>
+          {/* Card 2: Ghi chú (theo ảnh 2) */}
+          <div className="bg-white border border-[#e7e7e7] rounded-lg shadow-sm">
+            <div className="px-6 pt-4 pb-2">
+              <h3 className="text-xl font-bold text-[#272424]">Ghi chú</h3>
+            </div>
+            <div className="px-6 pt-1 pb-3">
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Nhập ghi chú..."
+                className="w-full min-h-[120px] p-3 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30] resize-none"
+              />
+              <div className="mt-2 flex items-center gap-2 text-xs text-[#737373]">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f0f0f0] text-[11px] font-semibold text-[#737373]">
+                  !
+                </div>
+                <p className="m-0">
+                  Chỉ có bạn và nhân viên trong cửa hàng có thể nhìn thấy lý do này
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -254,11 +267,11 @@ const CreateReturnOrder: React.FC = () => {
                 {formatCurrency(discount)}
               </span>
             </div>
-            <div className="flex justify-between items-center pt-3 border-t border-[#e7e7e7]">
+            <div className="flex justify-between items-center mt-3">
               <span className="text-sm font-medium text-[#272424]">
                 Tổng hoàn trả
               </span>
-              <span className="text-sm font-bold text-[#e04d30]">
+              <span className="text-sm font-bold text-[#272424]">
                 {formatCurrency(totalRefund)}
               </span>
             </div>
@@ -270,12 +283,15 @@ const CreateReturnOrder: React.FC = () => {
           <h3 className="text-lg font-bold text-[#272424] mb-4">Hoàn tiền</h3>
           <div className="space-y-4">
             <div>
-              <SimpleDropdown
-                value={refundMethod}
-                onValueChange={setRefundMethod}
-                options={refundMethods}
-                placeholder="Chọn phương thức"
-              />
+              <div className="bg-gray-50 border-2 border-[#e04d30] rounded-lg px-4 py-3">
+                <SimpleDropdown
+                  value={refundMethod}
+                  onValueChange={setRefundMethod}
+                  options={refundMethods}
+                  placeholder="Chọn phương thức"
+                  className="[&>div:first-child]:border-0 [&>div:first-child]:bg-transparent [&>div:first-child]:px-0 [&>div:first-child]:h-auto [&>div:first-child]:rounded-none"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#272424] mb-2">
@@ -310,4 +326,3 @@ const CreateReturnOrder: React.FC = () => {
 };
 
 export default CreateReturnOrder;
-

@@ -191,7 +191,9 @@ const VoucherHistoryModal: React.FC<VoucherHistoryModalProps> = ({
                   {/* Status Tag */}
                   <div className="absolute top-3 left-3">
                     <span className="inline-block px-2 py-1 text-xs font-medium text-gray-600 bg-gray-200 rounded">
-                      {voucher.status === "expired" ? "Hết lượt sử dụng" : "Đã sử dụng"}
+                      {voucher.status === "expired"
+                        ? "Hết lượt sử dụng"
+                        : "Đã sử dụng"}
                     </span>
                   </div>
 
@@ -226,7 +228,8 @@ const VoucherHistoryModal: React.FC<VoucherHistoryModalProps> = ({
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-500">
-                Không có voucher {activeTab === "expired" ? "hết hiệu lực" : "đã sử dụng"}
+                Không có voucher{" "}
+                {activeTab === "expired" ? "hết hiệu lực" : "đã sử dụng"}
               </p>
             </div>
           )}
@@ -237,4 +240,3 @@ const VoucherHistoryModal: React.FC<VoucherHistoryModalProps> = ({
 };
 
 export default VoucherHistoryModal;
-

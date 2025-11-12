@@ -139,7 +139,6 @@ const AdminStaff: React.FC = () => {
     setSelectedStaff(newSelected);
   };
 
-
   const handleActivateSelected = () => {
     // TODO: Implement activation logic
     console.log("Activating selected staff:", Array.from(selectedStaff));
@@ -199,7 +198,10 @@ const AdminStaff: React.FC = () => {
               Tài khoản nhân viên
             </h2>
           </div>
-          <Button onClick={() => navigate("/admin/staff/new")} className="h-[36px] flex-shrink-0">
+          <Button
+            onClick={() => navigate("/admin/staff/new")}
+            className="h-[36px] flex-shrink-0"
+          >
             <Icon name="plus" size={14} color="#ffffff" strokeWidth={3} />
             <span className="whitespace-nowrap">Thêm tài khoản nhân viên</span>
           </Button>
@@ -218,7 +220,11 @@ const AdminStaff: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <div className="bg-white border border-[#e04d30] flex gap-[6px] items-center justify-center px-[24px] h-[36px] rounded-[12px] cursor-pointer flex-shrink-0 whitespace-nowrap">
                 <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                  {statusFilter === "all" ? "Tất cả trạng thái" : statusFilter === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
+                  {statusFilter === "all"
+                    ? "Tất cả trạng thái"
+                    : statusFilter === "active"
+                      ? "Đang kích hoạt"
+                      : "Ngừng kích hoạt"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
@@ -242,9 +248,11 @@ const AdminStaff: React.FC = () => {
           {/* Table Header */}
           <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full min-w-[1100px] h-[58px]">
             <div className="flex flex-row items-center w-full h-full">
-              <div className={`flex gap-[8px] h-full items-center px-[5px] py-[14px] min-h-[58px] ${
-                selectedStaff.size > 0 ? "flex-1" : "w-[450px]"
-              }`}>
+              <div
+                className={`flex gap-[8px] h-full items-center px-[5px] py-[14px] min-h-[58px] ${
+                  selectedStaff.size > 0 ? "flex-1" : "w-[450px]"
+                }`}
+              >
                 <CustomCheckbox
                   checked={
                     paginatedStaff.length > 0 &&

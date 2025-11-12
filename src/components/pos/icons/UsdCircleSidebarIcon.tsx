@@ -37,4 +37,3 @@ export const UsdCircleSidebarIcon: React.FC<UsdCircleSidebarIconProps> = ({
 };
 
 export default UsdCircleSidebarIcon;
-

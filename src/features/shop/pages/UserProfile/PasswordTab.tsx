@@ -33,9 +33,8 @@ const PasswordTab: React.FC = () => {
     console.log("Saving password change", formData);
   };
 
-
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
+    <div className="bg-white rounded-lg border border-gray-200 min-h-[507px]">
       {/* Form Content */}
       <div className="px-4 sm:px-6 py-6">
         {/* Two Column Layout */}
@@ -54,8 +53,10 @@ const PasswordTab: React.FC = () => {
               required
               showPasswordToggle
               showPassword={showCurrentPassword}
-              onTogglePassword={() => setShowCurrentPassword(!showCurrentPassword)}
-              className="text-gray-900"
+              onTogglePassword={() =>
+                setShowCurrentPassword(!showCurrentPassword)
+              }
+              className="text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px]"
             />
 
             {/* New Password */}
@@ -72,13 +73,13 @@ const PasswordTab: React.FC = () => {
                 showPasswordToggle
                 showPassword={showNewPassword}
                 onTogglePassword={() => setShowNewPassword(!showNewPassword)}
-                className="text-gray-900"
+                className="text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px]"
               />
 
               {/* Password Requirements */}
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-900 mb-3">
-                  <span className="text-red-500 font-semibold">Lưu ý:</span>{" "}
+                  <span className="text-[#E04D30] font-semibold">Lưu ý:</span>{" "}
                   <span className="text-gray-700">
                     Mật khẩu cần thoả mãn các điều kiện sau
                   </span>
@@ -97,9 +98,7 @@ const PasswordTab: React.FC = () => {
                   </li>
                   <li className="flex items-start">
                     <span className="mr-2">-</span>
-                    <span>
-                      Không được trùng với 4 mật khẩu gần nhất.
-                    </span>
+                    <span>Không được trùng với 4 mật khẩu gần nhất.</span>
                   </li>
                 </ul>
               </div>
@@ -114,8 +113,8 @@ const PasswordTab: React.FC = () => {
               type="tel"
               value={formData.phone}
               onChange={(e) => handleInputChange("phone", e.target.value)}
-              required
-              className="text-gray-900 bg-white"
+              disabled
+              className="text-gray-500 bg-gray-50 !cursor-not-allowed !h-[42px]"
             />
 
             {/* Confirm New Password */}
@@ -130,23 +129,34 @@ const PasswordTab: React.FC = () => {
               required
               showPasswordToggle
               showPassword={showConfirmPassword}
-              onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="text-gray-900"
+              onTogglePassword={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+              className="text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px]"
             />
           </div>
         </div>
 
+        {/* Divider above actions (inset, not full card width) */}
+        <div className="px-6 mt-6">
+          <div className="border-t border-gray-200" />
+        </div>
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 mt-8">
+        <div className="flex justify-end gap-3 py-4 px-6">
           <Button
             variant="outline"
             size="md"
             onClick={handleCancel}
-            className="border-[#ea5b0c] text-[#ea5b0c] hover:bg-[#ea5b0c] hover:text-white"
+            className="!bg-white !border-[#E04D30] !text-[#E04D30] hover:!bg-white hover:!text-[#E04D30] !h-[42px]"
           >
             Hủy
           </Button>
-          <Button variant="primary" size="md" onClick={handleSave} className="px-6">
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleSave}
+            className="px-6 !bg-[#E04D30] !border-[#E04D30] hover:!bg-[#c93d24] hover:!border-[#c93d24] !h-[42px]"
+          >
             Lưu
           </Button>
         </div>

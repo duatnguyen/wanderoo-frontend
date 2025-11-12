@@ -22,9 +22,9 @@ const StarRating: React.FC<StarRatingProps> = ({
   readonly = false,
 }) => {
   const sizeClasses = {
-    sm: "w-5 h-5",
-    md: "w-6 h-6",
-    lg: "w-8 h-8",
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
   };
 
   const handleStarClick = (starValue: number) => {
@@ -35,7 +35,7 @@ const StarRating: React.FC<StarRatingProps> = ({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex gap-1">
+      <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
           <button
             key={star}
@@ -51,7 +51,7 @@ const StarRating: React.FC<StarRatingProps> = ({
               viewBox="0 0 24 24"
               fill={star <= value ? "#FFB800" : "none"}
               stroke={star <= value ? "#FFB800" : "#E5E7EB"}
-              strokeWidth="2"
+              strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               className="w-full h-full"
@@ -62,7 +62,7 @@ const StarRating: React.FC<StarRatingProps> = ({
         ))}
       </div>
       {value > 0 && (
-        <span className="text-sm sm:text-base font-medium text-gray-700">
+        <span className="text-[14px] font-medium text-[#FFB800]">
           {starLabels[value]}
         </span>
       )}

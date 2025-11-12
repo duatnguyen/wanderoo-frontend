@@ -68,29 +68,39 @@ export const POSProductList: React.FC<POSProductListProps> = ({
         ) : (
           <div className="divide-y divide-[#e7e7e7]">
             {products.map((product) => (
-              <div key={product.id} className="px-4 py-3 hover:bg-gray-50">
+              <div key={product.id} className="px-4 py-2 hover:bg-gray-50">
                 <div className="grid grid-cols-12 gap-4 items-center">
                   {/* Product Info with Image */}
                   <div className="col-span-5 flex items-center gap-3 min-w-0">
-                    {product.image && (
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-[70px] h-[70px] rounded-lg border border-[#e7e7e7] object-cover flex-shrink-0"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-[#272424] font-medium line-clamp-2 mb-1">
-                        {product.name}
-                      </p>
+                    <div className="relative flex-shrink-0">
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-[60px] h-[60px] rounded-[8px] border border-[#e7e7e7] object-cover shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-[60px] h-[60px] rounded-[8px] border border-[#e7e7e7] bg-[#f8f9fa] flex items-center justify-center">
+                          <span className="text-[#737373] text-xs font-medium">
+                            No Image
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-sm text-[#272424] font-semibold line-clamp-2 leading-[1.3]">
+                          {product.name}
+                        </h3>
+                      </div>
                       {(product.category || product.variant) && (
-                        <p className="text-xs text-[#737373]">
-                          Phân loại hàng:{" "}
-                          <span className="text-[#272424]">
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#f0f9ff] text-[#0369a1] border border-[#bae6fd]">
                             {product.variant || product.category}
                           </span>
-                        </p>
+                        </div>
                       )}
+                      {/* Removed availability row as requested */}
                     </div>
                   </div>
                   {/* Price */}
@@ -122,14 +132,6 @@ export const POSProductList: React.FC<POSProductListProps> = ({
                       className="w-12 text-center text-sm text-[#272424] border border-[#e7e7e7] rounded py-1.5 focus:outline-none focus:border-[#e04d30]"
                       min="0"
                     />
-                    <button
-                      onClick={() =>
-                        onQuantityChange?.(product.id, product.quantity + 1)
-                      }
-                      className="w-7 h-7 flex items-center justify-center border border-[#e7e7e7] rounded text-[#272424] hover:bg-gray-100 transition-colors"
-                    >
-                      +
-                    </button>
                   </div>
                   {/* Total */}
                   <div className="col-span-2 text-right">

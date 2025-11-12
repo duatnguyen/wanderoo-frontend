@@ -92,15 +92,9 @@ const DropdownList: FC<DropdownListProps> = ({
     error
       ? "border-red-500 focus:border-red-500 focus:ring-red-500"
       : "border-gray-300 hover:border-gray-400"
-  } ${
-    disabled
-      ? "cursor-not-allowed opacity-60"
-      : "cursor-pointer"
-  }`;
+  } ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`;
 
-  const selectedTextColor = value
-    ? "text-gray-900"
-    : "text-gray-400";
+  const selectedTextColor = value ? "text-gray-900" : "text-gray-400";
 
   const containerClass = fullWidth ? "w-full" : "";
 

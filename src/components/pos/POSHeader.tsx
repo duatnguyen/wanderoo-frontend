@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import ShopLogo from "@/assets/icons/ShopLogo.svg";
 import { User } from "lucide-react";
@@ -43,17 +44,19 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   return (
     <header
       className={cn(
-        "bg-[#18345C] flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 h-16 sm:h-20",
+        "bg-[#18345C] flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-2 py-2 sm:py-4 h-16",
         className
       )}
     >
       {/* Logo and Title - Always visible */}
       <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-        <img
-          src={ShopLogo}
-          alt="Wanderoo Logo"
-          className="h-12 sm:h-14 w-auto object-contain max-h-full"
-        />
+        <Link to="/admin/dashboard" className="cursor-pointer">
+          <img
+            src={ShopLogo}
+            alt="Wanderoo Logo"
+            className="h-150  w-auto object-contain max-h-full"
+          />
+        </Link>
         <h1 className="text-white text-lg sm:text-xl font-bold whitespace-nowrap">
           {pageTitle || "Bán hàng"}
         </h1>

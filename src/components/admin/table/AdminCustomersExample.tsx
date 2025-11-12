@@ -37,9 +37,13 @@ const mockCustomers: Customer[] = [
 
 const AdminCustomersRefactored = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "disabled">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "disabled"
+  >("all");
   const [customers] = useState<Customer[]>(mockCustomers);
-  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set());
+  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(
+    new Set()
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
@@ -148,29 +152,34 @@ const AdminCustomersRefactored = () => {
   };
 
   const handleDeactivateSelected = () => {
-    console.log("Deactivating selected customers:", Array.from(selectedCustomers));
+    console.log(
+      "Deactivating selected customers:",
+      Array.from(selectedCustomers)
+    );
     setSelectedCustomers(new Set());
   };
 
   // Actions khi có selection
-  const tableActions = selectedCustomers.size > 0 ? (
-    <TableActions
-      selectedCount={selectedCustomers.size}
-      itemName="khách hàng"
-      actions={[
-        {
-          label: "Đang kích hoạt",
-          onClick: () => console.log("Activate selected:", Array.from(selectedCustomers)),
-          variant: "primary",
-        },
-        {
-          label: "Ngừng kích hoạt",
-          onClick: handleDeactivateSelected,
-          variant: "secondary",
-        },
-      ]}
-    />
-  ) : null;
+  const tableActions =
+    selectedCustomers.size > 0 ? (
+      <TableActions
+        selectedCount={selectedCustomers.size}
+        itemName="khách hàng"
+        actions={[
+          {
+            label: "Đang kích hoạt",
+            onClick: () =>
+              console.log("Activate selected:", Array.from(selectedCustomers)),
+            variant: "primary",
+          },
+          {
+            label: "Ngừng kích hoạt",
+            onClick: handleDeactivateSelected,
+            variant: "secondary",
+          },
+        ]}
+      />
+    ) : null;
 
   return (
     <PageContainer>
@@ -178,7 +187,10 @@ const AdminCustomersRefactored = () => {
       <PageHeader
         title="Danh sách khách hàng"
         actions={
-          <Button onClick={() => navigate("/admin/customers/new")} className="h-[36px] flex-shrink-0">
+          <Button
+            onClick={() => navigate("/admin/customers/new")}
+            className="h-[36px] flex-shrink-0"
+          >
             <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
             <span className="whitespace-nowrap">Thêm mới khách hàng</span>
           </Button>
@@ -193,7 +205,9 @@ const AdminCustomersRefactored = () => {
           onSearchChange={setSearchTerm}
           searchPlaceholder="Tìm kiếm"
           filterValue={statusFilter}
-          onFilterChange={(value) => setStatusFilter(value as typeof statusFilter)}
+          onFilterChange={(value) =>
+            setStatusFilter(value as typeof statusFilter)
+          }
           filterOptions={statusFilterOptions}
         />
 

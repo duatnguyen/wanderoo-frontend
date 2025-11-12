@@ -1,7 +1,10 @@
 import React from "react";
+import { Input as AntdInput } from "antd";
+import type { InputProps as AntdInputProps } from "antd/es/input";
+import { EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
 
 export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
   label?: string;
   error?: string;
   helperText?: string;
@@ -31,8 +34,7 @@ export interface SelectProps
   options: { value: string; label: string }[];
 }
 
-const baseInputClasses =
-  "px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm sm:text-base transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed";
+const { TextArea: AntdTextArea } = AntdInput;
 
 export const Input: React.FC<InputProps> = ({
   label,
@@ -49,12 +51,32 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
-  const inputType =
-    showPasswordToggle && type === "password"
-      ? showPassword
-        ? "text"
-        : "password"
-      : type;
+
+  const inputProps: AntdInputProps = {
+    id: inputId,
+    type:
+      showPasswordToggle && type === "password"
+        ? showPassword
+          ? "text"
+          : "password"
+        : type,
+    className: `${fullWidth ? "w-full" : ""} ${className}`,
+    status: error ? "error" : undefined,
+    ...props,
+  };
+
+  if (showPasswordToggle && type === "password") {
+    inputProps.suffix = (
+      <button
+        type="button"
+        onClick={onTogglePassword}
+        className="text-gray-400 hover:text-gray-600 transition-colors border-none bg-transparent cursor-pointer"
+        aria-label={showPassword ? "Hiển thị mật khẩu" : "Ẩn mật khẩu"}
+      >
+        {showPassword ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+      </button>
+    );
+  }
 
   return (
     <div className={fullWidth ? "w-full" : ""}>
@@ -67,51 +89,7 @@ export const Input: React.FC<InputProps> = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      <div className="relative">
-        <input
-          id={inputId}
-          type={inputType}
-          className={`${baseInputClasses} ${fullWidth ? "w-full" : ""} ${
-            showPasswordToggle ? "pr-12" : ""
-          } ${
-            error
-              ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-              : ""
-          } ${className}`}
-          {...props}
-        />
-        {showPasswordToggle && onTogglePassword && (
-          <button
-            type="button"
-            onClick={onTogglePassword}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              {showPassword ? (
-                <>
-                  <path d="M3 3l18 18" />
-                  <path d="M9.88 9.88A3 3 0 0 0 12 15a3 3 0 0 0 2.12-.88" />
-                  <path d="M7.5 7.56C5.37 8.72 3.86 10.42 3 12c1.73 3.18 5.28 6 9 6 1.38 0 2.69-.28 3.9-.8" />
-                  <path d="M14.12 9.88A3 3 0 0 0 9.88 14.12" />
-                </>
-              ) : (
-                <>
-                  <path d="M1.5 12C3.23 8.82 6.78 6 10.5 6c3.72 0 7.27 2.82 9 6-1.73 3.18-5.28 6-9 6-3.72 0-7.27-2.82-9-6Z" />
-                  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                </>
-              )}
-            </svg>
-          </button>
-        )}
-      </div>
+      <AntdInput {...inputProps} />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
       {helperText && !error && (
         <p className="mt-1 text-sm text-gray-500">{helperText}</p>
@@ -144,13 +122,10 @@ export const Textarea: React.FC<TextareaProps> = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      <textarea
+      <AntdTextArea
         id={textareaId}
-        className={`${baseInputClasses} resize-none ${
-          fullWidth ? "w-full" : ""
-        } ${
-          error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
-        } ${className}`}
+        className={`${fullWidth ? "w-full" : ""} ${className}`}
+        status={error ? "error" : undefined}
         {...props}
       />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}

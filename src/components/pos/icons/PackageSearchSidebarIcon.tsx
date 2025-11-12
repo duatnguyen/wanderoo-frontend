@@ -22,4 +22,3 @@ export const PackageSearchSidebarIcon: React.FC<
 };
 
 export default PackageSearchSidebarIcon;
-

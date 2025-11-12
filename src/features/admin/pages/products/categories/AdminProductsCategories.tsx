@@ -204,13 +204,19 @@ const AdminProductsCategories: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[22px] items-center w-full">
+    <div className="flex flex-col gap-2 items-center w-full">
       {/* Header */}
       <div className="flex items-center justify-between w-full">
         <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
           Danh mục lớn
         </h1>
-        <Button onClick={handleAddCategory}>Thêm danh mục lớn</Button>
+        <Button
+          onClick={handleAddCategory}
+          className="h-[36px] px-4 flex items-center gap-2"
+        >
+          <span className="text-[18px] leading-none font-light">+</span>
+          Thêm danh mục lớn
+        </Button>
       </div>
 
       {/* Table Container */}
@@ -220,7 +226,7 @@ const AdminProductsCategories: React.FC = () => {
           {/* Table Header */}
           <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full min-h-[60px]">
             <div className="flex flex-row items-center w-full">
-              <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[500px]">
+              <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] flex-1 min-w-[260px]">
                 <CustomCheckbox
                   checked={
                     categories.length > 0 &&
@@ -228,7 +234,7 @@ const AdminProductsCategories: React.FC = () => {
                   }
                   onChange={handleSelectAll}
                 />
-                <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                <span className="font-semibold text-[#272424] text-[14px] leading-[1.5] whitespace-nowrap">
                   {selectedCategories.length > 0
                     ? `Đã chọn ${selectedCategories.length} danh mục`
                     : "Tên danh mục lớn"}
@@ -243,29 +249,25 @@ const AdminProductsCategories: React.FC = () => {
                   </Button>
                 )}
               </div>
-              <div className="flex gap-[8px] h-full items-center justify-center px-[5px] py-[14px] w-[150px]">
+              <div className="grid grid-cols-[80px_80px_auto] gap-[30px] items-center px-[5px] py-[14px] min-w-[325px]">
                 <span
-                  className={`font-semibold text-[#272424] text-[14px] leading-[1.5] ${
+                  className={`font-semibold text-[#272424] text-[14px] leading-[1.5] text-center ${
                     selectedCategories.length > 0 ? "invisible" : ""
                   }`}
                 >
                   SL danh mục con
                 </span>
-              </div>
-              <div className="flex gap-[8px] h-full items-center justify-center px-[5px] py-[14px] w-[150px]">
                 <span
-                  className={`font-semibold text-[#272424] text-[14px] leading-[1.5] ${
+                  className={`font-semibold text-[#272424] text-[14px] leading-[1.5] text-center ${
                     selectedCategories.length > 0 ? "invisible" : ""
                   }`}
                 >
                   Bật/Tắt
                 </span>
-              </div>
-              <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1">
                 <span
                   className={`font-semibold text-[#272424] text-[14px] leading-[1.5] ${
                     selectedCategories.length > 0 ? "invisible" : ""
-                  }`}
+                  } justify-self-end`}
                 >
                   Thao tác
                 </span>
@@ -290,7 +292,7 @@ const AdminProductsCategories: React.FC = () => {
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
                   {/* Category Name with Image */}
-                  <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] w-[500px]">
+                  <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] flex-1 min-w-[260px]">
                     <CustomCheckbox
                       checked={selectedCategories.includes(category.id)}
                       onChange={(checked) =>
@@ -298,25 +300,17 @@ const AdminProductsCategories: React.FC = () => {
                       }
                     />
                     <div
-                      className="relative w-[60px] h-[60px] rounded-[8px] overflow-hidden bg-gray-100 flex-shrink-0 group cursor-pointer"
+                      className={`relative w-[60px] h-[60px] rounded-[8px] overflow-hidden flex-shrink-0 cursor-pointer ${category.image ? "" : "bg-[#ffeeea] border-2 border-dashed border-[#e04d30]"}`}
                       onClick={() => handleImageClick(category.id)}
                     >
                       {category.image ? (
-                        <>
-                          <img
-                            src={category.image}
-                            alt={category.name}
-                            className="w-full h-full object-cover"
-                          />
-                          {/* Overlay on hover */}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Icon name="image" size={24} color="white" />
-                            </div>
-                          </div>
-                        </>
+                        <img
+                          src={category.image}
+                          alt={category.name}
+                          className="w-full h-full object-cover rounded-[8px]"
+                        />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-[#ffeeea] border-2 border-dashed border-[#e04d30]">
+                        <div className="w-full h-full flex items-center justify-center">
                           <Icon name="image" size={24} color="#e04d30" />
                         </div>
                       )}
@@ -410,26 +404,17 @@ const AdminProductsCategories: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Subcategory Count */}
-                  <div className="flex gap-[8px] h-full items-center justify-center px-[5px] py-[14px] w-[150px]">
+                  <div className="grid grid-cols-[80px_80px_auto] gap-[30px] justify-items-center items-center px-[5px] py-[14px] min-w-[325px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
                       {category.subcategoryCount}
                     </span>
-                  </div>
-
-                  {/* Toggle Switch */}
-                  <div className="flex gap-[8px] h-full items-center justify-center px-[5px] py-[14px] w-[150px]">
                     <ToggleSwitch
                       checked={category.isActive}
                       onChange={() => handleToggleActive(category.id)}
                     />
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex h-full items-center justify-end p-[14px] flex-1 flex-row">
                     <button
                       onClick={() => handleViewDetails(category.id)}
-                      className="font-bold text-[14px] text-[#1a71f6] leading-[1.5] hover:opacity-70 transition-opacity"
+                      className="font-bold text-[14px] text-[#1a71f6] leading-[1.5] hover:opacity-70 transition-opacity whitespace-nowrap justify-self-end"
                     >
                       Xem chi tiết
                     </button>
@@ -512,17 +497,17 @@ const AdminProductsCategories: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col items-start justify-center px-3 py-2">
               <h2 className="text-[20px] font-bold text-[#272424] font-montserrat leading-normal text-center w-full">
-                Thêm danh mục
+                Thêm danh mục lớn
               </h2>
             </div>
 
             {/* Form */}
             <div className="flex flex-col gap-1 items-start justify-center px-3">
               <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                Tên danh mục
+                Tên danh mục lớn
               </label>
               <FormInput
-                placeholder="Nhập tên danh mục"
+                placeholder="Nhập tên danh mục lớn"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {

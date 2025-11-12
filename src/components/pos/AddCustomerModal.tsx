@@ -1,8 +1,5 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { FormInput } from "@/components/ui/form-input";
-import CustomRadio from "@/components/ui/custom-radio";
 
 export type CustomerFormData = {
   fullName: string;
@@ -62,38 +59,45 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
 
       {/* Modal Content */}
       <div
-        className="relative z-50 bg-white rounded-[24px] p-6 w-full max-w-[500px] shadow-2xl animate-scaleIn"
+        className="relative z-50 bg-white rounded-[24px] w-full max-w-[500px] shadow-2xl animate-scaleIn overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
-            Thêm mới khách hàng
-          </h2>
-          <button
-            onClick={handleCancel}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5 text-[#737373]" />
-          </button>
+        <div className="px-6 pt-6 pb-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
+              Thêm mới khách hàng
+            </h2>
+            <button
+              onClick={handleCancel}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5 text-[#737373]" />
+            </button>
+          </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {/* Divider */}
+        <div className="border-b border-gray-200"></div>
+
+        {/* Form Content */}
+        <div className="px-6 pt-6 pb-6">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Full Name */}
           <div className="flex items-center gap-4">
             <label className="text-sm font-medium text-[#272424] min-w-[120px]">
               Họ và tên
             </label>
-            <FormInput
+            <input
               type="text"
               value={formData.fullName}
               onChange={(e) =>
                 setFormData({ ...formData, fullName: e.target.value })
               }
               placeholder="Nhập họ và tên"
-              containerClassName="flex-1"
+              className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-[#272424] placeholder:text-gray-400 focus:outline-none focus:border-[#E04D30] transition-colors"
               required
             />
           </div>
@@ -103,14 +107,14 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
             <label className="text-sm font-medium text-[#272424] min-w-[120px]">
               Số điện thoại
             </label>
-            <FormInput
+            <input
               type="tel"
               value={formData.phoneNumber}
               onChange={(e) =>
                 setFormData({ ...formData, phoneNumber: e.target.value })
               }
               placeholder="Nhập số điện thoại"
-              containerClassName="flex-1"
+              className="flex-1 px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm text-[#272424] placeholder:text-gray-400 focus:outline-none focus:border-[#E04D30] transition-colors"
               required
             />
           </div>
@@ -121,48 +125,61 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({
               Giới tính
             </label>
             <div className="flex items-center gap-6">
-              <CustomRadio
-                name="gender"
-                value="male"
-                checked={formData.gender === "male"}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    gender: e.target.value as "male" | "female",
-                  })
-                }
-                label="Nam"
-              />
-              <CustomRadio
-                name="gender"
-                value="female"
-                checked={formData.gender === "female"}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    gender: e.target.value as "male" | "female",
-                  })
-                }
-                label="Nữ"
-              />
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="male"
+                  checked={formData.gender === "male"}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      gender: e.target.value as "male" | "female",
+                    })
+                  }
+                  className="w-4 h-4 text-[#E04D30] border-gray-300 focus:ring-[#E04D30] focus:ring-2 cursor-pointer"
+                  style={{ accentColor: "#E04D30" }}
+                />
+                <span className="text-sm text-[#272424]">Nam</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value="female"
+                  checked={formData.gender === "female"}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      gender: e.target.value as "male" | "female",
+                    })
+                  }
+                  className="w-4 h-4 text-[#E04D30] border-gray-300 focus:ring-[#E04D30] focus:ring-2 cursor-pointer"
+                  style={{ accentColor: "#E04D30" }}
+                />
+                <span className="text-sm text-[#272424]">Nữ</span>
+              </label>
             </div>
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4">
-            <Button
+          <div className="flex items-center justify-end gap-3 pt-0">
+            <button
               type="button"
-              variant="secondary"
               onClick={handleCancel}
-              className="px-6 py-2"
+              className="px-6 py-2.5 bg-white border border-[#E04D30] text-[#E04D30] rounded-lg font-medium hover:bg-[#E04D30]/5 transition-colors"
             >
               Hủy
-            </Button>
-            <Button type="submit" className="px-6 py-2">
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 bg-[#E04D30] text-white rounded-lg font-medium hover:bg-[#d0442a] transition-colors"
+            >
               Thêm
-            </Button>
+            </button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

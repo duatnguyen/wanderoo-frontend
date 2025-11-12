@@ -22,7 +22,9 @@ export const UserCell = ({
           {avatar ? (
             <AvatarImage src={avatar} alt={name} />
           ) : (
-            <AvatarFallback className="text-xs">{name.charAt(0)}</AvatarFallback>
+            <AvatarFallback className="text-xs">
+              {name.charAt(0)}
+            </AvatarFallback>
           )}
         </Avatar>
       </div>
@@ -66,7 +68,7 @@ export const StatusCell = ({
   className = "flex gap-[4px] h-full items-center px-[4px] py-[12px]",
 }: StatusCellProps) => {
   const isActive = status === "active";
-  
+
   return (
     <div className={className}>
       <div
@@ -106,7 +108,8 @@ export const CurrencyCell = ({
   return (
     <div className={className}>
       <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-        {amount.toLocaleString(locale)}{currency}
+        {amount.toLocaleString(locale)}
+        {currency}
       </span>
       {subtitle && (
         <span className="font-medium text-[#737373] text-[12px] leading-[1.3]">
@@ -132,7 +135,9 @@ export const TextCell = ({
 }: TextCellProps) => {
   return (
     <div className={className}>
-      <span className={`font-medium text-[#272424] text-[14px] leading-[1.4] ${truncate ? "truncate" : ""}`}>
+      <span
+        className={`font-medium text-[#272424] text-[14px] leading-[1.4] ${truncate ? "truncate" : ""}`}
+      >
         {text}
       </span>
       {subtitle && (
