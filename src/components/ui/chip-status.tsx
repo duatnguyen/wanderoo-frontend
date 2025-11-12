@@ -51,25 +51,41 @@ export interface ChipStatusProps {
   status: ChipStatusKey;
   labelOverride?: string;
   className?: string;
+  size?: "default" | "small";
 }
 
 export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
   status,
   labelOverride,
   className,
+  size = "default",
 }) => {
   const styles = CHIP_STYLES[status] ?? CHIP_STYLES.default;
+  
+  const sizeClasses = {
+    default: "rounded-[10px] px-[8px] h-[28px]",
+    small: "rounded-[8px] px-[6px] h-[22px]"
+  };
+  
+  const textSizeClasses = {
+    default: "text-[14px]",
+    small: "text-[11px]"
+  };
 
   return (
     <div
       className={cn(
-        "rounded-[10px] px-[8px] h-[28px] w-fit flex items-center",
+        "w-fit flex items-center",
+        sizeClasses[size],
         className
       )}
       style={{ backgroundColor: styles.bg }}
     >
       <span
-        className="font-semibold text-[14px] leading-[1.2] whitespace-nowrap"
+        className={cn(
+          "font-semibold leading-[1.2] whitespace-nowrap",
+          textSizeClasses[size]
+        )}
         style={{ color: styles.text }}
       >
         {labelOverride ?? styles.label}

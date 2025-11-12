@@ -5,6 +5,12 @@ import CaretDown from "@/components/ui/caret-down";
 import AddressForm from "@/components/ui/address-form";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/icons/Icon";
+import {
+  PageContainer,
+  ContentCard,
+  PageHeader,
+  TableFilters,
+} from "@/components/common";
 
 interface AddressFormData {
   fullName: string;
@@ -148,24 +154,25 @@ const AdminShipping: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-2 items-center w-full">
-      {/* Page Title */}
-      <div className="flex items-center justify-between w-full">
-        <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
-          Vận chuyển
-        </h1>
-      </div>
+    <PageContainer>
+      <div className="flex flex-col gap-2 items-center w-full">
+        {/* Page Title */}
+        <div className="flex items-center justify-between w-full">
+          <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
+            Vận chuyển
+          </h1>
+        </div>
 
-      {/* Tab Menu */}
-      <TabMenuAccount
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        className="w-full"
-      />
+        {/* Tab Menu */}
+        <TabMenuAccount
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          className="w-full"
+        />
 
-      {/* Content based on active tab wrapped in an outer card */}
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[24px] py-[24px] rounded-[24px] w-full">
+        {/* Content based on active tab wrapped in an outer card */}
+        <ContentCard>
           {activeTab === "address" ? (
             /* Address Cards */
             <div className="flex flex-col gap-[10px] items-start w-full">
@@ -191,9 +198,8 @@ const AdminShipping: React.FC = () => {
                 {addresses.map((address, index) => (
                   <div
                     key={address.id}
-                    className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${
-                      index === 0 ? "border-b border-[#d1d1d1]" : ""
-                    }`}
+                    className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${index === 0 ? "border-b border-[#d1d1d1]" : ""
+                      }`}
                   >
                     {/* Row 1: Name/Phone on left, actions on right */}
                     <div className="flex items-center justify-between w-full">
@@ -319,16 +325,14 @@ const AdminShipping: React.FC = () => {
                           className="w-full h-full opacity-0 absolute cursor-pointer z-10"
                         />
                         <div
-                          className={`w-full h-full rounded-full transition-colors duration-200 ${
-                            method.isEnabled ? "bg-[#e04d30]" : "bg-gray-300"
-                          }`}
+                          className={`w-full h-full rounded-full transition-colors duration-200 ${method.isEnabled ? "bg-[#e04d30]" : "bg-gray-300"
+                            }`}
                         >
                           <div
-                            className={`absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow-md transform transition-transform duration-200 ${
-                              method.isEnabled
-                                ? "translate-x-[24px]"
-                                : "translate-x-[2px]"
-                            }`}
+                            className={`absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow-md transform transition-transform duration-200 ${method.isEnabled
+                              ? "translate-x-[24px]"
+                              : "translate-x-[2px]"
+                              }`}
                           />
                         </div>
                       </div>
@@ -338,31 +342,32 @@ const AdminShipping: React.FC = () => {
               ))}
             </div>
           )}
-      </div>
+        </ContentCard>
 
-      {/* Address Form Modal */}
-      {showAddressForm && (
-        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 px-[16px] sm:px-4">
-          <div className="relative w-full max-w-[530px] mx-auto">
-            <AddressForm
-              title={editingAddress ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới"}
-              initialData={
-                editingAddress
-                  ? {
+        {/* Address Form Modal */}
+        {showAddressForm && (
+          <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 px-[16px] sm:px-4">
+            <div className="relative w-full max-w-[530px] mx-auto">
+              <AddressForm
+                title={editingAddress ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới"}
+                initialData={
+                  editingAddress
+                    ? {
                       fullName: editingAddress.name,
                       phone: editingAddress.phone,
                       detailAddress: editingAddress.address,
                       isDefault: editingAddress.isDefault,
                     }
-                  : undefined
-              }
-              onSubmit={handleAddressFormSubmit}
-              onCancel={handleAddressFormCancel}
-            />
+                    : undefined
+                }
+                onSubmit={handleAddressFormSubmit}
+                onCancel={handleAddressFormCancel}
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </PageContainer>
   );
 };
 

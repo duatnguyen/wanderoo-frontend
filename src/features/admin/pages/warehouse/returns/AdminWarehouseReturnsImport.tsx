@@ -7,12 +7,11 @@ import type { ChipStatusKey } from "@/components/ui/chip-status";
 import { SearchBar } from "@/components/ui/search-bar";
 import { Pagination } from "@/components/ui/pagination";
 import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
-
 import {
-  TabMenuWithBadge,
   PageContainer,
   ContentCard,
-  type TabItemWithBadge,
+  PageHeader,
+  TableFilters,
 } from "@/components/common";
 
 interface ReturnImport {
@@ -94,25 +93,25 @@ const AdminWarehouseReturnsImport = () => {
 
   const getPaymentMethodChip = (method: ReturnImport["paymentMethod"]) => {
     if (method === "cash" || method === "transfer") {
-      return <ChipStatus status={method as ChipStatusKey} />;
+      return <ChipStatus status={method as ChipStatusKey} size="small" />;
     }
     return null;
   };
 
   const getReturnStatusChip = (status: ReturnImport["returnStatus"]) => {
     if (status === "returned") {
-      return <ChipStatus status="completed" />;
+      return <ChipStatus status="completed" size="small" />;
     } else if (status === "pending_return") {
-      return <ChipStatus status="processing" />;
+      return <ChipStatus status="processing" size="small" />;
     }
     return null;
   };
 
   const getRefundStatusChip = (status: ReturnImport["refundStatus"]) => {
     if (status === "refunded") {
-      return <ChipStatus status="paid" />;
+      return <ChipStatus status="paid" size="small" />;
     } else if (status === "pending_refund") {
-      return <ChipStatus status="unpaid" />;
+      return <ChipStatus status="unpaid" size="small" />;
     }
     return null;
   };
@@ -137,18 +136,18 @@ const AdminWarehouseReturnsImport = () => {
 
   return (
     <PageContainer>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-[4px] px-0 h-auto sm:h-[32px] w-full mb-2 gap-2 sm:gap-0">
-        <h1 className="font-bold text-[20px] sm:text-[24px] text-[#272424] font-['Montserrat']">
-          Danh sách đơn trả hàng nhập
-        </h1>
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          className="w-full sm:w-auto"
-        >
-          Tạo đơn trả hàng nhập
-        </Button>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Danh sách đơn trả hàng nhập"
+        actions={
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            Tạo đơn trả hàng nhập
+          </Button>
+        }
+      />
 
       {/* Main Content */}
       <ContentCard>
@@ -168,17 +167,12 @@ const AdminWarehouseReturnsImport = () => {
           </div>
         ) : (
           <>
-            {/* Search and Filter Section */}
-            <div className="flex flex-col gap-[8px] items-center px-[15px] py-[16px] relative rounded-[20px] w-full">
-              <div className="flex flex-col sm:flex-row gap-[8px] items-stretch sm:items-center justify-left relative w-full">
-                <div className="flex flex-row items-center self-stretch">
-                  <SearchBar
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Tìm kiếm"
-                    className="w-full min-w-[400px] sm:max-w-[600px] md:max-w-[700px]"
-                  />
-                </div>
+            {/* Filters Section */}
+            <TableFilters
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              searchPlaceholder="Tìm kiếm theo mã đơn, nhà cung cấp..."
+              actions={
                 <SimpleDropdown
                   value={returnStatus}
                   options={[
@@ -191,68 +185,68 @@ const AdminWarehouseReturnsImport = () => {
                   placeholder="Trạng thái hoàn hàng"
                   className="w-full sm:w-[200px]"
                 />
-              </div>
-            </div>
+              }
+            />
 
             {/* Table Section */}
-            <div className="px-[8px] sm:px-[15px] rounded-[16px] w-full">
+            <div className="rounded-[16px] w-full">
               <div className="border-[0.5px] border-[#d1d1d1] rounded-[16px] overflow-hidden w-full">
                 {/* Fixed Table Header */}
                 <div className="bg-[#f6f6f6] rounded-tl-[16px] rounded-tr-[16px] sticky top-0 z-10 border-b border-[#d1d1d1]">
                   {/* Desktop Header */}
-                  <div className="hidden lg:grid grid-cols-12 gap-2 px-4 py-3 items-center">
-                    <div className="col-span-1 text-center">
+                  <div className="hidden lg:grid grid-cols-[100px_100px_120px_120px_120px_120px_150px_120px_80px_80px] gap-2 px-4 py-3 items-center min-w-[1200px]">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Mã đơn trả
                       </span>
                     </div>
-                    <div className="col-span-1 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Mã đơn nhập
                       </span>
                     </div>
-                    <div className="col-span-1 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Ngày tạo
                       </span>
                     </div>
-                    <div className="col-span-1 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         PT Thanh toán
                       </span>
                     </div>
-                    <div className="col-span-1 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         TT Hoàn hàng
                       </span>
                     </div>
-                    <div className="col-span-1 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         TT Hoàn tiền
                       </span>
                     </div>
-                    <div className="col-span-2 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Nhà cung cấp
                       </span>
                     </div>
-                    <div className="col-span-1 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Người tạo
                       </span>
                     </div>
-                    <div className="col-span-1 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         SL trả
                       </span>
                     </div>
-                    <div className="col-span-1 text-center">
+                    <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Giá trị
                       </span>
                     </div>
                   </div>
-                  
+
                   {/* Mobile Header */}
                   <div className="lg:hidden px-4 py-3">
                     <div className="text-[#272424] text-[16px] font-[600] font-montserrat">
@@ -262,7 +256,7 @@ const AdminWarehouseReturnsImport = () => {
                 </div>
 
                 {/* Scrollable Table Body */}
-                <div className="max-h-[600px] overflow-y-auto">
+                <div className="max-h-[600px] overflow-y-auto overflow-x-auto">
                   {paginatedReturns.map((returnItem, index) => (
                     <div
                       key={returnItem.id}
@@ -272,47 +266,47 @@ const AdminWarehouseReturnsImport = () => {
                       }
                     >
                       {/* Desktop Layout */}
-                      <div className="hidden lg:grid grid-cols-12 gap-2 px-4 py-4 items-center">
-                        <div className="col-span-1 text-center">
+                      <div className="hidden lg:grid grid-cols-[100px_100px_120px_120px_120px_120px_150px_120px_80px_80px] gap-2 px-4 py-4 items-center min-w-[1200px]">
+                        <div className="text-center">
                           <span className="font-semibold text-[12px] text-[#1a71f6] cursor-pointer hover:underline">
                             {returnItem.returnCode}
                           </span>
                         </div>
-                        <div className="col-span-1 text-center">
+                        <div className="text-center">
                           <span className="font-semibold text-[12px] text-[#1a71f6] cursor-pointer hover:underline">
                             {returnItem.importCode}
                           </span>
                         </div>
-                        <div className="col-span-1 text-center">
+                        <div className="text-center">
                           <span className="font-medium text-[#272424] text-[12px]">
                             {formatDate(returnItem.createdDate)}
                           </span>
                         </div>
-                        <div className="col-span-1 flex justify-center">
+                        <div className="flex justify-center">
                           {getPaymentMethodChip(returnItem.paymentMethod)}
                         </div>
-                        <div className="col-span-1 flex justify-center">
+                        <div className="flex justify-center">
                           {getReturnStatusChip(returnItem.returnStatus)}
                         </div>
-                        <div className="col-span-1 flex justify-center">
+                        <div className="flex justify-center">
                           {getRefundStatusChip(returnItem.refundStatus)}
                         </div>
-                        <div className="col-span-2 text-center">
+                        <div className="text-center">
                           <span className="font-medium text-[#272424] text-[12px] truncate block" title={returnItem.supplier}>
                             {returnItem.supplier}
                           </span>
                         </div>
-                        <div className="col-span-1 text-center">
+                        <div className="text-center">
                           <span className="font-medium text-[#272424] text-[12px] truncate block" title={returnItem.createdBy}>
                             {returnItem.createdBy}
                           </span>
                         </div>
-                        <div className="col-span-1 text-center">
+                        <div className="text-center">
                           <span className="font-medium text-[#272424] text-[12px]">
                             {returnItem.returnQuantity}
                           </span>
                         </div>
-                        <div className="col-span-1 text-center">
+                        <div className="text-center">
                           <span className="font-medium text-[#272424] text-[12px]" title={formatCurrency(returnItem.totalValue)}>
                             {(returnItem.totalValue / 1000000).toFixed(0)}M
                           </span>
@@ -335,7 +329,7 @@ const AdminWarehouseReturnsImport = () => {
                             {getRefundStatusChip(returnItem.refundStatus)}
                           </div>
                         </div>
-                        
+
                         <div className="space-y-1">
                           <div className="flex justify-between text-[12px]">
                             <span className="text-gray-600">Mã đơn nhập:</span>
@@ -372,13 +366,11 @@ const AdminWarehouseReturnsImport = () => {
             </div>
 
             {/* Pagination */}
-            <div className="px-[15px] py-[8px] w-full flex-shrink-0">
-              <Pagination
-                current={currentPage}
-                total={totalPages}
-                onChange={setCurrentPage}
-              />
-            </div>
+            <Pagination
+              current={currentPage}
+              total={totalPages}
+              onChange={setCurrentPage}
+            />
           </>
         )}
 

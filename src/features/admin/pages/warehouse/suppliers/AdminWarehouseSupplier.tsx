@@ -394,7 +394,8 @@ const AdminWarehouseSupplier = () => {
                           ? " Đang kích hoạt"
                           : "Ngừng kích hoạt"
                       }
-                      className="font-bold text-[12px] leading-normal"
+                      size="small"
+                      className="font-bold leading-normal"
                     />
                   </div>
                 </div>

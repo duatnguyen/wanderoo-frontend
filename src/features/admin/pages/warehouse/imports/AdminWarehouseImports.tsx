@@ -3,21 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
-import { SearchBar } from "@/components/ui/search-bar";
-
 import { Pagination } from "@/components/ui/pagination";
-import CaretDown from "@/components/ui/caret-down";
-import Icon from "@/components/icons/Icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CaretDown } from "@/components/ui/caret-down";
+import Icon from "@/components/icons/Icon";
 import {
   TabMenuWithBadge,
   PageContainer,
   ContentCard,
+  PageHeader,
+  TableFilters,
   type TabItemWithBadge,
 } from "@/components/common";
 
@@ -155,21 +155,21 @@ const AdminWarehouseImports = () => {
 
   const getStatusChip = (status: ImportStatus) => {
     if (status === "processing" || status === "completed") {
-      return <ChipStatus status={status as ChipStatusKey} />;
+      return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
     return null;
   };
 
   const getImportStatusChip = (status: WarehouseImport["importStatus"]) => {
     if (status === "not_imported" || status === "imported") {
-      return <ChipStatus status={status as ChipStatusKey} />;
+      return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
     return null;
   };
 
   const getPaymentStatusChip = (status: WarehouseImport["paymentStatus"]) => {
     if (status === "paid" || status === "unpaid") {
-      return <ChipStatus status={status as ChipStatusKey} />;
+      return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
     return null;
   };
@@ -191,20 +191,21 @@ const AdminWarehouseImports = () => {
 
   return (
     <PageContainer>
-      {/* Header */}
-      <div className="flex items-center justify-between w-full mb-[5px]">
-        <h1 className="font-bold text-[24px] text-[#272424] font-['Montserrat']">
-          Nhập hàng
-        </h1>
-        <Button
-          variant={"default"}
-          className="h-[36px]"
-          onClick={() => navigate("/admin/warehouse/imports/create")}
-        >
-          <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
-          <span>Tạo đơn nhập hàng</span>
-        </Button>
-      </div>
+      {/* Page Header */}
+      <PageHeader 
+        title="Nhập hàng"
+        actions={
+          <Button
+            variant={"default"}
+            className="h-[36px]"
+            onClick={() => navigate("/admin/warehouse/imports/create")}
+          >
+            <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
+            <span>Tạo đơn nhập hàng</span>
+          </Button>
+        }
+      />
+
       {/* Tab Menu */}
       <TabMenuWithBadge
         tabs={tabs}
@@ -215,18 +216,14 @@ const AdminWarehouseImports = () => {
         }}
         className="w-full mx-auto"
       />
+
       <ContentCard>
-        {/* Search and Filter Section */}
-        <div className="flex flex-col gap-[8px] items-center relative rounded-[20px] w-full">
-          <div className="flex gap-[8px] items-center justify-left relative w-full">
-            <div className="flex flex-row items-center self-stretch">
-              <SearchBar
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
-                className="flex-1 w-[clamp(180px,40vw,400px)]"
-              />
-            </div>
+        {/* Filters Section */}
+        <TableFilters
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
+          actions={
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer">
@@ -272,8 +269,8 @@ const AdminWarehouseImports = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-        </div>
+          }
+        />
 
         {/* Table Section */}
         <div className="border-[0.5px] border-[#d1d1d1] rounded-[16px] w-full">

@@ -126,6 +126,7 @@ export const OrderTableRow = ({
             <ChipStatus
               status={getPaymentTypeStatus(order.paymentType)}
               labelOverride={order.paymentType}
+              size="small"
             />
           </div>
 
@@ -148,6 +149,7 @@ export const OrderTableRow = ({
             <ChipStatus
               status={getProcessingStatus(order.status)}
               labelOverride={order.status}
+              size="small"
             />
           </div>
 
@@ -156,6 +158,7 @@ export const OrderTableRow = ({
             <ChipStatus
               status={getPaymentStatus(order.paymentStatus)}
               labelOverride={order.paymentStatus}
+              size="small"
             />
           </div>
 

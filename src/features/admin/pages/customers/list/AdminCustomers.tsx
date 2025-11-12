@@ -15,6 +15,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import {
+  PageContainer,
+  ContentCard,
+  PageHeader,
+} from "@/components/common";
+import { ChipStatus } from "@/components/ui/chip-status";
+
 type Customer = {
   id: string;
   name: string;
@@ -197,27 +204,26 @@ const AdminCustomers: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-0 items-center w-full max-w-full overflow-hidden">
-      {/* Customers Table */}
-      <div className="flex items-center justify-between w-full mb-[5px] flex-nowrap gap-2">
-        <h2 className="font-bold text-[#272424] text-[24px] leading-normal whitespace-nowrap min-w-0 overflow-hidden text-ellipsis">
-          Danh sách khách hàng
-        </h2>
-        <Button
-          onClick={() => navigate("/admin/customers/new")}
-          className="h-[36px] flex-shrink-0"
-        >
-          <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
-          <span className="whitespace-nowrap">Thêm mới khách hàng</span>
-        </Button>
-      </div>
-      <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[12px] items-start px-[16px] py-[16px] rounded-[16px] w-full">
-        {/* Search and Filter */}
+    <PageContainer>
+      <PageHeader
+        title="Danh sách khách hàng"
+        actions={
+          <Button
+            onClick={() => navigate("/admin/customers/new")}
+            className="h-[36px] flex-shrink-0"
+          >
+            <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
+            <span className="whitespace-nowrap">Thêm mới khách hàng</span>
+          </Button>
+        }
+      />
+      
+      <ContentCard>
         <div className="flex gap-[8px] items-center w-full">
           <SearchBar
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm"
+            placeholder="Tìm kiếm khách hàng..."
             className="flex-1 min-w-0 max-w-[400px]"
           />
 
@@ -251,22 +257,23 @@ const AdminCustomers: React.FC = () => {
         {/* Table */}
         <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
           {/* Table Header */}
-          <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full h-[58px]">
-            <div className="flex flex-row items-center w-full h-full">
+          <div className="bg-[#f6f6f6] rounded-tl-[16px] rounded-tr-[16px] w-full h-[58px] min-w-[1200px]">
+            <div className="grid grid-cols-[50px_300px_220px_140px_120px_160px_130px] gap-0 items-center h-full px-[12px]">
               {/* Checkbox column */}
-              <div className="flex h-full items-center px-[4px] py-[12px] w-8 flex-shrink-0">
+              <div className="flex h-full items-center justify-center">
                 <CustomCheckbox
                   checked={
                     paginatedCustomers.length > 0 &&
                     paginatedCustomers.every((c) => selectedCustomers.has(c.id))
                   }
                   onChange={(checked) => handleSelectAll(checked)}
-                  className="w-[30px] h-[30px]"
+                  className="w-[20px] h-[20px]"
                 />
               </div>
-              {/* If selection active, show actions across row */}
+              
+              {/* If selection active, show actions across remaining columns */}
               {selectedCustomers.size > 0 ? (
-                <div className="flex items-center gap-[12px] flex-1 px-[4px]">
+                <div className="col-span-6 flex items-center gap-[12px] px-[4px]">
                   <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] whitespace-nowrap">
                     Đã chọn {selectedCustomers.size} khách hàng
                   </span>
@@ -293,27 +300,32 @@ const AdminCustomers: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/4 min-w-48 ml-[7px]">
+                  <div className="flex items-center px-[4px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       Khách hàng
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/4 min-w-44">
+                  <div className="flex items-center px-[4px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       Email
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/5 min-w-32">
+                  <div className="flex items-center px-[4px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       Số điện thoại
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] w-1/5 min-w-32">
+                  <div className="flex items-center px-[4px]">
+                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Ngày đăng ký
+                    </span>
+                  </div>
+                  <div className="flex items-center px-[4px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       Tổng chi tiêu
                     </span>
                   </div>
-                  <div className="flex gap-[4px] items-center px-[4px] py-[12px] w-1/6 min-w-24">
+                  <div className="flex items-center justify-center px-[4px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       Trạng thái
                     </span>
@@ -327,93 +339,91 @@ const AdminCustomers: React.FC = () => {
           {paginatedCustomers.map((c, index) => (
             <div
               key={c.id}
-              className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[12px] py-0 w-full ${
-                index === paginatedCustomers.length - 1
+              className={`w-full min-w-[1200px] min-h-[70px] ${index === paginatedCustomers.length - 1
                   ? "border-transparent"
-                  : "border-[#e7e7e7]"
-              } ${
-                selectedCustomers.has(c.id)
+                  : "border-b border-[#e7e7e7]"
+                } ${selectedCustomers.has(c.id)
                   ? "bg-blue-50"
                   : "hover:bg-gray-50 cursor-pointer"
-              }`}
+                }`}
             >
-              <div className="flex items-center w-full">
-                <div className="flex flex-row items-center w-full">
-                  {/* Checkbox col */}
-                  <div className="flex h-full items-center px-[4px] py-[12px] w-8 flex-shrink-0">
-                    <CustomCheckbox
-                      checked={selectedCustomers.has(c.id)}
-                      onChange={(checked) => handleSelectItem(c.id, checked)}
-                      className="w-[30px] h-[30px]"
-                    />
+              <div className="grid grid-cols-[50px_300px_220px_140px_120px_160px_130px] gap-0 items-center h-full px-[12px] py-[8px]">
+                {/* Checkbox col */}
+                <div className="flex items-center justify-center">
+                  <CustomCheckbox
+                    checked={selectedCustomers.has(c.id)}
+                    onChange={(checked) => handleSelectItem(c.id, checked)}
+                    className="w-[20px] h-[20px]"
+                  />
+                </div>
+                
+                {/* Customer info col */}
+                <div className="flex items-center gap-[8px] px-[4px]">
+                  <div className="w-[45px] h-[45px] relative overflow-hidden rounded-lg border-2 border-[#d1d1d1] flex-shrink-0">
+                    <Avatar className="w-full h-full">
+                      {c.avatar ? (
+                        <AvatarImage src={c.avatar} alt={c.name} />
+                      ) : (
+                        <AvatarFallback className="text-xs">
+                          {c.name.charAt(0)}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
                   </div>
-                  {/* Name col */}
-                  <div className="flex h-full items-center px-[4px] py-[12px] w-1/4 min-w-48 ml-[7px]">
-                    <div className="w-[50px] h-[50px] relative overflow-hidden rounded-lg border-2 border-[#d1d1d1] mr-[8px]">
-                      <Avatar className="w-full h-full">
-                        {c.avatar ? (
-                          <AvatarImage src={c.avatar} alt={c.name} />
-                        ) : (
-                          <AvatarFallback className="text-xs">
-                            {c.name.charAt(0)}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                    </div>
-                    <div className="flex flex-col gap-[2px] h-full items-start justify-center">
-                      <button
-                        className="font-semibold text-[14px] text-[#1a71f6] leading-[1.3] hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/admin/customers/${c.id}`);
-                        }}
-                      >
-                        {c.name}
-                      </button>
-                      <span className="font-medium text-[12px] text-[#737373] leading-[1.3]">
-                        @{c.username}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-1/4 min-w-44">
-                    <span className="font-medium text-[#272424] text-[14px] leading-[1.4] truncate">
-                      {c.email}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-1/5 min-w-32">
-                    <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-                      {c.phone}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] w-1/5 min-w-32">
-                    <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-                      {c.totalSpent.toLocaleString("vi-VN")}đ
-                    </span>
-                    <span className="font-medium text-[#737373] text-[12px] leading-[1.3]">
-                      {c.totalOrders} đơn hàng
-                    </span>
-                  </div>
-                  <div className="flex gap-[4px] h-full items-center px-[4px] py-[12px] w-1/6 min-w-24">
-                    <div
-                      className={`rounded-[10px] ${
-                        c.status === "active" ? "bg-[#b2ffb4]" : "bg-[#ffdcdc]"
-                      }`}
+                  <div className="flex flex-col gap-[2px] min-w-0 flex-1">
+                    <button
+                      className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] hover:underline truncate w-full text-left"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/admin/customers/${c.id}`);
+                      }}
                     >
-                      <div className="flex gap-[10px] items-center justify-center px-[8px] py-[6px]">
-                        <span
-                          className={`font-semibold text-[14px] leading-[1.4] ${
-                            c.status === "active"
-                              ? "text-[#04910c]"
-                              : "text-[#eb2b0b]"
-                          }`}
-                        >
-                          {c.status === "active"
-                            ? "Đang kích hoạt"
-                            : "Ngừng kích hoạt"}
-                        </span>
-                      </div>
-                    </div>
+                      {c.name}
+                    </button>
+                    <span className="font-medium text-[11px] text-[#737373] leading-[1.3] truncate w-full">
+                      @{c.username}
+                    </span>
                   </div>
+                </div>
+                
+                {/* Email col */}
+                <div className="flex items-center px-[4px]">
+                  <span className="font-medium text-[#272424] text-[13px] leading-[1.4] truncate w-full">
+                    {c.email}
+                  </span>
+                </div>
+                
+                {/* Phone col */}
+                <div className="flex items-center px-[4px]">
+                  <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
+                    {c.phone}
+                  </span>
+                </div>
+                
+                {/* Registration date col */}
+                <div className="flex items-center px-[4px]">
+                  <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
+                    {new Date(c.registrationDate).toLocaleDateString("vi-VN")}
+                  </span>
+                </div>
+                
+                {/* Total spent col */}
+                <div className="flex flex-col gap-[2px] items-start justify-center px-[4px]">
+                  <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
+                    {c.totalSpent.toLocaleString("vi-VN")}đ
+                  </span>
+                  <span className="font-medium text-[#737373] text-[11px] leading-[1.3]">
+                    {c.totalOrders} đơn hàng
+                  </span>
+                </div>
+                
+                {/* Status col */}
+                <div className="flex items-center justify-center px-[4px]">
+                  <ChipStatus
+                    status={c.status === "active" ? "active" : "disabled"}
+                    labelOverride={c.status === "active" ? "Đang kích hoạt" : "Ngừng kích hoạt"}
+                    className="font-bold text-[11px] leading-normal"
+                  />
                 </div>
               </div>
             </div>
@@ -426,8 +436,8 @@ const AdminCustomers: React.FC = () => {
           total={Math.ceil(filtered.length / 10)}
           onChange={setCurrentPage}
         />
-      </div>
-    </div>
+      </ContentCard>
+    </PageContainer>
   );
 };
 

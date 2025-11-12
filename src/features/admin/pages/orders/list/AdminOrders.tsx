@@ -328,7 +328,7 @@ const AdminOrders: React.FC = () => {
       className: "justify-start",
     },
     {
-      title: "Vận chuyển",
+      title: "V.Chuyển",
       width: "w-[100px]",
       minWidth: "min-w-[100px]",
       className: "justify-start",
