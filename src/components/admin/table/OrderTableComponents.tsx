@@ -19,19 +19,17 @@ export const OrderTableHeader = ({
 }: OrderTableHeaderProps) => {
   return (
     <div className={className}>
-      <div className="flex items-center w-full pr-[17px]">
+      <div className="flex items-center w-full">
         {columns.map((column, index) => (
           <div
             key={column.title}
-            className={`bg-[#f6f6f6] flex items-center ${
-              index === 0
+            className={`bg-[#f6f6f6] flex items-center ${index === 0
                 ? "rounded-l-[6px]"
                 : index === columns.length - 1
                   ? "rounded-r-[6px]"
                   : ""
-            } px-[16px] py-[14px] ${column.width} ${column.minWidth || ""} ${
-              column.className || "justify-center"
-            }`}
+              } px-[16px] py-[14px] ${column.width} ${column.minWidth || ""} ${column.className || "justify-center"
+              }`}
           >
             <p
               className={`font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.2] whitespace-pre-line ${column.className?.includes("justify-start") ? "text-left" : "text-center"}`}
