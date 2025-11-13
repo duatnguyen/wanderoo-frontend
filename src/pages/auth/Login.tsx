@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useAuthCtx } from "../../app/providers/AuthProvider";
-import { authLogin } from "../../services/auth.api";
+import { authLogin } from "../../api/endpoints/authApi";
 import { Link, useNavigate } from "react-router-dom";
 import type { LoginCredentials } from "../../types/auth";
 import bannerSrc from "../../assets/images/banner/login-banner.png";
 
 const Login: React.FC = () => {
   const [credentials, setCredentials] = useState<LoginCredentials>({
-    email: "",
+    username: "",
     password: "",
   });
   const [error, setError] = useState("");
@@ -28,14 +28,10 @@ const Login: React.FC = () => {
       const response = await authLogin(credentials);
 
       // Sử dụng AuthProvider để set token và update state
-      await login(response.token);
+      await login(response.accessToken);
 
-      // Navigate based on user role
-      if (response.user.role === "ADMIN") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/shop");
-      }
+      // Navigate based on user role (role will be available after login completes)
+      navigate("/shop"); // Default navigation, AuthProvider will handle role-based routing
     } catch (err) {
       console.error("Login failed", err);
       setError("Email hoặc mật khẩu không đúng");
@@ -121,7 +117,7 @@ const Login: React.FC = () => {
                 name="email"
                 type="text"
                 required
-                value={credentials.email}
+                value={credentials.username}
                 onChange={handleChange}
                 className="h-12 w-full rounded-xl border border-gray-300 px-4 text-sm text-gray-800 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15"
                 placeholder="Nhập số điện thoại của bạn"

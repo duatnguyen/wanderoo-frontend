@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthCtx } from "../../app/providers/AuthProvider";
-import { authRegister } from "../../services/auth.api";
+import { authRegister } from "../../api/endpoints/authApi";
 import type { RegisterData } from "../../types/auth";
 import bannerSrc from "../../assets/images/banner/login-banner.png";
 
@@ -59,6 +59,7 @@ const Register: React.FC = () => {
 
     try {
       const payload: RegisterData = {
+        username: trimmedPhone,
         name: trimmedName,
         phone: trimmedPhone,
         password: formData.password,
@@ -69,7 +70,7 @@ const Register: React.FC = () => {
       const response = await authRegister(payload);
 
       // Sử dụng AuthProvider để set token và update state
-      await login(response.token);
+      await login(response.accessToken);
 
       // Navigate to user dashboard (new users are USER role by default)
       navigate("/user/home");

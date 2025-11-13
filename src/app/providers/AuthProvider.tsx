@@ -1,7 +1,7 @@
 // src/app/providers/AuthProvider.tsx
 import { createContext, useContext, useEffect, useState } from "react";
 import { getToken, setToken, clearToken } from "../../utils/storage";
-import { authMe } from "../../services/auth.api";
+import { authMe } from "../../api/endpoints/authApi";
 
 type Role = "USER" | "ADMIN";
 type AuthState = { loading: boolean; isAuth: boolean; role?: Role; user?: any };
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!token) return setState({ loading: false, isAuth: false });
     try {
       const me = await authMe(); // trả về { role: 'ADMIN' | 'USER', ... }
-      setState({ loading: false, isAuth: true, role: me.role, user: me });
+      setState({ loading: false, isAuth: true, role: me.role as Role, user: me });
     } catch {
       clearToken();
       setState({ loading: false, isAuth: false });

@@ -135,7 +135,13 @@ Hệ thống frontend cho nền tảng e-commerce Wanderoo, được xây dựng
 │   ├── POSLayout.tsx
 │   └── UserLayout.tsx
 ├── 📁 hooks/                        # Custom hooks
-├── 📁 services/                     # API services
+├── 📁 api/                          # API layer
+│   ├── apiClient.ts                 # Axios client with interceptors
+│   └── endpoints/                   # Domain-specific API functions
+│       ├── authApi.ts              # Authentication APIs
+│       ├── userApi.ts              # User management APIs
+│       ├── productApi.ts           # Product management APIs
+│       └── orderApi.ts             # Order & POS APIs
 ├── 📁 types/                        # TypeScript definitions
 └── 📁 utils/                        # Utility functions
 ```

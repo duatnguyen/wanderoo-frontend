@@ -1,0 +1,778 @@
+// src/types/api.ts - Common API types and interfaces
+
+// Common API Response
+export interface ApiResponse<T> {
+  status: number;
+  message: string;
+  data: T;
+}
+
+// Pagination Response
+export interface PageResponse<T> {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  content: T[];
+}
+
+// Token Response
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+}
+
+// User Types
+export interface UserResponse {
+  id: number;
+  username: string;
+  email: string;
+  name: string;
+  phone: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Address Types
+export interface AddressResponse {
+  id: number;
+  province: string;
+  district: string;
+  ward: string;
+  location: string;
+  name: string;
+  phone: string;
+  wardCode: string;
+  districtId: number;
+  isDefault: boolean;
+}
+
+export interface AddressPageResponse extends PageResponse<AddressResponse> {}
+
+export interface AddressDetailResponse extends AddressResponse {
+  // Additional fields if any
+}
+
+// Product Types
+export interface ProductResponse {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  status: string;
+  categoryId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductPageResponse extends PageResponse<ProductResponse> {}
+
+export interface VariantResponse {
+  id: number;
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  status: string;
+}
+
+export interface VariantPageResponse extends PageResponse<VariantResponse> {}
+
+// Order Types
+export interface OrderResponse {
+  id: number;
+  customerId: number;
+  totalAmount: number;
+  status: string;
+  paymentStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderPageResponse extends PageResponse<OrderResponse> {}
+
+export interface OrderDetailResponse extends OrderResponse {
+  items: OrderItemResponse[];
+}
+
+export interface OrderItemResponse {
+  id: number;
+  productId: number;
+  quantity: number;
+  price: number;
+  total: number;
+}
+
+// Cart Types
+export interface CartResponse {
+  id: number;
+  userId: number;
+  items: CartItemResponse[];
+  totalAmount: number;
+}
+
+export interface CartItemResponse {
+  id: number;
+  productId: number;
+  quantity: number;
+  price: number;
+  total: number;
+}
+
+// Review Types
+export interface ReviewResponse {
+  id: number;
+  productId: number;
+  userId: number;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface ReviewPageResponse extends PageResponse<ReviewResponse> {}
+
+// Shipping Types
+export interface ProvinceResponse {
+  id: number;
+  name: string;
+  code: string;
+}
+
+export interface DistrictResponse {
+  id: number;
+  name: string;
+  code: string;
+  provinceId: number;
+}
+
+export interface WardResponse {
+  id: number;
+  name: string;
+  code: string;
+  districtId: number;
+}
+
+export interface ShippingFeeResponse {
+  fee: number;
+  estimatedDeliveryTime: string;
+}
+
+// Voucher Types
+export interface VoucherResponse {
+  id: number;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  minOrderAmount: number;
+  maxDiscount: number;
+  expiryDate: string;
+  status: string;
+}
+
+export interface CustomerVoucherResponse extends VoucherResponse {
+  customerId: number;
+  used: boolean;
+  usedAt?: string;
+}
+
+export interface CustomerVoucherPageResponse extends PageResponse<CustomerVoucherResponse> {}
+
+// Discount Types
+export interface DiscountResponse {
+  id: number;
+  name: string;
+  type: string;
+  value: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+}
+
+// POS Types
+export interface SaleProductResponse {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  category: string;
+}
+
+export interface SaleProductPageResponse extends PageResponse<SaleProductResponse> {}
+
+export interface DraftOrderResponse {
+  id: number;
+  customerId?: number;
+  items: OrderItemResponse[];
+  totalAmount: number;
+  status: string;
+}
+
+// Warehouse Types
+export interface InventoryResponse {
+  id: number;
+  productId: number;
+  quantity: number;
+  location: string;
+  status: string;
+}
+
+export interface SimpleInventoryPageResponse extends PageResponse<InventoryResponse> {}
+
+export interface ProviderResponse {
+  id: number;
+  name: string;
+  contact: string;
+  address: string;
+  status: string;
+}
+
+export interface ProviderPageResponse extends PageResponse<ProviderResponse> {}
+
+export interface InvoiceResponse {
+  id: number;
+  type: string;
+  providerId: number;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface InvoicePageResponse extends PageResponse<InvoiceResponse> {}
+
+// Request Types
+export interface SignInRequest {
+  username: string;
+  password: string;
+}
+
+export interface UserCreationRequest {
+  username: string;
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface UserUpdateRequest {
+  name?: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export interface AddressCreationRequest {
+  province: string;
+  district: string;
+  ward: string;
+  location: string;
+  name: string;
+  phone: string;
+  wardCode: string;
+  districtId: number;
+}
+
+export interface AddressUpdateRequest extends AddressCreationRequest {
+  id: number;
+}
+
+export interface ProductCreateRequest {
+  name: string;
+  description: string;
+  price: number;
+  categoryId: number;
+}
+
+export interface ProductUpdateRequest extends ProductCreateRequest {
+  id: number;
+}
+
+export interface CartItemRequest {
+  productDetailId: number;
+  quantity: number;
+}
+
+export interface CartItemUpdateRequest {
+  quantity: number;
+}
+
+export interface ReviewCreateRequest {
+  productId: number;
+  orderId: number;
+  rating: number;
+  comment: string;
+}
+
+export interface ReviewUpdateRequest {
+  rating?: number;
+  comment?: string;
+}
+
+export interface CustomerOrderCreateRequest {
+  customerId: number;
+  items: OrderItemRequest[];
+}
+
+export interface OrderItemRequest {
+  productDetailId: number;
+  quantity: number;
+}
+
+export interface CustomerOrderPublicCreateRequest {
+  customerId: number;
+  items: OrderItemRequest[];
+}
+
+export interface CreateOrderResponse {
+  order: OrderResponse;
+  shippingInfo: string;
+  shippingStatus: string;
+  shippingMessage: string;
+  shippingFee: number;
+  totalOrderPrice: number;
+}
+
+export interface CustomerOrderResponse extends OrderResponse {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+}
+
+export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> {}
+
+export interface CustomerOrderCancelResponse {
+  orderId: number;
+  status: string;
+  message: string;
+}
+
+export interface OrderConfirmResponse {
+  orderId: number;
+  shippingOrderCode: string;
+  status: string;
+}
+
+export interface OrderCancelResponse {
+  orderId: number;
+  status: string;
+  message: string;
+}
+
+export interface GetDistrictsRequest {
+  provinceId: number;
+}
+
+export interface GetWardsRequest {
+  districtId: number;
+}
+
+export interface CalculateShippingFeeRequest {
+  serviceTypeId: number;
+  fromDistrictId: number;
+  fromWardCode: string;
+  toDistrictId: number;
+  toWardCode: string;
+  weight: number;
+  length: number;
+  width: number;
+  height: number;
+  insuranceValue: number;
+  serviceId: number;
+  codFailedAmount: number;
+  items: ShippingItem[];
+}
+
+export interface ShippingItem {
+  name: string;
+  quantity: number;
+  price: number;
+  weight: number;
+}
+
+export interface GetStationsRequest {
+  districtId: number;
+  wardCode: string;
+}
+
+export interface StationResponse {
+  id: number;
+  name: string;
+  address: string;
+  districtId: number;
+  wardCode: string;
+}
+
+export interface PickShiftResponse {
+  id: number;
+  time: string;
+  available: boolean;
+}
+
+export interface CreateGHNOrderRequest {
+  // Define based on GHN API
+  toName: string;
+  toPhone: string;
+  toAddress: string;
+  toDistrictId: number;
+  toWardCode: string;
+  weight: number;
+  length: number;
+  width: number;
+  height: number;
+  serviceTypeId: number;
+  paymentTypeId: number;
+  requiredNote: string;
+  items: ShippingItem[];
+}
+
+export interface CreateShippingOrderResponse {
+  orderCode: string;
+  expectedDeliveryTime: string;
+  fee: number;
+}
+
+export interface UpdateGHNOrderRequest {
+  orderCode: string;
+  // Other update fields
+}
+
+export interface UpdateShippingOrderResponse {
+  orderCode: string;
+  status: string;
+}
+
+export interface ShippingOrderDetailResponse {
+  orderCode: string;
+  status: string;
+  fee: number;
+  expectedDeliveryTime: string;
+  // Other details
+}
+
+export interface GetOrderDetailRequest {
+  orderCode: string;
+}
+
+export interface PreviewOrderRequest {
+  // Define based on API
+}
+
+export interface PreviewOrderResponse {
+  fee: number;
+  expectedDeliveryTime: string;
+}
+
+export interface TrackingResponse {
+  orderCode: string;
+  status: string;
+  logs: TrackingLog[];
+}
+
+export interface TrackingLog {
+  status: string;
+  time: string;
+  location: string;
+}
+
+export interface OrderStatusResponse {
+  orderCode: string;
+  status: string;
+}
+
+export interface CancelGHNOrderRequest {
+  orderCode: string;
+}
+
+export interface CancelOrderResponse {
+  orderCode: string;
+  status: string;
+}
+
+export interface SwitchStatusRequest {
+  orderCode: string;
+}
+
+export interface UserOrderResponse {
+  orderCode: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface PrintOrderRequest {
+  orderCode: string;
+}
+
+export interface PrintTokenResponse {
+  token: string;
+  url: string;
+}
+
+export interface UpdateOrderItemRequest {
+  productDetailId: number;
+  quantity: number;
+}
+
+export interface AddOrderItemRequest {
+  productDetailId: number;
+  quantity: number;
+}
+
+export interface UpdateCustomerRequest {
+  customerId: number;
+}
+
+export interface ApplyDiscountRequest {
+  discountId: number;
+}
+
+export interface UpdateNoteRequest {
+  note: string;
+}
+
+export interface CheckoutRequest {
+  paymentMethod: string;
+}
+
+export interface CheckoutResponse {
+  orderId: number;
+  totalAmount: number;
+  status: string;
+}
+
+export interface DiscountCreateRequest {
+  name: string;
+  type: string;
+  value: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface DiscountUpdateRequest extends DiscountCreateRequest {
+  id: number;
+}
+
+export interface DiscountPageResponse extends PageResponse<DiscountResponse> {}
+
+export interface DiscountMetadataResponse {
+  types: string[];
+  states: string[];
+}
+
+export interface CustomerVoucherCreateRequest {
+  customerId: number;
+  voucherId: number;
+  expiryDate: string;
+}
+
+export interface CustomerVoucherUpdateRequest {
+  expiryDate?: string;
+  status?: string;
+}
+
+export interface CustomerVoucherStatsResponse {
+  total: number;
+  used: number;
+  available: number;
+}
+
+export interface UseVoucherRequest {
+  voucherId: number;
+  orderId: number;
+}
+
+export interface GrantVoucherRequest {
+  customerId: number;
+  voucherId: number;
+}
+
+export interface ExpireVoucherRequest {
+  voucherId: number;
+}
+
+export interface CategoryParentResponse {
+  id: number;
+  name: string;
+  status: string;
+}
+
+export interface CategoryChildResponse {
+  id: number;
+  name: string;
+  parentId: number;
+  status: string;
+}
+
+export interface CategoryParentPageResponse extends PageResponse<CategoryParentResponse> {}
+
+export interface CategoryChildPageResponse extends PageResponse<CategoryChildResponse> {}
+
+export interface CategoryParentCreateRequest {
+  name: string;
+}
+
+export interface CategoryChildCreateRequest {
+  name: string;
+  parentId: number;
+}
+
+export interface CategoryParentUpdateRequest extends CategoryParentCreateRequest {
+  id: number;
+}
+
+export interface CategoryChildUpdateRequest extends CategoryChildCreateRequest {
+  id: number;
+}
+
+export interface VariantRequest {
+  productId: number;
+  // Other fields as needed
+}
+
+export interface VariantDetailIdRequest {
+  productId: number;
+  listAttributeId: number[];
+}
+
+export interface VariantUpdateRequest {
+  id: number;
+  price?: number;
+  quantity?: number;
+  status?: string;
+}
+
+export interface ProductStatusRequest {
+  id: number;
+}
+
+export interface VariantQuantityUpdateRequest {
+  variantId: number;
+  quantity: number;
+}
+
+export interface EmployeeResponse extends UserResponse {
+  department: string;
+  position: string;
+}
+
+export interface EmployeePageResponse extends PageResponse<EmployeeResponse> {}
+
+export interface CustomerResponse extends UserResponse {
+  address: string;
+  membershipLevel: string;
+}
+
+export interface CustomerPageResponse extends PageResponse<CustomerResponse> {}
+
+export interface EmployeeCreationRequest {
+  username: string;
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  department: string;
+  position: string;
+}
+
+export interface EmployeeUpdateRequest extends EmployeeCreationRequest {
+  id: number;
+}
+
+export interface CustomerCreationRequest {
+  username: string;
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  address: string;
+}
+
+export interface CustomerUpdateRequest extends CustomerCreationRequest {
+  id: number;
+}
+
+export interface SelectAllRequest {
+  ids: number[];
+}
+
+export interface ProviderCreateRequest {
+  name: string;
+  contact: string;
+  address: string;
+}
+
+export interface ProviderUpdateRequest extends ProviderCreateRequest {
+  id: number;
+}
+
+export interface ProviderStatResponse {
+  totalInvoices: number;
+  totalAmount: number;
+  lastOrderDate: string;
+}
+
+export interface OrderHistoryResponse {
+  id: number;
+  orderId: number;
+  action: string;
+  userId: number;
+  timestamp: string;
+  details: string;
+}
+
+export interface OrderHistoryPageResponse extends PageResponse<OrderHistoryResponse> {}
+
+export interface OrderHistoryCreateRequest {
+  orderId: number;
+  action: string;
+  details: string;
+}
+
+export interface OrderHistoryUpdateRequest {
+  action?: string;
+  details?: string;
+}
+
+export interface OrderDetailPageResponse extends PageResponse<OrderDetailResponse> {}
+
+export interface CustomerOrderMetadataResponse {
+  paymentMethods: string[];
+  shippingMethods: string[];
+  orderStatuses: string[];
+}
+
+export interface OrderStatusUpdateRequest {
+  status: string;
+}
+
+export interface CustomerOrderUpdateRequest {
+  status?: string;
+  paymentStatus?: string;
+  shippingAddress?: AddressCreationRequest;
+}
+
+export interface OrderDetailCreateRequest {
+  productDetailId: number;
+  quantity: number;
+  snapshotProductName: string;
+  snapshotProductSku: string;
+  snapshotProductPrice: number;
+}
+
+export interface OrderDetailUpdateRequest {
+  productDetailId: number;
+  quantity: number;
+  snapshotProductName: string;
+  snapshotProductSku: string;
+  snapshotProductPrice: number;
+}
