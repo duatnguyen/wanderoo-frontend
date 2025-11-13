@@ -2,3 +2,4 @@
 export * from "./list";
 export * from "./categories";
 export * from "./create";
+export * from "./edit";

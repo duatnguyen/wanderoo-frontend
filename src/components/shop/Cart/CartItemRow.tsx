@@ -25,6 +25,18 @@ interface CartItemRowProps {
   onVariantChange: (variant: string) => void;
 }
 
+const DropdownArrow = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="text-gray-500"
+  >
+    <path d="M6.75 9.75L12 15l5.25-5.25H6.75z" />
+  </svg>
+);
+
 const CartItemRow: React.FC<CartItemRowProps> = ({
   item,
   isSelected,
@@ -34,51 +46,55 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
   onVariantChange,
 }) => {
   return (
-    <div className="grid grid-cols-12 gap-4 px-4 py-4 items-start hover:bg-gray-50 transition-colors">
-      {/* Checkbox */}
-      <div className="col-span-1 flex items-start pt-2">
-        <Checkbox checked={isSelected} onChange={onSelect} />
-      </div>
-
+    <div
+      className="grid gap-4 px-4 py-4 items-start hover:bg-gray-50 transition-colors"
+      style={{
+        gridTemplateColumns: "2.5fr 1.8fr 1.2fr 1.5fr 1.5fr 0.8fr",
+      }}
+    >
       {/* Product Info */}
-      <div className="col-span-4 flex gap-3">
+      <div className="flex gap-3 items-start">
+        <div className="flex items-start pt-2">
+          <Checkbox checked={isSelected} onChange={onSelect} />
+        </div>
         <div className="w-20 h-20 rounded border border-gray-300 bg-transparent flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <h3 className="text-[14px] font-medium text-gray-900 mb-1 line-clamp-2">
+          <h3 className="text-[14px] font-medium text-gray-900 mb-0 line-clamp-2">
             {item.name}
           </h3>
-          {item.description && (
-            <p className="text-[14px] text-gray-500 mb-2 line-clamp-1">
-              {item.description}
-            </p>
-          )}
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] text-gray-600">Phân loại hàng:</span>
-            {item.variantOptions ? (
-              <Select
-                value={item.variant}
-                onChange={onVariantChange}
-                className="w-[180px] text-[14px]"
-                options={item.variantOptions}
-              />
-            ) : (
-              <span className="text-[14px] text-gray-700">
-                {item.variant || "Mặc định"}
-              </span>
-            )}
-          </div>
         </div>
       </div>
 
+      {/* Variant Column */}
+      <div className="flex flex-col gap-2 justify-center">
+        <div className="flex items-center gap-1 text-[14px] text-gray-600">
+          <span>Phân loại hàng:</span>
+          <DropdownArrow />
+        </div>
+        {item.variantOptions ? (
+          <Select
+            value={item.variant}
+            onChange={onVariantChange}
+            className="w-[200px] text-[14px]"
+            size="small"
+            options={item.variantOptions}
+            suffixIcon={<DropdownArrow />}
+            popupClassName="cart-variant-dropdown"
+          />
+        ) : (
+          <span className="text-[14px] text-gray-700">{item.variant || "Mặc định"}</span>
+        )}
+      </div>
+
       {/* Unit Price */}
-      <div className="col-span-1 text-center pt-2">
+      <div className="text-center pt-2">
         <div className="text-[14px] text-gray-900 font-medium">
           {formatCurrencyVND(item.price)}
         </div>
       </div>
 
       {/* Quantity */}
-      <div className="col-span-2 flex justify-center pt-2">
+      <div className="flex justify-center pt-2">
         <div className="flex items-center gap-2">
           <button
             onClick={() => onQuantityChange(-1)}
@@ -123,14 +139,14 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
       </div>
 
       {/* Total */}
-      <div className="col-span-2 text-center pt-2">
+      <div className="text-center pt-2">
         <div className="text-[14px] text-gray-900 font-semibold">
           {formatCurrencyVND(item.price * item.quantity)}
         </div>
       </div>
 
       {/* Remove Button */}
-      <div className="col-span-2 flex justify-center pt-2">
+      <div className="flex justify-center pt-2">
         <button
           onClick={onRemove}
           className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"

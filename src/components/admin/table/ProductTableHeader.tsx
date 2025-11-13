@@ -138,10 +138,10 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                     <div className="w-6 h-6 flex-shrink-0"></div>
 
                     {/* Space for image alignment */}
-                    <div className="w-[70px] h-[70px] flex-shrink-0"></div>
+                    <div className="w-[60px] h-[60px] flex-shrink-0"></div>
 
-                    <div className="flex-1">
-                        <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
+                    <div className="flex-1 flex items-center">
+                        <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] whitespace-nowrap">
                             Tên sản phẩm
                         </span>
                     </div>

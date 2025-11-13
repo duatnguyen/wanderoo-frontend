@@ -22,13 +22,13 @@ const RecommendedProducts: React.FC<RecommendedProductsProps> = ({
   const navigate = useNavigate();
 
   return (
-    <section className="w-full bg-gray-50 py-10">
+    <section className="w-full bg-gray-50 pt-6 pb-10">
       <div className="max-w-[1200px] mx-auto px-4">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex-1">
             <div className="inline-block">
               <h2 className="text-[20px] font-bold text-gray-900">
-                Sản phẩm gợi ý
+                Có thể bạn cũng thích
               </h2>
             </div>
           </div>

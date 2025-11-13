@@ -53,19 +53,30 @@ const CartTable: React.FC<CartTableProps> = ({
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
       {/* Table Header */}
-      <div className="bg-gray-100 grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-200">
-        <div className="col-span-1"></div>
-        <div className="col-span-4 text-[14px] font-semibold text-gray-700">Sản phẩm</div>
-        <div className="col-span-1 text-[14px] font-semibold text-gray-700 text-center">
+      <div
+        className="bg-gray-100 grid gap-4 px-4 py-3 border-b border-gray-200 items-center"
+        style={{
+          gridTemplateColumns: "2.5fr 1.8fr 1.2fr 1.5fr 1.5fr 0.8fr",
+        }}
+      >
+        <div className="flex items-center gap-3 text-[14px] font-semibold text-gray-700">
+          <Checkbox
+            checked={items.length > 0 && selectedItems.size === items.length}
+            onChange={onSelectAll}
+          />
+          <span>Sản phẩm</span>
+        </div>
+        <div className="text-[14px] font-semibold text-gray-700 text-center"></div>
+        <div className="text-[14px] font-semibold text-gray-700 text-center">
           Đơn giá
         </div>
-        <div className="col-span-2 text-[14px] font-semibold text-gray-700 text-center">
+        <div className="text-[14px] font-semibold text-gray-700 text-center">
           Số lượng
         </div>
-        <div className="col-span-2 text-[14px] font-semibold text-gray-700 text-center">
+        <div className="text-[14px] font-semibold text-gray-700 text-center">
           Thành tiền
         </div>
-        <div className="col-span-2 text-[14px] font-semibold text-gray-700 text-center">
+        <div className="text-[14px] font-semibold text-gray-700 text-center">
           Thao tác
         </div>
       </div>
@@ -106,11 +117,7 @@ const CartTable: React.FC<CartTableProps> = ({
             <div className="text-[14px] text-gray-600">
               Tổng cộng ({totalSelectedItems} sản phẩm):
             </div>
-            <div
-              className={`text-[14px] font-bold ${
-                totalSelectedItems === 0 ? "text-red-600" : "text-gray-900"
-              }`}
-            >
+            <div className="text-[14px] font-bold text-[#E04D30]">
               {formatCurrencyVND(totalAmount)}
             </div>
           </div>
