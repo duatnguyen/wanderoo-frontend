@@ -17,4 +17,4 @@ export { PageContainer, ContentCard } from "./PageLayout";
 export type { PageContainerProps, ContentCardProps } from "./PageLayout";
 
 export { DiscountTable } from "./DiscountTable";
-export type { Voucher, DiscountTableProps } from "./DiscountTable";
+export type { DiscountTableProps } from "./DiscountTable";

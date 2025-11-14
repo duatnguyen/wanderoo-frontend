@@ -126,11 +126,15 @@ export interface CartItemResponse {
 // Review Types
 export interface ReviewResponse {
   id: number;
-  productId: number;
   userId: number;
+  productDetailId: number;
+  orderHistoryId?: number;
+  images?: string[];
   rating: number;
-  comment: string;
+  judging?: string;
+  response?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface ReviewPageResponse extends PageResponse<ReviewResponse> {}
@@ -195,20 +199,72 @@ export interface DiscountResponse {
 // POS Types
 export interface SaleProductResponse {
   id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  category: string;
+  imageUrl?: string;
+  productName: string;
+  attributes?: string;
+  posSoldQuantity: number;
+  sellingPrice: number;
 }
 
 export interface SaleProductPageResponse extends PageResponse<SaleProductResponse> {}
 
+export interface CustomerSearchResponse {
+  id: number;
+  name: string;
+  phone: string;
+  gender: string;
+}
+
+export interface CustomerSearchPageResponse extends PageResponse<CustomerSearchResponse> {}
+
+export interface DiscountResponse {
+  id: number;
+  name: string;
+  code: string;
+  category: string;
+  type: string;
+  applyTo: string;
+  value: number;
+  minOrderValue?: number;
+  maxOrderValue?: number;
+  quantity: number;
+  startDate: string;
+  endDate: string;
+  description?: string;
+}
+
+export interface DiscountPageResponse extends PageResponse<DiscountResponse> {}
+
 export interface DraftOrderResponse {
   id: number;
-  customerId?: number;
-  items: OrderItemResponse[];
-  totalAmount: number;
+  displayName: string;
   status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DraftOrderDetailResponse {
+  orderId: number;
+  status: string;
+  notes?: string;
+  employeeName?: string;
+  customerName?: string;
+  customerPhone?: string;
+  totalProductPrice: number;
+  orderDiscountAmount: number;
+  productDiscountAmount: number;
+  totalOrderPrice: number;
+  items: DraftOrderItemResponse[];
+}
+
+export interface DraftOrderItemResponse {
+  id: number;
+  imageUrl?: string;
+  productName: string;
+  attributes?: string;
+  unitPrice: number;
+  quantity: number;
+  amount: number;
 }
 
 // Warehouse Types
@@ -308,15 +364,23 @@ export interface CartItemUpdateRequest {
 }
 
 export interface ReviewCreateRequest {
-  productId: number;
-  orderId: number;
+  userId: number;
+  productDetailId: number;
+  orderHistoryId?: number;
+  images?: string[];
   rating: number;
-  comment: string;
+  judging?: string;
+  response?: string;
 }
 
 export interface ReviewUpdateRequest {
-  rating?: number;
-  comment?: string;
+  userId: number;
+  productDetailId: number;
+  orderHistoryId?: number;
+  images?: string[];
+  rating: number;
+  judging?: string;
+  response?: string;
 }
 
 export interface CustomerOrderCreateRequest {
@@ -503,6 +567,48 @@ export interface SwitchStatusRequest {
   orderCode: string;
 }
 
+export interface StationsResponse {
+  stations: StationResponse[];
+}
+
+export interface GHNOrderDetailResponse {
+  orderCode: string;
+  status: string;
+  fee: number;
+  expectedDeliveryTime: string;
+  // Other GHN order details
+}
+
+export interface OrderByClientCodeResponse {
+  orderCode: string;
+  clientCode: string;
+  status: string;
+  // Other order details
+}
+
+export interface GHNTrackingResponse {
+  orderCode: string;
+  status: string;
+  logs: TrackingLog[];
+}
+
+export interface GeneratePrintTokenResponse {
+  token: string;
+  url: string;
+}
+
+export interface PrintOrderResponse {
+  fileName: string;
+  fileSize: number;
+  pdfContent: string; // base64 encoded
+}
+
+export interface SwitchStatusResponse {
+  successCount: number;
+  totalCount: number;
+  results: Record<string, boolean>;
+}
+
 export interface UserOrderResponse {
   orderCode: string;
   status: string;
@@ -536,18 +642,58 @@ export interface ApplyDiscountRequest {
   discountId: number;
 }
 
+export interface AddItemToOrderRequest {
+  productDetailId: number;
+  quantity: number;
+}
+
+export interface UpdateItemQuantityRequest {
+  productDetailId: number;
+  quantity: number;
+}
+
+export interface AssignCustomerToOrderRequest {
+  customerId: number;
+}
+
+export interface RemoveItemFromDraftOrderRequest {
+  productDetailId: number;
+}
+
 export interface UpdateNoteRequest {
   note: string;
 }
 
 export interface CheckoutRequest {
-  paymentMethod: string;
+  cashReceived: number;
 }
 
 export interface CheckoutResponse {
   orderId: number;
-  totalAmount: number;
+  orderCode: string;
   status: string;
+  paymentStatus: string;
+  customerName?: string;
+  customerPhone?: string;
+  totalProductPrice: number;
+  orderDiscountAmount: number;
+  productDiscountAmount: number;
+  totalOrderPrice: number;
+  cashReceived: number;
+  changeAmount: number;
+  notes?: string;
+  createdAt: string;
+  items: CheckoutOrderItemResponse[];
+}
+
+export interface CheckoutOrderItemResponse {
+  id: number;
+  imageUrl?: string;
+  productName: string;
+  attributes?: string;
+  unitPrice: number;
+  quantity: number;
+  amount: number;
 }
 
 export interface DiscountCreateRequest {

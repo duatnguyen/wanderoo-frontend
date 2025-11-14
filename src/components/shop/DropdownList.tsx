@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect, type FC } from "react";
+import { useMemo, useRef, useState, useEffect, type FC } from "react";
 
 export type DropdownOption = {
   label: string;

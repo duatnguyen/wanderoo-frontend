@@ -232,7 +232,6 @@ const ReturnRefundRequest: React.FC = () => {
                     files={images}
                     onChange={setImages}
                     variant="dashed"
-                    previewGridCols={4}
                   />
                   <MediaUpload
                     accept="video"

@@ -21,7 +21,6 @@ export const POSOrderTabs: React.FC<POSOrderTabsProps> = ({
   currentOrderId,
   onOrderSelect,
   onOrderClose,
-  onOrderAdd,
   className,
 }) => {
   return (

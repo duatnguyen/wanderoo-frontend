@@ -3,16 +3,16 @@ import { Upload } from "antd";
 import type { UploadFile, UploadProps } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 
-const getGridColsClass = (cols: number): string => {
-  const gridClasses: Record<number, string> = {
-    2: "grid-cols-2 sm:grid-cols-3",
-    3: "grid-cols-3 sm:grid-cols-4",
-    4: "grid-cols-3 sm:grid-cols-4",
-    5: "grid-cols-4 sm:grid-cols-5",
-    6: "grid-cols-4 sm:grid-cols-6",
-  };
-  return gridClasses[cols] || "grid-cols-3 sm:grid-cols-4";
-};
+// const getGridColsClass = (cols: number): string => {
+//   const gridClasses: Record<number, string> = {
+//     2: "grid-cols-2 sm:grid-cols-3",
+//     3: "grid-cols-3 sm:grid-cols-4",
+//     4: "grid-cols-3 sm:grid-cols-4",
+//     5: "grid-cols-4 sm:grid-cols-5",
+//     6: "grid-cols-4 sm:grid-cols-6",
+//   };
+//   return gridClasses[cols] || "grid-cols-3 sm:grid-cols-4";
+// };
 
 export interface MediaUploadProps {
   label?: string;
@@ -23,7 +23,6 @@ export interface MediaUploadProps {
   onRemove?: (index: number) => void;
   variant?: "dashed" | "solid";
   showPreview?: boolean;
-  previewGridCols?: number;
   className?: string;
   disabled?: boolean;
   helperText?: string;
@@ -38,7 +37,6 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
   onRemove,
   variant = "dashed",
   showPreview = true,
-  previewGridCols = 3,
   className = "",
   disabled = false,
   helperText,
@@ -58,7 +56,7 @@ const MediaUpload: React.FC<MediaUploadProps> = ({
     name: file.name,
     status: "done",
     url: URL.createObjectURL(file),
-    originFileObj: file,
+    originFileObj: file as any,
   }));
 
   const handleChange: UploadProps["onChange"] = (info) => {

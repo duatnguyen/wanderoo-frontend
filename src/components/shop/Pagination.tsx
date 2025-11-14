@@ -1,4 +1,4 @@
-import React, { type FC } from "react";
+import { type FC } from "react";
 import { Pagination as AntdPagination } from "antd";
 
 export type PaginationProps = {

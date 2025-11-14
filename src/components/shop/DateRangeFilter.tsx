@@ -1,6 +1,6 @@
 import React from "react";
 import { Input } from "antd";
-import dayjs, { type Dayjs } from "dayjs";
+import { type Dayjs } from "dayjs";
 
 interface DateRangeFilterProps {
   startDate: Dayjs | null;
@@ -10,10 +10,10 @@ interface DateRangeFilterProps {
 }
 
 const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
-  startDate,
-  endDate,
-  onStartDateChange,
-  onEndDateChange,
+  startDate: _startDate,
+  endDate: _endDate,
+  onStartDateChange: _onStartDateChange,
+  onEndDateChange: _onEndDateChange,
 }) => {
   // Tạm thời giữ props ngày để không phá vỡ API, nhưng không hiển thị bộ lọc ngày.
   return (

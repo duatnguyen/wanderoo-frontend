@@ -9,20 +9,22 @@ export type OrderStatus =
   | "cancelled"
   | "return";
 
+export type OrderProduct = {
+  id: string;
+  imageUrl: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  variant?: string;
+  variantColor?: string;
+};
+
 export type Order = {
   id: string;
   orderDate: string;
   status: OrderStatus;
   statusLabel: string;
-  products: {
-    id: string;
-    imageUrl: string;
-    name: string;
-    price: number;
-    originalPrice?: number;
-    variant?: string;
-    variantColor?: string;
-  }[];
+  products: OrderProduct[];
   totalPayment: number;
 };
 
