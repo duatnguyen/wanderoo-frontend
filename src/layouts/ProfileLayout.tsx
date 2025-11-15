@@ -8,7 +8,7 @@ const ProfileLayout: React.FC = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-10xl mx-auto px-4 sm:px-6 lg:px-6">
         {/* Mobile Menu Button */}
         <div className="lg:hidden py-4">
           <button
