@@ -10,89 +10,41 @@ import {
   type TabItemWithBadge,
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
+import { useNavigate } from "react-router-dom";
 import { useMemo } from "react";
-// Mock data for products
-const mockProducts: Product[] = [
-  {
-    id: "1",
-    name: "Giày leo núi nữ cổ thấp Humtto Hiking Shoes 140134B-4",
-    image: "https://images.unsplash.com/photo-1544966503-7cc5ac882d5f?w=300&h=300&fit=crop&crop=center",
-    sku: "SKU01",
-    barcode: "",
-    inventory: 0,
-    availableToSell: 0,
-    webQuantity: 400000,
-    posQuantity: 0,
-    sellingPrice: "600.000đ",
-    costPrice: "400.000đ",
-    variants: [
-      {
-        id: "v1-1",
-        name: "Size 36",
-        sku: "SKU01-40B",
-        barcode: "8930195417609",
-        inventory: 0,
-        availableToSell: 0,
-        webQuantity: 0,
-        posQuantity: 0,
-        sellingPrice: "600.000đ",
-        costPrice: "400.000đ",
-      },
-      {
-        id: "v1-2",
-        name: "Size 37",
-        sku: "SKU01-40C",
-        barcode: "8930195417610",
-        inventory: 0,
-        availableToSell: 0,
-        webQuantity: 0,
-        posQuantity: 0,
-        sellingPrice: "600.000đ",
-        costPrice: "400.000đ",
-      },
-      {
-        id: "v1-3",
-        name: "Size 38",
-        sku: "SKU01-40D",
-        barcode: "8930195417611",
-        inventory: 0,
-        availableToSell: 0,
-        webQuantity: 0,
-        posQuantity: 0,
-        sellingPrice: "600.000đ",
-        costPrice: "400.000đ",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Giày thể thao nam Nike Air Max",
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop&crop=center",
-    sku: "SKU02",
-    barcode: "1234567890123",
-    inventory: 15,
-    availableToSell: 15,
-    webQuantity: 10,
-    posQuantity: 5,
-    sellingPrice: "2.500.000đ",
-    costPrice: "1.800.000đ",
-  },
-  {
-    id: "3",
-    name: "Áo khoác nữ Adidas Originals",
-    image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=300&h=300&fit=crop&crop=center",
-    sku: "SKU03",
-    barcode: "9876543210987",
-    inventory: 8,
-    availableToSell: 8,
-    webQuantity: 5,
-    posQuantity: 3,
-    sellingPrice: "1.200.000đ",
-    costPrice: "800.000đ",
-  },
-];
+import {
+  adminMockProducts,
+  type AdminProductDetail,
+} from "../data/mockProducts";
+type ProductStatus = "active" | "inactive";
+
+type ProductWithStatus = Product & {
+  status: ProductStatus;
+};
+
+const mapDetailToProduct = (
+  product: AdminProductDetail
+): ProductWithStatus => ({
+  id: product.id,
+  name: product.name,
+  image: product.image,
+  sku: product.sku,
+  barcode: product.barcode,
+  inventory: product.inventory,
+  availableToSell: product.availableToSell,
+  webQuantity: product.webQuantity,
+  posQuantity: product.posQuantity,
+  sellingPrice: product.sellingPrice,
+  costPrice: product.costPrice,
+  variants: product.variants,
+  status: product.status,
+});
 
 const AdminProducts: React.FC = () => {
+  const navigate = useNavigate();
+  const [products, setProducts] = useState<ProductWithStatus[]>(() =>
+    adminMockProducts.map(mapDetailToProduct)
+  );
   const [activeTab, setActiveTab] = useState("all");
   const [searchValue, setSearchValue] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
@@ -105,24 +57,19 @@ const AdminProducts: React.FC = () => {
 
   // Calculate product counts by status
   const productCounts = useMemo(() => {
-    const counts = {
-      all: mockProducts.length,
-      active: 0,
-      inactive: 0,
-    };
-
-    mockProducts.forEach(product => {
-      // Logic để phân loại sản phẩm theo trạng thái
-      // Ví dụ: dựa trên inventory hoặc các field khác
-      if (product.inventory > 0) {
-        counts.active++;
-      } else {
-        counts.inactive++;
-      }
-    });
-
-    return counts;
-  }, []);
+    return products.reduce(
+      (counts, product) => {
+        counts.all += 1;
+        if (product.status === "active") {
+          counts.active += 1;
+        } else {
+          counts.inactive += 1;
+        }
+        return counts;
+      },
+      { all: 0, active: 0, inactive: 0 }
+    );
+  }, [products]);
 
   // Create tabs with badge counts
   const tabsWithCounts: TabItemWithBadge[] = useMemo(() => [
@@ -192,7 +139,7 @@ const AdminProducts: React.FC = () => {
     if (selectedProducts.size === 0) return;
 
     const productNames = Array.from(selectedProducts)
-      .map(id => mockProducts.find(p => p.id === id)?.name)
+      .map(id => adminMockProducts.find(p => p.id === id)?.name)
       .filter(Boolean)
       .slice(0, 3) // Show first 3 names
       .join(', ');
@@ -227,12 +174,32 @@ const AdminProducts: React.FC = () => {
     alert(`Đang xuất dữ liệu ${selectedProducts.size} sản phẩm...`);
   };
 
-  const handleViewMore = (productId: string) => {
-    console.log("View more product:", productId);
+  const handleUpdate = (productId: string) => {
+    navigate(`/admin/products/${productId}/edit`);
   };
 
-  const handleUpdate = (productId: string) => {
-    console.log("Update product:", productId);
+  const handleToggleStatus = (productId: string) => {
+    let nextStatus: ProductStatus | null = null;
+
+    setProducts((prev) =>
+      prev.map((product) => {
+        if (product.id !== productId) {
+          return product;
+        }
+
+        const updatedStatus = product.status === "active" ? "inactive" : "active";
+        nextStatus = updatedStatus;
+        return {
+          ...product,
+          status: updatedStatus,
+        };
+      })
+    );
+
+    if (nextStatus) {
+      setActiveTab(nextStatus);
+      setCurrentPage(1);
+    }
   };
 
   // Keyboard shortcuts handler
@@ -264,26 +231,19 @@ const AdminProducts: React.FC = () => {
 
   // Filter products based on search and tab
   const filteredProducts = useMemo(() => {
-    return mockProducts.filter((product) => {
+    return products.filter((product) => {
       const matchesSearch = product.name.toLowerCase().includes(searchValue.toLowerCase()) ||
         product.sku.toLowerCase().includes(searchValue.toLowerCase());
 
       // Filter by tab status
       const matchesTab = (() => {
-        switch (activeTab) {
-          case 'active':
-            return product.inventory > 0;
-          case 'inactive':
-            return product.inventory === 0;
-          case 'all':
-          default:
-            return true;
-        }
+        if (activeTab === "all") return true;
+        return product.status === activeTab;
       })();
 
       return matchesSearch && matchesTab;
     });
-  }, [searchValue, activeTab]);
+  }, [products, searchValue, activeTab]);
 
   // Reset selection when filters change
   React.useEffect(() => {
@@ -368,8 +328,9 @@ const AdminProducts: React.FC = () => {
                 product={product}
                 isSelected={selectedProducts.has(product.id)}
                 onSelect={handleProductSelect}
-                onViewMore={handleViewMore}
                 onUpdate={handleUpdate}
+                status={product.status}
+                onToggleStatus={handleToggleStatus}
               />
             ))}
           </div>

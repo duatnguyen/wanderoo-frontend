@@ -149,6 +149,9 @@ const AdminProductsSubcategoryDetail = lazy(
 const AdminProductsNew = lazy(
   () => import("../../features/admin/pages/products/create/AdminProductsNew")
 );
+const AdminProductsEdit = lazy(
+  () => import("../../features/admin/pages/products/edit/AdminProductsEdit")
+);
 const AdminStaffNew = lazy(
   () => import("../../features/admin/pages/staff/create/AdminStaffNew")
 );
@@ -281,7 +284,7 @@ export const adminRoutes: RouteObject[] = [
     path: "products/:productId/edit",
     element: (
       <LazyWrapper>
-        <AdminProducts />
+        <AdminProductsEdit />
       </LazyWrapper>
     ),
   },

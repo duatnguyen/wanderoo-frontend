@@ -18,23 +18,20 @@ interface ProductsTableProps {
 const ProductsTable: React.FC<ProductsTableProps> = ({ items }) => {
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Sản phẩm</h2>
-      </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto text-[14px]">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-left text-[14px] font-semibold text-gray-700">
                 Sản phẩm
               </th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-center text-[14px] font-semibold text-gray-700">
                 Đơn giá
               </th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-center text-[14px] font-semibold text-gray-700">
                 Số lượng
               </th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-center text-[14px] font-semibold text-gray-700">
                 Thành tiền
               </th>
             </tr>
@@ -43,14 +40,14 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ items }) => {
             {items.map((item) => (
               <tr key={item.id}>
                 <td className="px-4 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 rounded border border-gray-300 bg-transparent" />
-                    <div>
-                      <p className="font-medium text-gray-900 mb-1">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded border border-gray-300 bg-transparent" />
+                    <div className="leading-5">
+                      <p className="font-medium text-gray-900">
                         {item.name}
                       </p>
                       {item.variant && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-gray-500">
                           Phân loại hàng: {item.variant}
                         </p>
                       )}

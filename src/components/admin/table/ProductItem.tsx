@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight, Eye, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, EyeOff, Edit } from "lucide-react";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import type { Product } from "../../../types/types";
 
@@ -7,16 +7,18 @@ interface ProductItemProps {
     product: Product;
     isSelected: boolean;
     onSelect: (productId: string) => void;
-    onViewMore: (productId: string) => void;
     onUpdate: (productId: string) => void;
+    status: "active" | "inactive";
+    onToggleStatus: (productId: string) => void;
 }
 
 const ProductItem: React.FC<ProductItemProps> = ({
     product,
     isSelected,
     onSelect,
-    onViewMore,
     onUpdate,
+    status,
+    onToggleStatus,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const hasVariants = product.variants && product.variants.length > 0;
@@ -58,7 +60,7 @@ const ProductItem: React.FC<ProductItemProps> = ({
                             )}
                         </button>
 
-                        <div className="w-[70px] h-[70px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0 overflow-hidden">
+                        <div className="w-[60px] h-[60px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 flex-shrink-0 overflow-hidden">
                             {product.image ? (
                                 <img
                                     src={product.image}
@@ -138,18 +140,22 @@ const ProductItem: React.FC<ProductItemProps> = ({
                     {/* Actions */}
                     <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
                         <button
-                            onClick={() => onViewMore(product.id)}
+                            onClick={() => onToggleStatus(product.id)}
                             className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
-                            title="Xem thêm"
+                            title={status === "active" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm"}
                         >
-                            <Eye className="w-4 h-4 text-gray-600 hover:text-[#e04d30]" />
+                            {status === "active" ? (
+                                <EyeOff className="w-4 h-4 text-[#2B73F0] hover:text-[#1C57C0]" />
+                            ) : (
+                                <Eye className="w-4 h-4 text-[#2B73F0] hover:text-[#1C57C0]" />
+                            )}
                         </button>
                         <button
                             onClick={() => onUpdate(product.id)}
                             className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
                             title="Cập nhật"
                         >
-                            <Edit className="w-4 h-4 text-gray-600 hover:text-[#e04d30]" />
+                            <Edit className="w-4 h-4 text-[#2B73F0] hover:text-[#1C57C0]" />
                         </button>
                     </div>
                 </div>
@@ -167,7 +173,7 @@ const ProductItem: React.FC<ProductItemProps> = ({
                             {/* Empty space for dropdown alignment */}
                             <div className="w-6 h-6 flex-shrink-0"></div>
 
-                            <div className="w-[70px] h-[70px] flex-shrink-0 flex items-center justify-center">
+                            <div className="w-[60px] h-[60px] flex-shrink-0 flex items-center justify-center">
                                 <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center">
                                     <span className="text-xs text-gray-500 font-medium">V</span>
                                 </div>

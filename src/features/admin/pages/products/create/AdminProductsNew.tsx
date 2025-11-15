@@ -1,4 +1,10 @@
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
 import {
@@ -16,7 +22,7 @@ import CustomCheckbox from "@/components/ui/custom-checkbox";
 import FormField from "@/components/ui/FormField";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import ProgressIndicator from "@/components/ui/ProgressIndicator";
-import { ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { Icon } from "@/components/icons";
 import ImageUpload from "@/components/ui/image-upload";
 import type {
@@ -100,31 +106,62 @@ const FAKE_VERSIONS = [
   },
 ];
 
-const AdminProductsNew: React.FC = () => {
+type AdminProductsFormMode = "create" | "edit";
+
+const DEFAULT_FORM_DATA: ProductFormData = {
+  productName: "",
+  barcode: "",
+  category: "",
+  brand: "",
+  description: "",
+  costPrice: "",
+  sellingPrice: "",
+  inventory: "",
+  available: "",
+  weight: "",
+  length: "",
+  width: "",
+  height: "",
+};
+
+interface AdminProductsNewProps {
+  mode?: AdminProductsFormMode;
+  onBack?: () => void;
+  initialFormData?: Partial<ProductFormData>;
+  initialImages?: ProductImage[];
+  initialAttributes?: ProductAttribute[];
+  initialVersions?: ProductVersion[];
+}
+
+const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
+  mode = "create",
+  onBack,
+  initialFormData,
+  initialImages = [],
+  initialAttributes = [],
+  initialVersions = [],
+}) => {
   const [formData, setFormData] = useState<ProductFormData>({
-    productName: "",
-    barcode: "",
-    category: "",
-    brand: "",
-    description: "",
-    costPrice: "",
-    sellingPrice: "",
-    inventory: "",
-    available: "",
-    weight: "",
-    length: "",
-    width: "",
-    height: "",
+    ...DEFAULT_FORM_DATA,
+    ...initialFormData,
   });
 
-  const [showAttributes, setShowAttributes] = useState(false);
-  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
-  const [currentAttributes, setCurrentAttributes] = useState<CurrentAttribute[]>([
-    { name: "", value: "" },
-  ]);
-  const [images, setImages] = useState<ProductImage[]>([]);
-  const [versions, setVersions] = useState<ProductVersion[]>([]);
-  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(new Set());
+  const [showAttributes, setShowAttributes] = useState(
+    initialAttributes.length > 0
+  );
+  const [attributes, setAttributes] = useState<ProductAttribute[]>(
+    initialAttributes
+  );
+  const [currentAttributes, setCurrentAttributes] = useState<CurrentAttribute[]>(
+    initialAttributes.length
+      ? initialAttributes.map((attr) => ({ name: attr.name, value: "" }))
+      : [{ name: "", value: "" }]
+  );
+  const [images, setImages] = useState<ProductImage[]>(initialImages);
+  const [versions, setVersions] = useState<ProductVersion[]>(initialVersions);
+  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(
+    new Set(initialVersions.map((version) => version.id))
+  );
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>({});
   const [showPriceModal, setShowPriceModal] = useState(false);
@@ -154,6 +191,34 @@ const AdminProductsNew: React.FC = () => {
     "Thông tin vận chuyển",
     "Hoàn thành"
   ];
+
+  useEffect(() => {
+    setFormData({
+      ...DEFAULT_FORM_DATA,
+      ...initialFormData,
+    });
+  }, [initialFormData]);
+
+  useEffect(() => {
+    setImages(initialImages);
+  }, [initialImages]);
+
+  useEffect(() => {
+    setAttributes(initialAttributes);
+    setShowAttributes(initialAttributes.length > 0);
+    setCurrentAttributes(
+      initialAttributes.length
+        ? initialAttributes.map((attr) => ({ name: attr.name, value: "" }))
+        : [{ name: "", value: "" }]
+    );
+  }, [initialAttributes]);
+
+  useEffect(() => {
+    setVersions(initialVersions);
+    setSelectedVersions(
+      new Set(initialVersions.map((version) => version.id))
+    );
+  }, [initialVersions]);
 
   const handleInputChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({
@@ -613,9 +678,19 @@ const AdminProductsNew: React.FC = () => {
     <PageContainer>
       {/* Header */}
       <div className="flex flex-col gap-4 mb-2">
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
+          {mode === "edit" && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="w-10 h-10 flex items-center justify-center rounded-full border border-[#d1d1d1] hover:bg-gray-100 transition-colors"
+              aria-label="Quay lại"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#272424]" />
+            </button>
+          )}
           <h1 className="text-[28px] font-bold text-[#272424] font-montserrat leading-[120%]">
-            Thêm sản phẩm mới
+            {mode === "edit" ? "Chi tiết sản phẩm" : "Thêm sản phẩm mới"}
           </h1>
         </div>
 

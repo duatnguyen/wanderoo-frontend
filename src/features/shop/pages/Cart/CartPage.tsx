@@ -189,7 +189,7 @@ const CartPage: React.FC = () => {
         {/* Cart Content */}
         <section className="w-full bg-gray-50 py-8">
           <div className="max-w-[1200px] mx-auto px-4">
-            <h1 className="text-[20px] font-bold text-gray-900 mb-8">
+            <h1 className="text-[20px] font-bold text-[#E04D30] mb-4">
               Giỏ hàng của bạn
             </h1>
 
