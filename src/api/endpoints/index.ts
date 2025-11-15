@@ -195,3 +195,15 @@ export {
   getExportInvoicesPending,
   getExportInvoicesDone,
 } from './warehouseApi';
+
+// POS APIs
+export {
+  getPosOrderList,
+  getPosOrderDetail,
+  // POS return APIs
+  createPosReturnOrder,
+  getPosReturnOrderList,
+  getPosReturnOrderDetail,
+  cancelPosReturnOrder,
+  completePosReturnOrder,
+} from './posApi';

@@ -225,7 +225,7 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
           </div>
 
           {/* Scrollable Table Body */}
-          <div className="max-h-[400px] overflow-y-auto">
+          <div className="overflow-y-auto">
             {detail.items.map((item, index) => (
               <div
                 key={item.id}

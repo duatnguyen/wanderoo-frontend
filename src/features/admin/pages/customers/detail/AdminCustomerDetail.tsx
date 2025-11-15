@@ -348,7 +348,7 @@ const AdminCustomerDetail = () => {
                 </div>
               </div>
             </div>
-F
+
             {/* Address Book */}
             <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[16px] flex flex-col gap-[12px] h-[200px]">
               <div className="flex items-center justify-between border-b border-[#d1d1d1] pb-[8px]">

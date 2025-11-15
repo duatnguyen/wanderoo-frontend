@@ -317,13 +317,13 @@ const AdminOrders: React.FC = () => {
     },
     {
       title: "Tổng tiền",
-      width: "w-[140px]",
+      width: "w-[120px]",
       minWidth: "min-w-[100px]",
       className: "justify-start",
     },
     {
       title: "Nguồn",
-      width: "w-[80px]",
+      width: "w-[90px]",
       minWidth: "min-w-[80px]",
       className: "justify-start",
     },
@@ -347,7 +347,7 @@ const AdminOrders: React.FC = () => {
     },
     {
       title: "Thao tác",
-      width: "w-[100px]",
+      width: "w-[120px]",
       minWidth: "min-w-[100px]",
       className: "justify-start",
     },

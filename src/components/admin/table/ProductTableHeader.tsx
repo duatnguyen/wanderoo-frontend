@@ -39,7 +39,7 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                             <CustomCheckbox
                                 checked={selectAll}
                                 onChange={onSelectAll}
-                                className="w-[18px] h-[18px]"
+                                className="w-[14px] h-[14px]"
                             />
                             {isIndeterminate && !selectAll && (
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -124,7 +124,7 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                             <CustomCheckbox
                                 checked={selectAll}
                                 onChange={onSelectAll}
-                                className="w-[16px] h-[16px]"
+                                className="w-[14px] h-[14px]"
                             />
                             {isIndeterminate && !selectAll && (
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -141,7 +141,7 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                     <div className="w-[70px] h-[70px] flex-shrink-0"></div>
 
                     <div className="flex-1">
-                        <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
+                        <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-left">
                             Tên sản phẩm
                         </span>
                     </div>
