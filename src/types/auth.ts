@@ -141,6 +141,8 @@ export interface RegisterData {
   password: string;
   name: string;
   phone: string;
+  gender?: string | null;
+  birthday?: string | null;
 }
 
 export interface AuthState {

@@ -162,3 +162,64 @@ export interface OrderHistoryUpdateRequest {
   action?: string;
   details?: string;
 }
+
+// Admin orders API types
+export interface VariantAttribute {
+  id: number;
+  name: string;
+  groupLevel: number;
+  value: string;
+}
+
+export interface AdminOrderItemResponse {
+  id: number;
+  orderId: number;
+  productDetailId: number;
+  quantity: number;
+  snapshotProductName: string;
+  snapshotProductSku: string;
+  snapshotProductPrice: number;
+  snapshotVariantAttributes: VariantAttribute[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminOrderResponse {
+  id: number;
+  code: string;
+  userId: number;
+  picId: number | null;
+  discountId: number | null;
+  method: string;
+  source: string;
+  paymentStatus: string;
+  status: string;
+  shippingFee: number;
+  totalProductPrice: number;
+  totalOrderPrice: number;
+  notes: string;
+  discountOrderId: number | null;
+  discountShipId: number | null;
+  cashReceived: number | null;
+  changeAmount: number | null;
+  shippingOrderCode: string | null;
+  shippingStatus: string | null;
+  shippingProvider: string | null;
+  trackingNumber: string | null;
+  expectedDeliveryDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: AdminOrderItemResponse[];
+}
+
+export interface AdminOrdersApiResponse {
+  status: number;
+  message: string;
+  data: {
+    pageNumber: number;
+    pageSize: number;
+    totalElements: number;
+    totalPages: number;
+    orders: AdminOrderResponse[];
+  };
+}

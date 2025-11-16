@@ -18,8 +18,13 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('accessToken');
-    if (token) {
+    console.log('API Request:', config.url, 'Token exists:', !!token);
+    
+    if (token && !config.url?.startsWith('/auth/v1/public/')) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Authorization header added for:', config.url);
+    } else {
+      console.log('No authorization header for:', config.url, 'Public endpoint or no token');
     }
     return config;
   },

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ChipStatus } from "@/components/ui/chip-status";
 import { DetailIcon } from "@/components/icons";
 
@@ -28,7 +29,7 @@ export const OrderTableHeader = ({
                 : index === columns.length - 1
                   ? "rounded-r-[6px]"
                   : ""
-              } px-[16px] py-[14px] ${column.width} ${column.minWidth || ""} ${column.className || "justify-center"
+              } ${index === 0 ? "px-[16px]" : "px-[8px]"} py-[14px] ${column.width} ${column.minWidth || ""} ${column.className || "justify-center"
               }`}
           >
             <p
@@ -53,12 +54,23 @@ export interface OrderRowProps {
       id: number;
       name: string;
       price: string;
+      quantity: number;
       image: string;
+      variantAttributes?: Array<{
+        groupName: string;
+        value: string;
+        groupLevel: number;
+      }>;
     }>;
     paymentType: string;
     status: string;
     paymentStatus: string;
     category: string;
+    totalAmount: number;
+    shippingFee: number;
+    orderCode?: string;
+    itemsCount: number;
+    date: string;
   };
   onViewDetail: (
     orderId: string,
@@ -77,103 +89,174 @@ export const OrderTableRow = ({
   getProcessingStatus,
   getPaymentStatus,
 }: OrderRowProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const visibleProducts = isExpanded ? order.products : order.products.slice(0, 1);
+
   return (
     <div className="w-full">
-      {/* Customer Header Row */}
-      <div className="flex justify-between px-[16px] py-[12px] border border-[#e7e7e7] bg-gray-50 rounded-t-[6px] w-full">
-        <div className="flex gap-[10px]">
-          <div className="w-[30px] h-[30px] rounded-[24px] bg-gray-200"></div>
-          <div className="flex items-center gap-[8px]">
-            <p className="font-montserrat font-semibold text-[#1a71f6] text-[12px] leading-[1.4]">
-              {order.customer}
+      {/* Order Header with Order Information - Match with TableHeader Columns */}
+      <div className="flex items-center border border-[#e7e7e7] bg-gray-50 rounded-t-[6px] w-full">
+        {/* Đơn hàng Column - flex-1 min-w-[300px] */}
+        <div className="flex items-center gap-[10px] px-[16px] py-[12px] flex-1 min-w-[300px]">
+          {/* Avatar */}
+          <div className="w-[40px] h-[40px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-montserrat font-semibold text-[14px]">
+            {order.customer.charAt(0).toUpperCase()}
+          </div>
+          {/* Customer Info */}
+          <div className="flex flex-col gap-[2px] flex-1 min-w-0">
+            <div className="flex items-center gap-[6px]">
+              <p className="font-montserrat font-semibold text-[#272424] text-[13px] leading-[1.4] truncate">
+                Khách hàng #{order.id}
+              </p>
+              <p className="font-montserrat font-medium text-[#888] text-[11px] leading-[1.4]">
+                @user{order.id}
+              </p>
+            </div>
+            <p className="font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.4]">
+              Mã đơn: {order.orderCode || `DH${order.id}`}
+            </p>
+            <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.4]">
+              Đặt lúc: {order.date}
             </p>
           </div>
         </div>
-        <div className="flex items-center">
-          <p className="font-montserrat font-semibold text-[#272424] text-[14px] leading-[1.4]">
-            Mã đơn hàng: {order.id}
+
+        {/* Tổng tiền Column - w-[140px] */}
+        <div className="flex items-center justify-start px-[16px] py-[12px] w-[140px] min-w-[120px]">
+          <p className="font-montserrat font-semibold text-[#e04d30] text-[12px] leading-[1.3]">
+            {order.totalAmount.toLocaleString('vi-VN')}₫
+            {order.shippingFee > 0 && (
+              <span className="font-normal text-[#888] text-[10px] ml-1">
+                (+{order.shippingFee.toLocaleString('vi-VN')})
+              </span>
+            )}
           </p>
+        </div>
+
+        {/* Nguồn Column - w-[90px] */}
+        <div className="flex items-center justify-start px-[16px] py-[12px] w-[90px] min-w-[80px]">
+          <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3]">
+            {order.category}
+          </p>
+        </div>
+
+        {/* Thanh toán Column - w-[120px] */}
+        <div className="flex items-center justify-start px-[16px] py-[12px] w-[120px] min-w-[100px]">
+          <ChipStatus
+            status={getPaymentTypeStatus(order.paymentType)}
+            labelOverride={order.paymentType}
+            size="small"
+          />
+        </div>
+
+        {/* TT Đơn hàng Column - w-[140px] */}
+        <div className="flex items-center justify-start px-[16px] py-[12px] w-[140px] min-w-[140px]">
+          <ChipStatus
+            status={getProcessingStatus(order.status)}
+            labelOverride={order.status}
+            size="small"
+          />
+        </div>
+
+        {/* TT Thanh toán Column - w-[140px] */}
+        <div className="flex items-center justify-start px-[16px] py-[12px] w-[140px] min-w-[140px]">
+          <ChipStatus
+            status={getPaymentStatus(order.paymentStatus)}
+            labelOverride={order.paymentStatus}
+            size="small"
+          />
+        </div>
+
+        {/* Thao tác Column - w-[120px] */}
+        <div className="flex items-center justify-start px-[16px] py-[12px] w-[120px] min-w-[100px]">
+          <button
+            className="flex gap-[4px] items-center font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.3] cursor-pointer hover:underline"
+            onClick={() => onViewDetail(order.id, order.status, order.category)}
+          >
+            <DetailIcon size={14} color="#1a71f6" />
+            Chi tiết
+          </button>
         </div>
       </div>
 
-      {/* Product Row - Only show first product */}
-      {order.products[0] && (
-        <div className="flex border-b border-x rounded-b-[6px] border-[#e7e7e7] w-full">
-          {/* Sản phẩm Column - flex-1 with min-w-[260px] to match header */}
-          <div className="flex items-start gap-2 px-[8px] py-[12px] flex-1 min-w-[260px] justify-start">
-            <img
-              src={order.products[0].image}
-              alt={order.products[0].name}
-              className="border border-[#d1d1d1] w-[48px] h-[48px] object-cover bg-gray-100 rounded"
-            />
-            <div className="flex flex-col gap-[4px] flex-1 min-w-0">
-              <p className="font-montserrat font-medium text-[#272424] text-[13px] leading-[1.3] line-clamp-2">
-                {order.products[0].name}
-              </p>
-              <p className="font-montserrat font-medium text-[#888] text-[11px] leading-[1.3]">
-                Phân loại: Size 40
-              </p>
+      {/* Products Section */}
+      <div className="border-b border-x border-[#e7e7e7] w-full">
+        {/* Products List */}
+        {visibleProducts.map((product, index) => (
+          <div key={product.id} className={`flex items-center px-[16px] py-[12px] ${index > 0 ? 'border-t border-gray-200' : ''}`}>
+            {/* Product Image and Info */}
+            <div className="flex items-start gap-3 flex-1">
+              <img
+                src={product.image || '/placeholder-product.png'}
+                alt={product.name}
+                className="border border-[#d1d1d1] w-[48px] h-[48px] object-cover bg-gray-100 rounded"
+              />
+              <div className="flex flex-col gap-[2px] flex-1 min-w-0">
+                <p className="font-montserrat font-medium text-[#272424] text-[13px] leading-[1.3] line-clamp-1">
+                  {product.name.split(' / ')[0] || product.name}
+                </p>
+                {product.variantAttributes && product.variantAttributes.length > 0 && (
+                  <p className="font-montserrat font-medium text-[#888] text-[11px] leading-[1.3]">
+                    {product.variantAttributes
+                      .sort((a, b) => a.groupLevel - b.groupLevel)
+                      .map(attr => `${attr.groupName}: ${attr.value}`)
+                      .join(' • ')}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Quantity and Price */}
+            <div className="flex items-center gap-[16px] min-w-[200px]">
+              <div className="text-center">
+                <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
+                  Số lượng
+                </p>
+                <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.3]">
+                  x{product.quantity}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
+                  Đơn giá
+                </p>
+                <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.3]">
+                  {product.price}
+                </p>
+              </div>
             </div>
           </div>
+        ))}
 
-          {/* Giá và T.toán Column - w-[140px] min-w-[100px] to match header */}
-          <div className="flex flex-col items-start justify-center gap-[4px] px-[8px] py-[12px] w-[140px] min-w-[100px]">
-            <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3]">
-              {order.products[0].price}
-            </p>
-            <ChipStatus
-              status={getPaymentTypeStatus(order.paymentType)}
-              labelOverride={order.paymentType}
-              size="small"
-            />
-          </div>
-
-          {/* Nguồn Column - w-[80px] min-w-[80px] to match header */}
-          <div className="flex items-center px-[8px] py-[12px] w-[80px] min-w-[80px] justify-start">
-            <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3]">
-              {order.category}
-            </p>
-          </div>
-
-          {/* Vận chuyển Column - w-[100px] min-w-[100px] to match header */}
-          <div className="flex items-center px-[8px] py-[12px] w-[100px] min-w-[100px] justify-start">
-            <p className="font-montserrat font-medium text-[#888] text-[12px] leading-[1.3]">
-              Giao hàng
-            </p>
-          </div>
-
-          {/* TT Đơn hàng Column - w-[140px] min-w-[140px] to match header */}
-          <div className="flex items-center px-[8px] py-[12px] w-[140px] min-w-[140px] justify-start">
-            <ChipStatus
-              status={getProcessingStatus(order.status)}
-              labelOverride={order.status}
-              size="small"
-            />
-          </div>
-
-          {/* TT Thanh toán Column - w-[140px] min-w-[140px] to match header */}
-          <div className="flex items-center px-[8px] py-[12px] w-[140px] min-w-[140px] justify-start">
-            <ChipStatus
-              status={getPaymentStatus(order.paymentStatus)}
-              labelOverride={order.paymentStatus}
-              size="small"
-            />
-          </div>
-
-          {/* Thao tác Column - w-[100px] min-w-[100px] to match header */}
-          <div className="flex items-center gap-[4px] px-[8px] py-[12px] w-[100px] min-w-[100px] justify-start">
+        {/* Show More/Less Button */}
+        {order.products.length > 1 && (
+          <div className="flex justify-center py-[8px] border-t border-gray-200">
             <button
-              className="flex gap-[4px] items-center font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.3] cursor-pointer hover:underline"
-              onClick={() =>
-                onViewDetail(order.id, order.status, order.category)
-              }
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex items-center gap-[4px] font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.3] cursor-pointer hover:underline"
             >
-              <DetailIcon size={14} color="#1a71f6" />
-              Chi tiết
+              {isExpanded ? (
+                <>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                  Thu gọn
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  Xem thêm {order.products.length - 1} sản phẩm
+                </>
+              )}
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Bottom rounded corner */}
+      <div className="h-[1px] border-b border-x border-[#e7e7e7] rounded-b-[6px]"></div>
     </div>
   );
 };

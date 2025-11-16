@@ -36,6 +36,7 @@ import type {
   CheckoutResponse,
   OrderDetailCreateRequest,
   OrderDetailUpdateRequest,
+  AdminOrdersApiResponse,
 } from '../../types';
 
 // Public Order APIs
@@ -99,9 +100,9 @@ export const updateOrderStatus = async (orderId: number, statusData: OrderStatus
 export const getAdminCustomerOrders = async (params?: {
   page?: number;
   size?: number;
-}): Promise<CustomerOrderPageResponse> => {
-  const response = await api.get<ApiResponse<CustomerOrderPageResponse>>('/auth/v1/private/orders', { params });
-  return response.data.data;
+}): Promise<AdminOrdersApiResponse> => {
+  const response = await api.get<AdminOrdersApiResponse>('/auth/v1/private/orders', { params });
+  return response.data;
 };
 
 export const getAdminCustomerOrderDetail = async (id: number): Promise<CustomerOrderResponse> => {

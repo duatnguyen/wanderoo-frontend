@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthCtx } from "../../app/providers/AuthProvider";
 import { authRegister } from "../../api/endpoints/authApi";
-import type { RegisterData } from "../../types/auth";
+import type { UserCreationRequest } from "../../types/auth";
 import bannerSrc from "../../assets/images/banner/login-banner.png";
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
     phone: "",
     password: "",
   });
@@ -36,9 +37,10 @@ const Register: React.FC = () => {
     setError("");
 
     const trimmedName = formData.name.trim();
+    const trimmedUsername = formData.username.trim();
     const trimmedPhone = formData.phone.trim();
 
-    if (!trimmedName || !trimmedPhone) {
+    if (!trimmedName || !trimmedUsername || !trimmedPhone) {
       setError("Vui lòng nhập đầy đủ thông tin cá nhân");
       return;
     }
@@ -58,13 +60,15 @@ const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const payload: RegisterData = {
-        username: trimmedPhone,
+      const payload: UserCreationRequest = {
+        username: trimmedUsername,
         name: trimmedName,
         phone: trimmedPhone,
         password: formData.password,
         email: `${trimmedPhone}@wanderoo.vn`,
       };
+
+      console.log("Sending registration payload:", payload);
 
       // Call API để register và lấy token
       const response = await authRegister(payload);
@@ -74,9 +78,20 @@ const Register: React.FC = () => {
 
       // Navigate to user dashboard (new users are USER role by default)
       navigate("/user/home");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Register failed", err);
-      setError("Đăng ký thất bại. Vui lòng thử lại.");
+
+      // Get more specific error message from API response
+      let errorMessage = "Đăng ký thất bại. Vui lòng thử lại.";
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -99,40 +114,6 @@ const Register: React.FC = () => {
             <h1 className="text-3xl lg:text-4xl font-semibold text-gray-800 text-center">
               Đăng ký
             </h1>
-            <button
-              type="button"
-              className="flex items-center justify-center gap-3 h-12 w-full rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-blue-200 hover:bg-slate-50 transition-colors"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  fill="#EA4335"
-                  d="M12 11v3.6h4.9c-.2 1.2-1.4 3.6-4.9 3.6-2.9 0-5.4-2.4-5.4-5.5s2.4-5.5 5.4-5.5c1.6 0 2.7.7 3.3 1.3l2.2-2.1C16.4 5 14.4 4 12 4 7.6 4 4 7.6 4 12s3.6 8 8 8c4.6 0 7.6-3.2 7.6-7.7 0-.5 0-.8-.1-1.3H12Z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M5.8 9.5 8.7 11.6c.8-2.3 2.3-3.1 3.3-3.1.9 0 1.6.5 2 .9l2.2-2.2C15.4 5.9 13.8 5 12 5c-2.9 0-5.4 1.7-6.2 4.5Z"
-                />
-                <path
-                  fill="#4A90E2"
-                  d="M12 20c2.4 0 4.4-.8 5.8-2.2l-2.7-2.2c-.7.5-1.7.9-3.1.9-2.4 0-4.4-1.6-5-3.8l-2.9 2.2C5.6 18.6 8.6 20 12 20Z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M18.7 11.3H12V14h3.8c-.4 1.9-2.1 3.2-3.8 3.2-2.4 0-4.4-1.8-4.4-4.2 0-2.3 1.9-4.2 4.4-4.2 1.3 0 2.1.5 2.6.9l2.5-2.4C15.7 6.2 14 5.4 12 5.4 8.7 5.4 6 8.1 6 11.5S8.7 17.6 12 17.6c3.6 0 6-2.5 6-6.1 0-.4 0-.7-.1-1.1Z"
-                />
-              </svg>
-              Đăng ký bằng Google
-            </button>
-            <div className="flex items-center gap-4 text-gray-400 text-xs uppercase tracking-wider">
-              <div className="flex-1 h-px bg-gray-200"></div>
-              Hoặc
-              <div className="flex-1 h-px bg-gray-200"></div>
-            </div>
           </header>
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -156,6 +137,21 @@ const Register: React.FC = () => {
                   onChange={handleChange}
                   className="h-12 w-full rounded-xl border border-gray-300 px-4 text-sm text-gray-800 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15"
                   placeholder="Nhập họ và tên"
+                />
+              </div>
+              <div className="flex flex-col gap-2 text-sm text-gray-600">
+                <label htmlFor="username" className="font-semibold text-gray-800">
+                  Tên đăng nhập
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="h-12 w-full rounded-xl border border-gray-300 px-4 text-sm text-gray-800 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15"
+                  placeholder="Nhập tên đăng nhập"
                 />
               </div>
               <div className="flex flex-col gap-2 text-sm text-gray-600">

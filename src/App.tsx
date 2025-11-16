@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfigProvider } from "antd";
 
 import { router } from "./app/router"; // createBrowserRouter(...)
-import { AuthProvider } from "./app/providers/AuthProvider";
+import { AuthProvider } from "./context/AuthContext";
 import Loading from "./components/common/Loading";
 
 // (tuỳ chọn) cấu hình React Query

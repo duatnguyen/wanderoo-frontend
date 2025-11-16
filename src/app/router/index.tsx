@@ -12,8 +12,8 @@ import Login from "../../pages/auth/Login";
 import Register from "../../pages/auth/Register";
 
 // Guards
-// import AuthGuard from "./guards/AuthGuard";
-// import RoleGuard from "./guards/RoleGuard";
+import AuthGuard from "./guards/AuthGuard";
+import RoleGuard from "./guards/RoleGuard";
 
 // Common Components
 import Loading from "../../components/common/Loading";
@@ -51,10 +51,14 @@ export const router = createBrowserRouter([
     ),
   },
 
-  // Admin routes (temporarily public for UI development)
+  // Admin routes (protected - requires ADMIN role)
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <RoleGuard allow={["ADMIN"]}>
+        <AdminLayout />
+      </RoleGuard>
+    ),
     children: adminRoutes,
   },
 

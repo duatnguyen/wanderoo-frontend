@@ -1,5 +1,5 @@
 // src/pages/admin/AdminOrders.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   PageContainer,
@@ -14,198 +14,79 @@ import {
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { CaretDown } from "@/components/ui/caret-down";
-// Mock data dựa trên hình ảnh
-const mockOrders = [
-  {
-    id: "A122F23153",
-    customer: "nguyenbh96",
-    products: [
-      {
-        id: 1,
-        name: "Áo thun cờ giấn thoáng khí Rockbros LKW008",
-        price: "1.500.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-      {
-        id: 2,
-        name: "Áo thun đài tay nhanh khô Northshengwolf ch...",
-        price: "850.000đ",
-        quantity: 2,
-        image: "/api/placeholder/50/50",
-      },
-      {
-        id: 3,
-        name: "Áo thun ngắn tay nam Gothiar Active",
-        price: "650.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-      {
-        id: 4,
-        name: "Áo thun dài tay nam Gothiar Active",
-        price: "750.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-    ],
-    paymentType: "Tiền mặt",
-    status: "Đã hoàn thành",
-    paymentStatus: "Đã thanh toán",
-    category: "POS",
-    date: "2024-10-17",
-    tabStatus: "completed",
-  },
-  {
-    id: "ORD001",
-    customer: "nguyenlan",
-    products: [
-      {
-        id: 1,
-        name: "Áo thun nữ cộc tay Jouthing Kill Producer LOVEGOS",
-        price: "250.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-    ],
-    paymentType: "Tiền mặt",
-    status: "Chờ xác nhận",
-    paymentStatus: "Chưa thanh toán",
-    category: "Website",
-    date: "2024-10-17",
-    tabStatus: "pending",
-  },
-  {
-    id: "ORD002",
-    customer: "maianh",
-    products: [
-      {
-        id: 1,
-        name: "Áo thun đài tay nhanh Kid Northumberland",
-        price: "180.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-    ],
-    paymentType: "Chuyển khoản",
-    status: "Đã xác nhận",
-    paymentStatus: "Đã thanh toán",
-    category: "Website",
-    date: "2024-10-17",
-    tabStatus: "confirmed",
-  },
-  {
-    id: "ORD003",
-    customer: "vanminh",
-    products: [
-      {
-        id: 1,
-        name: "Giày thể thao nữ chất liệu thoáng khí hiking",
-        price: "450.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-    ],
-    paymentType: "Chuyển khoản",
-    status: "Đang giao",
-    paymentStatus: "Đã thanh toán",
-    category: "Website",
-    date: "2024-10-16",
-    tabStatus: "shipping",
-  },
-  {
-    id: "ORD004",
-    customer: "vanlinh",
-    products: [
-      {
-        id: 1,
-        name: "Áo hoodie ghi chữ Hip Hop crphone Vintage",
-        price: "320.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-    ],
-    paymentType: "Chuyển khoản",
-    status: "Đã hoàn thành",
-    paymentStatus: "Đã thanh toán",
-    category: "POS",
-    date: "2024-10-16",
-    tabStatus: "completed",
-  },
-  {
-    id: "ORD005",
-    customer: "minhquan",
-    products: [
-      {
-        id: 1,
-        name: "Túi ba lô nam từ Canvas Performance Cross Series",
-        price: "280.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-    ],
-    paymentType: "Tiền mặt",
-    status: "Đã hủy",
-    paymentStatus: "Đã hoàn tiền",
-    category: "Website",
-    date: "2024-10-15",
-    tabStatus: "returned",
-  },
-  {
-    id: "ORD006",
-    customer: "thanhha",
-    products: [
-      {
-        id: 1,
-        name: "Váy dài màu xanh vintage style",
-        price: "350.000đ",
-        quantity: 1,
-        image: "/api/placeholder/50/50",
-      },
-    ],
-    paymentType: "Tiền mặt",
-    status: "Chờ xác nhận",
-    paymentStatus: "Chưa thanh toán",
-    category: "Website",
-    date: "2024-10-15",
-    tabStatus: "pending",
-  },
-];
-
-
+import { getAdminCustomerOrders } from "@/api/endpoints/orderApi";
+import type { AdminOrderResponse } from "@/types";
+import { toast } from "sonner";
 
 const AdminOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [orders] = useState(mockOrders);
+  const [orders, setOrders] = useState<AdminOrderResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
-  const [sourceFilter, setSourceFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const navigate = useNavigate();
 
-  // Calculate order counts by status
+  // Fetch orders from API
+  const fetchOrders = async (page = 1, status?: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params: any = {
+        page: page - 1, // API uses 0-based pagination
+        size: 10,
+      };
+
+      if (status && status !== 'all') {
+        params.status = status;
+      }
+
+      const response = await getAdminCustomerOrders(params);
+
+      // Debug logging to see the API response structure
+      console.log('API Response:', response);
+      console.log('Orders data:', response.data.orders);
+      if (response.data.orders.length > 0) {
+        console.log('First order items:', response.data.orders[0].items);
+        if (response.data.orders[0].items?.length > 0) {
+          console.log('First item variant attributes:', response.data.orders[0].items[0].snapshotVariantAttributes);
+        }
+      }
+
+      setOrders(response.data.orders);
+      setTotalPages(response.data.totalPages);
+      setTotalElements(response.data.totalElements);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Không thể tải danh sách đơn hàng. Vui lòng thử lại.');
+      toast.error('Không thể tải danh sách đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load and when filters change
+  useEffect(() => {
+    const status = activeTab === 'all' ? undefined : activeTab;
+    fetchOrders(currentPage, status);
+  }, [activeTab, currentPage]);
+
+  // Calculate order counts by status (this would ideally come from a separate API call)
   const orderCounts = useMemo(() => {
-    const counts = {
-      all: orders.length,
-      pending: 0,
+    // For now, we'll use placeholder counts since we don't have a summary API
+    // In a real implementation, you'd call a separate endpoint for counts
+    return {
+      all: totalElements,
+      pending: 0, // These would come from API
       confirmed: 0,
       shipping: 0,
       completed: 0,
       returned: 0,
     };
-
-    orders.forEach(order => {
-      counts[order.tabStatus as keyof typeof counts]++;
-    });
-
-    return counts;
-  }, [orders]);
+  }, [totalElements]);
 
   // Create order tabs with counts
   const orderTabsWithCounts: TabItemWithBadge[] = useMemo(() => [
@@ -255,41 +136,72 @@ const AdminOrders: React.FC = () => {
 
   // Filter orders by active tab, search term, and source
   const filteredOrders = useMemo(() => {
-    const result = orders.filter((order) => {
-      // Filter by tab
-      const matchesTab = activeTab === "all" || order.tabStatus === activeTab;
-
-      // Filter by search term - search in all products
+    // Since we're already filtering by status in the API call,
+    // we mainly need to handle search filtering on the client side
+    const result = (orders || []).filter((order) => {
+      // Search term filtering - search in order ID, customer name, phone
       const matchesSearch =
         searchTerm === "" ||
-        order.products.some((product) =>
-          product.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ) ||
-        order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.id.toLowerCase().includes(searchTerm.toLowerCase());
+        String(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.code && order.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        String(order.userId).toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Filter by source
-      const matchesSource =
-        sourceFilter === "all" ||
-        (sourceFilter === "website" &&
-          order.category.toLowerCase() === "website") ||
-        (sourceFilter === "pos" && order.category.toLowerCase() === "pos");
-
-      return matchesTab && matchesSearch && matchesSource;
+      return matchesSearch;
     });
 
-    // Reset to page 1 when filters change
-    if (currentPage > 1) {
-      setCurrentPage(1);
-    }
     return result;
-  }, [orders, activeTab, searchTerm, sourceFilter, currentPage]);
+  }, [orders, searchTerm]);
 
-  const paginatedOrders = useMemo(() => {
-    const startIndex = (currentPage - 1) * 10;
-    const endIndex = startIndex + 10;
-    return filteredOrders.slice(startIndex, endIndex);
-  }, [filteredOrders, currentPage]);
+  // Transform API response to match OrderTable component expectations
+  const transformedOrders = useMemo(() => {
+    return (filteredOrders || []).map((order) => ({
+      id: String(order.id),
+      customer: order.code || `User ID: ${order.userId}`,
+      products: order.items?.map((item, index) => {
+        // Format product name with variant attributes if available
+        let displayName = item.snapshotProductName || 'N/A';
+
+        // If we have variant attributes, show them in a more readable format
+        if (item.snapshotVariantAttributes && item.snapshotVariantAttributes.length > 0) {
+          const variantText = item.snapshotVariantAttributes
+            .sort((a, b) => a.groupLevel - b.groupLevel)
+            .map(attr => attr.value)
+            .join(' / ');
+
+          // If the product name doesn't already contain variant info, add it
+          if (!displayName.includes('/')) {
+            displayName = `${displayName} / ${variantText}`;
+          }
+        }
+
+        return {
+          id: item.id || index,
+          name: displayName,
+          price: `${item.snapshotProductPrice?.toLocaleString('vi-VN')}₫` || 'N/A',
+          quantity: item.quantity,
+          image: '', // No image data available from API
+          variantAttributes: item.snapshotVariantAttributes?.map(attr => ({
+            groupName: attr.name,
+            value: attr.value,
+            groupLevel: attr.groupLevel
+          })) || []
+        };
+      }) || [],
+      paymentType: order.method === 'CASH' ? 'Tiền mặt' : order.method === 'TRANSFER' ? 'Chuyển khoản' : 'N/A',
+      status: order.status || "N/A",
+      paymentStatus: order.paymentStatus || "N/A",
+      category: order.source || "Website",
+      date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') + ' ' + new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : "N/A",
+      tabStatus: order.status?.toLowerCase() || "pending",
+      totalAmount: order.totalOrderPrice || 0,
+      shippingFee: order.shippingFee || 0,
+      orderCode: order.code,
+      itemsCount: order.items?.length || 0,
+    }));
+  }, [filteredOrders]);
+
+  // No need for client-side pagination since API already does it
+  const paginatedOrders = transformedOrders;
 
   // Filter options
   const statusFilterOptions: FilterOption[] = [
@@ -301,24 +213,18 @@ const AdminOrders: React.FC = () => {
     { value: "returned", label: "Đã hủy" },
   ];
 
-  const sourceFilterOptions: FilterOption[] = [
-    { value: "all", label: "Tất cả" },
-    { value: "website", label: "Website" },
-    { value: "pos", label: "POS" },
-  ];
-
   // Order table columns definition
   const orderTableColumns: OrderTableColumn[] = [
     {
-      title: "Sản phẩm",
+      title: "Đơn hàng",
       width: "flex-1",
-      minWidth: "min-w-[260px]",
+      minWidth: "min-w-[300px]",
       className: "justify-start",
     },
     {
       title: "Tổng tiền",
-      width: "w-[120px]",
-      minWidth: "min-w-[100px]",
+      width: "w-[130px]",
+      minWidth: "min-w-[120px]",
       className: "justify-start",
     },
     {
@@ -328,8 +234,8 @@ const AdminOrders: React.FC = () => {
       className: "justify-start",
     },
     {
-      title: "V.Chuyển",
-      width: "w-[100px]",
+      title: "Thanh toán",
+      width: "w-[120px]",
       minWidth: "min-w-[100px]",
       className: "justify-start",
     },
@@ -341,13 +247,13 @@ const AdminOrders: React.FC = () => {
     },
     {
       title: "TT Thanh toán",
-      width: "w-[140px]",
+      width: "w-[145px]",
       minWidth: "min-w-[140px]",
       className: "justify-start",
     },
     {
       title: "Thao tác",
-      width: "w-[120px]",
+      width: "w-[125px]",
       minWidth: "min-w-[100px]",
       className: "justify-start",
     },
@@ -356,7 +262,9 @@ const AdminOrders: React.FC = () => {
   return (
     <PageContainer>
       {/* Page Header with Order Count */}
-      <PageHeader title="Danh sách đơn hàng" />
+      <PageHeader
+        title={`Danh sách đơn hàng${totalElements > 0 ? ` (${totalElements.toLocaleString('vi-VN')} đơn)` : ''}`}
+      />
 
       {/* Tab Menu with Badge Counts */}
       <TabMenuWithBadge
@@ -367,56 +275,68 @@ const AdminOrders: React.FC = () => {
       />
 
       {/* Content Card */}
-      <ContentCard >
-        {/* Filters Section */}
-        <TableFilters
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder="Tìm kiếm"
-          filterValue={activeTab}
-          onFilterChange={setActiveTab}
-          filterOptions={statusFilterOptions}
-          filterLabel="Trạng thái"
-          actions={
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center justify-center px-[20px] py-[8px] rounded-[10px] cursor-pointer flex-shrink-0 whitespace-nowrap">
-                  <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
-                    Nguồn đơn
-                  </span>
-                  <CaretDown className="text-[#e04d30]" />
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {sourceFilterOptions.map((option) => (
-                  <DropdownMenuItem
-                    key={option.value}
-                    onClick={() => setSourceFilter(option.value)}
-                  >
-                    {option.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          }
-        />
+      <ContentCard>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e04d30] mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải danh sách đơn hàng...</p>
+            </div>
+          </div>
+        )}
 
-        {/* Order Table */}
-        <OrderTable
-          columns={orderTableColumns}
-          orders={paginatedOrders}
-          onViewDetail={handleViewOrderDetail}
-          getPaymentTypeStatus={getPaymentTypeStatus}
-          getProcessingStatus={getProcessingStatus}
-          getPaymentStatus={getPaymentStatus}
-        />
+        {/* Error State */}
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <div className="text-red-600 mb-4">
+              <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Không thể tải dữ liệu</h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={() => fetchOrders(currentPage, activeTab === 'all' ? undefined : activeTab)}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
 
-        {/* Pagination */}
-        <Pagination
-          current={currentPage}
-          total={Math.ceil(filteredOrders.length / 10)}
-          onChange={setCurrentPage}
-        />
+        {/* Content when loaded successfully */}
+        {!loading && !error && (
+          <>
+            {/* Filters Section */}
+            <TableFilters
+              searchValue={searchTerm}
+              onSearchChange={setSearchTerm}
+              searchPlaceholder="Tìm kiếm mã đơn hàng, ID khách hàng..."
+              filterValue={activeTab}
+              onFilterChange={setActiveTab}
+              filterOptions={statusFilterOptions}
+              filterLabel="Trạng thái"
+            />
+
+            {/* Order Table */}
+            <OrderTable
+              columns={orderTableColumns}
+              orders={paginatedOrders}
+              onViewDetail={handleViewOrderDetail}
+              getPaymentTypeStatus={getPaymentTypeStatus}
+              getProcessingStatus={getProcessingStatus}
+              getPaymentStatus={getPaymentStatus}
+            />
+
+            {/* Pagination */}
+            <Pagination
+              current={currentPage}
+              total={totalPages}
+              onChange={setCurrentPage}
+            />
+          </>
+        )}
       </ContentCard>
     </PageContainer>
   );

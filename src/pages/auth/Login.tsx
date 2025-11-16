@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { useAuthCtx } from "../../app/providers/AuthProvider";
-import { authLogin } from "../../api/endpoints/authApi";
+import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import { getUserFromToken } from "../../utils/jwt";
 import type { LoginCredentials } from "../../types/auth";
 import bannerSrc from "../../assets/images/banner/login-banner.png";
 
@@ -11,27 +11,51 @@ const Login: React.FC = () => {
     password: "",
   });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useAuthCtx();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
+    setSuccess("");
     setIsLoading(true);
 
     try {
-      // Call API để login và lấy token
-      const response = await authLogin(credentials);
+      // Sử dụng AuthProvider để login và lưu token
+      await login(credentials);
 
-      // Sử dụng AuthProvider để set token và update state
-      await login(response.accessToken);
-
-      // Navigate based on user role (role will be available after login completes)
-      navigate("/shop"); // Default navigation, AuthProvider will handle role-based routing
+      // Thông báo thành công
+      setSuccess("Đăng nhập thành công! Đang chuyển hướng...");
+      
+      // Decode token để kiểm tra role
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        try {
+          const userFromToken = getUserFromToken(token);
+          console.log("User role from token:", userFromToken?.role);
+          
+          // Delay navigation và chuyển hướng theo role
+          setTimeout(() => {
+            if (userFromToken?.role === "ADMIN") {
+              console.log("Navigating to /admin");
+              navigate("/admin");
+            } else {
+              console.log("Navigating to /shop");
+              navigate("/shop");
+            }
+          }, 1500);
+        } catch (tokenError) {
+          console.error("Error decoding token:", tokenError);
+          navigate("/shop"); // Fallback
+        }
+      } else {
+        navigate("/shop"); // Fallback
+      }
     } catch (err) {
       console.error("Login failed", err);
       setError("Email hoặc mật khẩu không đúng");
@@ -65,40 +89,6 @@ const Login: React.FC = () => {
             <h1 className="text-3xl lg:text-4xl font-semibold text-gray-800 text-center">
               Đăng nhập
             </h1>
-            <button
-              type="button"
-              className="flex items-center justify-center gap-3 h-12 w-full rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-blue-200 hover:bg-slate-50 transition-colors"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  fill="#EA4335"
-                  d="M12 11v3.6h4.9c-.2 1.2-1.4 3.6-4.9 3.6-2.9 0-5.4-2.4-5.4-5.5s2.4-5.5 5.4-5.5c1.6 0 2.7.7 3.3 1.3l2.2-2.1C16.4 5 14.4 4 12 4 7.6 4 4 7.6 4 12s3.6 8 8 8c4.6 0 7.6-3.2 7.6-7.7 0-.5 0-.8-.1-1.3H12Z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M5.8 9.5 8.7 11.6c.8-2.3 2.3-3.1 3.3-3.1.9 0 1.6.5 2 .9l2.2-2.2C15.4 5.9 13.8 5 12 5c-2.9 0-5.4 1.7-6.2 4.5Z"
-                />
-                <path
-                  fill="#4A90E2"
-                  d="M12 20c2.4 0 4.4-.8 5.8-2.2l-2.7-2.2c-.7.5-1.7.9-3.1.9-2.4 0-4.4-1.6-5-3.8l-2.9 2.2C5.6 18.6 8.6 20 12 20Z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M18.7 11.3H12V14h3.8c-.4 1.9-2.1 3.2-3.8 3.2-2.4 0-4.4-1.8-4.4-4.2 0-2.3 1.9-4.2 4.4-4.2 1.3 0 2.1.5 2.6.9l2.5-2.4C15.7 6.2 14 5.4 12 5.4 8.7 5.4 6 8.1 6 11.5S8.7 17.6 12 17.6c3.6 0 6-2.5 6-6.1 0-.4 0-.7-.1-1.1Z"
-                />
-              </svg>
-              Đăng nhập bằng Google
-            </button>
-            <div className="flex items-center gap-4 text-gray-400 text-xs uppercase tracking-wider">
-              <div className="flex-1 h-px bg-gray-200"></div>
-              Hoặc
-              <div className="flex-1 h-px bg-gray-200"></div>
-            </div>
           </header>
 
           <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
@@ -107,14 +97,20 @@ const Login: React.FC = () => {
                 {error}
               </div>
             ) : null}
+            
+            {success ? (
+              <div className="rounded-xl border border-green-200 bg-green-50 text-green-700 p-3 text-sm">
+                {success}
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-2 text-sm text-gray-600">
-              <label htmlFor="email" className="font-semibold text-gray-800">
+              <label htmlFor="username" className="font-semibold text-gray-800">
                 Số Điện Thoại
               </label>
               <input
-                id="email"
-                name="email"
+                id="username"
+                name="username"
                 type="text"
                 required
                 value={credentials.username}

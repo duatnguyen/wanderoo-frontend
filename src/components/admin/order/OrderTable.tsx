@@ -12,6 +12,11 @@ interface Order {
     price: string;
     quantity: number;
     image: string;
+    variantAttributes?: Array<{
+      groupName: string;
+      value: string;
+      groupLevel: number;
+    }>;
   }>;
   paymentType: string;
   status: string;
@@ -19,6 +24,10 @@ interface Order {
   category: string;
   date: string;
   tabStatus: string;
+  totalAmount: number;
+  shippingFee: number;
+  orderCode?: string;
+  itemsCount: number;
 }
 
 export interface OrderTableProps {
