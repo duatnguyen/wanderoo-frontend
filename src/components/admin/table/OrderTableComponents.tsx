@@ -49,7 +49,12 @@ export const OrderTableHeader = ({
 export interface OrderRowProps {
   order: {
     id: string;
-    customer: string;
+    customer: {
+      name: string;
+      username: string;
+      image: string;
+      orderCode: string;
+    };
     products: Array<{
       id: number;
       name: string;
@@ -100,20 +105,20 @@ export const OrderTableRow = ({
         <div className="flex items-center gap-[10px] px-[16px] py-[12px] flex-1 min-w-[300px]">
           {/* Avatar */}
           <div className="w-[40px] h-[40px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-montserrat font-semibold text-[14px]">
-            {order.customer.charAt(0).toUpperCase()}
+            {order.customer.name.charAt(0).toUpperCase()}
           </div>
           {/* Customer Info */}
           <div className="flex flex-col gap-[2px] flex-1 min-w-0">
             <div className="flex items-center gap-[6px]">
               <p className="font-montserrat font-semibold text-[#272424] text-[13px] leading-[1.4] truncate">
-                Khách hàng #{order.id}
+                {order.customer.name}
               </p>
               <p className="font-montserrat font-medium text-[#888] text-[11px] leading-[1.4]">
-                @user{order.id}
+                @{order.customer.username}
               </p>
             </div>
             <p className="font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.4]">
-              Mã đơn: {order.orderCode || `DH${order.id}`}
+              Mã đơn: {order.customer.orderCode}
             </p>
             <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.4]">
               Đặt lúc: {order.date}

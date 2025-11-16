@@ -14,7 +14,7 @@ import {
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
-import { getAdminCustomerOrders } from "@/api/endpoints/orderApi";
+import { getAdminCustomerOrders, getAdminCustomerOrdersByStatus } from "@/api/endpoints/orderApi";
 import type { AdminOrderResponse } from "@/types";
 import { toast } from "sonner";
 
@@ -40,11 +40,14 @@ const AdminOrders: React.FC = () => {
         size: 10,
       };
 
+      let response;
       if (status && status !== 'all') {
-        params.status = status;
+        // Use the new status-specific endpoint
+        response = await getAdminCustomerOrdersByStatus(status, params);
+      } else {
+        // Use the general endpoint for all orders
+        response = await getAdminCustomerOrders(params);
       }
-
-      const response = await getAdminCustomerOrders(params);
 
       // Debug logging to see the API response structure
       console.log('API Response:', response);
@@ -80,22 +83,22 @@ const AdminOrders: React.FC = () => {
     // In a real implementation, you'd call a separate endpoint for counts
     return {
       all: totalElements,
-      pending: 0, // These would come from API
-      confirmed: 0,
-      shipping: 0,
-      completed: 0,
-      returned: 0,
+      PENDING: 0, // These would come from API
+      CONFIRMED: 0,
+      SHIPPING: 0,
+      COMPLETE: 0,
+      CANCELED: 0,
     };
   }, [totalElements]);
 
   // Create order tabs with counts
   const orderTabsWithCounts: TabItemWithBadge[] = useMemo(() => [
-    { id: "all", label: "Tất cả", count: orderCounts.all },
-    { id: "pending", label: "Chờ xác nhận", count: orderCounts.pending },
-    { id: "confirmed", label: "Đã xác nhận", count: orderCounts.confirmed },
-    { id: "shipping", label: "Đang giao", count: orderCounts.shipping },
-    { id: "completed", label: "Đã hoàn thành", count: orderCounts.completed },
-    { id: "returned", label: "Đã hủy", count: orderCounts.returned },
+    { id: "all", label: "TẤT CẢ", count: orderCounts.all },
+    { id: "PENDING", label: "CHỜ XÁC NHẬN", count: orderCounts.PENDING },
+    { id: "CONFIRMED", label: "ĐÃ XÁC NHẬN", count: orderCounts.CONFIRMED },
+    { id: "SHIPPING", label: "ĐANG GIAO", count: orderCounts.SHIPPING },
+    { id: "COMPLETE", label: "ĐÃ HOÀN THÀNH", count: orderCounts.COMPLETE },
+    { id: "CANCELED", label: "ĐÃ HỦY", count: orderCounts.CANCELED },
   ], [orderCounts]);
 
   // Map payment type to chip status
@@ -105,6 +108,29 @@ const AdminOrders: React.FC = () => {
     return "default";
   };
 
+  // Map order status to Vietnamese
+  const getOrderStatusLabel = (status: string): string => {
+    switch (status) {
+      case "PENDING": return "Chờ xác nhận";
+      case "CONFIRMED": return "Đã xác nhận";
+      case "SHIPPING": return "Đang giao";
+      case "COMPLETE": return "Đã hoàn thành";
+      case "CANCELED": return "Đã hủy";
+      case "REFUND": return "Hoàn tiền";
+      default: return "N/A";
+    }
+  };
+
+  // Map payment status to Vietnamese
+  const getPaymentStatusLabel = (paymentStatus: string): string => {
+    switch (paymentStatus) {
+      case "PENDING": return "Chưa thanh toán";
+      case "PAID": return "Đã thanh toán";
+      case "FAILED": return "Thanh toán thất bại";
+      default: return "N/A";
+    }
+  };
+
   // Map processing status to chip status
   const getProcessingStatus = (status: string): ChipStatusKey => {
     if (status === "Đã hoàn thành") return "completed";
@@ -112,6 +138,7 @@ const AdminOrders: React.FC = () => {
     if (status === "Chờ xác nhận") return "pending";
     if (status === "Đã xác nhận") return "confirmed";
     if (status === "Đã hủy") return "cancelled";
+    if (status === "Hoàn tiền") return "default";
     return "default";
   };
 
@@ -156,7 +183,12 @@ const AdminOrders: React.FC = () => {
   const transformedOrders = useMemo(() => {
     return (filteredOrders || []).map((order) => ({
       id: String(order.id),
-      customer: order.code || `User ID: ${order.userId}`,
+      customer: {
+        name: order.userName || 'N/A',
+        username: order.userUsername || 'N/A',
+        image: order.userImage || '',
+        orderCode: order.code || `DH${order.id}`
+      },
       products: order.items?.map((item, index) => {
         // Format product name with variant attributes if available
         let displayName = item.snapshotProductName || 'N/A';
@@ -187,12 +219,12 @@ const AdminOrders: React.FC = () => {
           })) || []
         };
       }) || [],
-      paymentType: order.method === 'CASH' ? 'Tiền mặt' : order.method === 'TRANSFER' ? 'Chuyển khoản' : 'N/A',
-      status: order.status || "N/A",
-      paymentStatus: order.paymentStatus || "N/A",
+      paymentType: order.method === 'CASH' ? 'Tiền mặt' : order.method === 'BANKING' ? 'Chuyển khoản' : 'N/A',
+      status: getOrderStatusLabel(order.status || ""),
+      paymentStatus: getPaymentStatusLabel(order.paymentStatus || ""),
       category: order.source || "Website",
       date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') + ' ' + new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : "N/A",
-      tabStatus: order.status?.toLowerCase() || "pending",
+      tabStatus: order.status || "PENDING",
       totalAmount: order.totalOrderPrice || 0,
       shippingFee: order.shippingFee || 0,
       orderCode: order.code,
@@ -205,12 +237,12 @@ const AdminOrders: React.FC = () => {
 
   // Filter options
   const statusFilterOptions: FilterOption[] = [
-    { value: "all", label: "Tất cả" },
-    { value: "pending", label: "Chờ xác nhận" },
-    { value: "confirmed", label: "Đã xác nhận" },
-    { value: "shipping", label: "Đang giao" },
-    { value: "completed", label: "Đã hoàn thành" },
-    { value: "returned", label: "Đã hủy" },
+    { value: "all", label: "TẤT CẢ" },
+    { value: "PENDING", label: "CHỜ XÁC NHẬN" },
+    { value: "CONFIRMED", label: "ĐÃ XÁC NHẬN" },
+    { value: "SHIPPING", label: "ĐANG GIAO" },
+    { value: "COMPLETE", label: "ĐÃ HOÀN THÀNH" },
+    { value: "CANCELED", label: "ĐÃ HỦY" },
   ];
 
   // Order table columns definition

@@ -188,6 +188,9 @@ export interface AdminOrderResponse {
   id: number;
   code: string;
   userId: number;
+  userName: string | null;
+  userImage: string | null;
+  userUsername: string | null;
   picId: number | null;
   discountId: number | null;
   method: string;

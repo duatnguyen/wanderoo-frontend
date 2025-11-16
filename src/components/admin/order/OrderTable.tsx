@@ -5,7 +5,12 @@ import type { ChipStatusKey } from "@/components/ui/chip-status";
 
 interface Order {
   id: string;
-  customer: string;
+  customer: {
+    name: string;
+    username: string;
+    image: string;
+    orderCode: string;
+  };
   products: Array<{
     id: number;
     name: string;

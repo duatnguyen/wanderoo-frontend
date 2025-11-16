@@ -105,6 +105,14 @@ export const getAdminCustomerOrders = async (params?: {
   return response.data;
 };
 
+export const getAdminCustomerOrdersByStatus = async (status: string, params?: {
+  page?: number;
+  size?: number;
+}): Promise<AdminOrdersApiResponse> => {
+  const response = await api.get<AdminOrdersApiResponse>(`/auth/v1/private/orders/status/${status}`, { params });
+  return response.data;
+};
+
 export const getAdminCustomerOrderDetail = async (id: number): Promise<CustomerOrderResponse> => {
   const response = await api.get<ApiResponse<CustomerOrderResponse>>(`/auth/v1/private/orders/${id}`);
   return response.data.data;
