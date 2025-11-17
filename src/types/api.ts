@@ -7,6 +7,13 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+export interface UserInfo {
+  id: number;
+  name: string;
+  image: string;
+  username: string;
+}
+
 // Pagination Response
 export interface PageResponse<T> {
   pageNumber: number;
@@ -411,9 +418,7 @@ export interface CreateOrderResponse {
 }
 
 export interface CustomerOrderResponse extends OrderResponse {
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
+  userInfo: UserInfo;
 }
 
 export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> {}

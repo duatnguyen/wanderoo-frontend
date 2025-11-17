@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from "react";
 import { authLogin, authRegister } from "../api/endpoints/authApi";
-import { isTokenExpired, getTimeUntilExpiry } from "../utils/jwt";
+import { isTokenExpired, getTimeUntilExpiry, getUserFromToken } from "../utils/jwt";
 import type {
   AuthContextType,
   AuthState,
@@ -16,14 +16,15 @@ type AuthAction =
   | { type: "LOGOUT" }
   | { type: "REGISTER_START" }
   | { type: "REGISTER_SUCCESS"; payload: { user: User; token: string; refreshToken: string } }
-  | { type: "REGISTER_FAILURE" };
+  | { type: "REGISTER_FAILURE" }
+  | { type: "AUTH_CHECK_COMPLETE" };
 
 const initialState: AuthState = {
   user: null,
   token: null,
   refreshToken: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true, // Start with loading true to prevent premature redirects
 };
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
@@ -62,6 +63,12 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         isLoading: false,
       };
 
+    case "AUTH_CHECK_COMPLETE":
+      return {
+        ...state,
+        isLoading: false,
+      };
+
     default:
       return state;
   }
@@ -84,17 +91,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Check if token is already expired
     if (isTokenExpired(token)) {
-      console.log('Token is already expired, logging out');
       logout();
       return;
     }
 
     // Get time until expiry and set timer
     const timeUntilExpiry = getTimeUntilExpiry(token);
-    console.log(`Token expires in ${Math.floor(timeUntilExpiry / 1000)} seconds`);
     
     logoutTimerRef.current = setTimeout(() => {
-      console.log('Token expired, automatically logging out');
       logout();
     }, timeUntilExpiry);
   };
@@ -107,38 +111,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (savedToken) {
       // Check if token is expired
       if (isTokenExpired(savedToken)) {
-        console.log('Saved token is expired, clearing storage');
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        dispatch({ type: "AUTH_CHECK_COMPLETE" });
         return;
       }
 
-      // Create minimal user object for restored session
+      // Get user info from token
+      const tokenUser = getUserFromToken(savedToken);
+      if (!tokenUser) {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        dispatch({ type: "AUTH_CHECK_COMPLETE" });
+        return;
+      }
+
+      // Create user object from token data
       const user: User = {
-        id: 0,
-        username: '', // Will be populated when needed
+        id: parseInt(tokenUser.id) || 0,
+        username: tokenUser.username,
         email: '',
         name: '',
         phone: '',
-        role: 'CUSTOMER' as any,
+        role: tokenUser.role as any,
         status: 'ACTIVE',
       };
 
-      dispatch({ 
-        type: "LOGIN_SUCCESS", 
-        payload: { 
-          user, 
-          token: savedToken, 
-          refreshToken: savedRefreshToken || "" 
-        } 
+      dispatch({
+        type: "LOGIN_SUCCESS",
+        payload: {
+          user,
+          token: savedToken,
+          refreshToken: savedRefreshToken || ""
+        }
       });
 
       // Setup automatic logout
       setupLogoutTimer(savedToken);
+    } else {
+      // No saved token, auth check complete
+      dispatch({ type: "AUTH_CHECK_COMPLETE" });
     }
-  }, []);
-
-  // Cleanup timer on unmount
+  }, []);  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (logoutTimerRef.current) {
@@ -159,14 +173,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error('Received expired token');
       }
 
-      // Create minimal user object for state
+      // Get user info from token
+      const tokenUser = getUserFromToken(response.accessToken);
+      if (!tokenUser) {
+        throw new Error('Could not decode user from token');
+      }
+
+      // Create user object from token data
       const user: User = {
-        id: 0, // Will be populated later when needed
-        username: credentials.username, // Use the username from login credentials
+        id: parseInt(tokenUser.id) || 0,
+        username: tokenUser.username,
         email: '',
         name: '',
         phone: '',
-        role: 'CUSTOMER' as any, // Default role
+        role: tokenUser.role as any,
         status: 'ACTIVE',
       };
 
@@ -204,14 +224,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error('Received expired token');
       }
       
-      // Create minimal user object
+      // Get user info from token
+      const tokenUser = getUserFromToken(response.accessToken);
+      if (!tokenUser) {
+        throw new Error('Could not decode user from token');
+      }
+
+      // Create user object from token data
       const user: User = {
-        id: 0,
-        username: userData.username,
+        id: parseInt(tokenUser.id) || 0,
+        username: tokenUser.username,
         email: userData.email,
         name: userData.name,
         phone: userData.phone,
-        role: 'CUSTOMER' as any,
+        role: tokenUser.role as any,
         status: 'ACTIVE',
       };
 
@@ -247,7 +273,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const refreshAuth = async () => {
     // TODO: Implement token refresh logic
-    console.log("Refresh auth called");
   };
 
   const value: AuthContextType = {

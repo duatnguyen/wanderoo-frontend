@@ -23,7 +23,7 @@ const AdminOrders: React.FC = () => {
   const [orders, setOrders] = useState<AdminOrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -41,7 +41,7 @@ const AdminOrders: React.FC = () => {
       };
 
       let response;
-      if (status && status !== 'all') {
+      if (status && status !== 'ALL') {
         // Use the new status-specific endpoint
         response = await getAdminCustomerOrdersByStatus(status, params);
       } else {
@@ -73,7 +73,7 @@ const AdminOrders: React.FC = () => {
 
   // Initial load and when filters change
   useEffect(() => {
-    const status = activeTab === 'all' ? undefined : activeTab;
+    const status = activeTab === 'ALL' ? undefined : activeTab;
     fetchOrders(currentPage, status);
   }, [activeTab, currentPage]);
 
@@ -82,7 +82,7 @@ const AdminOrders: React.FC = () => {
     // For now, we'll use placeholder counts since we don't have a summary API
     // In a real implementation, you'd call a separate endpoint for counts
     return {
-      all: totalElements,
+      ALL: totalElements,
       PENDING: 0, // These would come from API
       CONFIRMED: 0,
       SHIPPING: 0,
@@ -93,7 +93,7 @@ const AdminOrders: React.FC = () => {
 
   // Create order tabs with counts
   const orderTabsWithCounts: TabItemWithBadge[] = useMemo(() => [
-    { id: "all", label: "TẤT CẢ", count: orderCounts.all },
+    { id: "ALL", label: "TẤT CẢ", count: orderCounts.ALL },
     { id: "PENDING", label: "CHỜ XÁC NHẬN", count: orderCounts.PENDING },
     { id: "CONFIRMED", label: "ĐÃ XÁC NHẬN", count: orderCounts.CONFIRMED },
     { id: "SHIPPING", label: "ĐANG GIAO", count: orderCounts.SHIPPING },
@@ -171,7 +171,7 @@ const AdminOrders: React.FC = () => {
         searchTerm === "" ||
         String(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
         (order.code && order.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        String(order.userId).toLowerCase().includes(searchTerm.toLowerCase());
+        String(order.userInfo?.id).toLowerCase().includes(searchTerm.toLowerCase());
 
       return matchesSearch;
     });
@@ -184,10 +184,10 @@ const AdminOrders: React.FC = () => {
     return (filteredOrders || []).map((order) => ({
       id: String(order.id),
       customer: {
-        name: order.userName || 'N/A',
-        username: order.userUsername || 'N/A',
-        image: order.userImage || '',
-        orderCode: order.code || `DH${order.id}`
+        name: order.userInfo?.name || 'N/A',
+        username: order.userInfo?.username || 'N/A',
+        image: order.userInfo?.image || '',
+        orderCode: order.code
       },
       products: order.items?.map((item, index) => {
         // Format product name with variant attributes if available
@@ -227,7 +227,6 @@ const AdminOrders: React.FC = () => {
       tabStatus: order.status || "PENDING",
       totalAmount: order.totalOrderPrice || 0,
       shippingFee: order.shippingFee || 0,
-      orderCode: order.code,
       itemsCount: order.items?.length || 0,
     }));
   }, [filteredOrders]);
@@ -237,7 +236,7 @@ const AdminOrders: React.FC = () => {
 
   // Filter options
   const statusFilterOptions: FilterOption[] = [
-    { value: "all", label: "TẤT CẢ" },
+    { value: "ALL", label: "TẤT CẢ" },
     { value: "PENDING", label: "CHỜ XÁC NHẬN" },
     { value: "CONFIRMED", label: "ĐÃ XÁC NHẬN" },
     { value: "SHIPPING", label: "ĐANG GIAO" },
@@ -329,7 +328,7 @@ const AdminOrders: React.FC = () => {
             <h3 className="text-lg font-semibold text-red-800 mb-2">Không thể tải dữ liệu</h3>
             <p className="text-red-600 mb-4">{error}</p>
             <button
-              onClick={() => fetchOrders(currentPage, activeTab === 'all' ? undefined : activeTab)}
+              onClick={() => fetchOrders(currentPage, activeTab === 'ALL' ? undefined : activeTab)}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
             >
               Thử lại

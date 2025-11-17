@@ -218,7 +218,7 @@ const ReturnRefundProductSelection: React.FC = () => {
 
             {/* Order Info */}
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-4 pb-4 border-b border-gray-200">
-              <span>Đơn hàng: #{orderData.id}</span>
+              <span>Đơn hàng: #{orderData.code}</span>
               <span>|</span>
               <span>Ngày đặt hàng: {orderData.orderDate}</span>
             </div>

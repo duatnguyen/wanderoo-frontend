@@ -143,7 +143,7 @@ const ReturnRefundRequest: React.FC = () => {
             </h2>
             <div className="space-y-3 mb-4">
               <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-                <span>Đơn hàng: #{orderData.id}</span>
+                <span>Đơn hàng: #{orderData.code}</span>
                 <span>|</span>
                 <span>Ngày đặt hàng: {orderData.orderDate}</span>
               </div>

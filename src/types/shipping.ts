@@ -46,10 +46,16 @@ export interface StationResponse {
 }
 
 export interface PickShiftResponse {
-  shiftId: number;
-  shiftName: string;
-  fromTime: string;
-  toTime: string;
+  code: number;
+  message: string;
+  data: PickShiftItem[];
+}
+
+export interface PickShiftItem {
+  id: number;
+  title: string;
+  from_time: number;
+  to_time: number;
 }
 
 export interface CreateGHNOrderRequest {

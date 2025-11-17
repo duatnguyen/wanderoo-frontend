@@ -1,8 +1,17 @@
 // src/types/orders.ts - Order, cart and review types
 import type { PageResponse } from './common';
 
+export interface UserInfo {
+  id: number;
+  name: string;
+  image: string;
+  username: string;
+  phone?: string;
+}
+
 export interface OrderResponse {
   id: number;
+  code: string;
   customerId: number;
   totalAmount: number;
   status: string;
@@ -11,7 +20,7 @@ export interface OrderResponse {
   updatedAt: string;
 }
 
-export interface OrderPageResponse extends PageResponse<OrderResponse> {}
+export interface OrderPageResponse extends PageResponse<OrderResponse> { }
 
 export interface OrderDetailResponse extends OrderResponse {
   items: OrderItemResponse[];
@@ -23,15 +32,19 @@ export interface OrderItemResponse {
   quantity: number;
   price: number;
   total: number;
+  name?: string; // Product name
+  image?: string; // Product image
 }
+
 
 export interface CustomerOrderResponse extends OrderResponse {
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
+  userInfo: UserInfo;
+  shippingDetail?: any; // GHN shipping details
+  items?: OrderItemResponse[]; // Order items
+  source?: string; // Order source (WEBSITE, POS, etc.)
 }
 
-export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> {}
+export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> { }
 
 export interface CartResponse {
   id: number;
@@ -57,7 +70,7 @@ export interface ReviewResponse {
   createdAt: string;
 }
 
-export interface ReviewPageResponse extends PageResponse<ReviewResponse> {}
+export interface ReviewPageResponse extends PageResponse<ReviewResponse> { }
 
 export interface OrderHistoryResponse {
   id: number;
@@ -68,9 +81,9 @@ export interface OrderHistoryResponse {
   details: string;
 }
 
-export interface OrderHistoryPageResponse extends PageResponse<OrderHistoryResponse> {}
+export interface OrderHistoryPageResponse extends PageResponse<OrderHistoryResponse> { }
 
-export interface OrderDetailPageResponse extends PageResponse<OrderDetailResponse> {}
+export interface OrderDetailPageResponse extends PageResponse<OrderDetailResponse> { }
 
 // Request types
 export interface CustomerOrderCreateRequest {
@@ -187,10 +200,7 @@ export interface AdminOrderItemResponse {
 export interface AdminOrderResponse {
   id: number;
   code: string;
-  userId: number;
-  userName: string | null;
-  userImage: string | null;
-  userUsername: string | null;
+  userInfo: UserInfo;
   picId: number | null;
   discountId: number | null;
   method: string;
