@@ -42,7 +42,7 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN").format(amount) + "₫";
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
   // Mock orders data

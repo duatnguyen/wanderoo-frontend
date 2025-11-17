@@ -306,28 +306,28 @@ const AdminWarehouseSupplier = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                  <div className="flex gap-[6px] items-center justify-center -ml-[24px] pr-[12px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
                       Mã NCC
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                  <div className="flex gap-[6px] items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
                       Tên NCC
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                  <div className="flex gap-[6px] items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
                       Số điện thoại
                     </span>
                   </div>
-                  <div className="flex gap-[6px] items-center px-[4px] py-[12px] flex-1 min-w-0">
-                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4]">
+                  <div className="flex gap-[6px] items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
                       Email
                     </span>
                   </div>
-                  <div className="flex gap-[4px] items-center justify-end p-[14px] flex-1 min-w-0">
-                    <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
+                  <div className="flex gap-[4px] items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
+                    <span className="font-semibold text-[#272424] text-[13px] leading-[1.4] text-center">
                       Trạng thái
                     </span>
                   </div>
@@ -358,9 +358,9 @@ const AdminWarehouseSupplier = () => {
                       />
                     </div>
                   </div>
-                  <div className="flex h-full items-center px-[4px] py-[12px] flex-1 min-w-0 ml-[7px]">
+                  <div className="flex h-full items-center justify-center -ml-[24px] pr-[12px] py-[12px] flex-1 min-w-0">
                     <span
-                      className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] whitespace-nowrap cursor-pointer hover:underline"
+                      className="font-semibold text-[13px] text-[#1a71f6] leading-[1.3] whitespace-nowrap cursor-pointer hover:underline text-center"
                       onClick={() =>
                         navigate(`/admin/warehouse/supplier/${s.id}`)
                       }
@@ -368,25 +368,25 @@ const AdminWarehouseSupplier = () => {
                       {s.id}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
-                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
+                  <div className="flex flex-col gap-[2px] h-full items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
+                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
                       {s.name}
                     </span>
-                    <span className="font-medium text-[#737373] text-[11px] leading-[1.3]">
+                    <span className="font-medium text-[#737373] text-[11px] leading-[1.3] text-center">
                       {s.company}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
-                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
+                  <div className="flex flex-col gap-[2px] h-full items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
+                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
                       {s.phone}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] flex-1 min-w-0">
-                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4] truncate">
+                  <div className="flex flex-col gap-[2px] h-full items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
+                    <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center truncate">
                       {s.email}
                     </span>
                   </div>
-                  <div className="flex gap-[4px] h-full items-center justify-end p-[14px] flex-1 min-w-0">
+                  <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
                     <ChipStatus
                       status={s.status === "active" ? "active" : "disabled"}
                       labelOverride={

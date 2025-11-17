@@ -36,7 +36,7 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
   // Memoize currency formatter để tránh tạo lại function nhiều lần
   const formatCurrency = useMemo(() => {
     const formatter = new Intl.NumberFormat("vi-VN");
-    return (amount: number) => formatter.format(amount) + "₫";
+    return (amount: number) => formatter.format(amount) + "đ";
   }, []);
 
   // Memoize sort options để tránh tạo lại array

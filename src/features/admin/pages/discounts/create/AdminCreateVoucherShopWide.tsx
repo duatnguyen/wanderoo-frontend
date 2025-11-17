@@ -126,9 +126,9 @@ const AdminCreateVoucherShopWide: React.FC = () => {
 
   return (
     <div className="w-full overflow-x-auto min-h-screen">
-      <div className="flex flex-col gap-[10px] items-start w-full max-w-[930px] mx-auto px-[24px] min-w-[925px]">
+      <div className="flex flex-col gap-[10px] items-start w-full">
         {/* Header with Back Button */}
-        <div className="flex flex-col gap-[8px] items-start justify-center w-full min-w-[925px]">
+        <div className="flex flex-col gap-[8px] items-start justify-center w-full">
           <div className="flex gap-[4px] items-center">
             <button
               onClick={handleBackClick}
@@ -144,10 +144,10 @@ const AdminCreateVoucherShopWide: React.FC = () => {
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-[16px] w-full min-w-[925px] flex-shrink-0"
+          className="flex flex-col gap-[16px] w-full flex-shrink-0"
         >
           {/* Basic Information Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
@@ -176,14 +176,14 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
                   Tên chương trình giảm giá
                 </label>
-                <div className="flex-1 flex-shrink-0">
+                  <div className="flex-1 flex-shrink-0">
                   <FormInput
                     placeholder="Nhập tên chương trình giảm giá"
                     value={formData.voucherName}
                     onChange={(e) =>
                       handleInputChange("voucherName", e.target.value)
                     }
-                    containerClassName="h-[36px] w-[642px]"
+                    containerClassName="h-[36px] w-[873px]"
                     required
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
@@ -204,7 +204,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("voucherCode", e.target.value)
                     }
-                    containerClassName="h-[36px] w-[642px]"
+                    containerClassName="h-[36px] w-[873px]"
                     required
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
@@ -256,7 +256,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
           </div>
 
           {/* Voucher Settings Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
@@ -271,7 +271,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
                   Loại giảm giá | Mức giảm
                 </label>
-                <div className="flex-1 flex flex-row gap-[16px] items-center flex-shrink-0">
+                <div className="flex-1 flex flex-row gap-[16px] items-center flex-shrink-0 w-[873px]">
                   {/* Discount Type Dropdown */}
                   <div className="w-[164px] flex-shrink-0">
                     <DropdownMenu
@@ -318,7 +318,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                   </div>
 
                   {/* Discount Value Input */}
-                  <div className="flex-1 w-full">
+                  <div className="flex-1">
                     <FormInput
                       placeholder={
                         formData.discountType === "percentage" ? "%" : "đ"
@@ -372,7 +372,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                               e.target.value
                             )
                           }
-                          containerClassName="h-[36px] w-full"
+                          containerClassName="h-[36px] w-[873px]"
                         />
                       </div>
                     )}
@@ -392,7 +392,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("minOrderAmount", e.target.value)
                     }
-                    containerClassName="h-[36px] w-[642px]"
+                    containerClassName="h-[36px] w-[873px]"
                   />
                 </div>
               </div>
@@ -409,7 +409,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("maxUsage", e.target.value)
                     }
-                    containerClassName="h-[36px] w-[642px]"
+                    containerClassName="h-[36px] w-[873px]"
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
                     Tổng số mã giảm giá tối đa có thể sử dụng
@@ -429,7 +429,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("maxUsagePerCustomer", e.target.value)
                     }
-                    containerClassName="h-[36px] w-[642px]"
+                    containerClassName="h-[36px] w-[873px]"
                   />
                 </div>
               </div>
@@ -437,7 +437,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
           </div>
 
           {/* Display Settings Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-montserrat font-bold text-[16px] text-[#272424] leading-[normal]">

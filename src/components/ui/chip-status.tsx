@@ -52,6 +52,7 @@ export interface ChipStatusProps {
   labelOverride?: string;
   className?: string;
   size?: "default" | "small";
+  textClassName?: string;
 }
 
 export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
@@ -59,6 +60,7 @@ export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
   labelOverride,
   className,
   size = "default",
+  textClassName,
 }) => {
   const styles = CHIP_STYLES[status] ?? CHIP_STYLES.default;
   
@@ -84,7 +86,8 @@ export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
       <span
         className={cn(
           "font-semibold leading-[1.2] whitespace-nowrap",
-          textSizeClasses[size]
+          textSizeClasses[size],
+          textClassName
         )}
         style={{ color: styles.text }}
       >

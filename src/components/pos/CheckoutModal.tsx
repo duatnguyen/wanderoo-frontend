@@ -25,6 +25,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [change, setChange] = useState(0);
+  const [isAmountInputFocused, setIsAmountInputFocused] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -32,6 +33,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setPaymentMethod("cash");
       setAmountPaid("");
       setChange(0);
+      setIsAmountInputFocused(false);
     }
   }, [isOpen]);
 
@@ -47,17 +49,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   }, [amountPaid, finalAmount, paymentMethod]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN").format(amount) + "₫";
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
   const handleAmountPaidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^\d]/g, "");
-    if (value === "") {
-      setAmountPaid("");
-      return;
-    }
-    const numValue = parseInt(value, 10);
-    setAmountPaid(numValue.toString());
+    let inputValue = e.target.value;
+    
+    // Remove all non-digit characters (including dots, commas, and đ)
+    const numericValue = inputValue.replace(/[^\d]/g, "");
+    
+    // Allow empty value for clearing
+    setAmountPaid(numericValue);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -262,10 +264,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <input
                   type="text"
                   value={
-                    amountPaid ? formatCurrency(parseFloat(amountPaid)) : ""
+                    isAmountInputFocused
+                      ? amountPaid
+                      : amountPaid
+                        ? formatCurrency(parseFloat(amountPaid))
+                        : ""
                   }
                   onChange={handleAmountPaidChange}
-                  placeholder="0₫"
+                  onFocus={() => setIsAmountInputFocused(true)}
+                  onBlur={() => setIsAmountInputFocused(false)}
+                  placeholder="0đ"
                   className="text-sm font-bold text-[#272424] text-right border-b-2 border-[#272424] outline-none bg-transparent w-32"
                   required={paymentMethod === "cash"}
                 />

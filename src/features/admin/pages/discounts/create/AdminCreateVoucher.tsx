@@ -84,9 +84,9 @@ const AdminCreateVoucher: React.FC = () => {
 
   return (
     <div className="w-full overflow-x-auto min-h-screen">
-      <div className="flex flex-col w-full max-w-full lg:max-w-[calc(100%-500px)] mx-auto mt-[10px] px-[24px] min-w-[700px]">
+      <div className="flex flex-col w-full mt-[10px]">
         {/* Header with Back Button */}
-        <div className="flex flex-col gap-[8px] items-start justify-center w-full min-w-[700px]">
+        <div className="flex flex-col gap-[8px] items-start justify-center w-full">
           <div className="flex flex-col sm:flex-row gap-[15px] sm:gap-[30px] items-start sm:items-center w-full">
             <button
               onClick={handleBackClick}
@@ -102,10 +102,10 @@ const AdminCreateVoucher: React.FC = () => {
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-[16px] w-full mt-[8px] min-w-[700px] flex-shrink-0"
+          className="flex flex-col gap-[16px] w-full mt-[8px] flex-shrink-0"
         >
           {/* Basic Information Section */}
-          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0 min-w-[700px]">
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-bold text-[18px] sm:text-[20px] text-[#272424] leading-[normal] break-words">
@@ -141,7 +141,7 @@ const AdminCreateVoucher: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("voucherName", e.target.value)
                     }
-                    containerClassName="h-[36px] w-full"
+                    containerClassName="h-[36px] w-[873px]"
                     required
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
@@ -162,7 +162,7 @@ const AdminCreateVoucher: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("voucherCode", e.target.value)
                     }
-                    containerClassName="h-[36px] w-full"
+                    containerClassName="h-[36px] w-[873px]"
                     required
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
@@ -186,7 +186,7 @@ const AdminCreateVoucher: React.FC = () => {
                       onChange={(e) =>
                         handleInputChange("startDate", e.target.value)
                       }
-                      containerClassName="h-[36px] w-full"
+                      containerClassName="h-[36px] w-[873px]"
                       className={!formData.startDate ? "opacity-50" : ""}
                     />
                   </div>
@@ -204,7 +204,7 @@ const AdminCreateVoucher: React.FC = () => {
                       onChange={(e) =>
                         handleInputChange("endDate", e.target.value)
                       }
-                      containerClassName="h-[36px] w-full"
+                      containerClassName="h-[36px] w-[873px]"
                       className={!formData.endDate ? "opacity-50" : ""}
                     />
                   </div>
@@ -214,7 +214,7 @@ const AdminCreateVoucher: React.FC = () => {
           </div>
 
           {/* Voucher Settings Section */}
-          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0 min-w-[700px]">
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-bold text-[18px] sm:text-[20px] text-[#272424] leading-[normal] break-words">
@@ -285,7 +285,7 @@ const AdminCreateVoucher: React.FC = () => {
                       onChange={(e) =>
                         handleInputChange("discountValue", e.target.value)
                       }
-                      containerClassName="h-[36px] w-full"
+                      containerClassName="h-[36px] w-[873px]"
                       required
                     />
                   </div>
@@ -330,7 +330,7 @@ const AdminCreateVoucher: React.FC = () => {
                               e.target.value
                             )
                           }
-                          containerClassName="h-[36px] w-full"
+                          containerClassName="h-[36px] w-[873px]"
                         />
                       </div>
                     )}
@@ -350,7 +350,7 @@ const AdminCreateVoucher: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("minOrderAmount", e.target.value)
                     }
-                    containerClassName="h-[36px] w-full"
+                    containerClassName="h-[36px] w-[873px]"
                   />
                 </div>
               </div>
@@ -367,7 +367,7 @@ const AdminCreateVoucher: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("maxUsage", e.target.value)
                     }
-                    containerClassName="h-[36px] w-full"
+                    containerClassName="h-[36px] w-[873px]"
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
                     Tổng số mã giảm giá tối đa có thể sử dụng
@@ -387,7 +387,7 @@ const AdminCreateVoucher: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("maxUsagePerCustomer", e.target.value)
                     }
-                    containerClassName="h-[36px] w-full"
+                    containerClassName="h-[36px] w-[873px]"
                   />
                 </div>
               </div>
@@ -395,7 +395,7 @@ const AdminCreateVoucher: React.FC = () => {
           </div>
 
           {/* Display Settings Section */}
-          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0 min-w-[700px]">
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-[16px] sm:p-[24px] flex flex-col gap-[16px] w-full flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-bold text-[16px] text-[#272424] leading-[normal] break-words">

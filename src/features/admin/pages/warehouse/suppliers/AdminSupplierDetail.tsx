@@ -77,12 +77,9 @@ const AdminSupplierDetail = () => {
 
   return (
     <div className="w-full overflow-x-auto min-h-screen">
-      <div
-        className="flex flex-col gap-[8px] items-start w-full mx-auto px-[24px] min-w-[1070px]"
-        style={{ maxWidth: "calc(100% - 500px)" }}
-      >
+      <div className="flex flex-col gap-[8px] items-start w-full">
         {/* Header with Back Button */}
-        <div className="flex items-center justify-between gap-[8px] pt-[10px] pb-0 w-full min-w-[1070px]">
+        <div className="flex items-center justify-between gap-[8px] pt-[10px] pb-0 w-full">
           <div className="flex items-center gap-[8px]">
             <button
               onClick={handleBack}
@@ -113,7 +110,7 @@ const AdminSupplierDetail = () => {
         </div>
 
         {/* Main Content Section - 2 columns */}
-        <div className="flex gap-[15px] items-start w-full min-w-[1070px]">
+        <div className="flex gap-[15px] items-start w-full">
           {/* Left Column - 2 large cards */}
           <div className="flex flex-col gap-[8px] items-start flex-1">
             {/* Card 1 - Supplier Code and Statistics */}

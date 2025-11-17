@@ -168,7 +168,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
               </div>
               <button
                 onClick={() => navigate("/user/profile/basicinformation")}
-                className="text-gray-600 hover:text-gray-700 flex items-center gap-1 transition-colors text-sm"
+                className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors text-sm"
               >
                 <EditPencilIcon />
                 <span>Sửa hồ sơ</span>

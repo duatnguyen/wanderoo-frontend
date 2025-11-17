@@ -42,7 +42,7 @@ export const CashBookDetailsPanel: React.FC<CashBookDetailsPanelProps> = ({
   }, [transaction]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN").format(amount) + "₫";
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
   const formatDate = (dateString: string) => {
