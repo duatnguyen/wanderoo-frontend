@@ -1,15 +1,17 @@
 // src/types/warehouse.ts - Warehouse and inventory types
 import type { PageResponse } from './common';
 
-export interface InventoryResponse {
+export interface SimpleInventoryItemResponse {
   id: number;
-  productId: number;
-  quantity: number;
-  location: string;
-  status: string;
+  imageUrl?: string | null;
+  productName: string;
+  barcode?: string | null;
+  attributes?: string | null;
+  posSoldQuantity?: number | null;
+  sellingPrice?: number | null;
 }
 
-export interface SimpleInventoryPageResponse extends PageResponse<InventoryResponse> {}
+export interface SimpleInventoryPageResponse extends PageResponse<SimpleInventoryItemResponse> {}
 
 export interface ProviderResponse {
   id: number;

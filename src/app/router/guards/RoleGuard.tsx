@@ -5,22 +5,28 @@ import { getUserFromToken } from "../../../utils/jwt";
 import Loading from "../../../components/common/Loading";
 import type { JSX } from "react";
 
-export default function RoleGuard({
-  allow,
-  children,
-}: {
-  allow: ("ADMIN" | "USER")[];
+type AllowedRole =
+  | "ADMIN"
+  | "MANAGER"
+  | "EMPLOYEE"
+  | "OPERATIONS_MANAGER"
+  | "USER"
+  | "CUSTOMER";
+
+interface RoleGuardProps {
+  allow: AllowedRole[];
   children: JSX.Element;
-}) {
+}
+
+export default function RoleGuard({ allow, children }: RoleGuardProps) {
   const { isLoading, isAuthenticated, token } = useAuth();
 
   if (isLoading) return <Loading />;
   if (!isAuthenticated || !token) return <Navigate to="/login" replace />;
 
-  // Decode token để lấy role
   try {
     const userFromToken = getUserFromToken(token);
-    const userRole = userFromToken?.role;
+    const userRole = userFromToken?.role?.toUpperCase();
 
     console.log("RoleGuard - User role from token:", userRole);
     console.log("RoleGuard - Allowed roles:", allow);
@@ -30,16 +36,17 @@ export default function RoleGuard({
       return <Navigate to="/login" replace />;
     }
 
-    // Kiểm tra role có được phép không
-    if (!allow.includes(userRole as "ADMIN" | "USER")) {
+    const isAuthorized = allow.includes(userRole as AllowedRole);
+
+    if (!isAuthorized) {
       console.log("RoleGuard - Role not allowed, redirecting based on role");
       if (userRole === "ADMIN") {
         return <Navigate to="/admin/dashboard" replace />;
-      } else if (userRole === "USER" || userRole === "CUSTOMER") {
-        return <Navigate to="/shop" replace />;
-      } else {
-        return <Navigate to="/login" replace />;
       }
+      if (userRole === "CUSTOMER" || userRole === "USER") {
+        return <Navigate to="/shop" replace />;
+      }
+      return <Navigate to="/login" replace />;
     }
 
     console.log("RoleGuard - Access granted");

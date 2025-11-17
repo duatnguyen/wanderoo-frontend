@@ -85,7 +85,11 @@ export const router = createBrowserRouter([
   // POS routes (temporarily public for UI development)
   {
     path: "/pos",
-    element: <POSLayout />,
+    element: (
+      <RoleGuard allow={["ADMIN", "MANAGER", "EMPLOYEE", "OPERATIONS_MANAGER"]}>
+        <POSLayout />
+      </RoleGuard>
+    ),
     children: posRoutes,
   },
 

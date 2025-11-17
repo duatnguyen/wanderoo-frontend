@@ -1,4 +1,5 @@
 import React from "react";
+import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ShoppingCartSidebarIcon } from "./icons/ShoppingCartSidebarIcon";
 import { FileInvoiceSidebarIcon } from "./icons/FileInvoiceSidebarIcon";
@@ -23,35 +24,41 @@ const sidebarItems: Array<{
   id: POSSidebarItemId;
   icon: React.ComponentType<{ className?: string; isActive?: boolean }>;
   label: string;
+  to: string;
   rotated?: boolean;
 }> = [
-    {
-      id: "cart",
-      icon: ShoppingCartSidebarIcon,
-      label: "Cart",
-    },
-    {
-      id: "invoices",
-      icon: FileInvoiceSidebarIcon,
-      label: "Invoices",
-    },
-    {
-      id: "products",
-      icon: PackageSearchSidebarIcon,
-      label: "Products",
-    },
-    {
-      id: "receipts",
-      icon: ReturnSidebarIcon,
-      label: "Receipts",
-      rotated: true,
-    },
-    {
-      id: "payments",
-      icon: UsdCircleSidebarIcon,
-      label: "Payments",
-    },
-  ];
+  {
+    id: "cart",
+    icon: ShoppingCartSidebarIcon,
+    label: "Cart",
+    to: "/pos/sales",
+  },
+  {
+    id: "invoices",
+    icon: FileInvoiceSidebarIcon,
+    label: "Invoices",
+    to: "/pos/orders",
+  },
+  {
+    id: "products",
+    icon: PackageSearchSidebarIcon,
+    label: "Products",
+    to: "/pos/inventory",
+  },
+  {
+    id: "receipts",
+    icon: ReturnSidebarIcon,
+    label: "Receipts",
+    rotated: true,
+    to: "/pos/returns",
+  },
+  {
+    id: "payments",
+    icon: UsdCircleSidebarIcon,
+    label: "Payments",
+    to: "/pos/cashbook",
+  },
+];
 
 export const POSSidebar: React.FC<POSSidebarProps> = ({
   activeItem = "cart",
@@ -72,14 +79,18 @@ export const POSSidebar: React.FC<POSSidebarProps> = ({
           const isActive = activeItem === item.id;
 
           return (
-            <button
+            <NavLink
               key={item.id}
-              type="button"
+              to={item.to}
               onClick={() => onItemClick?.(item.id)}
-              className={cn(
-                "flex items-center justify-center rounded-[5px] size-[45px] transition-colors",
-                isActive ? "bg-[#e04d30]" : "bg-white hover:bg-gray-50"
-              )}
+              className={({ isActive: navActive }) =>
+                cn(
+                  "flex items-center justify-center rounded-[5px] size-[45px] transition-colors",
+                  navActive || isActive
+                    ? "bg-[#e04d30]"
+                    : "bg-white hover:bg-gray-50"
+                )
+              }
               aria-label={item.label}
               title={item.label}
             >
@@ -87,7 +98,7 @@ export const POSSidebar: React.FC<POSSidebarProps> = ({
                 className={cn(item.rotated && "rotate-[22.647deg]")}
                 isActive={isActive}
               />
-            </button>
+            </NavLink>
           );
         })}
       </div>

@@ -3,6 +3,15 @@ import type { ReactNode } from "react";
 import type { OrderTab } from "../components/pos/POSHeader";
 import type { POSSidebarItemId } from "../components/pos/POSSidebar";
 
+export type POSProductSelectHandler = (product: {
+  id: string;
+  name: string;
+  price: number;
+  available?: number | null;
+  attributes?: string | null;
+  imageUrl?: string;
+}) => void;
+
 type POSContextType = {
   // Sidebar
   activeSidebarItem: POSSidebarItemId;
@@ -15,6 +24,8 @@ type POSContextType = {
   setOrders: React.Dispatch<React.SetStateAction<OrderTab[]>>;
   currentOrderId: string;
   setCurrentOrderId: (id: string) => void;
+  productSelectHandler: POSProductSelectHandler | null;
+  setProductSelectHandler: (handler: POSProductSelectHandler | null) => void;
 
   // User
   user: {
@@ -52,6 +63,12 @@ export const POSProvider: React.FC<POSProviderProps> = ({
     { id: "1", label: "Đơn 1" },
   ]);
   const [currentOrderId, setCurrentOrderId] = useState("1");
+  const [productSelectHandler, setProductSelectHandlerState] =
+    useState<POSProductSelectHandler | null>(null);
+
+  const setProductSelectHandler = (handler: POSProductSelectHandler | null) => {
+    setProductSelectHandlerState(() => handler);
+  };
 
   return (
     <POSContext.Provider
@@ -64,6 +81,8 @@ export const POSProvider: React.FC<POSProviderProps> = ({
         setOrders,
         currentOrderId,
         setCurrentOrderId,
+        productSelectHandler,
+        setProductSelectHandler,
         user,
       }}
     >

@@ -2,8 +2,8 @@
 import api from '../apiClient';
 import type {
   ApiResponse,
-  SaleProductPageResponse,
-  CustomerSearchPageResponse,
+  SaleProductListResponse,
+  CustomerSearchListResponse,
   DiscountPageResponse,
   DraftOrderResponse,
   DraftOrderDetailResponse,
@@ -17,18 +17,18 @@ import type {
 } from '../../types';
 
 // Sale POS APIs
-export const searchProducts = async (keyword?: string): Promise<SaleProductPageResponse> => {
-  const response = await api.get<ApiResponse<SaleProductPageResponse>>('/auth/v1/private/sale/search', {
+export const searchProducts = async (keyword?: string): Promise<SaleProductListResponse> => {
+  const response = await api.get<ApiResponse<SaleProductListResponse>>('/auth/v1/private/sale/search', {
     params: { keyword }
   });
-  return response.data.data;
+  return response.data.data ?? [];
 };
 
-export const searchCustomers = async (keyword?: string): Promise<CustomerSearchPageResponse> => {
-  const response = await api.get<ApiResponse<CustomerSearchPageResponse>>('/auth/v1/private/sale/pos/customers/search', {
+export const searchCustomers = async (keyword?: string): Promise<CustomerSearchListResponse> => {
+  const response = await api.get<ApiResponse<CustomerSearchListResponse>>('/auth/v1/private/sale/pos/customers/search', {
     params: { keyword }
   });
-  return response.data.data;
+  return response.data.data ?? [];
 };
 
 export const getAvailableDiscounts = async (): Promise<DiscountPageResponse> => {
@@ -63,6 +63,11 @@ export const addItemToOrder = async (orderId: number, request: AddItemToOrderReq
 
 export const assignCustomerToOrder = async (orderId: number, request: AssignCustomerToOrderRequest): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(`/auth/v1/private/sale/pos/orders/${orderId}/customer`, request);
+  return response.data;
+};
+
+export const removeCustomerFromOrder = async (orderId: number): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/sale/pos/orders/${orderId}/customer`);
   return response.data;
 };
 

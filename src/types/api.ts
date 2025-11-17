@@ -202,11 +202,12 @@ export interface SaleProductResponse {
   imageUrl?: string;
   productName: string;
   attributes?: string;
-  posSoldQuantity: number;
-  sellingPrice: number;
+  posSoldQuantity?: number | null;
+  sellingPrice?: number | null;
 }
 
 export interface SaleProductPageResponse extends PageResponse<SaleProductResponse> {}
+export type SaleProductListResponse = SaleProductResponse[];
 
 export interface CustomerSearchResponse {
   id: number;
@@ -215,7 +216,7 @@ export interface CustomerSearchResponse {
   gender: string;
 }
 
-export interface CustomerSearchPageResponse extends PageResponse<CustomerSearchResponse> {}
+export type CustomerSearchListResponse = CustomerSearchResponse[];
 
 export interface DiscountResponse {
   id: number;
@@ -267,16 +268,18 @@ export interface DraftOrderItemResponse {
   amount: number;
 }
 
-// Warehouse Types
-export interface InventoryResponse {
+// Warehouse / Inventory Types
+export interface SimpleInventoryItemResponse {
   id: number;
-  productId: number;
-  quantity: number;
-  location: string;
-  status: string;
+  imageUrl?: string | null;
+  productName: string;
+  barcode?: string | null;
+  attributes?: string | null;
+  posSoldQuantity?: number | null;
+  sellingPrice?: number | null;
 }
 
-export interface SimpleInventoryPageResponse extends PageResponse<InventoryResponse> {}
+export interface SimpleInventoryPageResponse extends PageResponse<SimpleInventoryItemResponse> {}
 
 export interface ProviderResponse {
   id: number;

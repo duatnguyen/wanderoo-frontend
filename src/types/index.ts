@@ -10,7 +10,7 @@ export type {
   OrderDetailCreateRequest,
   OrderDetailUpdateRequest,
   VariantDetailIdRequest,
-  CustomerSearchPageResponse,
+  CustomerSearchListResponse,
   DraftOrderDetailResponse,
   DraftOrderItemResponse,
   CheckoutOrderItemResponse,

@@ -62,26 +62,19 @@ export const posRoutes: RouteObject[] = [
   // Return Order Management
   {
     path: "returns",
-    children: [
-      // Return orders list
-      {
-        index: true,
-        element: (
-          <LazyWrapper>
-            <ReturnOrderManagement />
-          </LazyWrapper>
-        ),
-      },
-      // Create new return order
-      {
-        path: "create/:orderId",
-        element: (
-          <LazyWrapper>
-            <CreateReturnOrder />
-          </LazyWrapper>
-        ),
-      },
-    ],
+    element: (
+      <LazyWrapper>
+        <ReturnOrderManagement />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "returns/create/:orderId",
+    element: (
+      <LazyWrapper>
+        <CreateReturnOrder />
+      </LazyWrapper>
+    ),
   },
 
   // Cash Book / Financial Management

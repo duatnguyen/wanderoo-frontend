@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import ShopLogo from "@/assets/icons/ShopLogo.svg";
-import { User } from "lucide-react";
+import { Loader2, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { POSOrderTabs, type OrderTab } from "./POSOrderTabs";
+import { searchProducts } from "@/api/endpoints/saleApi";
+import type { SaleProductResponse } from "@/types";
+import { usePOSContext } from "@/context/POSContext";
 
 export type { OrderTab };
 
@@ -19,6 +22,14 @@ export type POSHeaderProps = {
   onOrderAdd?: () => void;
   pageTitle?: string;
   pageSubtitle?: string;
+  onProductSelect?: (product: {
+    id: string;
+    name: string;
+    price: number;
+    available?: number | null;
+    attributes?: string | null;
+    imageUrl?: string;
+  }) => void;
   user?: {
     name: string;
     role: string;
@@ -35,11 +46,185 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   onOrderSelect,
   onOrderClose,
   onOrderAdd,
+  onProductSelect,
   pageTitle,
   user = { name: "Admin", role: "Admin" },
   className,
 }) => {
   const isSalesPage = searchValue !== undefined && orders !== undefined;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [productResults, setProductResults] = useState<SaleProductResponse[]>([]);
+  const [isSearchingProducts, setIsSearchingProducts] = useState(false);
+  const [productSearchError, setProductSearchError] = useState<string | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
+  const { productSelectHandler } = usePOSContext();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
+
+  useEffect(() => {
+    if (!isSalesPage) {
+      setProductResults([]);
+      setProductSearchError(null);
+      setIsSearchingProducts(false);
+      return;
+    }
+
+    const keyword = searchValue?.trim() ?? "";
+    if (!keyword) {
+      setProductResults([]);
+      setProductSearchError(null);
+      setIsSearchingProducts(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsSearchingProducts(true);
+    setProductSearchError(null);
+
+    const handler = window.setTimeout(async () => {
+      try {
+        const results = await searchProducts(keyword);
+        if (!isCancelled) {
+          setProductResults(results);
+        }
+      } catch (error) {
+        console.error("Không thể tìm sản phẩm:", error);
+        if (!isCancelled) {
+          setProductResults([]);
+          setProductSearchError("Không thể tải danh sách sản phẩm");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSearchingProducts(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(handler);
+    };
+  }, [isSalesPage, searchValue]);
+
+  const formatCurrency = (amount?: number | null) => {
+    if (amount == null) {
+      return "—";
+    }
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
+  };
+
+  const effectiveProductSelect = onProductSelect ?? productSelectHandler ?? null;
+
+  const renderProductDropdown = () => {
+    if (!isDropdownOpen || !isSalesPage) {
+      return null;
+    }
+
+    const keyword = searchValue?.trim() ?? "";
+    const hasKeyword = keyword.length > 0;
+
+    return (
+      <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-40 overflow-hidden">
+        <div className="max-h-80 overflow-y-auto divide-y divide-[#f0f0f0]">
+          {!hasKeyword && !isSearchingProducts && (
+            <p className="px-4 py-3 text-sm text-[#6F6F6F]">
+              Nhập tên hoặc mã barcode để tìm sản phẩm
+            </p>
+          )}
+
+          {isSearchingProducts && (
+            <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#6F6F6F]">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Đang tìm kiếm sản phẩm...
+            </div>
+          )}
+
+          {!isSearchingProducts && productSearchError && (
+            <p className="px-4 py-3 text-xs text-[#E04D30]">{productSearchError}</p>
+          )}
+
+          {!isSearchingProducts &&
+            !productSearchError &&
+            hasKeyword &&
+            productResults.length === 0 && (
+              <p className="px-4 py-3 text-xs text-[#6F6F6F]">
+                Không tìm thấy sản phẩm phù hợp
+              </p>
+            )}
+
+          {!isSearchingProducts &&
+            !productSearchError &&
+            productResults.map((product) => (
+              <button
+                key={product.id}
+                type="button"
+                onClick={() => {
+                  effectiveProductSelect?.({
+                    id: product.id?.toString() ?? "",
+                    name: product.productName,
+                    price: product.sellingPrice ?? 0,
+                    available: product.posSoldQuantity ?? undefined,
+                    attributes: product.attributes,
+                    imageUrl: product.imageUrl,
+                  });
+                  setIsDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-3 hover:bg-[#f8f9ff] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 border border-[#e7e7e7] flex items-center justify-center text-xs text-[#6F6F6F] overflow-hidden">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.productName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>No Img</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-[#272424] line-clamp-1">
+                        {product.productName}
+                      </p>
+                      <p className="text-sm font-bold text-[#272424] whitespace-nowrap">
+                        {formatCurrency(product.sellingPrice)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-[#737373] mt-1">
+                      <span className="line-clamp-1">
+                        {product.attributes || "—"}
+                      </span>
+                      <span className="font-medium whitespace-nowrap">
+                        Có thể bán:{" "}
+                        {product.posSoldQuantity != null
+                          ? product.posSoldQuantity.toLocaleString("vi-VN")
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <header
@@ -66,7 +251,10 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         <>
           {/* Search Bar - Only on sales page */}
           <div className="flex items-center min-w-0 flex-shrink-0">
-            <div className="w-[300px] sm:w-[400px] lg:w-[500px] relative">
+            <div
+              className="w-[300px] sm:w-[400px] lg:w-[500px] relative"
+              ref={searchContainerRef}
+            >
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -86,7 +274,9 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 onChange={onSearchChange}
                 placeholder={searchPlaceholder}
                 className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:bg-white focus:border-[#e04d30]"
+                onFocus={() => setIsDropdownOpen(true)}
               />
+              {renderProductDropdown()}
             </div>
           </div>
 

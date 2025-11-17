@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { POSSidebar } from "../components/pos/POSSidebar";
 import { POSHeader, type OrderTab } from "../components/pos/POSHeader";
 import { POSProvider, usePOSContext } from "../context/POSContext";
@@ -9,7 +9,6 @@ import type { POSSidebarItemId } from "../components/pos/POSSidebar";
 
 const POSLayoutContent: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const isOrderManagementPage = location.pathname.includes("/orders");
   const isReturnOrderPage = location.pathname.includes("/returns");
   const isCreateReturnOrderPage = location.pathname.includes("/returns/create");
@@ -145,20 +144,6 @@ const POSLayoutContent: React.FC = () => {
               onItemClick={(item) => {
                 setActiveSidebarItem(item);
                 setSidebarOpen(false); // Close on mobile after selection
-
-                // Navigate based on sidebar item
-                if (item === "invoices") {
-                  navigate("/pos/orders");
-                } else if (item === "cart") {
-                  navigate("/pos/sales");
-                } else if (item === "products") {
-                  navigate("/pos/inventory");
-                } else if (item === "receipts") {
-                  navigate("/pos/returns");
-                } else if (item === "payments") {
-                  navigate("/pos/cashbook");
-                }
-                // Add more navigation cases as needed
               }}
               className="h-full"
             />
