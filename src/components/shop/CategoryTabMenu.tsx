@@ -48,17 +48,17 @@ const CategoryTabMenu: FC<CategoryTabMenuProps> = ({
   }, [openIdx]);
 
   return (
-    <div className={clsx("flex gap-6 relative", className)} ref={menuRef}>
+    <div className={clsx("flex gap-4 relative", className)} ref={menuRef}>
       {categories.map((cat, idx) => {
         const isActive = mainValue ? cat.id === mainValue : openIdx === idx;
         const hasSub =
           Array.isArray(cat.subcategories) && cat.subcategories.length > 0;
         return (
-          <div key={cat.id} className={clsx("relative")}>
+          <div key={cat.id} className={clsx("relative flex-1")}>
             <button
               type="button"
               className={clsx(
-                "flex flex-col items-center gap-2 px-2 py-2 text-[14px] font-medium bg-transparent focus:z-10 transition-opacity hover:opacity-80",
+                "flex flex-col items-center gap-2 px-2 py-2 text-[14px] font-medium bg-transparent focus:z-10 transition-opacity hover:opacity-80 w-full",
                 cat.disabled && "opacity-50 cursor-not-allowed"
               )}
               disabled={cat.disabled}

@@ -43,7 +43,7 @@ export const OrderSearchPanel: React.FC<OrderSearchPanelProps> = ({
   className,
 }) => {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN").format(amount) + "₫";
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
   const formatDate = (dateString: string) => {

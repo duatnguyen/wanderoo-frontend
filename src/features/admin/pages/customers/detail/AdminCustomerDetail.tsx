@@ -439,19 +439,19 @@ const AdminCustomerDetail = () => {
           onClick={() => setIsEditModalOpen(false)}
         >
           <div
-            className="bg-white rounded-[8px] p-[32px] w-[658px] shadow-2xl animate-scaleIn"
+            className="bg-white rounded-[8px] p-[24px] w-[520px] shadow-2xl animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <h2 className="text-[20px] font-bold text-[#272424] mb-[24px]">
+            <h2 className="text-[20px] font-bold text-[#272424] mb-[16px]">
               Cập nhật thông tin liên hệ
             </h2>
 
             {/* Form */}
-            <div className="flex flex-col gap-[16px]">
+            <div className="flex flex-col gap-[12px]">
               {/* Name and Phone */}
-              <div className="grid grid-cols-2 gap-[16px]">
-                <div className="flex flex-col gap-[8px]">
+              <div className="grid grid-cols-2 gap-[12px]">
+                <div className="flex flex-col gap-[6px]">
                   <label className="font-medium text-[#272424] text-[14px]">
                     Họ và tên
                   </label>
@@ -463,7 +463,7 @@ const AdminCustomerDetail = () => {
                     placeholder="Nhập họ và tên"
                   />
                 </div>
-                <div className="flex flex-col gap-[8px]">
+                <div className="flex flex-col gap-[6px]">
                   <label className="font-medium text-[#272424] text-[14px]">
                     Số điện thoại
                   </label>
@@ -478,8 +478,8 @@ const AdminCustomerDetail = () => {
               </div>
 
               {/* Birthdate and Gender */}
-              <div className="grid grid-cols-2 gap-[16px]">
-                <div className="flex flex-col gap-[8px]">
+              <div className="grid grid-cols-2 gap-[12px]">
+                <div className="flex flex-col gap-[6px]">
                   <label className="font-medium text-[#272424] text-[14px]">
                     Ngày sinh
                   </label>
@@ -492,11 +492,11 @@ const AdminCustomerDetail = () => {
                     placeholder="dd/mm/yyyy"
                   />
                 </div>
-                <div className="flex flex-col gap-[8px]">
+                <div className="flex flex-col gap-[6px]">
                   <label className="font-medium text-[#272424] text-[14px]">
                     Giới tính
                   </label>
-                  <div className="flex gap-[24px] items-center h-[54px]">
+                  <div className="flex gap-[16px] items-center h-[40px]">
                     <CustomRadio
                       label="Nữ"
                       checked={formData.gender === "Nữ"}
@@ -516,7 +516,7 @@ const AdminCustomerDetail = () => {
               </div>
 
               {/* Email */}
-              <div className="flex flex-col gap-[8px]">
+              <div className="flex flex-col gap-[6px]">
                 <label className="font-medium text-[#272424] text-[14px]">
                   Địa chỉ email
                 </label>
@@ -531,7 +531,7 @@ const AdminCustomerDetail = () => {
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-[12px] justify-end mt-[8px]">
+              <div className="flex gap-[12px] justify-end mt-[4px]">
                 <Button
                   variant="secondary"
                   onClick={() => setIsEditModalOpen(false)}
@@ -558,19 +558,19 @@ const AdminCustomerDetail = () => {
           onClick={() => setIsAddressModalOpen(false)}
         >
           <div
-            className="bg-white rounded-[8px] p-[32px] w-[658px] shadow-2xl animate-scaleIn"
+            className="bg-white rounded-[8px] p-[24px] w-[520px] shadow-2xl animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <h2 className="text-[20px] font-bold text-[#272424] mb-[24px]">
+            <h2 className="text-[20px] font-bold text-[#272424] mb-[16px]">
               Cập nhật địa chỉ giao hàng
             </h2>
 
             {/* Form */}
-            <div className="flex flex-col gap-[16px]">
+            <div className="flex flex-col gap-[12px]">
               {/* Name and Phone */}
-              <div className="grid grid-cols-2 gap-[16px]">
-                <div className="flex flex-col gap-[8px]">
+              <div className="grid grid-cols-2 gap-[12px]">
+                <div className="flex flex-col gap-[6px]">
                   <label className="font-medium text-[#272424] text-[14px]">
                     Họ và tên
                   </label>
@@ -582,7 +582,7 @@ const AdminCustomerDetail = () => {
                     placeholder="Nhập tên người nhận"
                   />
                 </div>
-                <div className="flex flex-col gap-[8px]">
+                <div className="flex flex-col gap-[6px]">
                   <label className="font-medium text-[#272424] text-[14px]">
                     Số điện thoại
                   </label>
@@ -600,7 +600,7 @@ const AdminCustomerDetail = () => {
               </div>
 
               {/* City */}
-              <div className="flex flex-col gap-[8px]">
+              <div className="flex flex-col gap-[6px]">
                 <label className="font-medium text-[#272424] text-[14px]">
                   Tỉnh/Thành phố
                 </label>
@@ -614,7 +614,7 @@ const AdminCustomerDetail = () => {
               </div>
 
               {/* District */}
-              <div className="flex flex-col gap-[8px]">
+              <div className="flex flex-col gap-[6px]">
                 <label className="font-medium text-[#272424] text-[14px]">
                   Phường/Xã
                 </label>
@@ -628,7 +628,7 @@ const AdminCustomerDetail = () => {
               </div>
 
               {/* Ward */}
-              <div className="flex flex-col gap-[8px]">
+              <div className="flex flex-col gap-[6px]">
                 <label className="font-medium text-[#272424] text-[14px]">
                   Quận/Huyện
                 </label>
@@ -642,7 +642,7 @@ const AdminCustomerDetail = () => {
               </div>
 
               {/* Detail Address */}
-              <div className="flex flex-col gap-[8px]">
+              <div className="flex flex-col gap-[6px]">
                 <label className="font-medium text-[#272424] text-[14px]">
                   Địa chỉ chi tiết <span className="text-[#e04d30]">*</span>
                 </label>
@@ -659,7 +659,7 @@ const AdminCustomerDetail = () => {
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-[12px] justify-end mt-[8px]">
+              <div className="flex gap-[12px] justify-end mt-[4px]">
                 <Button
                   variant="secondary"
                   onClick={() => setIsAddressModalOpen(false)}

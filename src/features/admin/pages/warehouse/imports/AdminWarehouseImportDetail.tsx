@@ -124,11 +124,16 @@ const AdminWarehouseImportDetail: React.FC = () => {
     importCode: mockDetail.importCode,
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("vi-VN", {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(amount);
+      currencyDisplay: "code",
+    })
+      .format(amount)
+      .replace("VND", "đ")
+      .replace(/\s/g, "");
+  };
 
   const handleConfirmImport = () => {
     console.log("Confirm import to warehouse");
@@ -163,7 +168,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
   const isPaid = detail.paymentStatus === "paid";
 
   return (
-    <div className="space-y-4 px-40">
+    <div className="space-y-4">
       {/* Header matching Figma design */}
       <div className="flex items-center gap-3">
         <Button

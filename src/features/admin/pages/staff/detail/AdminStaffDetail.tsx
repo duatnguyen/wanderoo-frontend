@@ -160,10 +160,10 @@ const AdminStaffDetail: React.FC = () => {
 
   return (
     <div className="w-full overflow-x-auto min-h-screen">
-      <div className="flex flex-col gap-[8px] items-start w-full max-w-[900px] mx-auto px-[24px] min-w-[870px] pb-[100vh]">
+      <div className="flex flex-col gap-[8px] items-start w-full pb-[100vh]">
         {/* Header */}
-        <div className="flex flex-col gap-[8px] items-start justify-center px-0 pt-[10px] pb-0 w-full min-w-[870px]">
-          <div className="flex gap-[10px] items-center w-full min-w-[870px]">
+        <div className="flex flex-col gap-[8px] items-start justify-center px-0 pt-[10px] pb-0 w-full">
+          <div className="flex gap-[10px] items-center w-full">
             <button
               onClick={() => navigate("/admin/staff")}
               className="w-5 h-5 flex items-center justify-center cursor-pointer"
@@ -176,9 +176,9 @@ const AdminStaffDetail: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-col gap-[8px] items-start w-full min-w-[870px]">
+        <div className="flex flex-col gap-[8px] items-start w-full">
           {/* Account Information Section */}
-          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[12px] rounded-[24px] w-full min-w-[870px]">
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[12px] rounded-[24px] w-full">
             <div className="flex items-center w-full">
               <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
                 Thông tin tài khoản
@@ -220,7 +220,7 @@ const AdminStaffDetail: React.FC = () => {
           </div>
 
           {/* Form Section */}
-          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full min-w-[870px]">
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full">
             {/* First Row: Full Name and Phone */}
             <div className="flex gap-[50px] items-start w-full">
               <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
@@ -319,7 +319,7 @@ const AdminStaffDetail: React.FC = () => {
           </div>
 
           {/* Role Section */}
-          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[10px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full min-w-[870px]">
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[10px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full">
             <div className="flex gap-[50px] items-start w-full">
               <div className="flex flex-col gap-[6px] items-start flex-1">
                 <div className="flex gap-[4px] items-center">
@@ -449,9 +449,6 @@ const AdminStaffDetail: React.FC = () => {
                       }
                       className="text-[14px] font-medium text-[#737373]"
                       containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
-                      right={
-                        <Calendar className="w-[24px] h-[24px] text-[#454545]" />
-                      }
                     />
                   </div>
 

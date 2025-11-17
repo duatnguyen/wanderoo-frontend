@@ -50,7 +50,7 @@ const AdminStaffNew: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[10px] w-full max-w-[930px] mx-auto">
+    <div className="flex flex-col gap-[10px] w-full">
       {/* Header */}
       <div className="flex items-center h-[24px] -mt-[5px]">
         <button

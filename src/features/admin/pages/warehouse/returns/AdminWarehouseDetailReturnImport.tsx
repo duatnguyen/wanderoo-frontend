@@ -121,11 +121,16 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
     returnCode: mockDetail.returnCode,
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("vi-VN", {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
-    }).format(amount);
+      currencyDisplay: "code",
+    })
+      .format(amount)
+      .replace("VND", "đ")
+      .replace(/\s/g, "");
+  };
 
   const handleConfirmReturn = () => {
     console.log("Confirm return");

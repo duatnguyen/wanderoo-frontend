@@ -53,11 +53,11 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex flex-col gap-[4px] items-start justify-center">
               <div
-                className={`flex gap-[10px] items-start px-[8px] py-[6px] rounded-[6px] ${getStatusBadgeClass(
+                className={`flex gap-[10px] items-center justify-center h-[24px] px-[8px] rounded-[6px] ${getStatusBadgeClass(
                   voucher.status
                 )}`}
               >
-                <p className="font-bold text-[13px] leading-[normal] whitespace-nowrap">
+                <p className="font-bold text-[12px] leading-[normal] whitespace-nowrap">
                   {voucher.status}
                 </p>
               </div>

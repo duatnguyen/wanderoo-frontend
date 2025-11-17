@@ -94,7 +94,7 @@ const LandingPage: React.FC = () => {
       {/* Category Filter Section */}
       <section className="w-full bg-white pt-4 pb-2">
         <div className="max-w-[1200px] mx-auto px-4">
-          <CategoryTabMenu categories={categories} className="justify-center" />
+          <CategoryTabMenu categories={categories} />
         </div>
       </section>
 

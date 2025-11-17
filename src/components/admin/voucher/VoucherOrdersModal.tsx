@@ -323,6 +323,8 @@ const VoucherOrdersModal: React.FC<VoucherOrdersModalProps> = ({
                             <ChipStatus
                               status={chip.key}
                               labelOverride={chip.label}
+                              className="h-[24px]"
+                              textClassName="text-[12px]"
                             />
                           </div>
                         </td>

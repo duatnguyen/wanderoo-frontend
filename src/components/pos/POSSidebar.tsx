@@ -5,15 +5,13 @@ import { FileInvoiceSidebarIcon } from "./icons/FileInvoiceSidebarIcon";
 import { PackageSearchSidebarIcon } from "./icons/PackageSearchSidebarIcon";
 import { ReturnSidebarIcon } from "./icons/ReturnSidebarIcon";
 import { UsdCircleSidebarIcon } from "./icons/UsdCircleSidebarIcon";
-import { ChartSimpleSidebarIcon } from "./icons/ChartSimpleSidebarIcon";
 
 export type POSSidebarItemId =
   | "cart"
   | "invoices"
   | "products"
   | "receipts"
-  | "payments"
-  | "reports";
+  | "payments";
 
 export type POSSidebarProps = {
   activeItem?: POSSidebarItemId;
@@ -52,11 +50,6 @@ const sidebarItems: Array<{
       id: "payments",
       icon: UsdCircleSidebarIcon,
       label: "Payments",
-    },
-    {
-      id: "reports",
-      icon: ChartSimpleSidebarIcon,
-      label: "Reports",
     },
   ];
 

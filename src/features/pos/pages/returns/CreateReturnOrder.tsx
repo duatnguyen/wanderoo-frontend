@@ -51,7 +51,7 @@ const CreateReturnOrder: React.FC = () => {
   const refundMethods = ["Chuyển khoản", "Tiền mặt"];
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN").format(amount) + "₫";
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
   // Calculate totals
@@ -305,7 +305,7 @@ const CreateReturnOrder: React.FC = () => {
                   className="flex-1 bg-transparent border-0 outline-none text-sm font-semibold text-[#272424]"
                   placeholder="0"
                 />
-                <span className="text-sm font-semibold text-[#272424]">₫</span>
+                <span className="text-sm font-semibold text-[#272424]">đ</span>
               </div>
             </div>
           </div>
