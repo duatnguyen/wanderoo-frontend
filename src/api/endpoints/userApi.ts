@@ -16,9 +16,15 @@ import type {
   CustomerPageResponse,
   CustomerCreationRequest,
   CustomerUpdateRequest,
-  CustomerResponse,
   SelectAllRequest,
 } from '../../types';
+import type { CustomerResponse } from '../../types/api';
+
+export type AllowedRole =
+  | "ADMIN"
+  | "MANAGER"
+  | "EMPLOYEE"
+  | "OPERATIONS_MANAGER";
 
 // Private User Management APIs
 export const getUserProfile = async (): Promise<UserResponse> => {
@@ -68,15 +74,51 @@ export const deleteAddress = async (addressId: number): Promise<ApiResponse<null
 };
 
 // Employee Management APIs
+type EmployeePageApiResponse = EmployeePageResponse & {
+  employees?: EmployeeResponse[];
+  content?: EmployeeResponse[];
+};
+
 export const getEmployees = async (params?: {
   page?: number;
   size?: number;
   search?: string;
-  department?: string;
   status?: string;
 }): Promise<EmployeePageResponse> => {
-  const response = await api.get<EmployeePageResponse>('/auth/v1/private/users/employees', { params });
-  return response.data;
+  const { page = 1, size = 10, search, status } = params ?? {};
+  const queryParams = {
+    page,
+    size,
+    keyword: search || undefined,
+    status: status || undefined,
+  };
+
+  const response = await api.get<ApiResponse<EmployeePageApiResponse>>(
+    '/auth/v1/private/users/employees',
+    { params: queryParams },
+  );
+  const payload = response.data.data ?? {};
+  const content =
+    payload.content ??
+    payload.employees ??
+    [];
+
+  const totalElements =
+    payload.totalElements ??
+    content.length;
+
+  const pageSizeValue = payload.pageSize ?? size;
+  const totalPages =
+    payload.totalPages ??
+    Math.ceil(totalElements / (pageSizeValue || 1));
+
+  return {
+    pageNumber: payload.pageNumber ?? page,
+    pageSize: pageSizeValue,
+    totalElements,
+    totalPages,
+    content,
+  };
 };
 
 export const getEmployeeById = async (id: number): Promise<EmployeeResponse> => {
@@ -84,13 +126,35 @@ export const getEmployeeById = async (id: number): Promise<EmployeeResponse> => 
   return response.data.data;
 };
 
-export const createEmployee = async (employeeData: EmployeeCreationRequest): Promise<ApiResponse<number>> => {
-  const response = await api.post<ApiResponse<number>>('/auth/v1/private/users/employees', employeeData);
+export const createEmployee = async (
+  employeeData: EmployeeCreationRequest,
+  userType?: AllowedRole,
+): Promise<ApiResponse<number>> => {
+  const endpoint = userType
+    ? '/auth/v1/private/account/employee/add'
+    : '/auth/v1/private/users/employees';
+  const response = await api.post<ApiResponse<number>>(endpoint, employeeData, {
+    params: userType ? { userType } : undefined,
+  });
   return response.data;
 };
 
 export const updateEmployee = async (id: number, employeeData: EmployeeUpdateRequest): Promise<ApiResponse<null>> => {
+  console.log("updateEmployee API call:", { id, employeeData });
   const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/employees/${id}`, employeeData);
+  console.log("updateEmployee API response:", response.data);
+  return response.data;
+};
+
+export const updateEmployeeAccount = async (
+  employeeData: EmployeeUpdateRequest,
+  userType?: AllowedRole,
+): Promise<ApiResponse<null>> => {
+  console.log("updateEmployeeAccount API call:", { employeeData, userType });
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/employee/upd', employeeData, {
+    params: userType ? { userType } : undefined,
+  });
+  console.log("updateEmployeeAccount API response:", response.data);
   return response.data;
 };
 
@@ -117,14 +181,58 @@ export const disableAllEmployeeAccounts = async (selectData: SelectAllRequest): 
 };
 
 // Customer Management APIs
+type CustomerPageApiResponse = CustomerPageResponse & {
+  customers?: CustomerResponse[];
+  content?: CustomerResponse[];
+};
+
 export const getCustomers = async (params?: {
   page?: number;
   size?: number;
   search?: string;
   status?: string;
 }): Promise<CustomerPageResponse> => {
-  const response = await api.get<CustomerPageResponse>('/auth/v1/private/users/customers', { params });
-  return response.data;
+  const { page = 1, size = 10, search } = params ?? {};
+  const queryParams = {
+    page,
+    size,
+    keyword: search || undefined,
+    // Note: Backend doesn't support status filter for customers yet
+  };
+
+  const response = await api.get<ApiResponse<CustomerPageApiResponse>>(
+    '/auth/v1/private/users/customers',
+    { params: queryParams },
+  );
+  
+  console.log("getCustomers API response:", response.data);
+  
+  const payload = response.data.data ?? {};
+  console.log("getCustomers payload:", payload);
+  
+  const content =
+    payload.content ??
+    payload.customers ??
+    [];
+
+  console.log("getCustomers content:", content);
+
+  const totalElements =
+    payload.totalElements ??
+    content.length;
+
+  const pageSizeValue = payload.pageSize ?? size;
+  const totalPages =
+    payload.totalPages ??
+    Math.ceil(totalElements / (pageSizeValue || 1));
+
+  return {
+    pageNumber: payload.pageNumber ?? page,
+    pageSize: pageSizeValue,
+    totalElements,
+    totalPages,
+    content,
+  };
 };
 
 export const getCustomerById = async (id: number): Promise<CustomerResponse> => {
@@ -133,12 +241,16 @@ export const getCustomerById = async (id: number): Promise<CustomerResponse> => 
 };
 
 export const createCustomer = async (customerData: CustomerCreationRequest): Promise<ApiResponse<number>> => {
+  console.log("createCustomer API call:", customerData);
   const response = await api.post<ApiResponse<number>>('/auth/v1/private/users/customers', customerData);
+  console.log("createCustomer API response:", response.data);
   return response.data;
 };
 
 export const updateCustomer = async (id: number, customerData: CustomerUpdateRequest): Promise<ApiResponse<null>> => {
+  console.log("updateCustomer API call:", { id, customerData });
   const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/customers/${id}`, customerData);
+  console.log("updateCustomer API response:", response.data);
   return response.data;
 };
 
@@ -161,6 +273,63 @@ export const disableAllCustomerAccounts = async (selectData: SelectAllRequest): 
   const response = await api.delete<ApiResponse<null>>('/auth/v1/private/account/customer/disable/all', {
     data: selectData,
   });
+  return response.data;
+};
+
+// Customer Address Management APIs
+export const getCustomerAddresses = async (customerId: number): Promise<AddressPageResponse> => {
+  const response = await api.get<ApiResponse<AddressPageResponse>>(`/auth/v1/private/users/customers/${customerId}/addresses`);
+  return response.data.data;
+};
+
+export const updateCustomerAddress = async (customerId: number, addressData: AddressUpdateRequest): Promise<ApiResponse<null>> => {
+  console.log("updateCustomerAddress API call:", { customerId, addressData });
+  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/customers/${customerId}/addresses`, addressData);
+  console.log("updateCustomerAddress API response:", response.data);
+  return response.data;
+};
+
+export const createCustomerAddress = async (customerId: number, addressData: AddressCreationRequest): Promise<ApiResponse<number>> => {
+  console.log("createCustomerAddress API call:", { customerId, addressData });
+  const response = await api.post<ApiResponse<number>>(`/auth/v1/private/users/customers/${customerId}/addresses`, addressData);
+  console.log("createCustomerAddress API response:", response.data);
+  return response.data;
+};
+
+// Admin Address APIs
+export const getAdminAddresses = async (): Promise<AddressPageResponse> => {
+  console.log("getAdminAddresses API call");
+  const response = await api.get<ApiResponse<AddressPageResponse>>('/auth/v1/private/users/admin/address');
+  console.log("getAdminAddresses API response:", response.data);
+  // Backend returns AddressPageResponse with addresses array
+  return response.data.data;
+};
+
+export const createAdminAddress = async (addressData: AddressCreationRequest): Promise<ApiResponse<number>> => {
+  console.log("createAdminAddress API call:", addressData);
+  const response = await api.post<ApiResponse<number>>('/auth/v1/private/users/admin/address', addressData);
+  console.log("createAdminAddress API response:", response.data);
+  return response.data;
+};
+
+export const updateAdminAddress = async (addressData: AddressUpdateRequest): Promise<ApiResponse<null>> => {
+  console.log("updateAdminAddress API call:", addressData);
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/admin/address', addressData);
+  console.log("updateAdminAddress API response:", response.data);
+  return response.data;
+};
+
+export const deleteAdminAddress = async (addressId: number): Promise<ApiResponse<null>> => {
+  console.log("deleteAdminAddress API call:", addressId);
+  const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/users/admin/address/${addressId}`);
+  console.log("deleteAdminAddress API response:", response.data);
+  return response.data;
+};
+
+export const setDefaultAdminAddress = async (addressId: number): Promise<ApiResponse<null>> => {
+  console.log("setDefaultAdminAddress API call:", addressId);
+  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/admin/address/default?addressId=${addressId}`);
+  console.log("setDefaultAdminAddress API response:", response.data);
   return response.data;
 };
 

@@ -802,27 +802,31 @@ export interface VariantQuantityUpdateRequest {
 }
 
 export interface EmployeeResponse extends UserResponse {
-  department: string;
-  position: string;
+  department?: string;
+  position?: string;
+  type?: string;
 }
 
 export interface EmployeePageResponse extends PageResponse<EmployeeResponse> {}
 
 export interface CustomerResponse extends UserResponse {
-  address: string;
-  membershipLevel: string;
+  address?: string;
+  membershipLevel?: string;
+  totalOrderAmount?: string;
+  totalOrders?: string;
 }
 
 export interface CustomerPageResponse extends PageResponse<CustomerResponse> {}
 
 export interface EmployeeCreationRequest {
-  username: string;
-  email: string;
-  password: string;
   name: string;
+  username: string;
   phone: string;
-  department: string;
-  position: string;
+  password: string;
+  email?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string;
+  image_url?: string;
 }
 
 export interface EmployeeUpdateRequest extends EmployeeCreationRequest {
@@ -830,12 +834,15 @@ export interface EmployeeUpdateRequest extends EmployeeCreationRequest {
 }
 
 export interface CustomerCreationRequest {
-  username: string;
-  email: string;
-  password: string;
   name: string;
   phone: string;
-  address: string;
+  username?: string;
+  email?: string;
+  password?: string;
+  gender?: "MALE" | "FEMALE";
+  birthday?: string;
+  image_url?: string;
+  address?: string;
 }
 
 export interface CustomerUpdateRequest extends CustomerCreationRequest {

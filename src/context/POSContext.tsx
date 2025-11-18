@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import type { OrderTab } from "../components/pos/POSHeader";
 import type { POSSidebarItemId } from "../components/pos/POSSidebar";
@@ -70,9 +70,12 @@ export const POSProvider: React.FC<POSProviderProps> = ({
   const [productSelectHandler, setProductSelectHandlerState] =
     useState<POSProductSelectHandler | null>(null);
 
-  const setProductSelectHandler = (handler: POSProductSelectHandler | null) => {
-    setProductSelectHandlerState(() => handler);
-  };
+  const setProductSelectHandler = useCallback(
+    (handler: POSProductSelectHandler | null) => {
+      setProductSelectHandlerState(() => handler);
+    },
+    []
+  );
 
   const resolvedUser = useMemo(() => {
     if (authUser) {
