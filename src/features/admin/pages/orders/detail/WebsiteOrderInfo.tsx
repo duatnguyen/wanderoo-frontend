@@ -82,18 +82,49 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
         };
 
         // Add steps from shipping log if available
-        const logSteps = orderData.shippingDetail?.log?.map((logEntry: any, index: number) => ({
+        // Sort log by updated_date to ensure chronological order
+        const rawLog = orderData.shippingDetail?.log || [];
+        const sortedLog = [...rawLog].sort((a: any, b: any) => {
+            const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
+            const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
+            return dateA - dateB; // Sort ascending (oldest first)
+        });
+
+        // Debug: Log the raw and sorted log entries
+        if (rawLog.length > 0) {
+            console.log('Raw shipping log:', rawLog);
+            console.log('Sorted shipping log:', sortedLog);
+            console.log('Log statuses:', sortedLog.map((entry: any) => ({
+                status: entry.status,
+                date: entry.updated_date,
+                description: getStatusDescription(entry.status)
+            })));
+        }
+
+        const logSteps = sortedLog.map((logEntry: any, index: number) => ({
             id: baseSteps.length + index + 1,
             status: getStatusDescription(logEntry.status),
             date: formatTimelineDate(logEntry.updated_date),
             isCompleted: true,
             isCurrent: false,
-        })) || [];
+            rawStatus: logEntry.status, // Keep raw status for debugging
+        }));
 
         // Combine base steps with log steps
         const allSteps = [...baseSteps, ...logSteps];
 
-        // Determine current step based on order status
+        // If we have log steps, use the last log step as the current status
+        // Don't add artificial steps based on order status
+        if (logSteps.length > 0) {
+            // Mark the last step as current
+            const stepsWithCurrent = allSteps.map((step, index) => ({
+                ...step,
+                isCurrent: index === allSteps.length - 1,
+            }));
+            return stepsWithCurrent;
+        }
+
+        // If no log steps, determine current step based on order status
         const currentStatus = orderData.status;
         if (currentStatus === "PENDING") {
             return [
@@ -166,13 +197,14 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
     };
 
     // Get timeline text based on order status (for collapsed view)
+    // Always show the last step (most recent status) in the header
     const getTimelineText = () => {
         const steps = getTimelineSteps();
-        const currentStep =
-            steps.find((step) => step.isCurrent) || steps[steps.length - 1];
+        // Always get the last step (most recent status)
+        const lastStep = steps[steps.length - 1];
         return {
-            status: currentStep.status,
-            date: currentStep.date,
+            status: lastStep.status,
+            date: lastStep.date,
         };
     };
 
@@ -257,11 +289,6 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                     {(orderData as any).shippingOrderCode && (
                         <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
                             Mã vận chuyển: {(orderData as any).shippingOrderCode}
-                        </p>
-                    )}
-                    {(orderData as any).trackingNumber && (
-                        <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
-                            Mã tracking: {(orderData as any).trackingNumber}
                         </p>
                     )}
                 </div>
@@ -428,16 +455,24 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
 
                                         {/* Timeline Content */}
                                         <div className="flex flex-col gap-[4px] min-w-0 flex-1 pb-[8px]">
-                                            <p
-                                                className={`font-montserrat font-medium text-[15px] leading-[1.4] transition-colors duration-200 ${step.isCurrent
-                                                        ? "text-[#04910c] font-semibold"
-                                                        : step.isCompleted
-                                                            ? "text-[#272424]"
-                                                            : "text-[#888888]"
-                                                    }`}
-                                            >
-                                                {step.status}
-                                            </p>
+                                            <div className="flex items-center gap-[6px]">
+                                                <p
+                                                    className={`font-montserrat font-medium text-[15px] leading-[1.4] transition-colors duration-200 ${step.isCurrent
+                                                            ? "text-[#04910c] font-semibold"
+                                                            : step.isCompleted
+                                                                ? "text-[#272424]"
+                                                                : "text-[#888888]"
+                                                        }`}
+                                                >
+                                                    {step.status}
+                                                </p>
+                                                {/* Debug: Show raw status in development */}
+                                                {(step as any).rawStatus && process.env.NODE_ENV === 'development' && (
+                                                    <span className="font-montserrat font-normal text-[10px] text-gray-400 italic">
+                                                        ({((step as any).rawStatus)})
+                                                    </span>
+                                                )}
+                                            </div>
                                             {step.date && (
                                                 <div className="flex items-center gap-[6px]">
                                                     <svg className="w-3 h-3 text-[#737373]" fill="currentColor" viewBox="0 0 20 20">

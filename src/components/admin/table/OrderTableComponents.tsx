@@ -25,10 +25,10 @@ export const OrderTableHeader = ({
           <div
             key={column.title}
             className={`bg-[#f6f6f6] flex items-center ${index === 0
-                ? "rounded-l-[6px]"
-                : index === columns.length - 1
-                  ? "rounded-r-[6px]"
-                  : ""
+              ? "rounded-l-[6px]"
+              : index === columns.length - 1
+                ? "rounded-r-[6px]"
+                : ""
               } ${index === 0 ? "px-[16px]" : "px-[8px]"} py-[14px] ${column.width} ${column.minWidth || ""} ${column.className || "justify-center"
               }`}
           >
@@ -59,8 +59,10 @@ export interface OrderRowProps {
       id: number;
       name: string;
       price: string;
+      unitPrice?: number;
       quantity: number;
       image: string;
+      sku?: string;
       variantAttributes?: Array<{
         groupName: string;
         value: string;
@@ -126,18 +128,6 @@ export const OrderTableRow = ({
           </div>
         </div>
 
-        {/* Tổng tiền Column - w-[140px] */}
-        <div className="flex items-center justify-start px-[16px] py-[12px] w-[140px] min-w-[120px]">
-          <p className="font-montserrat font-semibold text-[#e04d30] text-[12px] leading-[1.3]">
-            {order.totalAmount.toLocaleString('vi-VN')}₫
-            {order.shippingFee > 0 && (
-              <span className="font-normal text-[#888] text-[10px] ml-1">
-                (+{order.shippingFee.toLocaleString('vi-VN')})
-              </span>
-            )}
-          </p>
-        </div>
-
         {/* Nguồn Column - w-[90px] */}
         <div className="flex items-center justify-start px-[16px] py-[12px] w-[90px] min-w-[80px]">
           <p className="font-montserrat font-medium text-[#272424] text-[12px] leading-[1.3]">
@@ -172,6 +162,18 @@ export const OrderTableRow = ({
           />
         </div>
 
+        {/* Tổng tiền Column - w-[140px] */}
+        <div className="flex items-center justify-start px-[16px] py-[12px] w-[140px] min-w-[120px]">
+          <p className="font-montserrat font-semibold text-[#e04d30] text-[12px] leading-[1.3]">
+            {order.totalAmount.toLocaleString('vi-VN')}₫
+            {order.shippingFee > 0 && (
+              <span className="font-normal text-[#888] text-[10px] ml-1">
+                (+{order.shippingFee.toLocaleString('vi-VN')})
+              </span>
+            )}
+          </p>
+        </div>
+
         {/* Thao tác Column - w-[120px] */}
         <div className="flex items-center justify-start px-[16px] py-[12px] w-[120px] min-w-[100px]">
           <button
@@ -185,49 +187,85 @@ export const OrderTableRow = ({
       </div>
 
       {/* Products Section */}
-      <div className="border-b border-x border-[#e7e7e7] w-full">
+      <div className="border-b border-x border-[#e7e7e7] rounded-b-[6px] w-full">
         {/* Products List */}
         {visibleProducts.map((product, index) => (
           <div key={product.id} className={`flex items-center px-[16px] py-[12px] ${index > 0 ? 'border-t border-gray-200' : ''}`}>
             {/* Product Image and Info */}
             <div className="flex items-start gap-3 flex-1">
-              <img
-                src={product.image || '/placeholder-product.png'}
-                alt={product.name}
-                className="border border-[#d1d1d1] w-[48px] h-[48px] object-cover bg-gray-100 rounded"
-              />
-              <div className="flex flex-col gap-[2px] flex-1 min-w-0">
-                <p className="font-montserrat font-medium text-[#272424] text-[13px] leading-[1.3] line-clamp-1">
-                  {product.name.split(' / ')[0] || product.name}
+              <div className="border border-[#d1d1d1] w-[48px] h-[48px] object-cover bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                {product.image ? (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover rounded"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    {product.sku && (
+                      <span className="font-montserrat font-semibold text-[8px] text-gray-500 text-center px-1 leading-tight">
+                        {product.sku}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-[4px] flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[#272424] text-[13px] leading-[1.4] line-clamp-2">
+                  {product.name}
                 </p>
-                {product.variantAttributes && product.variantAttributes.length > 0 && (
-                  <p className="font-montserrat font-medium text-[#888] text-[11px] leading-[1.3]">
+                {product.variantAttributes && product.variantAttributes.length > 0 ? (
+                  <div className="flex flex-wrap gap-x-1.5 gap-y-1 mt-0.5">
                     {product.variantAttributes
-                      .sort((a, b) => a.groupLevel - b.groupLevel)
-                      .map(attr => `${attr.groupName}: ${attr.value}`)
-                      .join(' • ')}
+                      .sort((a, b) => (a.groupLevel || 0) - (b.groupLevel || 0))
+                      .map((attr, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 border border-blue-200 shadow-sm"
+                          title={`${attr.groupName}: ${attr.value}`}
+                        >
+                          <span className="font-montserrat font-medium text-[10px] leading-[1.2] whitespace-nowrap">
+                            <span className="text-[#666] font-semibold">{attr.groupName}:</span>
+                            <span className="text-[#1a71f6] ml-1">{attr.value}</span>
+                          </span>
+                        </span>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="font-montserrat font-medium text-[#999] text-[10px] leading-[1.3] italic">
+                    Không có phân loại
+                  </p>
+                )}
+                {product.sku && (
+                  <p className="font-montserrat font-medium text-[#999] text-[10px] leading-[1.3] mt-0.5">
+                    SKU: <span className="font-semibold">{product.sku}</span>
                   </p>
                 )}
               </div>
             </div>
 
             {/* Quantity and Price */}
-            <div className="flex items-center gap-[16px] min-w-[200px]">
-              <div className="text-center">
+            <div className="flex items-center gap-[20px] min-w-[220px] justify-end">
+              <div className="text-center min-w-[60px]">
                 <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
                   Số lượng
                 </p>
-                <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.3]">
+                <p className="font-montserrat font-semibold text-[#272424] text-[13px] leading-[1.3]">
                   x{product.quantity}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-right min-w-[100px]">
                 <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
                   Đơn giá
                 </p>
-                <p className="font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.3]">
+                <p className="font-montserrat font-semibold text-[#e04d30] text-[13px] leading-[1.3]">
                   {product.price}
                 </p>
+                {product.unitPrice && product.quantity > 0 && (
+                  <p className="font-montserrat font-medium text-[#666] text-[10px] leading-[1.3] mt-0.5">
+                    Tổng: {((product.unitPrice || 0) * product.quantity).toLocaleString('vi-VN')}₫
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -259,9 +297,6 @@ export const OrderTableRow = ({
           </div>
         )}
       </div>
-
-      {/* Bottom rounded corner */}
-      <div className="h-[1px] border-b border-x border-[#e7e7e7] rounded-b-[6px]"></div>
     </div>
   );
 };

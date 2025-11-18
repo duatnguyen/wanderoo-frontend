@@ -15,8 +15,10 @@ interface Order {
     id: number;
     name: string;
     price: string;
+    unitPrice?: number;
     quantity: number;
     image: string;
+    sku?: string;
     variantAttributes?: Array<{
       groupName: string;
       value: string;

@@ -192,17 +192,6 @@ export interface CustomerVoucherResponse extends VoucherResponse {
 
 export interface CustomerVoucherPageResponse extends PageResponse<CustomerVoucherResponse> {}
 
-// Discount Types
-export interface DiscountResponse {
-  id: number;
-  name: string;
-  type: string;
-  value: number;
-  status: string;
-  startDate: string;
-  endDate: string;
-}
-
 // POS Types
 export interface SaleProductResponse {
   id: number;
@@ -715,8 +704,6 @@ export interface DiscountCreateRequest {
 export interface DiscountUpdateRequest extends DiscountCreateRequest {
   id: number;
 }
-
-export interface DiscountPageResponse extends PageResponse<DiscountResponse> {}
 
 export interface DiscountMetadataResponse {
   types: string[];
