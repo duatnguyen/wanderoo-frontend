@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState } from "react";
 import type { ReactNode } from "react";
 import type { OrderTab } from "../components/pos/POSHeader";
 import type { POSSidebarItemId } from "../components/pos/POSSidebar";
-import { useAuth } from "./AuthContext";
 
 export type POSProductSelectHandler = (product: {
   id: string;
@@ -33,8 +32,6 @@ type POSContextType = {
     name: string;
     role: string;
   };
-  isAuthenticated: boolean;
-  isAuthLoading: boolean;
 };
 
 const POSContext = createContext<POSContextType | undefined>(undefined);
@@ -59,7 +56,6 @@ export const POSProvider: React.FC<POSProviderProps> = ({
   children,
   user = { name: "Admin", role: "Admin" },
 }) => {
-  const { user: authUser, isAuthenticated, isLoading } = useAuth();
   const [activeSidebarItem, setActiveSidebarItem] =
     useState<POSSidebarItemId>("cart");
   const [searchValue, setSearchValue] = useState("");
@@ -70,22 +66,9 @@ export const POSProvider: React.FC<POSProviderProps> = ({
   const [productSelectHandler, setProductSelectHandlerState] =
     useState<POSProductSelectHandler | null>(null);
 
-  const setProductSelectHandler = useCallback(
-    (handler: POSProductSelectHandler | null) => {
-      setProductSelectHandlerState(() => handler);
-    },
-    []
-  );
-
-  const resolvedUser = useMemo(() => {
-    if (authUser) {
-      return {
-        name: authUser.name || authUser.username,
-        role: authUser.role || "USER",
-      };
-    }
-    return user;
-  }, [authUser, user]);
+  const setProductSelectHandler = (handler: POSProductSelectHandler | null) => {
+    setProductSelectHandlerState(() => handler);
+  };
 
   return (
     <POSContext.Provider
@@ -100,9 +83,7 @@ export const POSProvider: React.FC<POSProviderProps> = ({
         setCurrentOrderId,
         productSelectHandler,
         setProductSelectHandler,
-        user: resolvedUser,
-        isAuthenticated,
-        isAuthLoading: isLoading,
+        user,
       }}
     >
       {children}
