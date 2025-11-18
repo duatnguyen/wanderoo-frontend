@@ -26,4 +26,9 @@ export type {
   GeneratePrintTokenResponse,
   PrintOrderResponse,
   SwitchStatusResponse,
+  DiscountPublicResponse,
+  VoucherHistoryResponse,
+  VoucherStatus,
+  DiscountTypeValue,
+  DiscountCategoryValue,
 } from './api';

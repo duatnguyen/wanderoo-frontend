@@ -7,6 +7,8 @@ import type {
   DiscountMetadataResponse,
   DiscountCreateRequest,
   SelectAllRequest,
+  DiscountPublicResponse,
+  VoucherHistoryResponse,
 } from '../../types';
 
 // Discount APIs
@@ -51,4 +53,22 @@ export const deleteAllDiscounts = async (request: SelectAllRequest): Promise<Api
     data: request,
   });
   return response.data;
+};
+
+// Public Discount/Voucher APIs
+export const getPublicDiscounts = async (params?: {
+  category?: string;
+}): Promise<DiscountPublicResponse[]> => {
+  const response = await api.get<ApiResponse<DiscountPublicResponse[]>>(
+    '/public/v1/discount/list',
+    { params },
+  );
+  return response.data.data ?? [];
+};
+
+export const getMyVouchers = async (): Promise<VoucherHistoryResponse[]> => {
+  const response = await api.get<ApiResponse<VoucherHistoryResponse[]>>(
+    '/public/v1/discount/voucher/my-vouchers',
+  );
+  return response.data.data ?? [];
 };
