@@ -74,6 +74,8 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   }
 };
 
+const USER_STORAGE_KEY = "wanderoo_user";
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -107,6 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const savedToken = localStorage.getItem("accessToken");
     const savedRefreshToken = localStorage.getItem("refreshToken");
+    // Ensure we never persist decoded user info in localStorage
+    localStorage.removeItem(USER_STORAGE_KEY);
     
     if (savedToken) {
       // Check if token is expired
@@ -193,6 +197,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Store only tokens, no user data
       localStorage.setItem("accessToken", response.accessToken);
       localStorage.setItem("refreshToken", response.refreshToken || "");
+      // Explicitly avoid storing decoded user info in localStorage
+      localStorage.removeItem(USER_STORAGE_KEY);
 
       dispatch({ 
         type: "LOGIN_SUCCESS", 
@@ -244,6 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Store only tokens
       localStorage.setItem("accessToken", response.accessToken);
       localStorage.setItem("refreshToken", response.refreshToken || "");
+      localStorage.removeItem(USER_STORAGE_KEY);
 
       dispatch({ 
         type: "REGISTER_SUCCESS", 
@@ -268,6 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem(USER_STORAGE_KEY);
     dispatch({ type: "LOGOUT" });
   };
 
