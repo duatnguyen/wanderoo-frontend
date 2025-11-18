@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface SearchBarProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
   className?: string;
 }
@@ -11,6 +12,7 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChange,
+  onKeyDown,
   placeholder = "Search",
   className,
 }) => {
@@ -37,6 +39,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         type="text"
         value={value}
         onChange={onChange}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         className="grow min-w-0 bg-transparent outline-none border-none text-[12px] text-[#272424] placeholder:text-[#737373]"
         aria-label="Search"

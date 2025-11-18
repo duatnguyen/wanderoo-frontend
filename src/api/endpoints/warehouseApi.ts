@@ -6,8 +6,13 @@ import type {
   ProviderUpdateRequest,
   ProviderStatResponse,
   InvoicePageResponse,
+  InvoiceCheckOutRequest,
+  InvoicePreviewResponse,
+  InvoiceDetailResponse,
+  PaymentRequest,
 } from '../../types/warehouse';
 import type { SelectAllRequest } from '../../types/auth';
+import type { ApiResponse } from '../../types/common';
 
 // Provider APIs
 export const getProviderList = async (
@@ -99,10 +104,10 @@ export const getImportInvoices = async (
   params.append('page', page.toString());
   params.append('size', size.toString());
 
-  const response = await apiClient.get<InvoicePageResponse>(
+  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
     `/auth/v1/private/invoice/import?${params.toString()}`
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const getImportInvoicesPending = async (
@@ -117,10 +122,10 @@ export const getImportInvoicesPending = async (
   params.append('page', page.toString());
   params.append('size', size.toString());
 
-  const response = await apiClient.get<InvoicePageResponse>(
+  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
     `/auth/v1/private/invoice/import/pending?${params.toString()}`
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const getImportInvoicesDone = async (
@@ -135,10 +140,10 @@ export const getImportInvoicesDone = async (
   params.append('page', page.toString());
   params.append('size', size.toString());
 
-  const response = await apiClient.get<InvoicePageResponse>(
+  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
     `/auth/v1/private/invoice/import/done?${params.toString()}`
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const getExportInvoices = async (
@@ -191,6 +196,64 @@ export const getExportInvoicesDone = async (
 
   const response = await apiClient.get<InvoicePageResponse>(
     `/auth/v1/private/invoice/export/done?${params.toString()}`
+  );
+  return response.data;
+};
+
+export const createImportInvoice = async (
+  request: InvoiceCheckOutRequest
+): Promise<number> => {
+  const response = await apiClient.post<number>(
+    '/auth/v1/private/invoice/import',
+    request
+  );
+  return response.data;
+};
+
+export const createExportInvoice = async (
+  request: InvoiceCheckOutRequest
+): Promise<number> => {
+  const response = await apiClient.post<number>(
+    '/auth/v1/private/invoice/export',
+    request
+  );
+  return response.data;
+};
+
+export const getInvoicePreview = async (
+  request: InvoiceCheckOutRequest
+): Promise<InvoicePreviewResponse> => {
+  const response = await apiClient.post<InvoicePreviewResponse>(
+    '/auth/v1/private/invoice/preview',
+    request
+  );
+  return response.data;
+};
+
+export const getInvoiceDetail = async (
+  invoiceId: number
+): Promise<InvoiceDetailResponse> => {
+  const response = await apiClient.get<InvoiceDetailResponse>(
+    `/auth/v1/private/invoice/${invoiceId}`
+  );
+  return response.data;
+};
+
+export const confirmInvoicePayment = async (
+  request: PaymentRequest
+): Promise<InvoiceDetailResponse> => {
+  const response = await apiClient.post<InvoiceDetailResponse>(
+    '/auth/v1/private/invoice/confirm-payment',
+    request
+  );
+  return response.data;
+};
+
+export const confirmInvoiceProductStatus = async (
+  invoiceId: number
+): Promise<InvoiceDetailResponse> => {
+  const response = await apiClient.post<InvoiceDetailResponse>(
+    `/auth/v1/private/invoice/${invoiceId}/confirm-product-status`
   );
   return response.data;
 };
