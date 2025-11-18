@@ -1,16 +1,24 @@
 // src/pages/admin/AdminShipping.tsx
 import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import TabMenuAccount, { type TabItem } from "@/components/ui/tab-menu-account";
-import CaretDown from "@/components/ui/caret-down";
 import AddressForm from "@/components/ui/address-form";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/icons/Icon";
 import {
   PageContainer,
   ContentCard,
-  PageHeader,
-  TableFilters,
 } from "@/components/common";
+import {
+  getAdminAddresses,
+  createAdminAddress,
+  updateAdminAddress,
+  deleteAdminAddress,
+  setDefaultAdminAddress,
+} from "@/api/endpoints/userApi";
+import { toast } from "sonner";
+import type { AddressResponse, AddressPageResponse } from "@/types";
+import type { AddressCreationRequest, AddressUpdateRequest } from "@/types";
 
 interface AddressFormData {
   fullName: string;
@@ -23,7 +31,7 @@ interface AddressFormData {
 }
 
 interface Address {
-  id: string;
+  id: number;
   name: string;
   phone: string;
   address: string;
@@ -39,6 +47,7 @@ interface ShippingMethod {
 }
 
 const AdminShipping: React.FC = () => {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("address");
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -48,67 +57,162 @@ const AdminShipping: React.FC = () => {
     { id: "shipping", label: "Đơn vị vận chuyển" },
   ];
 
-  const [addresses, setAddresses] = useState<Address[]>([
-    {
-      id: "1",
-      name: "Nguyễn Thị Thanh",
-      phone: "(+84)123456789",
-      address: "Số 70 Đinh Tiên Hoàng, Hoàn Kiếm, Hà Nội",
-      isDefault: true,
-    },
-    {
-      id: "2",
-      name: "Nguyễn Thị Thanh",
-      phone: "(+84) 423294892",
-      address: "17 ngõ 120 Bà Triệu, Hoàn Kiếm, Hà Nội",
-      isDefault: false,
-    },
-  ]);
+  // Fetch admin addresses
+  const {
+    data: addressesData,
+    isLoading: isLoadingAddresses,
+    refetch: refetchAddresses,
+  } = useQuery({
+    queryKey: ["admin-addresses"],
+    queryFn: () => getAdminAddresses(),
+  });
 
-  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([
+  // Convert API response to local Address format and sort: default address first
+  const addresses: Address[] = (addressesData?.addresses?.map((addr: AddressResponse) => ({
+    id: addr.id,
+    name: addr.name || "",
+    phone: addr.phone || "",
+    address: `${addr.location || ""}, ${addr.ward || ""}, ${addr.district || ""}, ${addr.province || ""}`.replace(/^,\s*|,\s*$/g, ""),
+    isDefault: typeof addr.isDefault === "string" 
+      ? addr.isDefault === "Địa chỉ mặc định" || addr.isDefault === "true"
+      : addr.isDefault === true,
+  })) || []).sort((a, b) => {
+    // Sort: default address first
+    if (a.isDefault && !b.isDefault) return -1;
+    if (!a.isDefault && b.isDefault) return 1;
+    return 0;
+  });
+
+  const shippingMethods: ShippingMethod[] = [
     {
       id: "fast",
-      name: "Nhanh",
+      name: "Giao hàng nhanh",
       description:
         "Phương thức vận chuyển chuyên nghiệp, nhanh chóng và đáng tin cậy",
       isEnabled: true,
       isExpanded: false,
     },
-    {
-      id: "economy",
-      name: "Tiết kiệm",
-      description: "Phương thức vận chuyển mức phí cạnh tranh nhất",
-      isEnabled: false,
-      isExpanded: true,
-    },
-  ]);
+  ];
 
-  const handleSetDefault = (addressId: string) => {
-    // FE-only: update state so the selected address becomes default
-    setAddresses((prev) => {
-      const updated = prev.map((addr) => ({
-        ...addr,
-        isDefault: addr.id === addressId,
-      }));
-      // Move the default address to the top of the list
-      updated.sort((a, b) =>
-        a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1
-      );
-      return updated;
-    });
+  // Set default address mutation
+  const setDefaultMutation = useMutation({
+    mutationFn: (addressId: number) => setDefaultAdminAddress(addressId),
+    onMutate: async (addressId: number) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ["admin-addresses"] });
+
+      // Snapshot the previous value
+      const previousAddresses = queryClient.getQueryData<AddressPageResponse>(["admin-addresses"]);
+
+      // Optimistically update to the new value
+      if (previousAddresses) {
+        queryClient.setQueryData<AddressPageResponse>(["admin-addresses"], {
+          ...previousAddresses,
+          addresses: previousAddresses.addresses.map((addr: AddressResponse) => ({
+            ...addr,
+            isDefault: addr.id === addressId ? "Địa chỉ mặc định" : "Địa chỉ không mặc định",
+          })),
+        });
+      }
+
+      // Return a context object with the snapshotted value
+      return { previousAddresses };
+    },
+    onSuccess: () => {
+      toast.success("Đã thiết lập địa chỉ mặc định");
+      // Refetch to ensure data is in sync with server
+      refetchAddresses();
+    },
+    onError: (error: any, _addressId: number, context: any) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousAddresses) {
+        queryClient.setQueryData(["admin-addresses"], context.previousAddresses);
+      }
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể thiết lập địa chỉ mặc định";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Delete address mutation
+  const deleteMutation = useMutation({
+    mutationFn: (addressId: number) => deleteAdminAddress(addressId),
+    onSuccess: () => {
+      toast.success("Đã xóa địa chỉ");
+      refetchAddresses();
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể xóa địa chỉ";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Create address mutation
+  const createMutation = useMutation({
+    mutationFn: (addressData: AddressCreationRequest) => createAdminAddress(addressData),
+    onSuccess: () => {
+      toast.success("Đã thêm địa chỉ mới");
+      refetchAddresses();
+      setShowAddressForm(false);
+      setEditingAddress(null);
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể thêm địa chỉ";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Update address mutation
+  const updateMutation = useMutation({
+    mutationFn: (addressData: AddressUpdateRequest) => updateAdminAddress(addressData),
+    onSuccess: () => {
+      toast.success("Đã cập nhật địa chỉ");
+      refetchAddresses();
+      setShowAddressForm(false);
+      setEditingAddress(null);
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể cập nhật địa chỉ";
+      toast.error(errorMessage);
+    },
+  });
+
+  const handleSetDefault = (addressId: number) => {
+    setDefaultMutation.mutate(addressId);
   };
 
-  const handleUpdate = (addressId: string) => {
-    const address = addresses.find((addr) => addr.id === addressId);
-    if (address) {
-      setEditingAddress(address);
+  const handleUpdate = (addressId: number) => {
+    // Find original address data from API response
+    const originalAddress = addressesData?.addresses?.find((addr: AddressResponse) => addr.id === addressId);
+    if (originalAddress) {
+      setEditingAddress({
+        id: originalAddress.id,
+        name: originalAddress.name || "",
+        phone: originalAddress.phone || "",
+        address: `${originalAddress.location || ""}, ${originalAddress.ward || ""}, ${originalAddress.district || ""}, ${originalAddress.province || ""}`.replace(/^,\s*|,\s*$/g, ""),
+        isDefault: typeof originalAddress.isDefault === "string" 
+          ? originalAddress.isDefault === "Địa chỉ mặc định" || originalAddress.isDefault === "true"
+          : originalAddress.isDefault === true,
+      });
       setShowAddressForm(true);
     }
   };
 
-  const handleDelete = (addressId: string) => {
-    // Handle delete address
-    console.log("Delete address:", addressId);
+  const handleDelete = (addressId: number) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) {
+      deleteMutation.mutate(addressId);
+    }
   };
 
   const handleAddNewAddress = () => {
@@ -117,15 +221,41 @@ const AdminShipping: React.FC = () => {
   };
 
   const handleAddressFormSubmit = (formData: AddressFormData) => {
+    // Parse address string to get location, ward, district, province
+    const addressParts = formData.detailAddress.split(",").map(s => s.trim());
+    const location = addressParts[0] || "";
+    const ward = formData.ward || "";
+    const district = formData.district || "";
+    const province = formData.province || "";
+
     if (editingAddress) {
       // Update existing address
-      console.log("Update address:", editingAddress.id, formData);
+      const updateData: AddressUpdateRequest = {
+        id: editingAddress.id,
+        name: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        province: province,
+        district: district,
+        ward: ward,
+        location: location,
+        wardCode: "WARD001", // Default - should be fetched from API
+        districtId: 1, // Default - should be fetched from API
+      };
+      updateMutation.mutate(updateData);
     } else {
       // Add new address
-      console.log("Add new address:", formData);
+      const createData: AddressCreationRequest = {
+        name: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        province: province,
+        district: district,
+        ward: ward,
+        location: location,
+        wardCode: "WARD001", // Default - should be fetched from API
+        districtId: 1, // Default - should be fetched from API
+      };
+      createMutation.mutate(createData);
     }
-    setShowAddressForm(false);
-    setEditingAddress(null);
   };
 
   const handleAddressFormCancel = () => {
@@ -133,25 +263,6 @@ const AdminShipping: React.FC = () => {
     setEditingAddress(null);
   };
 
-  const handleToggleShipping = (methodId: string) => {
-    setShippingMethods((prev) =>
-      prev.map((method) =>
-        method.id === methodId
-          ? { ...method, isEnabled: !method.isEnabled }
-          : method
-      )
-    );
-  };
-
-  const handleToggleExpand = (methodId: string) => {
-    setShippingMethods((prev) =>
-      prev.map((method) =>
-        method.id === methodId
-          ? { ...method, isExpanded: !method.isExpanded }
-          : method
-      )
-    );
-  };
 
   return (
     <PageContainer>
@@ -195,10 +306,19 @@ const AdminShipping: React.FC = () => {
                 </Button>
               </div>
               <div className="bg-white border border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full">
-                {addresses.map((address, index) => (
+                {isLoadingAddresses ? (
+                  <div className="flex items-center justify-center w-full py-8">
+                    <p className="text-[#272424] text-[14px]">Đang tải địa chỉ...</p>
+                  </div>
+                ) : addresses.length === 0 ? (
+                  <div className="flex items-center justify-center w-full py-8">
+                    <p className="text-[#272424] text-[14px]">Chưa có địa chỉ nào</p>
+                  </div>
+                ) : (
+                  addresses.map((address, index) => (
                   <div
                     key={address.id}
-                    className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${index === 0 ? "border-b border-[#d1d1d1]" : ""
+                    className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${index < addresses.length - 1 ? "border-b border-[#d1d1d1]" : ""
                       }`}
                   >
                     {/* Row 1: Name/Phone on left, actions on right */}
@@ -278,7 +398,8 @@ const AdminShipping: React.FC = () => {
 
                     {/* No separate bottom actions */}
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           ) : (
@@ -296,48 +417,25 @@ const AdminShipping: React.FC = () => {
                         {method.description}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleToggleExpand(method.id)}
-                      className="bg-white border border-[#e04d30] flex gap-[6px] items-center pl-[12px] pr-[8px] py-[8px] rounded-[12px] flex-shrink-0 whitespace-nowrap"
-                    >
-                      <span className="font-bold text-[#e04d30] text-[12px] leading-[1.5]">
-                        {method.isExpanded ? "Thu gọn" : "Mở rộng"}
-                      </span>
-                      <div
-                        className={`${method.isExpanded ? "rotate-180" : ""}`}
-                      >
-                        <CaretDown className="text-[#e04d30]" />
-                      </div>
-                    </button>
                   </div>
 
-                  {/* Expanded Content */}
-                  {method.isExpanded && (
-                    <div className="bg-white border-2 border-[#e7e7e7] flex items-center justify-between px-[20px] py-[12px] rounded-[12px] w-full">
-                      <div className="font-semibold text-[14px] text-[#1a1a1b] leading-[1.4] pl-[8px]">
-                        {method.name}
-                      </div>
-                      <div className="relative w-[50px] h-[26px] flex-shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={method.isEnabled}
-                          onChange={() => handleToggleShipping(method.id)}
-                          className="w-full h-full opacity-0 absolute cursor-pointer z-10"
-                        />
-                        <div
-                          className={`w-full h-full rounded-full transition-colors duration-200 ${method.isEnabled ? "bg-[#e04d30]" : "bg-gray-300"
-                            }`}
-                        >
-                          <div
-                            className={`absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow-md transform transition-transform duration-200 ${method.isEnabled
-                              ? "translate-x-[24px]"
-                              : "translate-x-[2px]"
-                              }`}
-                          />
-                        </div>
+                  {/* Expanded Content - Always visible */}
+                  <div className="bg-white border-2 border-[#e7e7e7] flex items-center justify-between px-[20px] py-[12px] rounded-[12px] w-full">
+                    <div className="font-semibold text-[14px] text-[#1a1a1b] leading-[1.4] pl-[8px]">
+                      {method.name}
+                    </div>
+                    <div className="relative w-[50px] h-[26px] flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={true}
+                        disabled
+                        className="w-full h-full opacity-0 absolute cursor-not-allowed z-10"
+                      />
+                      <div className="w-full h-full rounded-full transition-colors duration-200 bg-[#e04d30]">
+                        <div className="absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow-md transform transition-transform duration-200 translate-x-[24px]" />
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -351,13 +449,23 @@ const AdminShipping: React.FC = () => {
               <AddressForm
                 title={editingAddress ? "Cập nhật địa chỉ" : "Thêm địa chỉ mới"}
                 initialData={
-                  editingAddress
-                    ? {
-                      fullName: editingAddress.name,
-                      phone: editingAddress.phone,
-                      detailAddress: editingAddress.address,
-                      isDefault: editingAddress.isDefault,
-                    }
+                  editingAddress && addressesData?.addresses
+                    ? (() => {
+                        const originalAddress = addressesData.addresses.find((addr: AddressResponse) => addr.id === editingAddress.id);
+                        return originalAddress
+                          ? {
+                              fullName: originalAddress.name || "",
+                              phone: originalAddress.phone || "",
+                              province: originalAddress.province || "",
+                              district: originalAddress.district || "",
+                              ward: originalAddress.ward || "",
+                              detailAddress: originalAddress.location || "",
+                              isDefault: typeof originalAddress.isDefault === "string" 
+                                ? originalAddress.isDefault === "Địa chỉ mặc định" || originalAddress.isDefault === "true"
+                                : originalAddress.isDefault === true,
+                            }
+                          : undefined;
+                      })()
                     : undefined
                 }
                 onSubmit={handleAddressFormSubmit}

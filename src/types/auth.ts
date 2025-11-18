@@ -23,16 +23,22 @@ export interface AddressResponse {
   phone: string;
   wardCode: string;
   districtId: number;
-  isDefault: boolean;
+  isDefault: string | boolean; // Backend returns "Địa chỉ mặc định" or "Địa chỉ không mặc định" as string
 }
 
-export interface AddressPageResponse extends PageResponse<AddressResponse> {}
+export interface AddressPageResponse {
+  addresses: AddressResponse[];
+}
 
 export interface AddressDetailResponse extends AddressResponse {}
 
 export interface EmployeeResponse extends UserResponse {
-  department: string;
-  position: string;
+  department?: string;
+  position?: string;
+  type?: string;
+  image_url?: string | null;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null;
 }
 
 export interface EmployeePageResponse extends PageResponse<EmployeeResponse> {}
@@ -89,13 +95,14 @@ export interface AddressUpdateRequest extends AddressCreationRequest {
 }
 
 export interface EmployeeCreationRequest {
-  username: string;
-  email: string;
-  password: string;
   name: string;
+  username: string;
   phone: string;
-  department: string;
-  position: string;
+  password: string;
+  email?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string;
+  image_url?: string;
 }
 
 export interface EmployeeUpdateRequest extends EmployeeCreationRequest {

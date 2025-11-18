@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { ChipStatus } from "@/components/ui/chip-status";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FormInput from "@/components/ui/form-input";
 import CustomRadio from "@/components/ui/custom-radio";
 import CityDropdown from "@/components/ui/city-dropdown";
@@ -14,59 +15,15 @@ import {
   PageContainer,
   ContentCard,
 } from "@/components/common";
-// Mock type and data, eventually get from API or context
-const mockCustomers = [
-  {
-    id: "C001",
-    name: "Thanh",
-    username: "thanh",
-    email: "---",
-    phone: "+84234245969",
-    gender: "Nữ",
-    status: "active",
-    avatar: "/api/placeholder/70/70",
-    registrationDate: "2024-01-15",
-    totalOrders: 2,
-    totalSpent: 1000000,
-    address: "Phường Phố Huế, Quận Hai Bà Trưng, Hà Nội",
-    recentOrders: [
-      {
-        id: "10292672H68229",
-        source: "POS",
-        date: "19/7/2025 15:50",
-        paymentStatus: "Đã thanh toán",
-        fulfillmentStatus: "Đã hoàn thành",
-      },
-      {
-        id: "10292672H68229",
-        source: "POS",
-        date: "19/7/2025 15:50",
-        paymentStatus: "Đã hoàn tiền 1 phần",
-        fulfillmentStatus: "Đã thanh toán",
-      },
-    ],
-  },
-  {
-    id: "C002",
-    name: "Trần Thị Bình",
-    username: "tranthibinh",
-    email: "tranthibinh@email.com",
-    phone: "0987654321",
-    gender: "Nữ",
-    status: "active",
-    avatar: "/api/placeholder/70/70",
-    registrationDate: "2024-02-20",
-    totalOrders: 18,
-    totalSpent: 8900000,
-    address: "Hà Nội",
-    recentOrders: [],
-  },
-];
+import { getCustomerById, updateCustomer, getCustomerAddresses, updateCustomerAddress, createCustomerAddress } from "@/api/endpoints/userApi";
+import { toast } from "sonner";
+import type { CustomerResponse, CustomerUpdateRequest } from "@/types/api";
+import type { AddressResponse, AddressUpdateRequest, AddressCreationRequest } from "@/types";
 
 const AdminCustomerDetail = () => {
   const { customerId } = useParams();
   const navigate = useNavigate();
-  const customer = mockCustomers.find((c) => c.id === customerId);
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -78,51 +35,290 @@ const AdminCustomerDetail = () => {
     email: "",
   });
   const [addressData, setAddressData] = useState({
+    id: null as number | null,
     name: "",
     phone: "",
-    city: "",
+    province: "",
     district: "",
     ward: "",
-    detailAddress: "",
+    location: "",
+    wardCode: "",
+    districtId: null as number | null,
+  });
+  const [defaultAddress, setDefaultAddress] = useState<AddressResponse | null>(null);
+
+  // Fetch customer data from API
+  const {
+    data: customer,
+    isLoading,
+    isError,
+    refetch: refetchCustomer,
+  } = useQuery<CustomerResponse>({
+    queryKey: ["admin-customer-detail", customerId],
+    queryFn: () => getCustomerById(Number(customerId)),
+    enabled: !!customerId,
   });
 
-  if (!customer) {
-    return <div className="p-8 text-center">Khách hàng không tồn tại</div>;
+  // Fetch customer addresses
+  const {
+    data: addressesData,
+    refetch: refetchAddresses,
+  } = useQuery({
+    queryKey: ["admin-customer-addresses", customerId],
+    queryFn: () => getCustomerAddresses(Number(customerId)),
+    enabled: !!customerId,
+  });
+
+  // Update customer mutation
+  const updateCustomerMutation = useMutation({
+    mutationFn: (data: CustomerUpdateRequest) => {
+      console.log("updateCustomerMutation called with:", data);
+      return updateCustomer(data.id, data);
+    },
+    onSuccess: async () => {
+      toast.success("Cập nhật thông tin khách hàng thành công");
+      await refetchCustomer();
+      queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
+      setIsEditModalOpen(false);
+    },
+    onError: (error: any) => {
+      console.error("updateCustomerMutation error:", error);
+      console.error("Error response:", error?.response);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể cập nhật thông tin khách hàng";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Update address mutation
+  const updateAddressMutation = useMutation({
+    mutationFn: (data: AddressUpdateRequest) => {
+      console.log("updateAddressMutation called with:", data);
+      return updateCustomerAddress(Number(customerId), data);
+    },
+    onSuccess: async () => {
+      toast.success("Cập nhật địa chỉ giao hàng thành công");
+      await refetchAddresses();
+      setIsAddressModalOpen(false);
+    },
+    onError: (error: any) => {
+      console.error("updateAddressMutation error:", error);
+      console.error("Error response:", error?.response);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể cập nhật địa chỉ giao hàng";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Create address mutation
+  const createAddressMutation = useMutation({
+    mutationFn: (data: AddressCreationRequest) => createCustomerAddress(Number(customerId), data),
+    onSuccess: async () => {
+      toast.success("Tạo địa chỉ giao hàng thành công");
+      await refetchAddresses();
+      setIsAddressModalOpen(false);
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể tạo địa chỉ giao hàng";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Initialize form data when customer data is loaded
+  useEffect(() => {
+    if (customer) {
+      setFormData({
+        name: customer.name || "",
+        phone: customer.phone || "",
+        birthdate: customer.birthday
+          ? new Date(customer.birthday).toISOString().split("T")[0]
+          : "",
+        gender: (customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ") || "Nữ",
+        email: customer.email || "",
+      });
+    }
+  }, [customer]);
+
+  // Initialize default address when addresses are loaded
+  useEffect(() => {
+    if (addressesData?.addresses && addressesData.addresses.length > 0) {
+      // Find default address or use first address
+      const defaultAddr = addressesData.addresses.find(addr => addr.isDefault === "Địa chỉ mặc định") 
+        || addressesData.addresses[0];
+      setDefaultAddress(defaultAddr);
+    } else {
+      setDefaultAddress(null);
+    }
+  }, [addressesData]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center py-8">
+          <p className="text-[#272424] text-[16px]">Đang tải thông tin khách hàng...</p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Error state
+  if (isError || !customer) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center py-8">
+          <p className="text-[#272424] text-[16px]">
+            {isError ? "Không thể tải thông tin khách hàng" : "Không tìm thấy khách hàng"}
+          </p>
+        </div>
+      </PageContainer>
+    );
   }
 
   const handleEditClick = () => {
-    setFormData({
-      name: customer.name,
-      phone: customer.phone,
-      birthdate: customer.registrationDate,
-      gender: customer.gender || "Nữ",
-      email: customer.email,
-    });
     setIsEditModalOpen(true);
   };
 
   const handleSave = () => {
-    // TODO: Implement save logic
-    console.log("Saving customer data:", formData);
-    setIsEditModalOpen(false);
+    if (!customer) return;
+
+    console.log("handleSave called with formData:", formData);
+
+    // Validation
+    if (!formData.name.trim()) {
+      toast.error("Vui lòng nhập họ và tên");
+      return;
+    }
+    if (!formData.phone.trim()) {
+      toast.error("Vui lòng nhập số điện thoại");
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.error("Vui lòng nhập email");
+      return;
+    }
+
+    const updateData: CustomerUpdateRequest = {
+      id: customer.id,
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
+      username: customer.username, // Keep existing username
+      password: "", // Password not required for update - backend will skip encoding if empty
+      gender: formData.gender === "Nam" ? "MALE" : "FEMALE", // Convert to backend format
+      birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : customer.birthday ? new Date(customer.birthday).toISOString() : undefined,
+      // Note: address field is for contact address, not delivery address
+      // Delivery address is managed separately via Address entity
+    };
+
+    console.log("Updating customer with data:", updateData);
+    updateCustomerMutation.mutate(updateData);
   };
 
   const handleAddressEditClick = () => {
-    setAddressData({
-      name: customer.name,
-      phone: customer.phone,
-      city: "Hà Nội",
-      district: "Hoàn Kiếm",
-      ward: "Đinh Tiên Hoàng",
-      detailAddress: customer.address || "",
-    });
+    if (defaultAddress) {
+      // Edit existing address
+      setAddressData({
+        id: defaultAddress.id,
+        name: defaultAddress.name || customer.name,
+        phone: defaultAddress.phone || customer.phone,
+        province: defaultAddress.province || "",
+        district: defaultAddress.district || "",
+        ward: defaultAddress.ward || "",
+        location: defaultAddress.location || "",
+        wardCode: defaultAddress.wardCode || "",
+        districtId: defaultAddress.districtId || null,
+      });
+    } else {
+      // Create new address
+      setAddressData({
+        id: null,
+        name: customer.name,
+        phone: customer.phone,
+        province: "",
+        district: "",
+        ward: "",
+        location: "",
+        wardCode: "",
+        districtId: null,
+      });
+    }
     setIsAddressModalOpen(true);
   };
 
   const handleAddressSave = () => {
-    // TODO: Implement address save logic
-    console.log("Saving address data:", addressData);
-    setIsAddressModalOpen(false);
+    if (!customerId) return;
+
+    console.log("handleAddressSave called with addressData:", addressData);
+
+    // Validation
+    if (!addressData.name.trim()) {
+      toast.error("Vui lòng nhập tên người nhận");
+      return;
+    }
+    if (!addressData.phone.trim()) {
+      toast.error("Vui lòng nhập số điện thoại");
+      return;
+    }
+    if (!addressData.province.trim()) {
+      toast.error("Vui lòng chọn tỉnh/thành phố");
+      return;
+    }
+    if (!addressData.district.trim()) {
+      toast.error("Vui lòng chọn quận/huyện");
+      return;
+    }
+    if (!addressData.ward.trim()) {
+      toast.error("Vui lòng chọn phường/xã");
+      return;
+    }
+    if (!addressData.location.trim()) {
+      toast.error("Vui lòng nhập địa chỉ chi tiết");
+      return;
+    }
+
+    // Use existing wardCode and districtId if available, otherwise use defaults
+    // Note: In production, these should be fetched from an API based on selected district/ward
+    const finalWardCode = addressData.wardCode.trim() || "WARD001";
+    const finalDistrictId = addressData.districtId || 1;
+
+    if (addressData.id) {
+      // Update existing address
+      const updateData: AddressUpdateRequest = {
+        id: addressData.id,
+        name: addressData.name.trim(),
+        phone: addressData.phone.trim(),
+        province: addressData.province.trim(),
+        district: addressData.district.trim(),
+        ward: addressData.ward.trim(),
+        location: addressData.location.trim(),
+        wardCode: finalWardCode,
+        districtId: finalDistrictId,
+      };
+      console.log("Updating address with data:", updateData);
+      updateAddressMutation.mutate(updateData);
+    } else {
+      // Create new address
+      const createData: AddressCreationRequest = {
+        name: addressData.name.trim(),
+        phone: addressData.phone.trim(),
+        province: addressData.province.trim(),
+        district: addressData.district.trim(),
+        ward: addressData.ward.trim(),
+        location: addressData.location.trim(),
+        wardCode: finalWardCode,
+        districtId: finalDistrictId,
+      };
+      console.log("Creating address with data:", createData);
+      createAddressMutation.mutate(createData);
+    }
   };
 
   return (
@@ -140,14 +336,6 @@ const AdminCustomerDetail = () => {
               Thông tin khách hàng
             </h1>
           </div>
-        </div>
-        <div className="flex gap-[10px]">
-          <Button variant="secondary" className="text-[14px]">
-            Hủy bỏ
-          </Button>
-          <Button variant="default" className="text-[14px]">
-            Lưu thay đổi
-          </Button>
         </div>
       </div>
 
@@ -182,9 +370,9 @@ const AdminCustomerDetail = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-[4px]">
-                    <div className="w-[6px] h-[6px] rounded-full bg-[#28a745]"></div>
-                    <span className="font-medium text-[#28a745] text-[12px] leading-[1.4]">
-                      Hoạt động
+                    <div className={`w-[6px] h-[6px] rounded-full ${customer.status?.toUpperCase() === "ACTIVE" ? "bg-[#28a745]" : "bg-[#dc3545]"}`}></div>
+                    <span className={`font-medium text-[12px] leading-[1.4] ${customer.status?.toUpperCase() === "ACTIVE" ? "text-[#28a745]" : "text-[#dc3545]"}`}>
+                      {customer.status?.toUpperCase() === "ACTIVE" ? "Hoạt động" : "Ngừng hoạt động"}
                     </span>
                   </div>
                 </div>
@@ -196,7 +384,7 @@ const AdminCustomerDetail = () => {
                     Tổng chi tiêu
                   </p>
                   <p className="font-bold text-[#272424] text-[24px] leading-normal">
-                    {customer.totalSpent.toLocaleString("vi-VN")}đ
+                    ---
                   </p>
                 </div>
                 <div className="w-[1px] h-[40px] bg-[#d1d1d1]"></div>
@@ -205,7 +393,7 @@ const AdminCustomerDetail = () => {
                     Đơn hàng
                   </p>
                   <p className="font-bold text-[#272424] text-[24px] leading-normal">
-                    {customer.totalOrders}
+                    ---
                   </p>
                 </div>
               </div>
@@ -226,7 +414,11 @@ const AdminCustomerDetail = () => {
               {/* Content - Scrollable */}
               <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col py-[8px]">
-                  {customer.recentOrders?.map((order, index) => (
+                  {/* Note: Recent orders would need to be fetched separately */}
+                  <div className="px-[16px] py-[8px] text-[#737373] text-[14px]">
+                    Chức năng đơn hàng gần đây sẽ được tích hợp sau
+                  </div>
+                  {/* {customer.recentOrders?.map((order, index) => (
                     <div
                       key={index}
                       className={`flex items-center justify-between px-[16px] py-[8px] ${index < customer.recentOrders.length - 1
@@ -267,7 +459,7 @@ const AdminCustomerDetail = () => {
                         />
                       </div>
                     </div>
-                  ))}
+                  ))} */}
                 </div>
               </div>
             </div>
@@ -335,7 +527,7 @@ const AdminCustomerDetail = () => {
                     Giới tính
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {customer.gender}
+                    {customer.gender ? (customer.gender.toLowerCase() === "male" ? "Nam" : "Nữ") : "---"}
                   </p>
                 </div>
                 <div className="flex flex-col gap-[4px]">
@@ -343,7 +535,7 @@ const AdminCustomerDetail = () => {
                     Địa chỉ email
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4] break-all">
-                    {customer.email}
+                    {customer.email || "---"}
                   </p>
                 </div>
               </div>
@@ -386,7 +578,7 @@ const AdminCustomerDetail = () => {
                     Người nhận
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {customer.name}
+                    {defaultAddress?.name || customer.name}
                   </p>
                 </div>
                 <div className="flex flex-col gap-[4px]">
@@ -394,7 +586,7 @@ const AdminCustomerDetail = () => {
                     Số điện thoại
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {customer.phone}
+                    {defaultAddress?.phone || customer.phone}
                   </p>
                 </div>
               </div>
@@ -404,25 +596,11 @@ const AdminCustomerDetail = () => {
                   Địa chỉ chi tiết
                 </p>
                 <p className="font-semibold text-[#272424] text-[15px] leading-[1.5] break-words">
-                  {customer.address?.replace(/Hà Nội/g, "Hà\u00A0Nội")}
+                  {defaultAddress 
+                    ? `${defaultAddress.location || ""}, ${defaultAddress.ward || ""}, ${defaultAddress.district || ""}, ${defaultAddress.province || ""}`.replace(/^,\s*|,\s*$/g, '').trim() || "Chưa có địa chỉ"
+                    : "Chưa có địa chỉ"}
                 </p>
               </div>
-            </div>
-
-            {/* Notes */}
-            <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[16px] flex flex-col gap-[12px] flex-1">
-              <div className="border-b border-[#d1d1d1] pb-[8px]">
-                <p className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
-                  Ghi chú
-                </p>
-                <p className="font-normal text-[#737373] text-[12px] leading-[1.4] mt-[2px]">
-                  Thêm thông tin quan trọng về khách hàng
-                </p>
-              </div>
-              <textarea
-                className="border border-[#d1d1d1] rounded-[8px] p-[16px] flex-1 resize-none font-normal text-[#272424] text-[14px] leading-[1.5] focus:border-[#1a71f6] focus:outline-none transition-colors"
-                placeholder="Nhập ghi chú về khách hàng, lịch sử mua hàng, sở thích, yêu cầu đặc biệt..."
-              />
             </div>
           </div>
         </div>
@@ -538,8 +716,12 @@ const AdminCustomerDetail = () => {
                 >
                   Hủy bỏ
                 </Button>
-                <Button variant="default" onClick={handleSave}>
-                  Lưu thay đổi
+                <Button 
+                  variant="default" 
+                  onClick={handleSave}
+                  disabled={updateCustomerMutation.isPending}
+                >
+                  {updateCustomerMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
                 </Button>
               </div>
             </div>
@@ -599,15 +781,15 @@ const AdminCustomerDetail = () => {
                 </div>
               </div>
 
-              {/* City */}
+              {/* Province */}
               <div className="flex flex-col gap-[6px]">
                 <label className="font-medium text-[#272424] text-[14px]">
-                  Tỉnh/Thành phố
+                  Tỉnh/Thành phố <span className="text-[#e04d30]">*</span>
                 </label>
                 <CityDropdown
-                  value={addressData.city}
+                  value={addressData.province}
                   onValueChange={(value) =>
-                    setAddressData({ ...addressData, city: value })
+                    setAddressData({ ...addressData, province: value })
                   }
                   placeholder="Chọn tỉnh/thành phố"
                 />
@@ -616,28 +798,40 @@ const AdminCustomerDetail = () => {
               {/* District */}
               <div className="flex flex-col gap-[6px]">
                 <label className="font-medium text-[#272424] text-[14px]">
-                  Phường/Xã
+                  Quận/Huyện <span className="text-[#e04d30]">*</span>
                 </label>
-                <WardDropdown
-                  value={addressData.ward}
-                  onValueChange={(value) =>
-                    setAddressData({ ...addressData, ward: value })
-                  }
-                  placeholder="Chọn phường/xã"
+                <DistrictDropdown
+                  value={addressData.district}
+                  onValueChange={(value) => {
+                    setAddressData({ 
+                      ...addressData, 
+                      district: value,
+                      // Note: districtId will need to be set manually or via API
+                      // For now, we'll use a placeholder value
+                      districtId: addressData.districtId || 1
+                    });
+                  }}
+                  placeholder="Chọn quận/huyện"
                 />
               </div>
 
               {/* Ward */}
               <div className="flex flex-col gap-[6px]">
                 <label className="font-medium text-[#272424] text-[14px]">
-                  Quận/Huyện
+                  Phường/Xã <span className="text-[#e04d30]">*</span>
                 </label>
-                <DistrictDropdown
-                  value={addressData.district}
-                  onValueChange={(value) =>
-                    setAddressData({ ...addressData, district: value })
-                  }
-                  placeholder="Chọn quận/huyện"
+                <WardDropdown
+                  value={addressData.ward}
+                  onValueChange={(value) => {
+                    setAddressData({ 
+                      ...addressData, 
+                      ward: value,
+                      // Note: wardCode will need to be set manually or via API
+                      // For now, we'll use a placeholder value
+                      wardCode: addressData.wardCode || "WARD001"
+                    });
+                  }}
+                  placeholder="Chọn phường/xã"
                 />
               </div>
 
@@ -647,11 +841,11 @@ const AdminCustomerDetail = () => {
                   Địa chỉ chi tiết <span className="text-[#e04d30]">*</span>
                 </label>
                 <FormInput
-                  value={addressData.detailAddress}
+                  value={addressData.location}
                   onChange={(e) =>
                     setAddressData({
                       ...addressData,
-                      detailAddress: e.target.value,
+                      location: e.target.value,
                     })
                   }
                   placeholder="Nhập số nhà, tên đường..."
@@ -666,8 +860,12 @@ const AdminCustomerDetail = () => {
                 >
                   Hủy bỏ
                 </Button>
-                <Button variant="default" onClick={handleAddressSave}>
-                  Lưu địa chỉ
+                <Button 
+                  variant="default" 
+                  onClick={handleAddressSave}
+                  disabled={updateAddressMutation.isPending || createAddressMutation.isPending}
+                >
+                  {updateAddressMutation.isPending || createAddressMutation.isPending ? "Đang lưu..." : "Lưu địa chỉ"}
                 </Button>
               </div>
             </div>
