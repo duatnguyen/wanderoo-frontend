@@ -17,6 +17,7 @@ export interface TableFiltersProps {
   // Search
   searchValue?: string;
   onSearchChange?: (value: string) => void;
+  onSearchKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   searchPlaceholder?: string;
   searchClassName?: string;
 
@@ -36,6 +37,7 @@ export interface TableFiltersProps {
 export const TableFilters = ({
   searchValue = "",
   onSearchChange,
+  onSearchKeyDown,
   searchPlaceholder = "Tìm kiếm",
   searchClassName = "flex-1 min-w-0 max-w-[400px]",
   filterLabel = "Tất cả",
@@ -56,6 +58,7 @@ export const TableFilters = ({
         <SearchBar
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={onSearchKeyDown}
           placeholder={searchPlaceholder}
           className={searchClassName}
         />

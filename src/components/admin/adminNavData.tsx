@@ -323,12 +323,6 @@ export const adminNavSections: AdminNavSection[] = [
   {
     items: [
       {
-        label: "Tổng quan",
-        path: "/admin/dashboard",
-        icon: icons.overview,
-        activeMatch: "/admin/dashboard",
-      },
-      {
         label: "Đơn hàng",
         icon: icons.orders,
         activeMatch: "/admin/orders/all",

@@ -306,13 +306,32 @@ export interface SimpleInventoryPageResponse
 
 export interface ProviderResponse {
   id: number;
+  code: string;
   name: string;
-  contact: string;
-  address: string;
-  status: string;
+  phone: string;
+  email: string;
+  status?: "ACTIVE" | "INACTIVE";
 }
 
-export interface ProviderPageResponse extends PageResponse<ProviderResponse> {}
+export interface ProviderPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  providers: ProviderResponse[];
+}
+
+export interface ProviderDetailResponse {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  note?: string;
+  province: string;
+  ward: string;
+  district: string;
+  location: string;
+}
 
 export interface InvoiceResponse {
   id: number;
@@ -437,8 +456,7 @@ export interface CustomerOrderResponse extends OrderResponse {
   userInfo: UserInfo;
 }
 
-export interface CustomerOrderPageResponse
-  extends PageResponse<CustomerOrderResponse> {}
+export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> {}
 
 export interface CustomerOrderCancelResponse {
   orderId: number;
@@ -733,6 +751,8 @@ export interface DiscountUpdateRequest extends DiscountCreateRequest {
   id: number;
 }
 
+export interface DiscountPageResponse extends PageResponse<DiscountResponse> {}
+
 export interface DiscountMetadataResponse {
   types: string[];
   states: string[];
@@ -769,35 +789,62 @@ export interface ExpireVoucherRequest {
   voucherId: number;
 }
 
+export type CategoryStatus = "ACTIVE" | "INACTIVE";
+
 export interface CategoryParentResponse {
   id: number;
   name: string;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  categoryChildCount: number;
+  status: CategoryStatus;
 }
 
 export interface CategoryChildResponse {
   id: number;
   name: string;
-  parentId: number;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  status: CategoryStatus;
+  productCount: number;
+  parentId?: number;
+}
+
+export interface CategoryParentPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categories: CategoryParentResponse[];
+}
+
+export interface CategoryChildPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categoryChildResponseList: CategoryChildResponse[];
 }
 
 export interface CategoryParentCreateRequest {
   name: string;
+  imageUrl?: string;
 }
 
 export interface CategoryChildCreateRequest {
   name: string;
   parentId: number;
+  imageUrl?: string;
 }
 
-export interface CategoryParentUpdateRequest
-  extends CategoryParentCreateRequest {
+export interface CategoryParentUpdateRequest extends CategoryParentCreateRequest {
   id: number;
 }
 
-export interface CategoryChildUpdateRequest extends CategoryChildCreateRequest {
+export interface CategoryChildUpdateRequest {
   id: number;
+  name: string;
+  imageUrl?: string;
 }
 
 export interface VariantRequest {
@@ -831,10 +878,14 @@ export interface EmployeeResponse extends UserResponse {
   position: string;
 }
 
+export interface EmployeePageResponse extends PageResponse<EmployeeResponse> {}
+
 export interface CustomerResponse extends UserResponse {
   address: string;
   membershipLevel: string;
 }
+
+export interface CustomerPageResponse extends PageResponse<CustomerResponse> {}
 
 export interface EmployeeCreationRequest {
   username: string;
@@ -864,13 +915,18 @@ export interface CustomerUpdateRequest extends CustomerCreationRequest {
 }
 
 export interface SelectAllRequest {
-  ids: number[];
+  getAll: number[];
 }
 
 export interface ProviderCreateRequest {
   name: string;
-  contact: string;
-  address: string;
+  phone: string;
+  email: string;
+  note?: string;
+  province: string;
+  ward: string;
+  district: string;
+  location: string;
 }
 
 export interface ProviderUpdateRequest extends ProviderCreateRequest {
@@ -892,8 +948,7 @@ export interface OrderHistoryResponse {
   details: string;
 }
 
-export interface OrderHistoryPageResponse
-  extends PageResponse<OrderHistoryResponse> {}
+export interface OrderHistoryPageResponse extends PageResponse<OrderHistoryResponse> {}
 
 export interface OrderHistoryCreateRequest {
   orderId: number;
@@ -906,8 +961,7 @@ export interface OrderHistoryUpdateRequest {
   details?: string;
 }
 
-export interface OrderDetailPageResponse
-  extends PageResponse<OrderDetailResponse> {}
+export interface OrderDetailPageResponse extends PageResponse<OrderDetailResponse> {}
 
 export interface CustomerOrderMetadataResponse {
   paymentMethods: string[];

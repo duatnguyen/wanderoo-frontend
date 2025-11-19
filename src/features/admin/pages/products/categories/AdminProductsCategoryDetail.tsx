@@ -1,162 +1,255 @@
-import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import CustomCheckbox from "@/components/ui/custom-checkbox";
-import ToggleSwitch from "@/components/ui/toggle-switch";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
+import ToggleSwitch from "@/components/ui/toggle-switch";
+import { Icon } from "@/components/icons";
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import {
+  createCategoryChild,
+  disableAllCategories,
+  enableAllCategories,
+  getCategoryChildListByParent,
+  updateCategoryChild,
+} from "@/api/endpoints/attributeApi";
+import type {
+  CategoryChildResponse,
+  CategoryChildUpdateRequest,
+  CategoryParentResponse,
+  CategoryStatus,
+} from "@/types";
 
-interface Subcategory {
-  id: string;
-  name: string;
-  image: string;
-  productCount: number;
-  isActive: boolean;
-}
+const PAGE_SIZE = 10;
 
-const CATEGORY_NAMES: Record<string, string> = {
-  "1": "Trang phục",
-  "2": "Ba lô & Túi",
-  "3": "Giày & Dép",
-  "4": "Lều & Ngủ",
-  "5": "Dụng cụ nấu ăn & ăn uống",
+type UpdateCategoryVariables = {
+  payload: CategoryChildUpdateRequest;
+  status: CategoryStatus;
+  successMessage?: string;
 };
 
-const DEFAULT_SUBCATEGORIES: Subcategory[] = [
-  {
-    id: "sub-1",
-    name: "Áo thun",
-    image: "",
-    productCount: 12,
-    isActive: true,
-  },
-  {
-    id: "sub-2",
-    name: "Quần leo núi",
-    image: "",
-    productCount: 8,
-    isActive: true,
-  },
-  {
-    id: "sub-3",
-    name: "Áo khoác chống nước / gió",
-    image: "",
-    productCount: 6,
-    isActive: true,
-  },
-  {
-    id: "sub-4",
-    name: "Áo giữ nhiệt",
-    image: "",
-    productCount: 5,
-    isActive: true,
-  },
-  {
-    id: "sub-5",
-    name: "Tất leo núi",
-    image: "",
-    productCount: 4,
-    isActive: false,
-  },
-];
+type BulkStatusVariables = {
+  ids: number[];
+  status: CategoryStatus;
+};
+
+const getErrorMessage = (err: unknown) => {
+  if (isAxiosError(err)) {
+    return (
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      err.message ||
+      "Đã xảy ra lỗi"
+    );
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "Đã xảy ra lỗi, vui lòng thử lại.";
+};
 
 const AdminProductsCategoryDetail: React.FC = () => {
-  const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
+  const parentCategoryId = Number(categoryId);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [subcategories, setSubcategories] =
-    useState<Subcategory[]>(DEFAULT_SUBCATEGORIES);
-  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(
-    []
-  );
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const parentCategory =
+    (location.state as { category?: CategoryParentResponse } | undefined)
+      ?.category;
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
-  const [showAddSubcategoryModal, setShowAddSubcategoryModal] = useState(false);
-  const [newSubcategoryName, setNewSubcategoryName] = useState("");
+  const [uploadingImageFor, setUploadingImageFor] = useState<number | null>(
+    null
+  );
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [pendingCategoryId, setPendingCategoryId] = useState<number | null>(
+    null
+  );
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [shouldFocusLastPage, setShouldFocusLastPage] = useState(false);
 
-  const categoryName =
-    CATEGORY_NAMES[categoryId || ""] || "Danh mục chưa xác định";
+  const isParentIdValid = Number.isFinite(parentCategoryId);
+
+  const { data, isLoading, isFetching, isError, error } = useQuery({
+    queryKey: [
+      "category-child",
+      parentCategoryId,
+      { page: currentPage, size: PAGE_SIZE },
+    ],
+    queryFn: () =>
+      getCategoryChildListByParent(parentCategoryId, {
+        page: Math.max(currentPage - 1, 0),
+        size: PAGE_SIZE,
+      }),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    enabled: isParentIdValid,
+  });
+
+  const categories = data?.categoryChildResponseList ?? [];
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const totalElements = data?.totalElements ?? categories.length;
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (shouldFocusLastPage && data?.totalPages) {
+      const lastPage = Math.max(1, data.totalPages);
+      if (currentPage !== lastPage) {
+        setCurrentPage(lastPage);
+      }
+      setShouldFocusLastPage(false);
+    }
+  }, [shouldFocusLastPage, currentPage, data?.totalPages]);
+
+  useEffect(() => {
+    setSelectedCategories((prev) =>
+      prev.filter((id) => categories.some((cat) => cat.id === id))
+    );
+  }, [categories]);
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ payload, status }: UpdateCategoryVariables) =>
+      updateCategoryChild(payload, status),
+    onSuccess: (_res, variables) => {
+      toast.success(
+        variables.successMessage ?? "Cập nhật danh mục con thành công"
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["category-child", parentCategoryId],
+      });
+      setEditingId(null);
+      setEditingName("");
+      setUploadingImageFor(null);
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: createCategoryChild,
+    onSuccess: () => {
+      toast.success("Thêm danh mục con thành công");
+      setShouldFocusLastPage(true);
+      queryClient.invalidateQueries({
+        queryKey: ["category-child", parentCategoryId],
+      });
+      setShowAddCategoryModal(false);
+      setNewCategoryName("");
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: ({ ids, status }: BulkStatusVariables) =>
+      status === "ACTIVE"
+        ? enableAllCategories({ getAll: ids })
+        : disableAllCategories({ getAll: ids }),
+    onSuccess: (_res, variables) => {
+      const message =
+        variables.status === "ACTIVE"
+          ? `Đã kích hoạt ${variables.ids.length} danh mục con`
+          : `Đã ngừng kích hoạt ${variables.ids.length} danh mục con`;
+      toast.success(message);
+      setSelectedCategories([]);
+      queryClient.invalidateQueries({
+        queryKey: ["category-child", parentCategoryId],
+      });
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const isMutating =
+    updateCategoryMutation.isPending ||
+    createCategoryMutation.isPending ||
+    bulkStatusMutation.isPending;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedSubcategories(subcategories.map((sub) => sub.id));
+      setSelectedCategories(categories.map((cat) => cat.id));
     } else {
-      setSelectedSubcategories([]);
+      setSelectedCategories([]);
     }
   };
 
-  const handleSelectSubcategory = (subcategoryId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSubcategories((prev) => [...prev, subcategoryId]);
-    } else {
-      setSelectedSubcategories((prev) =>
-        prev.filter((id) => id !== subcategoryId)
-      );
+  const handleSelectCategory = (categoryId: number, checked: boolean) => {
+    setSelectedCategories((prev) => {
+      if (checked) {
+        return prev.includes(categoryId) ? prev : [...prev, categoryId];
+      }
+      return prev.filter((id) => id !== categoryId);
+    });
+  };
+
+  const handleToggleActive = async (category: CategoryChildResponse) => {
+    setPendingCategoryId(category.id);
+    try {
+      await updateCategoryMutation.mutateAsync({
+        payload: {
+          id: category.id,
+          name: category.name,
+          imageUrl: category.imageUrl ?? "",
+        },
+        status: category.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+        successMessage:
+          category.status === "ACTIVE"
+            ? "Đã ngừng kích hoạt danh mục con"
+            : "Đã kích hoạt danh mục con",
+      });
+    } finally {
+      setPendingCategoryId(null);
     }
   };
 
-  const handleToggleActive = (subcategoryId: string) => {
-    setSubcategories((prev) =>
-      prev.map((sub) =>
-        sub.id === subcategoryId ? { ...sub, isActive: !sub.isActive } : sub
-      )
-    );
-  };
-
-  const handleViewDetails = (subcategoryId: string) => {
-    navigate(
-      `/admin/products/categories/${categoryId}/subcategories/${subcategoryId}`
-    );
-  };
-
-  const handleDeleteSelected = () => {
-    if (selectedSubcategories.length > 0) {
-      console.log("Deleting subcategories:", selectedSubcategories);
-      setSubcategories((prev) =>
-        prev.filter((sub) => !selectedSubcategories.includes(sub.id))
-      );
-      setSelectedSubcategories([]);
-    }
-  };
-
-  const handleAddSubcategory = () => {
-    setShowAddSubcategoryModal(true);
-    setNewSubcategoryName("");
-  };
-
-  const handleCloseAddModal = () => {
-    setShowAddSubcategoryModal(false);
-    setNewSubcategoryName("");
-  };
-
-  const handleConfirmAddSubcategory = () => {
-    if (newSubcategoryName.trim()) {
-      const newSubcategory: Subcategory = {
-        id: `sub-${Date.now()}`,
-        name: newSubcategoryName.trim(),
-        image: "",
-        productCount: 0,
-        isActive: true,
-      };
-      setSubcategories((prev) => [...prev, newSubcategory]);
-      setShowAddSubcategoryModal(false);
-      setNewSubcategoryName("");
-    }
-  };
-
-  const handleEditName = (subcategoryId: string, currentName: string) => {
-    setEditingId(subcategoryId);
+  const handleEditName = (categoryId: number, currentName: string) => {
+    setEditingId(categoryId);
     setEditingName(currentName);
   };
 
-  const handleSaveName = (subcategoryId: string) => {
-    if (editingName.trim()) {
-      setSubcategories((prev) =>
-        prev.map((sub) =>
-          sub.id === subcategoryId ? { ...sub, name: editingName.trim() } : sub
-        )
-      );
-      setEditingId(null);
-      setEditingName("");
+  const handleSaveName = async () => {
+    if (!editingId) return;
+    const target = categories.find((cat) => cat.id === editingId);
+    if (!target || !editingName.trim()) {
+      toast.error("Tên danh mục không được để trống");
+      return;
+    }
+    setPendingCategoryId(target.id);
+    try {
+      await updateCategoryMutation.mutateAsync({
+        payload: {
+          id: target.id,
+          name: editingName.trim(),
+          imageUrl: target.imageUrl ?? "",
+        },
+        status: target.status,
+        successMessage: "Đã cập nhật tên danh mục con",
+      });
+    } finally {
+      setPendingCategoryId(null);
     }
   };
 
@@ -165,25 +258,137 @@ const AdminProductsCategoryDetail: React.FC = () => {
     setEditingName("");
   };
 
+  const handleAddCategory = () => {
+    setShowAddCategoryModal(true);
+    setNewCategoryName("");
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddCategoryModal(false);
+    setNewCategoryName("");
+  };
+
+  const handleConfirmAddCategory = async () => {
+    if (isAddingCategory) return;
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
+      toast.error("Vui lòng nhập tên danh mục con");
+      return;
+    }
+    setIsAddingCategory(true);
+    try {
+      await createCategoryMutation.mutateAsync({
+        name: trimmed,
+        parentId: parentCategoryId,
+      });
+    } finally {
+      setIsAddingCategory(false);
+    }
+  };
+
+  const handleViewChildDetails = (childId: number) => {
+    navigate(
+      `/admin/products/categories/${parentCategoryId}/subcategories/${childId}`
+    );
+  };
+
+  const handleBulkStatusChange = async (status: CategoryStatus) => {
+    if (selectedCategories.length === 0) return;
+    await bulkStatusMutation.mutateAsync({ ids: selectedCategories, status });
+  };
+
+  const handleImageClick = (categoryId: number) => {
+    setUploadingImageFor(categoryId);
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || uploadingImageFor === null) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(`${file.name} vượt quá dung lượng 2MB`);
+      event.target.value = "";
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error(`${file.name} không phải là file hình ảnh`);
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const result = e.target?.result;
+      if (typeof result !== "string") return;
+      const target = categories.find((cat) => cat.id === uploadingImageFor);
+      if (!target) return;
+      setPendingCategoryId(target.id);
+      try {
+        await updateCategoryMutation.mutateAsync({
+          payload: {
+            id: target.id,
+            name: target.name,
+            imageUrl: result,
+          },
+          status: target.status,
+          successMessage: "Đã cập nhật hình ảnh danh mục con",
+        });
+      } finally {
+        setPendingCategoryId(null);
+        setUploadingImageFor(null);
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
+
+  const displayRange = useMemo(() => {
+    if (totalElements === 0) {
+      return { start: 0, end: 0 };
+    }
+    const start = (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, totalElements);
+    return { start, end };
+  }, [currentPage, totalElements]);
+
+  if (!isParentIdValid) {
+    return (
+      <div className="flex items-center justify-center w-full h-full">
+        <p className="text-red-600 font-semibold">
+          Không tìm thấy danh mục lớn hợp lệ.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-[8px] items-center px-0 w-full">
-      {/* Header */}
+    <div className="flex flex-col gap-2 items-center w-full">
       <div className="flex items-center justify-between w-full">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/admin/products/categories")}
+            onClick={() => navigate(-1)}
             className="cursor-pointer hover:opacity-70 transition-opacity"
           >
-            <div className="w-[24px] h-[24px] flex items-center justify-center rotate-180 scale-y-[-100%]">
+            <div className="w-[32px] h-[32px] flex items-center justify-center">
               <svg
-                width="18"
-                height="10"
+                width="20"
+                height="20"
                 viewBox="0 0 18 10"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M1 5H17M17 5L13 1M17 5L13 9"
+                  d="M17 5H1M1 5L5 1M1 5L5 9"
                   stroke="#737373"
                   strokeWidth="2"
                   strokeLinecap="round"
@@ -192,12 +397,15 @@ const AdminProductsCategoryDetail: React.FC = () => {
               </svg>
             </div>
           </button>
-          <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
-            {categoryName}
-          </h1>
+          <div>
+            <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
+              {parentCategory?.name ?? `Danh mục #${parentCategoryId}`}
+            </h1>
+          </div>
         </div>
+
         <Button
-          onClick={handleAddSubcategory}
+          onClick={handleAddCategory}
           className="h-[36px] px-4 flex items-center gap-2"
         >
           <span className="text-[18px] leading-none font-light">+</span>
@@ -205,53 +413,61 @@ const AdminProductsCategoryDetail: React.FC = () => {
         </Button>
       </div>
 
-      {/* Subcategory Table */}
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[24px] py-[24px] rounded-[24px] w-full">
-        <div className="border border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full">
-          {/* Header */}
-          <div className="bg-[#f6f6f6] flex items-center px-[15px] rounded-tl-[24px] rounded-tr-[24px] w-full min-h-[60px]">
+        <div className="relative border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full overflow-hidden">
+          <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full min-h-[60px]">
             <div className="flex flex-row items-center w-full">
               <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] flex-1 min-w-[260px]">
                 <CustomCheckbox
                   checked={
-                    subcategories.length > 0 &&
-                    selectedSubcategories.length === subcategories.length
+                    categories.length > 0 &&
+                    selectedCategories.length === categories.length
                   }
                   onChange={handleSelectAll}
                 />
-                <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                  {selectedSubcategories.length > 0
-                    ? `Đã chọn ${selectedSubcategories.length} danh mục`
+                <span className="font-semibold text-[#272424] text-[14px] leading-[1.5] whitespace-nowrap">
+                  {selectedCategories.length > 0
+                    ? `Đã chọn ${selectedCategories.length} danh mục con`
                     : "Tên danh mục con"}
                 </span>
-                {selectedSubcategories.length > 0 && (
-                  <Button
-                    variant="secondary"
-                    onClick={handleDeleteSelected}
-                    className="h-[36px] ml-2"
-                  >
-                    Xóa
-                  </Button>
+                {selectedCategories.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      onClick={() => handleBulkStatusChange("ACTIVE")}
+                      disabled={bulkStatusMutation.isPending}
+                    >
+                      Kích hoạt
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleBulkStatusChange("INACTIVE")}
+                      disabled={bulkStatusMutation.isPending}
+                    >
+                      Ngừng kích hoạt
+                    </Button>
+                  </div>
                 )}
               </div>
-              <div className="grid grid-cols-[80px_80px_auto] gap-[30px] items-center px-[5px] py-[14px] min-w-[320px]">
+              <div className="grid grid-cols-[80px_80px_auto] gap-[30px] items-center px-[5px] py-[14px] min-w-[325px]">
                 <span
                   className={`font-semibold text-[#272424] text-[14px] leading-[1.5] text-center ${
-                    selectedSubcategories.length > 0 ? "invisible" : ""
+                    selectedCategories.length > 0 ? "invisible" : ""
                   }`}
                 >
                   SL sản phẩm
                 </span>
                 <span
                   className={`font-semibold text-[#272424] text-[14px] leading-[1.5] text-center ${
-                    selectedSubcategories.length > 0 ? "invisible" : ""
+                    selectedCategories.length > 0 ? "invisible" : ""
                   }`}
                 >
                   Bật/Tắt
                 </span>
                 <span
                   className={`font-semibold text-[#272424] text-[14px] leading-[1.5] ${
-                    selectedSubcategories.length > 0 ? "invisible" : ""
+                    selectedCategories.length > 0 ? "invisible" : ""
                   } justify-self-end`}
                 >
                   Thao tác
@@ -260,67 +476,50 @@ const AdminProductsCategoryDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Body */}
-          {subcategories.map((subcategory, index) => (
+          {categories.map((category, index) => (
             <div
-              key={subcategory.id}
+              key={category.id}
               className={`border-[0px_0px_1px] border-solid flex flex-col items-start justify-center px-[15px] py-0 w-full ${
-                index === subcategories.length - 1
+                index === categories.length - 1
                   ? "border-transparent"
                   : "border-[#e7e7e7]"
-              } hover:bg-gray-50 transition-colors`}
+              } ${
+                selectedCategories.includes(category.id)
+                  ? "bg-blue-50"
+                  : "hover:bg-gray-50"
+              }`}
             >
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
                   <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] flex-1 min-w-[260px]">
                     <CustomCheckbox
-                      checked={selectedSubcategories.includes(subcategory.id)}
+                      checked={selectedCategories.includes(category.id)}
                       onChange={(checked) =>
-                        handleSelectSubcategory(subcategory.id, checked)
+                        handleSelectCategory(category.id, checked)
                       }
                     />
-                    <div className="relative w-[60px] h-[60px] rounded-[8px] overflow-hidden bg-gray-100 flex-shrink-0">
-                      {subcategory.image ? (
+                    <div
+                      className={`relative w-[60px] h-[60px] rounded-[8px] overflow-hidden flex-shrink-0 cursor-pointer ${
+                        category.imageUrl
+                          ? ""
+                          : "bg-[#ffeeea] border-2 border-dashed border-[#e04d30]"
+                      }`}
+                      onClick={() => handleImageClick(category.id)}
+                    >
+                      {category.imageUrl ? (
                         <img
-                          src={subcategory.image}
-                          alt={subcategory.name}
-                          className="w-full h-full object-cover"
+                          src={category.imageUrl}
+                          alt={category.name}
+                          className="w-full h-full object-cover rounded-[8px]"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-[#ffeeea] border-2 border-dashed border-[#e04d30]">
-                          <svg
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M21 19V5C21 3.89543 20.1046 3 19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19Z"
-                              stroke="#e04d30"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M3 16L8 11L13 16M11 14L13.5 11.5L21 19"
-                              stroke="#e04d30"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M8.5 8C9.32843 8 10 7.32843 10 6.5C10 5.67157 9.32843 5 8.5 5C7.67157 5 7 5.67157 7 6.5C7 7.32843 7.67157 8 8.5 8Z"
-                              stroke="#e04d30"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Icon name="image" size={24} color="#e04d30" />
                         </div>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-1">
-                      {editingId === subcategory.id ? (
+                      {editingId === category.id ? (
                         <div className="flex items-center gap-2 flex-1">
                           <input
                             type="text"
@@ -330,15 +529,14 @@ const AdminProductsCategoryDetail: React.FC = () => {
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
-                                handleSaveName(subcategory.id);
+                                handleSaveName();
                               } else if (e.key === "Escape") {
                                 handleCancelEdit();
                               }
                             }}
                           />
-                          {/* Save Button */}
                           <button
-                            onClick={() => handleSaveName(subcategory.id)}
+                            onClick={handleSaveName}
                             className="w-8 h-8 flex items-center justify-center bg-[#e04d30] hover:bg-[#c43d20] rounded-[6px] transition-colors"
                           >
                             <svg
@@ -356,7 +554,6 @@ const AdminProductsCategoryDetail: React.FC = () => {
                               />
                             </svg>
                           </button>
-                          {/* Cancel Button */}
                           <button
                             onClick={handleCancelEdit}
                             className="w-8 h-8 flex items-center justify-center bg-[#d1d1d1] hover:bg-[#b8b8bd] rounded-[6px] transition-colors"
@@ -380,11 +577,11 @@ const AdminProductsCategoryDetail: React.FC = () => {
                       ) : (
                         <>
                           <span className="font-semibold text-[14px] text-[#272424] leading-[1.5]">
-                            {subcategory.name}
+                            {category.name}
                           </span>
                           <button
                             onClick={() =>
-                              handleEditName(subcategory.id, subcategory.name)
+                              handleEditName(category.id, category.name)
                             }
                             className="cursor-pointer hover:opacity-70 transition-opacity"
                           >
@@ -407,16 +604,18 @@ const AdminProductsCategoryDetail: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-[80px_80px_auto] gap-[30px] justify-items-center items-center px-[5px] py-[14px] min-w-[320px]">
+
+                  <div className="grid grid-cols-[80px_80px_auto] gap-[30px] justify-items-center items-center px-[5px] py-[14px] min-w-[325px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                      {subcategory.productCount}
+                      {category.productCount ?? 0}
                     </span>
                     <ToggleSwitch
-                      checked={subcategory.isActive}
-                      onChange={() => handleToggleActive(subcategory.id)}
+                      checked={category.status === "ACTIVE"}
+                      onChange={() => handleToggleActive(category)}
+                      disabled={isMutating || pendingCategoryId === category.id}
                     />
                     <button
-                      onClick={() => handleViewDetails(subcategory.id)}
+                      onClick={() => handleViewChildDetails(category.id)}
                       className="font-bold text-[14px] text-[#1a71f6] leading-[1.5] hover:opacity-70 transition-opacity whitespace-nowrap justify-self-end"
                     >
                       Xem chi tiết
@@ -426,75 +625,133 @@ const AdminProductsCategoryDetail: React.FC = () => {
               </div>
             </div>
           ))}
+
+          {categories.length === 0 && !isLoading && !isFetching && !isError && (
+            <div className="flex flex-col items-center justify-center py-10 text-[#737373] text-center w-full">
+              <p className="font-semibold">Chưa có danh mục con nào.</p>
+              <p className="text-sm">Hãy thêm danh mục con mới để bắt đầu.</p>
+            </div>
+          )}
+
+          {(isLoading || isFetching) && (
+            <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="w-6 h-6 text-[#e04d30] animate-spin" />
+              <p className="text-sm font-semibold text-[#e04d30]">
+                Đang tải danh mục con...
+              </p>
+            </div>
+          )}
+
+          {isError && (
+            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-2 px-4 text-center">
+              <AlertCircle className="w-6 h-6 text-red-500" />
+              <p className="font-semibold text-red-600">
+                Không thể tải danh mục con
+              </p>
+              <p className="text-sm text-[#737373]">
+                {getErrorMessage(error)}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Pagination */}
         <div className="bg-white border border-[#e7e7e7] flex h-[48px] items-center justify-between px-[30px] py-[10px] rounded-[12px] w-full">
-          <div className="flex gap-[3px] items-start">
-            <p className="font-normal text-[12px] text-[#272424] leading-[1.5]">
-              Đang hiển thị 1 - {subcategories.length} trong tổng 1 trang
+          <div className="flex flex-col font-normal justify-center text-[12px] text-[#737373]">
+            <p className="leading-[1.5]">
+              Đang hiển thị {displayRange.start} - {displayRange.end} trong tổng{" "}
+              {totalElements} danh mục con | Trang {currentPage}/{totalPages}
             </p>
           </div>
-          <div className="flex gap-[16px] items-start">
+          <div className="flex gap-[16px] items-center">
             <div className="flex gap-[13px] items-center">
-              <p className="font-normal text-[12px] text-[#272424] leading-[1.5]">
-                Trang số
-              </p>
+              <div className="flex flex-col font-normal justify-center text-[12px] text-[#454545]">
+                <p className="leading-[1.5]">Trang số</p>
+              </div>
               <div className="flex gap-[2px] items-center pl-[8px] pr-[6px] py-[4px] rounded-[8px]">
-                <p className="font-normal text-[12px] text-[#272424] leading-[1.5]">
-                  1
-                </p>
+                <div className="flex flex-col font-normal justify-center text-[12px] text-[#454545]">
+                  <p className="leading-[1.5]">{currentPage}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-[6px] items-center">
+              <div
+                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
+                  currentPage <= 1 ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                onClick={handlePrevPage}
+              >
+                <ChevronLeft className="w-[20px] h-[20px] text-[#d1d1d1]" />
+              </div>
+              <div
+                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
+                  currentPage >= totalPages
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+                onClick={handleNextPage}
+              >
+                <ChevronRight className="w-[20px] h-[20px] text-[#454545]" />
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Add Subcategory Modal */}
-      {showAddSubcategoryModal && (
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
+
+      {showAddCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop with blur and dark overlay */}
           <div
             className="fixed inset-0 bg-black/30 backdrop-blur-sm"
             onClick={handleCloseAddModal}
           />
-          {/* Modal Content */}
           <div
             className="relative z-50 bg-white rounded-[24px] p-[10px] w-full max-w-[400px] shadow-2xl animate-scaleIn flex flex-col gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex flex-col items-start justify-center px-3 py-2">
               <h2 className="text-[20px] font-bold text-[#272424] font-montserrat leading-normal text-center w-full">
                 Thêm danh mục con
               </h2>
             </div>
 
-            {/* Form */}
             <div className="flex flex-col gap-1 items-start justify-center px-3">
               <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
                 Tên danh mục con
               </label>
               <FormInput
                 placeholder="Nhập tên danh mục con"
-                value={newSubcategoryName}
-                onChange={(e) => setNewSubcategoryName(e.target.value)}
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    handleConfirmAddSubcategory();
+                    e.preventDefault();
+                    handleConfirmAddCategory();
                   } else if (e.key === "Escape") {
+                    e.preventDefault();
                     handleCloseAddModal();
                   }
                 }}
               />
             </div>
 
-            {/* Footer Buttons */}
             <div className="flex gap-[10px] items-center justify-end px-3">
               <Button variant="secondary" onClick={handleCloseAddModal}>
                 Huỷ
               </Button>
-              <Button onClick={handleConfirmAddSubcategory}>Xác nhận</Button>
+              <Button
+                type="button"
+                onClick={handleConfirmAddCategory}
+                disabled={isAddingCategory || createCategoryMutation.isPending}
+              >
+                {createCategoryMutation.isPending ? "Đang tạo..." : "Xác nhận"}
+              </Button>
             </div>
           </div>
         </div>
@@ -504,4 +761,5 @@ const AdminProductsCategoryDetail: React.FC = () => {
 };
 
 export default AdminProductsCategoryDetail;
+
 

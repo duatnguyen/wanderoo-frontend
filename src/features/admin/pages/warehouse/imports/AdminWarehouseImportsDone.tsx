@@ -13,21 +13,13 @@ import {
 import { CaretDown } from "@/components/ui/caret-down";
 import Icon from "@/components/icons/Icon";
 import {
-  TabMenuWithBadge,
   PageContainer,
   ContentCard,
   PageHeader,
   TableFilters,
-  type TabItemWithBadge,
 } from "@/components/common";
-import {
-  getImportInvoices,
-  getImportInvoicesPending,
-  getImportInvoicesDone,
-} from "@/api/endpoints/warehouseApi";
+import { getImportInvoicesDone } from "@/api/endpoints/warehouseApi";
 import type { InvoiceResponse } from "@/types/warehouse";
-
-type ImportStatus = "all" | "processing" | "completed";
 
 interface WarehouseImport {
   id: string;
@@ -43,54 +35,24 @@ interface WarehouseImport {
   totalValue: number;
 }
 
-const AdminWarehouseImports = () => {
+const AdminWarehouseImportsDone = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<ImportStatus>("all");
+  const [searchInput, setSearchInput] = useState(""); // Giá trị đang nhập
+  const [searchTerm, setSearchTerm] = useState(""); // Giá trị đã submit (khi nhấn Enter)
   const [currentPage, setCurrentPage] = useState(1);
   const [importsData, setImportsData] = useState<WarehouseImport[]>([]);
   const [selectedStatus, setSelectedStatus] = useState("Tất cả trạng thái");
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
-  const [tabCounts, setTabCounts] = useState({
-    all: 0,
-    processing: 0,
-    completed: 0,
-  });
 
   // Set document title
   useEffect(() => {
-    document.title = "Nhập hàng | Wanderoo";
-  }, []);
-
-  // Fetch tab counts on mount
-  useEffect(() => {
-    const fetchTabCounts = async () => {
-      try {
-        const [allRes, pendingRes, doneRes] = await Promise.all([
-          getImportInvoices(undefined, undefined, 0, 1),
-          getImportInvoicesPending(undefined, undefined, 0, 1),
-          getImportInvoicesDone(undefined, undefined, 0, 1),
-        ]);
-
-        setTabCounts({
-          all: allRes.totalElements || 0,
-          processing: pendingRes.totalElements || 0,
-          completed: doneRes.totalElements || 0,
-        });
-      } catch (error) {
-        console.error("Error fetching tab counts:", error);
-      }
-    };
-
-    fetchTabCounts();
+    document.title = "Nhập hàng - Đã hoàn thành | Wanderoo";
   }, []);
 
   // Map InvoiceResponse to WarehouseImport
   const mapInvoiceToWarehouseImport = (invoice: InvoiceResponse): WarehouseImport => {
-    console.log("Mapping invoice:", invoice);
-    
     // Map status: DONE -> completed, PENDING -> processing
     const status = invoice.status === "DONE" ? "completed" : "processing";
     
@@ -108,18 +70,14 @@ const AdminWarehouseImports = () => {
     const importCode = invoice.code || "";
 
     // Format date: parse and format createdAt properly
-    // Backend returns date as string like "2025-11-13 05:31:21" or ISO string
     let createdDate: string;
     if (invoice.createdAt) {
       try {
         let date: Date;
         if (typeof invoice.createdAt === 'string') {
-          // Try parsing as "YYYY-MM-DD HH:mm:ss" format first
           if (invoice.createdAt.includes(' ') && !invoice.createdAt.includes('T')) {
-            // Format: "2025-11-13 05:31:21"
             date = new Date(invoice.createdAt.replace(' ', 'T'));
           } else {
-            // ISO format or other
             date = new Date(invoice.createdAt);
           }
         } else {
@@ -139,18 +97,18 @@ const AdminWarehouseImports = () => {
       createdDate = new Date().toISOString();
     }
 
-    // Use providerName and picName directly from API response (hiển thị giá trị thực từ DB)
+    // Use providerName and picName directly from API response
     const supplier = invoice.providerName || "";
     const createdBy = invoice.picName || "";
 
-    // Ensure totalPrice is a valid number (Float from backend)
+    // Ensure totalPrice is a valid number
     const totalValue = invoice.totalPrice != null && 
                        !isNaN(Number(invoice.totalPrice)) && 
                        isFinite(Number(invoice.totalPrice))
                       ? Number(invoice.totalPrice) 
                       : 0;
 
-    // Ensure totalQuantity is a valid number (int from backend)
+    // Ensure totalQuantity is a valid number
     const totalItems = invoice.totalQuantity != null && 
                        !isNaN(Number(invoice.totalQuantity)) && 
                        isFinite(Number(invoice.totalQuantity))
@@ -174,26 +132,25 @@ const AdminWarehouseImports = () => {
 
   // Fetch data from API
   useEffect(() => {
+    const abortController = new AbortController();
+    let isMounted = true;
+
     const fetchData = async () => {
       setLoading(true);
       try {
         const page = currentPage - 1; // API uses 0-based pagination
-        let response;
-
-        // Truyền keyword và size=10 cho backend
         const keyword = searchTerm && searchTerm.trim() !== "" ? searchTerm.trim() : undefined;
         const size = 10;
 
-        if (activeTab === "processing") {
-          response = await getImportInvoicesPending(keyword, undefined, page, size);
-        } else if (activeTab === "completed") {
-          response = await getImportInvoicesDone(keyword, undefined, page, size);
-        } else {
-          response = await getImportInvoices(keyword, undefined, page, size);
+        console.log("Fetching data with:", { keyword, page, size });
+
+        const response = await getImportInvoicesDone(keyword, undefined, page, size);
+
+        // Chỉ update state nếu component vẫn còn mounted và không bị abort
+        if (!isMounted || abortController.signal.aborted) {
+          return;
         }
 
-        console.log("API Response:", response);
-        
         if (!response || !response.invoices) {
           console.error("Invalid response structure:", response);
           setImportsData([]);
@@ -202,39 +159,41 @@ const AdminWarehouseImports = () => {
           return;
         }
 
-        console.log("Invoices from API:", response.invoices);
-        console.log("First invoice:", response.invoices[0]);
-
         const mappedImports = response.invoices.map(mapInvoiceToWarehouseImport);
-        console.log("Mapped imports:", mappedImports);
-        console.log("First mapped import:", mappedImports[0]);
+        console.log("Fetched data:", { count: mappedImports.length, keyword });
         
-        setImportsData(mappedImports);
-        setTotalPages(response.totalPages || 1);
-        setTotalElements(response.totalElements || 0);
+        if (isMounted && !abortController.signal.aborted) {
+          setImportsData(mappedImports);
+          setTotalPages(response.totalPages || 1);
+          setTotalElements(response.totalElements || 0);
+        }
       } catch (error) {
-        console.error("Error fetching import invoices:", error);
-        setImportsData([]);
-        setTotalPages(0);
-        setTotalElements(0);
+        if (isMounted && !abortController.signal.aborted) {
+          console.error("Error fetching done import invoices:", error);
+          setImportsData([]);
+          setTotalPages(0);
+          setTotalElements(0);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted && !abortController.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, [activeTab, currentPage, searchTerm]);
 
-  const tabs: TabItemWithBadge[] = [
-    { id: "all", label: "Tất cả", count: tabCounts.all },
-    { id: "processing", label: "Đang giao dịch", count: tabCounts.processing },
-    { id: "completed", label: "Đã hoàn thành", count: tabCounts.completed },
-  ];
+    // Cleanup function: cancel request nếu component unmount hoặc dependencies thay đổi
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [currentPage, searchTerm]);
 
   // Data is already filtered and paginated by the API
   const paginatedImports = importsData;
 
-  const getStatusChip = (status: ImportStatus) => {
+  const getStatusChip = (status: "processing" | "completed") => {
     if (status === "processing" || status === "completed") {
       return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
@@ -255,12 +214,11 @@ const AdminWarehouseImports = () => {
     return null;
   };
 
-  // Format price: hiển thị số + "vnđ" (ví dụ: 960000 vnđ)
+  // Format price: hiển thị số + "vnđ"
   const formatPrice = (amount: number) => {
     if (amount == null || isNaN(amount) || !isFinite(amount)) {
       return "0 vnđ";
     }
-    // Format số với dấu phẩy ngăn cách hàng nghìn
     return `${Number(amount).toLocaleString('vi-VN')} vnđ`;
   };
 
@@ -269,17 +227,15 @@ const AdminWarehouseImports = () => {
     try {
       let date: Date;
       if (dateString.includes(' ') && !dateString.includes('T')) {
-        // Format: "2025-11-13 05:31:21"
         date = new Date(dateString.replace(' ', 'T'));
       } else {
         date = new Date(dateString);
       }
       
       if (isNaN(date.getTime())) {
-        return dateString; // Return original if can't parse
+        return dateString;
       }
       
-      // Format as DD/MM/YYYY
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
@@ -300,16 +256,22 @@ const AdminWarehouseImports = () => {
     return `Đang hiển thị ${start} - ${end} trong tổng ${totalElements} trang`;
   }, [currentPage, totalElements]);
 
-  // Reset to page 1 when searchTerm changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+  // Handle search on Enter key press
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // Reset page to 1 and update searchTerm to trigger fetch
+      setCurrentPage(1);
+      setSearchTerm(searchInput.trim());
+    }
+  };
+
 
   return (
     <PageContainer>
       {/* Page Header */}
       <PageHeader 
-        title="Nhập hàng"
+        title="Nhập hàng - Đã hoàn thành"
         actions={
           <Button
             variant={"default"}
@@ -322,22 +284,12 @@ const AdminWarehouseImports = () => {
         }
       />
 
-      {/* Tab Menu */}
-      <TabMenuWithBadge
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={(tabId) => {
-          setActiveTab(tabId as ImportStatus);
-          setCurrentPage(1);
-        }}
-        className="w-full mx-auto"
-      />
-
       <ContentCard>
         {/* Filters Section */}
         <TableFilters
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
+          onSearchKeyDown={handleSearchKeyDown}
           searchPlaceholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
           actions={
             <DropdownMenu>
@@ -612,4 +564,5 @@ const AdminWarehouseImports = () => {
   );
 };
 
-export default AdminWarehouseImports;
+export default AdminWarehouseImportsDone;
+
