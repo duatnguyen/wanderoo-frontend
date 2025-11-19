@@ -102,7 +102,7 @@ const AddressForm: React.FC<AddressFormProps> = ({
   };
 
   const {
-    data: provinces = [],
+    data: provincesData,
     isLoading: isLoadingProvinces,
     isError: isProvinceError,
   } = useQuery({
@@ -110,8 +110,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
     queryFn: getProvinces,
   });
 
+  const provinces = provincesData ?? [];
+
   const {
-    data: districts = [],
+    data: districtsData,
     isLoading: isLoadingDistricts,
     isError: isDistrictError,
   } = useQuery({
@@ -123,8 +125,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
     enabled: Boolean(formData.provinceId),
   });
 
+  const districts = districtsData ?? [];
+
   const {
-    data: wards = [],
+    data: wardsData,
     isLoading: isLoadingWards,
     isError: isWardError,
   } = useQuery({
@@ -135,6 +139,8 @@ const AddressForm: React.FC<AddressFormProps> = ({
     },
     enabled: Boolean(formData.districtId),
   });
+
+  const wards = wardsData ?? [];
 
   useEffect(() => {
     if (!formData.province && initialData.province) {
@@ -218,11 +224,11 @@ const AddressForm: React.FC<AddressFormProps> = ({
   }, [formData.ward, formData.districtId, isLoadingWards, isWardError]);
 
   const renderMenuContent = <T extends { [key: string]: any }>(
-    list: T[],
+    list: T[] | null | undefined,
     onSelect: (item: T) => void,
     labelKey: keyof T
   ) => {
-    if (!list.length) {
+    if (!list || !Array.isArray(list) || list.length === 0) {
       return (
         <div className="px-3 py-2 text-[13px] text-[#888888]">
           Không có dữ liệu

@@ -14,14 +14,14 @@ import { PageContainer, ContentCard } from "@/components/common";
 import { getAdminCustomerOrderDetail, confirmOrderAndCreateShipping, cancelAdminOrder } from "@/api/endpoints/orderApi";
 import type { CustomerOrderResponse } from "@/types/orders";
 
-import PaymentTableHeader from './PaymentTableHeader';
-import PaymentTableItem from './PaymentTableItem';
-import PaymentSummaryWebsite from './PaymentSummaryWebsite';
-import PaymentInformationWebsite from './PaymentInformationWebsite';
-import DeliveryConfirmationPopupWebsite from './DeliveryConfirmationPopupWebsite';
-import CancelOrderConfirmationPopupWebsite from './CancelOrderConfirmationPopupWebsite';
-import ActionButtonsWebsite from './ActionButtonsWebsite';
-import WebsiteOrderInfo from './WebsiteOrderInfo';
+import PaymentTableHeader from '../../../../../components/admin/order/PaymentTableHeader';
+import PaymentTableItem from '../../../../../components/admin/order/PaymentTableItem';
+import PaymentSummaryWebsite from '../../../../../components/admin/order/PaymentSummaryWebsite';
+import PaymentInformationWebsite from '../../../../../components/admin/order/PaymentInformationWebsite';
+import DeliveryConfirmationPopupWebsite from '../../../../../components/admin/order/DeliveryConfirmationPopupWebsite';
+import CancelOrderConfirmationPopupWebsite from '../../../../../components/admin/order/CancelOrderConfirmationPopupWebsite';
+import ActionButtonsWebsite from '../../../../../components/admin/order/ActionButtonsWebsite';
+import WebsiteOrderInfo from '../../../../../components/admin/order/WebsiteOrderInfo';
 
 const AdminOrderDetailWebsite: React.FC = () => {
   const navigate = useNavigate();
