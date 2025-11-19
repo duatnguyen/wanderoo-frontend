@@ -10,6 +10,7 @@ import type {
   DiscountPublicResponse,
   VoucherHistoryResponse,
   ClaimVoucherRequest,
+  VoucherStatus,
 } from "../../types";
 
 // Discount APIs
@@ -97,6 +98,17 @@ export const getPublicDiscounts = async (params?: {
   return response.data.data ?? [];
 };
 
+export const searchPublicDiscounts = async (params?: {
+  keyword?: string;
+  category?: string;
+}): Promise<DiscountPublicResponse[]> => {
+  const response = await api.get<ApiResponse<DiscountPublicResponse[]>>(
+    "/public/v1/discount/search",
+    { params }
+  );
+  return response.data.data ?? [];
+};
+
 export const getMyVouchers = async (): Promise<VoucherHistoryResponse[]> => {
   const response = await api.get<ApiResponse<VoucherHistoryResponse[]>>(
     "/public/v1/discount/voucher/my-vouchers"
@@ -112,4 +124,16 @@ export const claimVoucher = async (
     payload
   );
   return response.data.data;
+};
+
+export const getVoucherHistory = async (
+  status?: VoucherStatus
+): Promise<VoucherHistoryResponse[]> => {
+  const response = await api.get<ApiResponse<VoucherHistoryResponse[]>>(
+    "/public/v1/discount/voucher/history",
+    {
+      params: status ? { status } : undefined,
+    }
+  );
+  return response.data.data ?? [];
 };

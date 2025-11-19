@@ -6,6 +6,8 @@ import {
   claimVoucher,
   getMyVouchers,
   getPublicDiscounts,
+  getVoucherHistory,
+  searchPublicDiscounts,
 } from "../../../../api/endpoints/discountApi";
 import type {
   DiscountPublicResponse,
@@ -16,6 +18,8 @@ function formatCurrencyVND(value?: number | null) {
   const safeValue = value ?? 0;
   return `${safeValue.toLocaleString("vi-VN")}đ`;
 }
+
+type HistoryTab = "expired" | "used";
 
 interface VoucherCard {
   id: string;
@@ -35,22 +39,31 @@ interface VoucherCard {
 interface HistoryVoucher {
   id: string;
   code: string;
-  discountType: "percentage" | "fixed";
-  discountValue: number;
-  maxDiscount?: number;
-  minOrder: number;
-  expiryDate: string;
+  discountType?: "percentage" | "fixed";
+  discountValue?: number;
+  maxDiscount?: number | null;
+  minOrder?: number | null;
+  expiryDate?: string;
   status: "expired" | "used";
+  discountText?: string | null;
+  statusLabel?: string | null;
 }
 
 const VouchersTab: React.FC = () => {
-  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherInput, setVoucherInput] = useState("");
   const [currentView, setCurrentView] = useState<"list" | "history">("list");
-  const [historyTab, setHistoryTab] = useState<"expired" | "used">("expired");
+  const [historyTab, setHistoryTab] = useState<HistoryTab>("expired");
   const [publicVouchers, setPublicVouchers] = useState<VoucherCard[]>([]);
   const [myVouchers, setMyVouchers] = useState<VoucherCard[]>([]);
+  const [historyVouchers, setHistoryVouchers] = useState<HistoryVoucher[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [activeSearchKeyword, setActiveSearchKeyword] = useState("");
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [claimFeedback, setClaimFeedback] = useState<{
     type: "success" | "error";
@@ -139,9 +152,24 @@ const VouchersTab: React.FC = () => {
     [mapVoucherHistoryStatus, formatDate]
   );
 
+  const transformHistoryVoucher = useCallback(
+    (voucher: VoucherHistoryResponse): HistoryVoucher => ({
+      id: `history-${voucher.id}`,
+      code: voucher.discountCode,
+      discountText: voucher.discountText,
+      maxDiscount: voucher.maxOrderValue ?? null,
+      minOrder: voucher.minOrderValue ?? null,
+      expiryDate: formatDate(voucher.expirationDate),
+      statusLabel: voucher.statusLabel ?? null,
+      status: voucher.status === "USED" ? "used" : "expired",
+    }),
+    [formatDate]
+  );
+
   const loadVoucherData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setSearchError(null);
     try {
       const [publicResponse, myResponse] = await Promise.all([
         getPublicDiscounts(),
@@ -150,6 +178,8 @@ const VouchersTab: React.FC = () => {
 
       setPublicVouchers(publicResponse.map(transformPublicVoucher));
       setMyVouchers(myResponse.map(transformMyVoucher));
+      setIsSearchActive(false);
+      setActiveSearchKeyword("");
     } catch (err) {
       if (isAxiosError(err)) {
         setError(
@@ -167,8 +197,75 @@ const VouchersTab: React.FC = () => {
     void loadVoucherData();
   }, [loadVoucherData]);
 
+  const handleSearchVouchers = useCallback(
+    async (keyword?: string) => {
+      const query = keyword ?? voucherInput;
+      const trimmed = query.trim();
+      if (!trimmed) {
+        setVoucherInput("");
+        setActiveSearchKeyword("");
+        setIsSearchActive(false);
+        setSearchError(null);
+        await loadVoucherData();
+        return;
+      }
+
+      setIsSearching(true);
+      setSearchError(null);
+      try {
+        const results = await searchPublicDiscounts({ keyword: trimmed });
+        setPublicVouchers(results.map(transformPublicVoucher));
+        setIsSearchActive(true);
+        setActiveSearchKeyword(trimmed);
+        if (results.length === 0) {
+          setSearchError("Không tìm thấy voucher phù hợp.");
+        }
+      } catch (err) {
+        if (isAxiosError(err)) {
+          setSearchError(
+            err.response?.data?.message ?? "Không thể tìm kiếm voucher."
+          );
+        } else {
+          setSearchError("Có lỗi xảy ra khi tìm kiếm voucher.");
+        }
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [loadVoucherData, transformPublicVoucher, voucherInput]
+  );
+
+  const loadHistoryVouchers = useCallback(
+    async (tab: HistoryTab) => {
+      setHistoryLoading(true);
+      setHistoryError(null);
+      try {
+        const statusParam = tab === "expired" ? "EXPIRED" : "USED";
+        const response = await getVoucherHistory(statusParam);
+        setHistoryVouchers(response.map(transformHistoryVoucher));
+      } catch (err) {
+        if (isAxiosError(err)) {
+          setHistoryError(
+            err.response?.data?.message ??
+              "Không thể tải lịch sử voucher. Vui lòng thử lại."
+          );
+        } else {
+          setHistoryError("Có lỗi xảy ra khi tải lịch sử voucher.");
+        }
+      } finally {
+        setHistoryLoading(false);
+      }
+    },
+    [transformHistoryVoucher]
+  );
+
+  useEffect(() => {
+    if (currentView !== "history") return;
+    void loadHistoryVouchers(historyTab);
+  }, [currentView, historyTab, loadHistoryVouchers]);
+
   const handleSaveVoucher = useCallback(async () => {
-    const trimmedCode = voucherCode.trim();
+    const trimmedCode = voucherInput.trim();
     if (!trimmedCode) {
       setClaimFeedback({
         type: "error",
@@ -185,7 +282,7 @@ const VouchersTab: React.FC = () => {
         type: "success",
         message: "Lưu voucher thành công!",
       });
-      setVoucherCode("");
+      setVoucherInput("");
       await loadVoucherData();
     } catch (err) {
       let message = "Không thể lưu voucher. Vui lòng thử lại.";
@@ -199,7 +296,7 @@ const VouchersTab: React.FC = () => {
     } finally {
       setIsClaiming(false);
     }
-  }, [voucherCode, loadVoucherData]);
+  }, [voucherInput, loadVoucherData]);
 
   const handleUseVoucher = (voucherId: string, action: "use" | "save") => {
     console.log(`${action === "use" ? "Using" : "Saving"} voucher:`, voucherId);
@@ -286,17 +383,17 @@ const VouchersTab: React.FC = () => {
 
             {/* Voucher Input Section */}
             {currentView === "list" && (
-              <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4 sm:p-5">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4 sm:p-5 space-y-3">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                   <div className="flex-1 flex items-center gap-3">
                     <label className="text-[14px] font-medium text-gray-700 whitespace-nowrap">
-                      Mã voucher:
+                      Mã / tìm voucher:
                     </label>
                     <Input
                       type="text"
-                      value={voucherCode}
-                      onChange={(e) => setVoucherCode(e.target.value)}
-                      placeholder="Nhập mã voucher tại đây"
+                      value={voucherInput}
+                      onChange={(e) => setVoucherInput(e.target.value)}
+                      placeholder="Nhập mã để lưu hoặc tên/mã để tìm kiếm"
                       fullWidth
                       className="flex-1"
                       onKeyPress={(e) => {
@@ -306,26 +403,63 @@ const VouchersTab: React.FC = () => {
                       }}
                     />
                   </div>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={handleSaveVoucher}
-                    className="w-full sm:w-auto px-6 sm:px-8 whitespace-nowrap"
-                    loading={isClaiming}
-                    disabled={isClaiming}
-                  >
-                    Lưu
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <Button
+                      variant="primary"
+                      size="md"
+                      onClick={handleSaveVoucher}
+                      className="w-full sm:w-auto px-6 sm:px-8 whitespace-nowrap"
+                      loading={isClaiming}
+                      disabled={isClaiming}
+                    >
+                      Lưu
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={() => {
+                        void handleSearchVouchers();
+                      }}
+                      className="w-full sm:w-auto px-6 sm:px-8 whitespace-nowrap"
+                      loading={isSearching}
+                      disabled={isSearching}
+                    >
+                      Tìm kiếm
+                    </Button>
+                    {isSearchActive && (
+                      <Button
+                        variant="outline"
+                        size="md"
+                        onClick={() => {
+                          void handleSearchVouchers("");
+                        }}
+                        className="w-full sm:w-auto px-6 sm:px-8 whitespace-nowrap"
+                        disabled={isSearching}
+                      >
+                        Xóa tìm kiếm
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {claimFeedback && (
                   <p
-                    className={`mt-3 text-[14px] ${
+                    className={`text-[14px] mt-1 ${
                       claimFeedback.type === "error"
                         ? "text-red-600"
                         : "text-green-600"
                     }`}
                   >
                     {claimFeedback.message}
+                  </p>
+                )}
+                {searchError && (
+                  <p className="text-[14px] text-red-600">{searchError}</p>
+                )}
+                {isSearchActive && !searchError && (
+                  <p className="text-[14px] text-gray-600">
+                    Đang hiển thị kết quả tìm kiếm cho "
+                    <span className="font-semibold">{activeSearchKeyword}</span>
+                    "
                   </p>
                 )}
               </div>
@@ -336,7 +470,7 @@ const VouchersTab: React.FC = () => {
             <VoucherListSection
               myVouchers={myVouchers}
               publicVouchers={publicVouchers}
-              loading={isLoading}
+              loading={isLoading || isSearching}
               error={error}
               onRetry={loadVoucherData}
               formatDiscountText={formatDiscountText}
@@ -348,6 +482,12 @@ const VouchersTab: React.FC = () => {
               historyTab={historyTab}
               onChangeTab={setHistoryTab}
               formatDiscountText={formatDiscountText}
+              vouchers={historyVouchers}
+              loading={historyLoading}
+              error={historyError}
+              onRetry={() => {
+                void loadHistoryVouchers(historyTab);
+              }}
             />
           )}
         </div>
@@ -493,83 +633,42 @@ const VoucherListSection: React.FC<VoucherListSectionProps> = ({
 };
 
 interface VoucherHistorySectionProps {
-  historyTab: "expired" | "used";
-  onChangeTab: (tab: "expired" | "used") => void;
+  historyTab: HistoryTab;
+  onChangeTab: (tab: HistoryTab) => void;
   formatDiscountText: (voucher: VoucherCard | HistoryVoucher) => string;
+  vouchers: HistoryVoucher[];
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
 }
 
 const VoucherHistorySection: React.FC<VoucherHistorySectionProps> = ({
   historyTab,
   onChangeTab,
   formatDiscountText,
+  vouchers,
+  loading,
+  error,
+  onRetry,
 }) => {
-  const expiredVouchers: HistoryVoucher[] = [
-    {
-      id: "1",
-      code: "FKSUD",
-      discountType: "percentage",
-      discountValue: 16,
-      maxDiscount: 120000,
-      minOrder: 300000,
-      expiryDate: "10/09/2025",
-      status: "expired",
-    },
-    {
-      id: "2",
-      code: "SUDWDR",
-      discountType: "percentage",
-      discountValue: 16,
-      maxDiscount: 120000,
-      minOrder: 300000,
-      expiryDate: "11/08/2025",
-      status: "expired",
-    },
-    {
-      id: "3",
-      code: "NHSS16%",
-      discountType: "percentage",
-      discountValue: 16,
-      maxDiscount: 120000,
-      minOrder: 300000,
-      expiryDate: "20/07/2025",
-      status: "expired",
-    },
-    {
-      id: "4",
-      code: "16KUDL",
-      discountType: "percentage",
-      discountValue: 16,
-      maxDiscount: 120000,
-      minOrder: 300000,
-      expiryDate: "12/09/2025",
-      status: "expired",
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="px-4 sm:px-6 py-10 bg-gray-50 text-center text-gray-600">
+        Đang tải lịch sử voucher...
+      </div>
+    );
+  }
 
-  const usedVouchers: HistoryVoucher[] = [
-    {
-      id: "5",
-      code: "USED1",
-      discountType: "percentage",
-      discountValue: 16,
-      maxDiscount: 120000,
-      minOrder: 300000,
-      expiryDate: "15/08/2025",
-      status: "used",
-    },
-    {
-      id: "6",
-      code: "USED2",
-      discountType: "fixed",
-      discountValue: 10000,
-      minOrder: 300000,
-      expiryDate: "20/08/2025",
-      status: "used",
-    },
-  ];
-
-  const historyVouchers =
-    historyTab === "expired" ? expiredVouchers : usedVouchers;
+  if (error) {
+    return (
+      <div className="px-4 sm:px-6 py-10 bg-gray-50 text-center space-y-4">
+        <div className="text-red-600 font-semibold">{error}</div>
+        <Button variant="primary" size="md" onClick={onRetry}>
+          Thử lại
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 sm:px-6 py-5 bg-gray-50 space-y-4">
@@ -599,9 +698,9 @@ const VoucherHistorySection: React.FC<VoucherHistorySectionProps> = ({
         <div className="h-px bg-gray-200" />
       </div>
 
-      {historyVouchers.length > 0 ? (
+      {vouchers.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {historyVouchers.map((voucher) => (
+          {vouchers.map((voucher) => (
             <div
               key={voucher.id}
               className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full"
@@ -618,13 +717,15 @@ const VoucherHistorySection: React.FC<VoucherHistorySectionProps> = ({
                         : "bg-gray-200 text-gray-600"
                     }`}
                   >
-                    {voucher.status === "expired"
-                      ? "Hết lượt sử dụng"
+                    {voucher.statusLabel
+                      ? voucher.statusLabel
+                      : voucher.status === "expired"
+                      ? "Hết hiệu lực"
                       : "Đã sử dụng"}
                   </span>
                 </div>
                 <span className="text-[14px] text-gray-500 whitespace-nowrap">
-                  HSD: {voucher.expiryDate}
+                  {voucher.expiryDate ? `HSD: ${voucher.expiryDate}` : "Không rõ HSD"}
                 </span>
               </div>
 
@@ -633,7 +734,9 @@ const VoucherHistorySection: React.FC<VoucherHistorySectionProps> = ({
                   {formatDiscountText(voucher)}
                 </div>
                 <div className="text-[14px] text-gray-700">
-                  Đơn tối thiểu {formatCurrencyVND(voucher.minOrder)}
+                  {typeof voucher.minOrder === "number" && voucher.minOrder > 0
+                    ? `Đơn tối thiểu ${formatCurrencyVND(voucher.minOrder)}`
+                    : "Không yêu cầu đơn tối thiểu"}
                 </div>
               </div>
             </div>
