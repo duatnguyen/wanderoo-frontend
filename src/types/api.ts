@@ -231,6 +231,8 @@ export interface SaleProductResponse {
   sellingPrice?: number | null;
 }
 
+export type SaleProductListResponse = SaleProductResponse[];
+
 export interface CustomerSearchResponse {
   id: number;
   name: string;
