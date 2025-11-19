@@ -3,6 +3,7 @@ import { isAxiosError } from "axios";
 import Button from "../../../../components/shop/Button";
 import { Input } from "../../../../components/shop/Input";
 import {
+  claimVoucher,
   getMyVouchers,
   getPublicDiscounts,
 } from "../../../../api/endpoints/discountApi";
@@ -50,84 +51,93 @@ const VouchersTab: React.FC = () => {
   const [myVouchers, setMyVouchers] = useState<VoucherCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [claimFeedback, setClaimFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
-  const formatDate = (date?: string | null) => {
+  const formatDate = useCallback((date?: string | null) => {
     if (!date) return undefined;
     const parsed = new Date(date);
     if (Number.isNaN(parsed.getTime())) {
       return undefined;
     }
     return parsed.toLocaleDateString("vi-VN");
-  };
+  }, []);
 
-  const determinePublicVoucherStatus = (
-    voucher: DiscountPublicResponse
-  ): VoucherCard["status"] => {
-    const now = new Date();
-    const startDate = voucher.startDate ? new Date(voucher.startDate) : null;
-    const endDate = voucher.endDate ? new Date(voucher.endDate) : null;
+  const determinePublicVoucherStatus = useCallback(
+    (voucher: DiscountPublicResponse): VoucherCard["status"] => {
+      const now = new Date();
+      const startDate = voucher.startDate ? new Date(voucher.startDate) : null;
+      const endDate = voucher.endDate ? new Date(voucher.endDate) : null;
 
-    if (endDate && endDate.getTime() < now.getTime()) {
-      return "expired";
-    }
-    if (startDate && startDate.getTime() > now.getTime()) {
-      return "pending";
-    }
-    if (voucher.isAvailable === false) {
-      return "pending";
-    }
-    return "available";
-  };
-
-  const mapVoucherHistoryStatus = (
-    status?: VoucherHistoryResponse["status"]
-  ): VoucherCard["status"] => {
-    switch (status) {
-      case "ACTIVE":
-      case "AVAILABLE":
-        return "available";
-      case "EXPIRED":
-      case "USED":
+      if (endDate && endDate.getTime() < now.getTime()) {
         return "expired";
-      default:
+      }
+      if (startDate && startDate.getTime() > now.getTime()) {
         return "pending";
-    }
-  };
+      }
+      if (voucher.isAvailable === false) {
+        return "pending";
+      }
+      return "available";
+    },
+    []
+  );
 
-  const transformPublicVoucher = (
-    voucher: DiscountPublicResponse
-  ): VoucherCard => {
-    const status = determinePublicVoucherStatus(voucher);
-    return {
-      id: `public-${voucher.id}`,
-      code: voucher.code,
-      discountType: voucher.type === "PERCENT" ? "percentage" : "fixed",
-      discountValue: voucher.value,
+  const mapVoucherHistoryStatus = useCallback(
+    (status?: VoucherHistoryResponse["status"]): VoucherCard["status"] => {
+      switch (status) {
+        case "ACTIVE":
+        case "AVAILABLE":
+          return "available";
+        case "EXPIRED":
+        case "USED":
+          return "expired";
+        default:
+          return "pending";
+      }
+    },
+    []
+  );
+
+  const transformPublicVoucher = useCallback(
+    (voucher: DiscountPublicResponse): VoucherCard => {
+      const status = determinePublicVoucherStatus(voucher);
+      return {
+        id: `public-${voucher.id}`,
+        code: voucher.code,
+        discountType: voucher.type === "PERCENT" ? "percentage" : "fixed",
+        discountValue: voucher.value,
+        maxDiscount: voucher.maxOrderValue ?? null,
+        minOrder: voucher.minOrderValue ?? null,
+        status,
+        validAfter:
+          status === "pending" ? formatDate(voucher.startDate) : undefined,
+        expiryDate:
+          status !== "pending" ? formatDate(voucher.endDate) : undefined,
+        discountText: voucher.discountText,
+        origin: "public",
+      };
+    },
+    [determinePublicVoucherStatus, formatDate]
+  );
+
+  const transformMyVoucher = useCallback(
+    (voucher: VoucherHistoryResponse): VoucherCard => ({
+      id: `my-${voucher.id}`,
+      code: voucher.discountCode,
+      status: mapVoucherHistoryStatus(voucher.status),
+      discountText: voucher.discountText,
       maxDiscount: voucher.maxOrderValue ?? null,
       minOrder: voucher.minOrderValue ?? null,
-      status,
-      validAfter:
-        status === "pending" ? formatDate(voucher.startDate) : undefined,
-      expiryDate:
-        status !== "pending" ? formatDate(voucher.endDate) : undefined,
-      discountText: voucher.discountText,
-      origin: "public",
-    };
-  };
-
-  const transformMyVoucher = (
-    voucher: VoucherHistoryResponse
-  ): VoucherCard => ({
-    id: `my-${voucher.id}`,
-    code: voucher.discountCode,
-    status: mapVoucherHistoryStatus(voucher.status),
-    discountText: voucher.discountText,
-    maxDiscount: voucher.maxOrderValue ?? null,
-    minOrder: voucher.minOrderValue ?? null,
-    expiryDate: formatDate(voucher.expirationDate),
-    statusLabel: voucher.statusLabel ?? null,
-    origin: "my",
-  });
+      expiryDate: formatDate(voucher.expirationDate),
+      statusLabel: voucher.statusLabel ?? null,
+      origin: "my",
+    }),
+    [mapVoucherHistoryStatus, formatDate]
+  );
 
   const loadVoucherData = useCallback(async () => {
     setIsLoading(true);
@@ -151,21 +161,45 @@ const VouchersTab: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [transformMyVoucher, transformPublicVoucher]);
 
   useEffect(() => {
     void loadVoucherData();
   }, [loadVoucherData]);
 
-  const handleSaveVoucher = () => {
-    if (!voucherCode.trim()) {
-      alert("Vui lòng nhập mã voucher");
+  const handleSaveVoucher = useCallback(async () => {
+    const trimmedCode = voucherCode.trim();
+    if (!trimmedCode) {
+      setClaimFeedback({
+        type: "error",
+        message: "Vui lòng nhập mã voucher",
+      });
       return;
     }
-    console.log("Adding voucher:", voucherCode);
-    // Here you would make an API call to add the voucher
-    setVoucherCode("");
-  };
+
+    setIsClaiming(true);
+    setClaimFeedback(null);
+    try {
+      await claimVoucher({ code: trimmedCode });
+      setClaimFeedback({
+        type: "success",
+        message: "Lưu voucher thành công!",
+      });
+      setVoucherCode("");
+      await loadVoucherData();
+    } catch (err) {
+      let message = "Không thể lưu voucher. Vui lòng thử lại.";
+      if (isAxiosError(err)) {
+        message = err.response?.data?.message ?? message;
+      }
+      setClaimFeedback({
+        type: "error",
+        message,
+      });
+    } finally {
+      setIsClaiming(false);
+    }
+  }, [voucherCode, loadVoucherData]);
 
   const handleUseVoucher = (voucherId: string, action: "use" | "save") => {
     console.log(`${action === "use" ? "Using" : "Saving"} voucher:`, voucherId);
@@ -267,7 +301,7 @@ const VouchersTab: React.FC = () => {
                       className="flex-1"
                       onKeyPress={(e) => {
                         if (e.key === "Enter") {
-                          handleSaveVoucher();
+                          void handleSaveVoucher();
                         }
                       }}
                     />
@@ -277,10 +311,23 @@ const VouchersTab: React.FC = () => {
                     size="md"
                     onClick={handleSaveVoucher}
                     className="w-full sm:w-auto px-6 sm:px-8 whitespace-nowrap"
+                    loading={isClaiming}
+                    disabled={isClaiming}
                   >
                     Lưu
                   </Button>
                 </div>
+                {claimFeedback && (
+                  <p
+                    className={`mt-3 text-[14px] ${
+                      claimFeedback.type === "error"
+                        ? "text-red-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {claimFeedback.message}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -448,7 +495,7 @@ const VoucherListSection: React.FC<VoucherListSectionProps> = ({
 interface VoucherHistorySectionProps {
   historyTab: "expired" | "used";
   onChangeTab: (tab: "expired" | "used") => void;
-  formatDiscountText: (voucher: Voucher | HistoryVoucher) => string;
+  formatDiscountText: (voucher: VoucherCard | HistoryVoucher) => string;
 }
 
 const VoucherHistorySection: React.FC<VoucherHistorySectionProps> = ({

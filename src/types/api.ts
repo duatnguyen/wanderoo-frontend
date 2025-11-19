@@ -221,6 +221,10 @@ export interface VoucherHistoryResponse {
   updatedAt?: string | null;
 }
 
+export interface ClaimVoucherRequest {
+  code: string;
+}
+
 // POS Types
 export interface SaleProductResponse {
   id: number;
