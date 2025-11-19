@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Truck, Package, Clock, ChevronDown } from "lucide-react";
-import { getPickShifts } from "../../../api/endpoints/shippingApi";
+import { getPickShifts, getAvailableServices } from "../../../api/endpoints/shippingApi";
 import type { PickShiftItem } from "../../../types/shipping";
+import type { AvailableServiceResponse } from "../../../types/api";
+import type { CustomerOrderResponse } from "../../../types/orders";
 
 interface DeliveryConfirmationPopupWebsiteProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: (data: { pickShift: number[]; requiredNote: string }) => void;
-    orderData: any;
+    onConfirm: (data: {
+        pickShift: number[];
+        requiredNote: string;
+        paymentTypeId: number;
+        serviceTypeId: number;
+    }) => void;
+    orderData: CustomerOrderResponse;
 }
 
 const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsiteProps> = ({
@@ -23,6 +30,51 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
     const [isLoadingShifts, setIsLoadingShifts] = useState(false);
     const [showShiftDropdown, setShowShiftDropdown] = useState(false);
     const [requiredNote, setRequiredNote] = useState<string>("KHONGCHOXEMHANG");
+    const [availableServices, setAvailableServices] = useState<AvailableServiceResponse[]>([]);
+    const [selectedService, setSelectedService] = useState<AvailableServiceResponse | null>(null);
+    const [isLoadingServices, setIsLoadingServices] = useState(false);
+    const [servicesError, setServicesError] = useState<string | null>(null);
+    const [paymentTypeId, setPaymentTypeId] = useState<number>(2); // 1: Người gửi, 2: Người nhận
+
+    const DEFAULT_FROM_DISTRICT = Number(import.meta.env.VITE_GHN_FROM_DISTRICT_ID ?? 1447);
+
+    const { fromDistrictId, fromDistrictName, fromWardCode, fromWardName } = useMemo(() => {
+        const detail: any = orderData?.shippingDetail;
+        const districtId =
+            (orderData as any)?.shopDistrictId ??
+            detail?.from_district_id ??
+            detail?.fromDistrictId ??
+            DEFAULT_FROM_DISTRICT;
+        return {
+            fromDistrictId: districtId,
+            fromDistrictName:
+                (orderData as any)?.shopDistrictName ?? detail?.from_district_name ?? detail?.fromDistrictName ?? "",
+            fromWardCode:
+                (orderData as any)?.shopWardCode ?? detail?.from_ward_code ?? detail?.fromWardCode ?? "",
+            fromWardName:
+                (orderData as any)?.shopWardName ?? detail?.from_ward_name ?? detail?.fromWardName ?? "",
+        };
+    }, [orderData, DEFAULT_FROM_DISTRICT]);
+
+    const { toDistrictId, toDistrictName, toWardCode, toWardName } = useMemo(() => {
+        const detail: any = orderData?.shippingDetail;
+        const districtId =
+            (orderData as any)?.receiverDistrictId ??
+            (orderData as any)?.toDistrictId ??
+            detail?.to_district_id ??
+            detail?.toDistrictId ??
+            null;
+        return {
+            toDistrictId: districtId,
+            toDistrictName:
+                (orderData as any)?.receiverDistrictName ??
+                detail?.to_district_name ??
+                detail?.toDistrictName ??
+                "",
+            toWardCode: (orderData as any)?.receiverWardCode ?? detail?.to_ward_code ?? detail?.toWardCode ?? "",
+            toWardName: (orderData as any)?.receiverWardName ?? detail?.to_ward_name ?? detail?.toWardName ?? "",
+        };
+    }, [orderData]);
 
     // Helper function to convert timestamp to HH:mm format
     const formatTime = (timestamp: number): string => {
@@ -57,6 +109,40 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
         loadPickShifts();
     }, []);
 
+    useEffect(() => {
+        const loadAvailableServices = async () => {
+            if (!isOpen) {
+                return;
+            }
+            if (!toDistrictId) {
+                setServicesError("Thiếu thông tin quận/huyện giao hàng");
+                setAvailableServices([]);
+                setSelectedService(null);
+                return;
+            }
+            setIsLoadingServices(true);
+            setServicesError(null);
+            try {
+                const services = await getAvailableServices({
+                    fromDistrict: fromDistrictId,
+                    toDistrict: toDistrictId,
+                });
+                setAvailableServices(services || []);
+                setSelectedService(services && services.length > 0 ? services[0] : null);
+            } catch (error) {
+                console.error("Error loading available services:", error);
+                setServicesError("Không thể tải danh sách dịch vụ vận chuyển");
+                setAvailableServices([]);
+                setSelectedService(null);
+            } finally {
+                setIsLoadingServices(false);
+            }
+        };
+
+        loadAvailableServices();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, fromDistrictId, toDistrictId]);
+
     const handleSubmit = async () => {
         if (!selectedMethod) {
             alert("Vui lòng chọn phương thức giao hàng!");
@@ -68,11 +154,18 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             return;
         }
 
+        if (!selectedService) {
+            alert("Vui lòng chọn dịch vụ vận chuyển!");
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const confirmData = {
                 pickShift: selectedMethod === "pickup" && selectedShift ? [selectedShift.id] : [],
-                requiredNote: requiredNote
+                requiredNote: requiredNote,
+                paymentTypeId,
+                serviceTypeId: selectedService.serviceTypeId ?? 2,
             };
             await onConfirm(confirmData);
             // Reset form
@@ -80,6 +173,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             setSelectedShift(pickShifts.length > 0 ? pickShifts[0] : null);
             setRequiredNote("KHONGCHOXEMHANG");
             setShowShiftDropdown(false);
+            setPaymentTypeId(2);
             onClose();
         } catch (error) {
             console.error("Error confirming delivery:", error);
@@ -94,6 +188,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             setSelectedShift(pickShifts.length > 0 ? pickShifts[0] : null);
             setRequiredNote("KHONGCHOXEMHANG");
             setShowShiftDropdown(false);
+            setPaymentTypeId(2);
             onClose();
         }
     };
@@ -315,6 +410,134 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                         </div>
                     </div>
 
+                    {/* Available Services */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1 h-5 bg-[#e04d30] rounded-full"></div>
+                            <h3 className="font-montserrat font-semibold text-[16px] text-gray-900">
+                                Chọn dịch vụ vận chuyển (Available Services)
+                            </h3>
+                        </div>
+                        <div className="text-sm text-gray-600 font-montserrat space-y-1">
+                            <p>
+                                From district:{" "}
+                                <span className="font-semibold">
+                                    {fromDistrictId ?? "N/A"}
+                                    {fromDistrictName ? ` - ${fromDistrictName}` : ""}
+                                </span>
+                            </p>
+                            <p>
+                                From ward:{" "}
+                                <span className="font-semibold">
+                                    {fromWardCode ?? "N/A"}
+                                    {fromWardName ? ` - ${fromWardName}` : ""}
+                                </span>
+                            </p>
+                            <p>
+                                To district:{" "}
+                                <span className="font-semibold">
+                                    {toDistrictId ?? "N/A"}
+                                    {toDistrictName ? ` - ${toDistrictName}` : ""}
+                                </span>
+                            </p>
+                            <p>
+                                To ward:{" "}
+                                <span className="font-semibold">
+                                    {toWardCode ?? "N/A"}
+                                    {toWardName ? ` - ${toWardName}` : ""}
+                                </span>
+                            </p>
+                        </div>
+                        {servicesError && (
+                            <p className="text-sm text-red-500 font-montserrat">{servicesError}</p>
+                        )}
+                        {isLoadingServices ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <div className="w-4 h-4 border-2 border-[#e04d30]/30 border-t-[#e04d30] rounded-full animate-spin" />
+                                Đang tải dịch vụ vận chuyển...
+                            </div>
+                        ) : (
+                            <>
+                                <select
+                                    className="w-full p-4 bg-white border-2 border-gray-200 rounded-[14px] focus:outline-none focus:border-[#e04d30] font-montserrat text-[14px] text-gray-900"
+                                    value={selectedService?.serviceId ?? ""}
+                                    onChange={(e) => {
+                                        const service = availableServices.find(
+                                            (item) => item.serviceId === Number(e.target.value)
+                                        );
+                                        setSelectedService(service ?? null);
+                                    }}
+                                    disabled={availableServices.length === 0}
+                                >
+                                    <option value="" disabled>
+                                        {availableServices.length === 0 ? "Không có dịch vụ khả dụng" : "Chọn dịch vụ"}
+                                    </option>
+                                    {availableServices.map((service) => (
+                                        <option key={service.serviceId} value={service.serviceId}>
+                                            {service.shortName || service.serviceName || `Service #${service.serviceId}`}{" "}
+                                            (type {service.serviceTypeId})
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedService?.expectedDeliveryTime && (
+                                    <p className="text-sm text-gray-500 font-montserrat">
+                                        Dự kiến giao: {selectedService.expectedDeliveryTime}
+                                    </p>
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                    {/* Payment Type Selection */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1 h-5 bg-[#e04d30] rounded-full"></div>
+                            <h3 className="font-montserrat font-semibold text-[16px] text-gray-900">
+                                Người thanh toán phí ship (Choose who pays shipping fee)
+                            </h3>
+                        </div>
+                        <div className="space-y-3">
+                            <label className="flex items-start gap-3 p-4 bg-white border-2 border-gray-200 rounded-[12px]">
+                                <input
+                                    type="radio"
+                                    name="paymentTypeId"
+                                    value="1"
+                                    checked={paymentTypeId === 1}
+                                    onChange={() => setPaymentTypeId(1)}
+                                    disabled={isSubmitting}
+                                    className="w-4 h-4 text-[#1a71f6] border-gray-300 focus:ring-[#1a71f6] focus:ring-2 mt-0.5"
+                                />
+                                <div className="flex-1">
+                                    <p className="font-montserrat font-semibold text-[14px] text-gray-900">
+                                        1. Shop/Seller
+                                    </p>
+                                    <p className="font-montserrat text-[12px] text-gray-500">
+                                        Shop thanh toán phí vận chuyển (Sender pays shipping fee)
+                                    </p>
+                                </div>
+                            </label>
+                            <label className="flex items-start gap-3 p-4 bg-white border-2 border-gray-200 rounded-[12px]">
+                                <input
+                                    type="radio"
+                                    name="paymentTypeId"
+                                    value="2"
+                                    checked={paymentTypeId === 2}
+                                    onChange={() => setPaymentTypeId(2)}
+                                    disabled={isSubmitting}
+                                    className="w-4 h-4 text-[#e04d30] border-gray-300 focus:ring-[#e04d30] focus:ring-2 mt-0.5"
+                                />
+                                <div className="flex-1">
+                                    <p className="font-montserrat font-semibold text-[14px] text-gray-900">
+                                        2. Buyer/Consignee
+                                    </p>
+                                    <p className="font-montserrat text-[12px] text-gray-500">
+                                        Khách hàng thanh toán phí vận chuyển (Receiver pays shipping fee)
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     {/* Pick Shift Selection - Only show when pickup method is selected */}
                     {selectedMethod === "pickup" && (
                         <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
@@ -429,11 +652,23 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                             </div>
 
                             <div className="space-y-3">
-                                {[
-                                    { value: "CHOTHUHANG", label: "Cho thử hàng", description: "Cho phép khách hàng thử hàng trước khi nhận" },
-                                    { value: "CHOXEMHANGKHONGTHU", label: "Cho xem hàng không thử", description: "Cho xem hàng nhưng không cho thử" },
-                                    { value: "KHONGCHOXEMHANG", label: "Không cho xem hàng", description: "Không cho xem hay thử hàng" }
-                                ].map((option) => (
+                                    {[
+                                        {
+                                            value: "CHOTHUHANG",
+                                            label: "CHOTHUHANG",
+                                            description: "Buyer can request to see and trial goods (Cho thử hàng)",
+                                        },
+                                        {
+                                            value: "CHOXEMHANGKHONGTHU",
+                                            label: "CHOXEMHANGKHONGTHU",
+                                            description: "Buyer can see goods but not trial (Cho xem hàng không thử)",
+                                        },
+                                        {
+                                            value: "KHONGCHOXEMHANG",
+                                            label: "KHONGCHOXEMHANG",
+                                            description: "Buyer not allow to see goods (Không cho xem hàng)",
+                                        },
+                                    ].map((option) => (
                                     <label
                                         key={option.value}
                                         className="flex items-start gap-3 p-4 bg-white border-2 border-gray-200 hover:border-[#e04d30]/50 rounded-[12px] cursor-pointer transition-all duration-200 group"

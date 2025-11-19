@@ -128,7 +128,10 @@ export const updateAdminCustomerOrder = async (id: number, orderData: CustomerOr
   return response.data.data;
 };
 
-export const confirmOrderAndCreateShipping = async (id: number, data: { pickShift: number[]; requiredNote: string }): Promise<OrderConfirmResponse> => {
+export const confirmOrderAndCreateShipping = async (
+  id: number,
+  data: { pickShift: number[]; requiredNote: string; paymentTypeId: number; serviceTypeId: number }
+): Promise<OrderConfirmResponse> => {
   const response = await api.post<ApiResponse<OrderConfirmResponse>>(`/auth/v1/private/orders/${id}/confirm`, data);
   return response.data.data;
 };
