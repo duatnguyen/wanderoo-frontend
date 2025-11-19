@@ -1,9 +1,9 @@
 import apiClient from '../apiClient';
 import type {
   ProviderPageResponse,
-  ProviderResponse,
   ProviderCreateRequest,
   ProviderUpdateRequest,
+  ProviderDetailResponse,
   ProviderStatResponse,
   InvoicePageResponse,
   InvoiceCheckOutRequest,
@@ -18,19 +18,19 @@ import type { ApiResponse } from '../../types/common';
 export const getProviderList = async (
   keyword?: string,
   sort?: string,
-  page: number = 0,
-  size: number = 20
+  page: number = 1,
+  size: number = 10
 ): Promise<ProviderPageResponse> => {
   const params = new URLSearchParams();
-  if (keyword) params.append('keyword', keyword);
-  if (sort) params.append('sort', sort);
-  params.append('page', page.toString());
-  params.append('size', size.toString());
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
 
-  const response = await apiClient.get<ProviderPageResponse>(
+  const response = await apiClient.get<ApiResponse<ProviderPageResponse>>(
     `/auth/v1/private/provider?${params.toString()}`
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const deleteProvider = async (id: number): Promise<void> => {
@@ -47,21 +47,21 @@ export const deleteAllProviders = async (request: SelectAllRequest): Promise<voi
 
 export const createProvider = async (
   request: ProviderCreateRequest
-): Promise<ProviderResponse> => {
-  const response = await apiClient.post<ProviderResponse>(
+): Promise<number> => {
+  const response = await apiClient.post<ApiResponse<number>>(
     '/auth/v1/private/provider/add',
     request
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const getProviderDetail = async (
   providerId: number
-): Promise<ProviderResponse> => {
-  const response = await apiClient.get<ProviderResponse>(
+): Promise<ProviderDetailResponse> => {
+  const response = await apiClient.get<ApiResponse<ProviderDetailResponse>>(
     `/auth/v1/private/provider/${providerId}`
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const getProviderStats = async (
@@ -69,7 +69,7 @@ export const getProviderStats = async (
   fromDate?: string,
   toDate?: string,
   sort?: string,
-  page: number = 0,
+  page: number = 1,
   size: number = 20
 ): Promise<ProviderStatResponse> => {
   const params = new URLSearchParams();
@@ -79,10 +79,10 @@ export const getProviderStats = async (
   params.append('page', page.toString());
   params.append('size', size.toString());
 
-  const response = await apiClient.get<ProviderStatResponse>(
+  const response = await apiClient.get<ApiResponse<ProviderStatResponse>>(
     `/auth/v1/private/provider/stat/${providerId}?${params.toString()}`
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const updateProvider = async (

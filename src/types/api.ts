@@ -290,13 +290,32 @@ export interface SimpleInventoryPageResponse extends PageResponse<SimpleInventor
 
 export interface ProviderResponse {
   id: number;
+  code: string;
   name: string;
-  contact: string;
-  address: string;
-  status: string;
+  phone: string;
+  email: string;
+  status?: "ACTIVE" | "INACTIVE";
 }
 
-export interface ProviderPageResponse extends PageResponse<ProviderResponse> {}
+export interface ProviderPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  providers: ProviderResponse[];
+}
+
+export interface ProviderDetailResponse {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  note?: string;
+  province: string;
+  ward: string;
+  district: string;
+  location: string;
+}
 
 export interface InvoiceResponse {
   id: number;
@@ -754,38 +773,62 @@ export interface ExpireVoucherRequest {
   voucherId: number;
 }
 
+export type CategoryStatus = "ACTIVE" | "INACTIVE";
+
 export interface CategoryParentResponse {
   id: number;
   name: string;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  categoryChildCount: number;
+  status: CategoryStatus;
 }
 
 export interface CategoryChildResponse {
   id: number;
   name: string;
-  parentId: number;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  status: CategoryStatus;
+  productCount: number;
+  parentId?: number;
 }
 
-export interface CategoryParentPageResponse extends PageResponse<CategoryParentResponse> {}
+export interface CategoryParentPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categories: CategoryParentResponse[];
+}
 
-export interface CategoryChildPageResponse extends PageResponse<CategoryChildResponse> {}
+export interface CategoryChildPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categoryChildResponseList: CategoryChildResponse[];
+}
 
 export interface CategoryParentCreateRequest {
   name: string;
+  imageUrl?: string;
 }
 
 export interface CategoryChildCreateRequest {
   name: string;
   parentId: number;
+  imageUrl?: string;
 }
 
 export interface CategoryParentUpdateRequest extends CategoryParentCreateRequest {
   id: number;
 }
 
-export interface CategoryChildUpdateRequest extends CategoryChildCreateRequest {
+export interface CategoryChildUpdateRequest {
   id: number;
+  name: string;
+  imageUrl?: string;
 }
 
 export interface VariantRequest {
@@ -856,13 +899,18 @@ export interface CustomerUpdateRequest extends CustomerCreationRequest {
 }
 
 export interface SelectAllRequest {
-  ids: number[];
+  getAll: number[];
 }
 
 export interface ProviderCreateRequest {
   name: string;
-  contact: string;
-  address: string;
+  phone: string;
+  email: string;
+  note?: string;
+  province: string;
+  ward: string;
+  district: string;
+  location: string;
 }
 
 export interface ProviderUpdateRequest extends ProviderCreateRequest {

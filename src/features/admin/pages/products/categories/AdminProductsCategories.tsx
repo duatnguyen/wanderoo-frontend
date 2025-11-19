@@ -1,70 +1,156 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import ToggleSwitch from "@/components/ui/toggle-switch";
 import { Icon } from "@/components/icons";
+import {
+  createCategoryParent,
+  disableAllCategories,
+  enableAllCategories,
+  getCategoryParentList,
+  updateCategoryParent,
+} from "@/api/endpoints/attributeApi";
+import type {
+  CategoryParentResponse,
+  CategoryParentUpdateRequest,
+  CategoryStatus,
+} from "@/types";
 
-interface Category {
-  id: string;
-  name: string;
-  image: string;
-  subcategoryCount: number;
-  isActive: boolean;
-}
+const PAGE_SIZE = 10;
+
+type UpdateCategoryVariables = {
+  payload: CategoryParentUpdateRequest;
+  status: CategoryStatus;
+  successMessage?: string;
+};
+
+type BulkStatusVariables = {
+  ids: number[];
+  status: CategoryStatus;
+};
+
+const getErrorMessage = (err: unknown) => {
+  if (isAxiosError(err)) {
+    return err.response?.data?.message || err.response?.data?.error || err.message;
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "Đã xảy ra lỗi, vui lòng thử lại.";
+};
 
 const AdminProductsCategories: React.FC = () => {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>([
-    {
-      id: "1",
-      name: "Trang phục",
-      image: "",
-      subcategoryCount: 5,
-      isActive: true,
-    },
-    {
-      id: "2",
-      name: "Ba lô & Túi",
-      image: "",
-      subcategoryCount: 5,
-      isActive: true,
-    },
-    {
-      id: "3",
-      name: "Giày & Dép",
-      image: "",
-      subcategoryCount: 5,
-      isActive: true,
-    },
-    {
-      id: "4",
-      name: "Lều & Ngủ",
-      image: "",
-      subcategoryCount: 5,
-      isActive: true,
-    },
-    {
-      id: "5",
-      name: "Dụng cụ nấu ăn & ăn uống",
-      image: "",
-      subcategoryCount: 5,
-      isActive: true,
-    },
-  ]);
-
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [uploadingImageFor, setUploadingImageFor] = useState<string | null>(
-    null
-  );
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [uploadingImageFor, setUploadingImageFor] = useState<number | null>(null);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [pendingCategoryId, setPendingCategoryId] = useState<number | null>(null);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [shouldFocusLastPage, setShouldFocusLastPage] = useState(false);
+
+  const { data, isLoading, isFetching, isError, error } = useQuery({
+    queryKey: ["category-parent", { page: currentPage, size: PAGE_SIZE }],
+    queryFn: () => getCategoryParentList({ page: currentPage, size: PAGE_SIZE }),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+
+  const categories = data?.categories ?? [];
+  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const totalElements = data?.totalElements ?? categories.length;
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (shouldFocusLastPage && data?.totalPages) {
+      const lastPage = Math.max(1, data.totalPages);
+      if (currentPage !== lastPage) {
+        setCurrentPage(lastPage);
+      }
+      setShouldFocusLastPage(false);
+    }
+  }, [shouldFocusLastPage, currentPage, data?.totalPages]);
+
+  useEffect(() => {
+    setSelectedCategories((prev) =>
+      prev.filter((id) => categories.some((cat) => cat.id === id))
+    );
+  }, [categories]);
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ payload, status }: UpdateCategoryVariables) =>
+      updateCategoryParent(payload, status),
+    onSuccess: (_res, variables) => {
+      toast.success(variables.successMessage ?? "Cập nhật danh mục thành công");
+      queryClient.invalidateQueries({ queryKey: ["category-parent"] });
+      setEditingId(null);
+      setEditingName("");
+      setUploadingImageFor(null);
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: createCategoryParent,
+    onSuccess: () => {
+      toast.success("Thêm danh mục lớn thành công");
+      setShouldFocusLastPage(true);
+      queryClient.invalidateQueries({ queryKey: ["category-parent"] });
+      setShowAddCategoryModal(false);
+      setNewCategoryName("");
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: ({ ids, status }: BulkStatusVariables) =>
+      status === "ACTIVE"
+        ? enableAllCategories({ getAll: ids })
+        : disableAllCategories({ getAll: ids }),
+    onSuccess: (_res, variables) => {
+      const message =
+        variables.status === "ACTIVE"
+          ? `Đã kích hoạt ${variables.ids.length} danh mục`
+          : `Đã ngừng kích hoạt ${variables.ids.length} danh mục`;
+      toast.success(message);
+      setSelectedCategories([]);
+      queryClient.invalidateQueries({ queryKey: ["category-parent"] });
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const isMutating =
+    updateCategoryMutation.isPending ||
+    createCategoryMutation.isPending ||
+    bulkStatusMutation.isPending;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -74,36 +160,60 @@ const AdminProductsCategories: React.FC = () => {
     }
   };
 
-  const handleSelectCategory = (categoryId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCategories((prev) => [...prev, categoryId]);
-    } else {
-      setSelectedCategories((prev) => prev.filter((id) => id !== categoryId));
+  const handleSelectCategory = (categoryId: number, checked: boolean) => {
+    setSelectedCategories((prev) => {
+      if (checked) {
+        return prev.includes(categoryId) ? prev : [...prev, categoryId];
+      }
+      return prev.filter((id) => id !== categoryId);
+    });
+  };
+
+  const handleToggleActive = async (category: CategoryParentResponse) => {
+    setPendingCategoryId(category.id);
+    try {
+      await updateCategoryMutation.mutateAsync({
+        payload: {
+          id: category.id,
+          name: category.name,
+          imageUrl: category.imageUrl ?? "",
+        },
+        status: category.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+        successMessage:
+          category.status === "ACTIVE"
+            ? "Đã ngừng kích hoạt danh mục"
+            : "Đã kích hoạt danh mục",
+      });
+    } finally {
+      setPendingCategoryId(null);
     }
   };
 
-  const handleToggleActive = (categoryId: string) => {
-    setCategories((prev) =>
-      prev.map((cat) =>
-        cat.id === categoryId ? { ...cat, isActive: !cat.isActive } : cat
-      )
-    );
-  };
-
-  const handleEditName = (categoryId: string, currentName: string) => {
+  const handleEditName = (categoryId: number, currentName: string) => {
     setEditingId(categoryId);
     setEditingName(currentName);
   };
 
-  const handleSaveName = (categoryId: string) => {
-    if (editingName.trim()) {
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat.id === categoryId ? { ...cat, name: editingName.trim() } : cat
-        )
-      );
-      setEditingId(null);
-      setEditingName("");
+  const handleSaveName = async () => {
+    if (!editingId) return;
+    const target = categories.find((cat) => cat.id === editingId);
+    if (!target || !editingName.trim()) {
+      toast.error("Tên danh mục không được để trống");
+      return;
+    }
+    setPendingCategoryId(target.id);
+    try {
+      await updateCategoryMutation.mutateAsync({
+        payload: {
+          id: target.id,
+          name: editingName.trim(),
+          imageUrl: target.imageUrl ?? "",
+        },
+        status: target.status,
+        successMessage: "Đã cập nhật tên danh mục",
+      });
+    } finally {
+      setPendingCategoryId(null);
     }
   };
 
@@ -122,90 +232,100 @@ const AdminProductsCategories: React.FC = () => {
     setNewCategoryName("");
   };
 
-  const handleConfirmAddCategory = () => {
-    if (newCategoryName.trim()) {
-      const newCategory: Category = {
-        id: Date.now().toString(),
-        name: newCategoryName.trim(),
-        image: "",
-        subcategoryCount: 0,
-        isActive: true,
-      };
-      setCategories((prev) => [...prev, newCategory]);
-      setShowAddCategoryModal(false);
-      setNewCategoryName("");
+  const handleConfirmAddCategory = async () => {
+    if (isAddingCategory) {
+      return;
+    }
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
+      toast.error("Vui lòng nhập tên danh mục");
+      return;
+    }
+    setIsAddingCategory(true);
+    try {
+      await createCategoryMutation.mutateAsync({ name: trimmed });
+    } finally {
+      setIsAddingCategory(false);
     }
   };
 
-  const handleViewDetails = (categoryId: string) => {
-    navigate(`/admin/products/categories/${categoryId}`);
+  const handleViewDetails = (category: CategoryParentResponse) => {
+    navigate(`/admin/products/categories/${category.id}`, {
+      state: { category },
+    });
   };
 
-  const handleDeleteSelected = () => {
-    if (selectedCategories.length > 0) {
-      console.log("Deleting categories:", selectedCategories);
-      setCategories((prev) =>
-        prev.filter((cat) => !selectedCategories.includes(cat.id))
-      );
-      setSelectedCategories([]);
-    }
+  const handleBulkStatusChange = async (status: CategoryStatus) => {
+    if (selectedCategories.length === 0) return;
+    await bulkStatusMutation.mutateAsync({ ids: selectedCategories, status });
   };
 
-  const handleImageClick = (categoryId: string) => {
+  const handleImageClick = (categoryId: number) => {
     setUploadingImageFor(categoryId);
     fileInputRef.current?.click();
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !uploadingImageFor) return;
+    if (!file || uploadingImageFor === null) return;
 
-    // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert(`${file.name} vượt quá dung lượng 2MB`);
+      toast.error(`${file.name} vượt quá dung lượng 2MB`);
+      event.target.value = "";
       return;
     }
 
-    // Check file type
     if (!file.type.startsWith("image/")) {
-      alert(`${file.name} không phải là file hình ảnh`);
+      toast.error(`${file.name} không phải là file hình ảnh`);
+      event.target.value = "";
       return;
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const result = e.target?.result;
-      if (result && typeof result === "string") {
-        setCategories((prev) =>
-          prev.map((cat) =>
-            cat.id === uploadingImageFor ? { ...cat, image: result } : cat
-          )
-        );
+      if (typeof result !== "string") return;
+      const target = categories.find((cat) => cat.id === uploadingImageFor);
+      if (!target) return;
+      setPendingCategoryId(target.id);
+      try {
+        await updateCategoryMutation.mutateAsync({
+          payload: {
+            id: target.id,
+            name: target.name,
+            imageUrl: result,
+          },
+          status: target.status,
+          successMessage: "Đã cập nhật hình ảnh danh mục",
+        });
+      } finally {
+        setPendingCategoryId(null);
         setUploadingImageFor(null);
       }
     };
     reader.readAsDataURL(file);
-
-    // Reset input
     event.target.value = "";
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
+    setCurrentPage((prev) => Math.max(1, prev - 1));
   };
 
   const handleNextPage = () => {
-    const totalPages = Math.ceil(categories.length / 10);
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
   };
+
+  const displayRange = useMemo(() => {
+    if (totalElements === 0) {
+      return { start: 0, end: 0 };
+    }
+    const start = (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, totalElements);
+    return { start, end };
+  }, [currentPage, totalElements]);
 
   return (
     <div className="flex flex-col gap-2 items-center w-full">
-      {/* Header */}
       <div className="flex items-center justify-between w-full">
         <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
           Danh mục lớn
@@ -219,11 +339,8 @@ const AdminProductsCategories: React.FC = () => {
         </Button>
       </div>
 
-      {/* Table Container */}
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[24px] py-[24px] rounded-[24px] w-full">
-        {/* Table */}
-        <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full">
-          {/* Table Header */}
+        <div className="relative border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full overflow-hidden">
           <div className="bg-[#f6f6f6] flex items-center px-[15px] py-0 rounded-tl-[24px] rounded-tr-[24px] w-full min-h-[60px]">
             <div className="flex flex-row items-center w-full">
               <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] flex-1 min-w-[260px]">
@@ -240,13 +357,23 @@ const AdminProductsCategories: React.FC = () => {
                     : "Tên danh mục lớn"}
                 </span>
                 {selectedCategories.length > 0 && (
-                  <Button
-                    variant="secondary"
-                    onClick={handleDeleteSelected}
-                    className="h-[36px] ml-2"
-                  >
-                    Xóa
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      onClick={() => handleBulkStatusChange("ACTIVE")}
+                      disabled={bulkStatusMutation.isPending}
+                    >
+                      Kích hoạt
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleBulkStatusChange("INACTIVE")}
+                      disabled={bulkStatusMutation.isPending}
+                    >
+                      Ngừng kích hoạt
+                    </Button>
+                  </div>
                 )}
               </div>
               <div className="grid grid-cols-[80px_80px_auto] gap-[30px] items-center px-[5px] py-[14px] min-w-[325px]">
@@ -275,7 +402,6 @@ const AdminProductsCategories: React.FC = () => {
             </div>
           </div>
 
-          {/* Table Body */}
           {categories.map((category, index) => (
             <div
               key={category.id}
@@ -291,7 +417,6 @@ const AdminProductsCategories: React.FC = () => {
             >
               <div className="flex items-center w-full">
                 <div className="flex flex-row items-center w-full">
-                  {/* Category Name with Image */}
                   <div className="flex gap-[8px] h-full items-center px-[5px] py-[14px] flex-1 min-w-[260px]">
                     <CustomCheckbox
                       checked={selectedCategories.includes(category.id)}
@@ -300,12 +425,16 @@ const AdminProductsCategories: React.FC = () => {
                       }
                     />
                     <div
-                      className={`relative w-[60px] h-[60px] rounded-[8px] overflow-hidden flex-shrink-0 cursor-pointer ${category.image ? "" : "bg-[#ffeeea] border-2 border-dashed border-[#e04d30]"}`}
+                      className={`relative w-[60px] h-[60px] rounded-[8px] overflow-hidden flex-shrink-0 cursor-pointer ${
+                        category.imageUrl
+                          ? ""
+                          : "bg-[#ffeeea] border-2 border-dashed border-[#e04d30]"
+                      }`}
                       onClick={() => handleImageClick(category.id)}
                     >
-                      {category.image ? (
+                      {category.imageUrl ? (
                         <img
-                          src={category.image}
+                          src={category.imageUrl}
                           alt={category.name}
                           className="w-full h-full object-cover rounded-[8px]"
                         />
@@ -326,15 +455,14 @@ const AdminProductsCategories: React.FC = () => {
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
-                                handleSaveName(category.id);
+                                handleSaveName();
                               } else if (e.key === "Escape") {
                                 handleCancelEdit();
                               }
                             }}
                           />
-                          {/* Save Button */}
                           <button
-                            onClick={() => handleSaveName(category.id)}
+                            onClick={handleSaveName}
                             className="w-8 h-8 flex items-center justify-center bg-[#e04d30] hover:bg-[#c43d20] rounded-[6px] transition-colors"
                           >
                             <svg
@@ -352,7 +480,6 @@ const AdminProductsCategories: React.FC = () => {
                               />
                             </svg>
                           </button>
-                          {/* Cancel Button */}
                           <button
                             onClick={handleCancelEdit}
                             className="w-8 h-8 flex items-center justify-center bg-[#d1d1d1] hover:bg-[#b8b8bd] rounded-[6px] transition-colors"
@@ -379,9 +506,7 @@ const AdminProductsCategories: React.FC = () => {
                             {category.name}
                           </span>
                           <button
-                            onClick={() =>
-                              handleEditName(category.id, category.name)
-                            }
+                            onClick={() => handleEditName(category.id, category.name)}
                             className="cursor-pointer hover:opacity-70 transition-opacity"
                           >
                             <svg
@@ -406,14 +531,17 @@ const AdminProductsCategories: React.FC = () => {
 
                   <div className="grid grid-cols-[80px_80px_auto] gap-[30px] justify-items-center items-center px-[5px] py-[14px] min-w-[325px]">
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.5]">
-                      {category.subcategoryCount}
+                      {category.categoryChildCount}
                     </span>
                     <ToggleSwitch
-                      checked={category.isActive}
-                      onChange={() => handleToggleActive(category.id)}
+                      checked={category.status === "ACTIVE"}
+                      onChange={() => handleToggleActive(category)}
+                      disabled={
+                        isMutating || pendingCategoryId === category.id
+                      }
                     />
                     <button
-                      onClick={() => handleViewDetails(category.id)}
+                      onClick={() => handleViewDetails(category)}
                       className="font-bold text-[14px] text-[#1a71f6] leading-[1.5] hover:opacity-70 transition-opacity whitespace-nowrap justify-self-end"
                     >
                       Xem chi tiết
@@ -423,32 +551,53 @@ const AdminProductsCategories: React.FC = () => {
               </div>
             </div>
           ))}
-        </div>
 
-        {/* Pagination */}
-        <div className="bg-white border border-[#e7e7e7] flex h-[48px] items-center justify-between px-[30px] py-[10px] rounded-[12px] w-full">
-          <div className="flex gap-[3px] items-start">
-            <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#737373]">
-              <p className="leading-[1.5]">
-                Đang hiển thị{" "}
-                {Math.min((currentPage - 1) * 10 + 1, categories.length)} -{" "}
-                {Math.min(currentPage * 10, categories.length)} trong tổng{" "}
-                {Math.ceil(categories.length / 10)} trang
+          {categories.length === 0 && !isLoading && !isFetching && !isError && (
+            <div className="flex flex-col items-center justify-center py-10 text-[#737373]">
+              <p className="font-semibold">Chưa có danh mục nào.</p>
+              <p className="text-sm">Hãy thêm danh mục mới để bắt đầu.</p>
+            </div>
+          )}
+
+          {(isLoading || isFetching) && (
+            <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="w-6 h-6 text-[#e04d30] animate-spin" />
+              <p className="text-sm font-semibold text-[#e04d30]">
+                Đang tải danh mục lớn...
               </p>
             </div>
+          )}
+
+          {isError && (
+            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-2 px-4 text-center">
+              <AlertCircle className="w-6 h-6 text-red-500" />
+              <p className="font-semibold text-red-600">
+                Không thể tải danh mục lớn
+              </p>
+              <p className="text-sm text-[#737373]">{getErrorMessage(error)}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white border border-[#e7e7e7] flex h-[48px] items-center justify-between px-[30px] py-[10px] rounded-[12px] w-full">
+          <div className="flex flex-col font-normal justify-center text-[12px] text-[#737373]">
+            <p className="leading-[1.5]">
+              Đang hiển thị {displayRange.start} - {displayRange.end} trong tổng{" "}
+              {totalElements} danh mục | Trang {currentPage}/{totalPages}
+            </p>
           </div>
-          <div className="flex gap-[16px] items-start">
+          <div className="flex gap-[16px] items-center">
             <div className="flex gap-[13px] items-center">
-              <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#454545]">
+              <div className="flex flex-col font-normal justify-center text-[12px] text-[#454545]">
                 <p className="leading-[1.5]">Trang số</p>
               </div>
               <div className="flex gap-[2px] items-center pl-[8px] pr-[6px] py-[4px] rounded-[8px]">
-                <div className="flex flex-col font-normal justify-center leading-[0] text-[12px] text-[#454545]">
+                <div className="flex flex-col font-normal justify-center text-[12px] text-[#454545]">
                   <p className="leading-[1.5]">{currentPage}</p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-[6px] items-start">
+            <div className="flex gap-[6px] items-center">
               <div
                 className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
                   currentPage <= 1 ? "opacity-50 cursor-not-allowed" : ""
@@ -459,9 +608,7 @@ const AdminProductsCategories: React.FC = () => {
               </div>
               <div
                 className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
-                  currentPage >= Math.ceil(categories.length / 10)
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
+                  currentPage >= totalPages ? "opacity-50 cursor-not-allowed" : ""
                 }`}
                 onClick={handleNextPage}
               >
@@ -472,7 +619,6 @@ const AdminProductsCategories: React.FC = () => {
         </div>
       </div>
 
-      {/* Hidden file input for image upload */}
       <input
         ref={fileInputRef}
         type="file"
@@ -481,27 +627,22 @@ const AdminProductsCategories: React.FC = () => {
         className="hidden"
       />
 
-      {/* Add Category Modal */}
       {showAddCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop with blur and dark overlay */}
           <div
             className="fixed inset-0 bg-black/30 backdrop-blur-sm"
             onClick={handleCloseAddModal}
           />
-          {/* Modal Content */}
           <div
             className="relative z-50 bg-white rounded-[24px] p-[10px] w-full max-w-[400px] shadow-2xl animate-scaleIn flex flex-col gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex flex-col items-start justify-center px-3 py-2">
               <h2 className="text-[20px] font-bold text-[#272424] font-montserrat leading-normal text-center w-full">
                 Thêm danh mục lớn
               </h2>
             </div>
 
-            {/* Form */}
             <div className="flex flex-col gap-1 items-start justify-center px-3">
               <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
                 Tên danh mục lớn
@@ -512,20 +653,27 @@ const AdminProductsCategories: React.FC = () => {
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
+                    e.preventDefault();
                     handleConfirmAddCategory();
                   } else if (e.key === "Escape") {
+                    e.preventDefault();
                     handleCloseAddModal();
                   }
                 }}
               />
             </div>
 
-            {/* Footer Buttons */}
             <div className="flex gap-[10px] items-center justify-end px-3">
               <Button variant="secondary" onClick={handleCloseAddModal}>
                 Huỷ
               </Button>
-              <Button onClick={handleConfirmAddCategory}>Xác nhận</Button>
+              <Button
+                type="button"
+                onClick={handleConfirmAddCategory}
+                disabled={isAddingCategory || createCategoryMutation.isPending}
+              >
+                {createCategoryMutation.isPending ? "Đang tạo..." : "Xác nhận"}
+              </Button>
             </div>
           </div>
         </div>
@@ -535,3 +683,4 @@ const AdminProductsCategories: React.FC = () => {
 };
 
 export default AdminProductsCategories;
+

@@ -116,7 +116,7 @@ export interface CustomerUpdateRequest extends CustomerCreationRequest {
 }
 
 export interface SelectAllRequest {
-  ids: number[];
+  getAll: number[];
 }
 
 // Context and state types

@@ -1,11 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
 import { ArrowLeft } from "lucide-react";
 import CityDropdown from "@/components/ui/city-dropdown";
 import DistrictDropdown from "@/components/ui/district-dropdown";
 import WardDropdown from "@/components/ui/ward-dropdown";
+import { createProvider } from "@/api/endpoints/warehouseApi";
+import { toast } from "sonner";
+import type { ApiResponse } from "@/types";
 import {
   TabMenuWithBadge,
   PageContainer,
@@ -46,10 +50,11 @@ const AdminSupplierNew = () => {
       newErrors.supplierName = "Tên nhà cung cấp là bắt buộc";
     }
 
-    if (!formData.phone.trim()) {
+    const normalizedPhone = formData.phone.trim();
+    if (!normalizedPhone) {
       newErrors.phone = "Số điện thoại là bắt buộc";
-    } else if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
-      newErrors.phone = "Số điện thoại không hợp lệ";
+    } else if (!/^\d{10,13}$/.test(normalizedPhone)) {
+      newErrors.phone = "Số điện thoại phải gồm 10-13 chữ số";
     }
 
     if (!formData.email.trim()) {
@@ -79,14 +84,32 @@ const AdminSupplierNew = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (validateForm()) {
-      // TODO: Implement API call to create supplier
-      console.log("Creating supplier:", formData);
-      // Navigate back to suppliers list
-      navigate("/admin/warehouse/supplier");
+      try {
+        setIsSubmitting(true);
+        await createProvider({
+          name: formData.supplierName.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email.trim(),
+          note: formData.note?.trim() || "",
+          province: formData.city.trim(),
+          ward: formData.ward.trim(),
+          district: formData.district.trim(),
+          location: formData.street.trim(),
+        });
+        toast.success("Thêm nhà cung cấp thành công");
+        navigate("/admin/warehouse/supplier");
+      } catch (err) {
+        const message = getErrorMessage(err);
+        toast.error(message);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -291,13 +314,25 @@ const AdminSupplierNew = () => {
             type="submit"
             onClick={handleSubmit}
             className="px-[24px] py-[12px]"
+            disabled={isSubmitting}
           >
-            Thêm mới
+            {isSubmitting ? "Đang tạo..." : "Thêm mới"}
           </Button>
         </div>
       </ContentCard>
     </PageContainer>
   );
+};
+
+const getErrorMessage = (error: unknown) => {
+  const defaultMessage = "Không thể tạo nhà cung cấp, vui lòng thử lại.";
+  if (isAxiosError<ApiResponse<unknown>>(error)) {
+    return error.response?.data?.message ?? defaultMessage;
+  }
+  if (error instanceof Error) {
+    return error.message || defaultMessage;
+  }
+  return defaultMessage;
 };
 
 export default AdminSupplierNew;

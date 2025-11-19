@@ -15,18 +15,42 @@ export interface SimpleInventoryPageResponse extends PageResponse<SimpleInventor
 
 export interface ProviderResponse {
   id: number;
+  code: string;
   name: string;
-  contact: string;
-  address: string;
-  status: string;
+  phone: string;
+  email: string;
+  status?: "ACTIVE" | "INACTIVE";
 }
 
-export interface ProviderPageResponse extends PageResponse<ProviderResponse> {}
+export interface ProviderPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  providers: ProviderResponse[];
+}
+
+export interface ProviderDetailResponse {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  note?: string;
+  province: string;
+  ward: string;
+  district: string;
+  location: string;
+}
 
 export interface ProviderCreateRequest {
   name: string;
-  contact: string;
-  address: string;
+  phone: string;
+  email: string;
+  note?: string;
+  province: string;
+  ward: string;
+  district: string;
+  location: string;
 }
 
 export interface ProviderUpdateRequest extends ProviderCreateRequest {
