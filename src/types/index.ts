@@ -26,4 +26,6 @@ export type {
   GeneratePrintTokenResponse,
   PrintOrderResponse,
   SwitchStatusResponse,
+  BrandCreateRequest,
+  BrandPageResponse,
 } from './api';

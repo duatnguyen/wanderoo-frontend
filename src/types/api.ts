@@ -353,11 +353,26 @@ export interface AddressUpdateRequest extends AddressCreationRequest {
   id: number;
 }
 
-export interface ProductCreateRequest {
+export interface ProductAttributeInputRequest {
   name: string;
-  description: string;
-  price: number;
+  values: string[];
+}
+
+export interface ProductCreateRequest {
+  images?: string[];
+  name: string;
   categoryId: number;
+  brandId: number;
+  description: string;
+  attributes?: ProductAttributeInputRequest[];
+  packagedWeight: number;
+  length: number;
+  width: number;
+  height: number;
+  importPrice?: number;
+  sellingPrice?: number;
+  totalQuantity?: number;
+  availableQuantity?: number;
 }
 
 export interface ProductUpdateRequest extends ProductCreateRequest {
@@ -786,6 +801,26 @@ export interface CategoryParentUpdateRequest extends CategoryParentCreateRequest
 
 export interface CategoryChildUpdateRequest extends CategoryChildCreateRequest {
   id: number;
+}
+
+export interface BrandResponse {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  status?: string;
+}
+
+export interface BrandPageResponse extends PageResponse<BrandResponse> {
+  last?: boolean;
+  pageable?: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  brands?: BrandResponse[];
+}
+
+export interface BrandCreateRequest {
+  name: string;
 }
 
 export interface VariantRequest {

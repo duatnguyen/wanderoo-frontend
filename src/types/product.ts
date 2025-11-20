@@ -4,7 +4,9 @@ export interface ProductFormData {
   productName: string;
   barcode: string;
   category: string;
+  categoryId: number | null;
   brand: string;
+  brandId: number | null;
   description: string;
   costPrice: string;
   sellingPrice: string;
@@ -19,11 +21,6 @@ export interface ProductFormData {
 export interface ProductAttribute {
   name: string;
   values: string[];
-}
-
-export interface CurrentAttribute {
-  name: string;
-  value: string;
 }
 
 export interface ProductVersion {

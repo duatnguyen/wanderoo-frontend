@@ -184,6 +184,26 @@ export const getChildCategories = async (parentId: number): Promise<CategoryChil
   return response.data.data;
 };
 
+export const getCategoryChildOptions = async (
+  params?: { page?: number; size?: number }
+): Promise<CategoryChildPageResponse & { categoryChildResponseList?: CategoryChildPageResponse["content"] }> => {
+  const response = await api.get<ApiResponse<CategoryChildPageResponse & { categoryChildResponseList?: CategoryChildPageResponse["content"] }>>(
+    '/auth/v1/private/attribute/category-child',
+    { params }
+  );
+
+  const data = response.data.data;
+  const content =
+    data.content ??
+    (data.categoryChildResponseList as CategoryChildPageResponse["content"]) ??
+    [];
+
+  return {
+    ...data,
+    content,
+  };
+};
+
 export const createParentCategory = async (categoryData: CategoryParentCreateRequest): Promise<ApiResponse<number>> => {
   const response = await api.post<ApiResponse<number>>('/attributes/v1/admin/category-parent', categoryData);
   return response.data;

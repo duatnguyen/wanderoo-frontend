@@ -43,11 +43,26 @@ export interface CategoryParentPageResponse extends PageResponse<CategoryParentR
 export interface CategoryChildPageResponse extends PageResponse<CategoryChildResponse> {}
 
 // Request types
+export interface ProductAttributeInputRequest {
+  name: string;
+  values: string[];
+}
+
 export interface ProductCreateRequest {
   name: string;
   description: string;
-  price: number;
   categoryId: number;
+  brandId: number;
+  images?: string[];
+  attributes?: ProductAttributeInputRequest[];
+  packagedWeight: number;
+  length: number;
+  width: number;
+  height: number;
+  importPrice?: number;
+  sellingPrice?: number;
+  totalQuantity?: number;
+  availableQuantity?: number;
 }
 
 export interface ProductUpdateRequest extends ProductCreateRequest {
