@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight, Eye, EyeOff, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit } from "lucide-react";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import type { Product } from "../../../types/types";
 
@@ -8,8 +8,6 @@ interface ProductItemProps {
     isSelected: boolean;
     onSelect: (productId: string) => void;
     onUpdate: (productId: string) => void;
-    status: "active" | "inactive";
-    onToggleStatus: (productId: string) => void;
 }
 
 const ProductItem: React.FC<ProductItemProps> = ({
@@ -17,8 +15,6 @@ const ProductItem: React.FC<ProductItemProps> = ({
     isSelected,
     onSelect,
     onUpdate,
-    status,
-    onToggleStatus,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const hasVariants = product.variants && product.variants.length > 0;
@@ -139,17 +135,6 @@ const ProductItem: React.FC<ProductItemProps> = ({
 
                     {/* Actions */}
                     <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
-                        <button
-                            onClick={() => onToggleStatus(product.id)}
-                            className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
-                            title={status === "active" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm"}
-                        >
-                            {status === "active" ? (
-                                <EyeOff className="w-4 h-4 text-[#2B73F0] hover:text-[#1C57C0]" />
-                            ) : (
-                                <Eye className="w-4 h-4 text-[#2B73F0] hover:text-[#1C57C0]" />
-                            )}
-                        </button>
                         <button
                             onClick={() => onUpdate(product.id)}
                             className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"

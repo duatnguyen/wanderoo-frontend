@@ -89,12 +89,16 @@ export const updateVariantPrivate = async (variantData: VariantUpdateRequest): P
   return response.data;
 };
 
-export const disableProductsPrivate = async (request: any): Promise<ApiResponse<null>> => {
+type SelectIdsRequest = {
+  getAll: number[];
+};
+
+export const disableProductsPrivate = async (request: SelectIdsRequest): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>('/auth/v1/private/product/disable', request);
   return response.data;
 };
 
-export const enableProductsPrivate = async (request: any): Promise<ApiResponse<null>> => {
+export const enableProductsPrivate = async (request: SelectIdsRequest): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>('/auth/v1/private/product/enable', request);
   return response.data;
 };

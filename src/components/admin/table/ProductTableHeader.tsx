@@ -10,8 +10,10 @@ interface ProductTableHeaderProps {
     onClearSelection: () => void;
     onBulkDelete?: () => void;
     onBulkHide?: () => void;
+    onBulkShow?: () => void;
     onBulkExport?: () => void;
     showSelectionActions?: boolean;
+    actionDisabled?: boolean;
 }
 
 const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
@@ -23,8 +25,10 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
     onClearSelection,
     onBulkDelete,
     onBulkHide,
+    onBulkShow,
     onBulkExport,
     showSelectionActions = false,
+    actionDisabled = false,
 }) => {
     if (showSelectionActions) {
         return (
@@ -63,6 +67,7 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                     <div className="flex gap-[8px] items-center ml-auto">
                         <button
                             onClick={onClearSelection}
+                            disabled={actionDisabled}
                             className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-sm flex items-center gap-2"
                             title="Bỏ chọn tất cả (ESC)"
                         >
@@ -74,6 +79,7 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
 
                         <button
                             onClick={onBulkExport}
+                            disabled={actionDisabled}
                             className="px-4 py-2 bg-[#4caf50] hover:bg-[#45a049] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
                             title="Xuất dữ liệu sản phẩm đã chọn"
                         >
@@ -84,7 +90,20 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                         </button>
 
                         <button
+                            onClick={onBulkShow}
+                            disabled={actionDisabled}
+                            className="px-4 py-2 bg-[#1d4ed8] hover:bg-[#1e40af] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
+                            title="Hiện sản phẩm đã chọn"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Hiện ({selectedCount})
+                        </button>
+
+                        <button
                             onClick={onBulkHide}
+                            disabled={actionDisabled}
                             className="px-4 py-2 bg-[#ff9800] hover:bg-[#f57c00] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
                             title="Ẩn sản phẩm đã chọn"
                         >
@@ -96,6 +115,7 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
 
                         <button
                             onClick={onBulkDelete}
+                            disabled={actionDisabled}
                             className="px-4 py-2 bg-[#f44336] hover:bg-[#d32f2f] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
                             title="Xóa vĩnh viễn sản phẩm đã chọn (Delete)"
                         >

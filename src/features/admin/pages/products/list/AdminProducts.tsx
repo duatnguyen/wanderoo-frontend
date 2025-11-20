@@ -15,11 +15,14 @@ import {
   getAllProductsPrivate,
   getActiveProductsPrivate,
   getInactiveProductsPrivate,
+  disableProductsPrivate,
+  enableProductsPrivate,
 } from "@/api/endpoints/productApi";
 import type {
   AdminProductResponse,
   AdminProductDetailResponse,
 } from "@/types";
+import { toast } from "sonner";
 type ProductStatus = "active" | "inactive";
 
 type ProductWithStatus = Product & {
@@ -108,6 +111,7 @@ const AdminProducts: React.FC = () => {
     active: 0,
     inactive: 0,
   });
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -284,13 +288,10 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleBulkHide = () => {
-    if (selectedProducts.size === 0) return;
-
-    console.log('Hiding products:', Array.from(selectedProducts));
-    // TODO: Implement actual hiding
-    handleClearSelection();
-    alert(`Đã ẩn ${selectedProducts.size} sản phẩm thành công!`);
+  const buildSelectedIdPayload = (): number[] => {
+    return Array.from(selectedProducts)
+      .map((id) => Number(id))
+      .filter((id) => !Number.isNaN(id));
   };
 
   const handleBulkExport = () => {
@@ -300,32 +301,45 @@ const AdminProducts: React.FC = () => {
     // TODO: Implement actual export
     alert(`Đang xuất dữ liệu ${selectedProducts.size} sản phẩm...`);
   };
-
   const handleUpdate = (productId: string) => {
     navigate(`/admin/products/${productId}/edit`);
   };
 
-  const handleToggleStatus = (productId: string) => {
-    let nextStatus: ProductStatus | null = null;
+  const handleBulkHide = async () => {
+    const ids = buildSelectedIdPayload();
+    if (ids.length === 0) return;
 
-    setProducts((prev) =>
-      prev.map((product) => {
-        if (product.id !== productId) {
-          return product;
-        }
+    setIsActionLoading(true);
+    try {
+      await disableProductsPrivate({ getAll: ids });
+      toast.success("Ẩn sản phẩm thành công");
+      await fetchProducts();
+      await fetchTabCounts();
+      handleClearSelection();
+    } catch (error) {
+      console.error("Không thể ẩn sản phẩm", error);
+      toast.error("Ẩn sản phẩm thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
 
-        const updatedStatus = product.status === "active" ? "inactive" : "active";
-        nextStatus = updatedStatus;
-        return {
-          ...product,
-          status: updatedStatus,
-        };
-      })
-    );
+  const handleBulkShow = async () => {
+    const ids = buildSelectedIdPayload();
+    if (ids.length === 0) return;
 
-    if (nextStatus) {
-      setActiveTab(nextStatus);
-      setCurrentPage(1);
+    setIsActionLoading(true);
+    try {
+      await enableProductsPrivate({ getAll: ids });
+      toast.success("Hiện sản phẩm thành công");
+      await fetchProducts();
+      await fetchTabCounts();
+      handleClearSelection();
+    } catch (error) {
+      console.error("Không thể hiện sản phẩm", error);
+      toast.error("Hiện sản phẩm thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -431,6 +445,8 @@ const AdminProducts: React.FC = () => {
             onBulkHide={handleBulkHide}
             onBulkExport={handleBulkExport}
             showSelectionActions={selectedProducts.size > 0}
+            onBulkShow={handleBulkShow}
+            actionDisabled={isActionLoading}
           />          {/* Table Body */}
           <div className={`w-full transition-all duration-200 ${selectedProducts.size > 0 ? 'ring-2 ring-blue-200 ring-opacity-50 rounded-b-[16px]' : 'rounded-b-[16px]'} overflow-hidden`}>
             {isLoading && (
@@ -446,8 +462,6 @@ const AdminProducts: React.FC = () => {
                   isSelected={selectedProducts.has(product.id)}
                   onSelect={handleProductSelect}
                   onUpdate={handleUpdate}
-                  status={product.status}
-                  onToggleStatus={handleToggleStatus}
                 />
               ))}
             {!isLoading && paginatedProducts.length === 0 && !errorMessage && (
