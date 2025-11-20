@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/icons/Icon";
 import { SearchBar } from "@/components/ui/search-bar";
@@ -9,7 +9,7 @@ import CaretDown from "@/components/ui/caret-down";
 import { Pagination } from "@/components/ui/pagination";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import { ChipStatus } from "@/components/ui/chip-status";
-import { getProviderList, deleteAllProviders } from "@/api/endpoints/warehouseApi";
+import { getProviderList, deleteAllProviders, activateAllProviders } from "@/api/endpoints/warehouseApi";
 import type { ProviderResponse } from "@/types";
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
@@ -42,7 +42,9 @@ const AdminWarehouseSupplier = () => {
   const [selectedSuppliers, setSelectedSuppliers] = useState<Set<number>>(new Set());
   const [statusOverrides, setStatusOverrides] = useState<Record<number, "active" | "inactive">>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [shouldFocusLastPage, setShouldFocusLastPage] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -55,6 +57,15 @@ const AdminWarehouseSupplier = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, statusFilter]);
+
+  // Check if we should focus on last page after adding new supplier
+  useEffect(() => {
+    if (location.state?.shouldFocusLastPage) {
+      setShouldFocusLastPage(true);
+      // Clear the state to avoid re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   const { data, isLoading, isFetching, isError, error } = useQuery({
     queryKey: ["providers", { keyword: debouncedSearch, page: currentPage }],
@@ -72,10 +83,23 @@ const AdminWarehouseSupplier = () => {
   const providers = data?.providers ?? [];
   const totalPages = data?.totalPages ?? 1;
 
+  // Auto-navigate to last page when data is loaded and flag is set
+  useEffect(() => {
+    if (shouldFocusLastPage && data && totalPages > 0 && !isLoading && !isFetching) {
+      setCurrentPage(totalPages);
+      setShouldFocusLastPage(false);
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+    }
+  }, [shouldFocusLastPage, data, totalPages, isLoading, isFetching, queryClient]);
+
   const normalizedSuppliers = useMemo<SupplierRow[]>(() => {
     return providers.map((provider: ProviderResponse) => {
-      const backendStatus =
-        provider.status?.toLowerCase() === "inactive" ? "inactive" : "active";
+      // Map backend status (ACTIVE, INACTIVE, NONE) to frontend status (active, inactive)
+      let backendStatus: "active" | "inactive" = "active";
+      if (provider.status) {
+        const statusUpper = provider.status.toUpperCase();
+        backendStatus = statusUpper === "INACTIVE" ? "inactive" : "active";
+      }
       const overrideStatus = statusOverrides[provider.id];
       return {
         id: provider.id,
@@ -95,8 +119,12 @@ const AdminWarehouseSupplier = () => {
     setStatusOverrides((prev) => {
       const next = { ...prev };
       providers.forEach((provider) => {
-        const backendStatus =
-          provider.status?.toLowerCase() === "inactive" ? "inactive" : "active";
+        // Map backend status to frontend status
+        let backendStatus: "active" | "inactive" = "active";
+        if (provider.status) {
+          const statusUpper = provider.status.toUpperCase();
+          backendStatus = statusUpper === "INACTIVE" ? "inactive" : "active";
+        }
         const override = next[provider.id];
         if (override && override === backendStatus) {
           delete next[provider.id];
@@ -168,8 +196,35 @@ const AdminWarehouseSupplier = () => {
     },
   });
 
-  const handlePrimaryAction = () => {
-    toast.info("API kích hoạt chưa được hỗ trợ từ backend.");
+  const { mutateAsync: activateSuppliers, isPending: isActivating } = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await activateAllProviders({ getAll: ids });
+    },
+    onSuccess: (_, ids) => {
+      toast.success(`Đã kích hoạt ${ids.length} nhà cung cấp`);
+      setSelectedSuppliers(new Set());
+      setStatusOverrides((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => {
+          next[id] = "active";
+        });
+        return next;
+      });
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+    },
+    onError: (error) => {
+      const message =
+        isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : "Không thể kích hoạt, vui lòng thử lại.";
+      toast.error(message);
+    },
+  });
+
+  const handlePrimaryAction = async () => {
+    const ids = Array.from(selectedSuppliers);
+    if (ids.length === 0) return;
+    await activateSuppliers(ids);
   };
 
   const handleSecondaryAction = async () => {
@@ -265,7 +320,7 @@ const AdminWarehouseSupplier = () => {
                       variant="default"
                       onClick={handlePrimaryAction}
                       className="text-[12px] px-[12px] py-[6px] h-auto"
-                      disabled={isDeactivating}
+                      disabled={isActivating || isDeactivating}
                     >
                       Kích hoạt
                     </Button>
@@ -273,7 +328,7 @@ const AdminWarehouseSupplier = () => {
                       variant="secondary"
                       onClick={handleSecondaryAction}
                       className="text-[12px] px-[12px] py-[6px] h-auto whitespace-nowrap"
-                      disabled={isDeactivating}
+                      disabled={isActivating || isDeactivating}
                     >
                       Ngừng kích hoạt
                     </Button>

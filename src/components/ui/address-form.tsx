@@ -101,6 +101,14 @@ const AddressForm: React.FC<AddressFormProps> = ({
     onSubmit(formData);
   };
 
+  const shouldHideLocationName = (name: string) => {
+    const normalized = name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return normalized.includes("test") || normalized === "ha noi 02";
+  };
+
   const {
     data: provincesData,
     isLoading: isLoadingProvinces,
@@ -110,7 +118,17 @@ const AddressForm: React.FC<AddressFormProps> = ({
     queryFn: getProvinces,
   });
 
-  const provinces = provincesData ?? [];
+  // Filter out test data (case-insensitive) and specific invalid entries
+  const provinces = useMemo(() => {
+    if (!provincesData) return [];
+    return provincesData
+      .filter((province) => !shouldHideLocationName(province.provinceName))
+      .sort((a, b) =>
+        a.provinceName.localeCompare(b.provinceName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [provincesData]);
 
   const {
     data: districtsData,
@@ -125,7 +143,17 @@ const AddressForm: React.FC<AddressFormProps> = ({
     enabled: Boolean(formData.provinceId),
   });
 
-  const districts = districtsData ?? [];
+  // Filter out test data (case-insensitive) and specific invalid entries
+  const districts = useMemo(() => {
+    if (!districtsData) return [];
+    return districtsData
+      .filter((district) => !shouldHideLocationName(district.districtName))
+      .sort((a, b) =>
+        a.districtName.localeCompare(b.districtName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [districtsData]);
 
   const {
     data: wardsData,
@@ -140,7 +168,17 @@ const AddressForm: React.FC<AddressFormProps> = ({
     enabled: Boolean(formData.districtId),
   });
 
-  const wards = wardsData ?? [];
+  // Filter out test data (case-insensitive) and specific invalid entries
+  const wards = useMemo(() => {
+    if (!wardsData) return [];
+    return wardsData
+      .filter((ward) => !shouldHideLocationName(ward.wardName))
+      .sort((a, b) =>
+        a.wardName.localeCompare(b.wardName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [wardsData]);
 
   useEffect(() => {
     if (!formData.province && initialData.province) {

@@ -51,11 +51,32 @@ const AdminStaffNew: React.FC = () => {
       ...prev,
       [field]: value,
     }));
+    
+    // Clear error when user starts typing
     setFormErrors((prev) => {
       const next = { ...prev };
       delete next[field];
       return next;
     });
+    
+    // Real-time validation for phone number
+    if (field === "phone" && value.trim()) {
+      const phoneValue = value.trim();
+      const phoneDigits = phoneValue.replace(/\D/g, ""); // Remove non-digits
+      
+      // Check if phone contains only digits
+      if (!/^\d+$/.test(phoneValue)) {
+        setFormErrors((prev) => ({
+          ...prev,
+          phone: "Số điện thoại chỉ được chứa chữ số.",
+        }));
+      } else if (phoneDigits.length > 0 && (phoneDigits.length < 10 || phoneDigits.length > 13)) {
+        setFormErrors((prev) => ({
+          ...prev,
+          phone: "Số điện thoại phải có từ 10 đến 13 chữ số.",
+        }));
+      }
+    }
   };
 
   const createEmployeeMutation = useMutation({
@@ -73,11 +94,36 @@ const AdminStaffNew: React.FC = () => {
       navigate("/admin/staff");
     },
     onError: (error: unknown) => {
-      const message =
-        (error as any)?.response?.data?.message ||
-        "Không thể tạo nhân viên. Vui lòng thử lại.";
-      setApiError(message);
-      toast.error(message);
+      const errorResponse = (error as any)?.response?.data;
+      let message = errorResponse?.message || "Không thể tạo nhân viên. Vui lòng thử lại.";
+      
+      // Translate phone number errors to Vietnamese
+      const phoneErrorMessages: Record<string, string> = {
+        "phone number must contain only digits": "Số điện thoại chỉ được chứa chữ số.",
+        "phone number must be between 10 and 13 digits": "Số điện thoại phải có từ 10 đến 13 chữ số.",
+        "phone number must contain only digits.": "Số điện thoại chỉ được chứa chữ số.",
+        "phone number must be between 10 and 13 digits.": "Số điện thoại phải có từ 10 đến 13 chữ số.",
+      };
+      
+      const lowerMessage = message.toLowerCase();
+      let translatedMessage = message;
+      
+      // Check for phone number error messages
+      for (const [key, value] of Object.entries(phoneErrorMessages)) {
+        if (lowerMessage.includes(key.toLowerCase())) {
+          translatedMessage = value;
+          break;
+        }
+      }
+      
+      // Check if error is related to phone number
+      if (lowerMessage.includes("phone") || lowerMessage.includes("số điện thoại") || lowerMessage.includes("digits")) {
+        setFormErrors((prev) => ({ ...prev, phone: translatedMessage }));
+        toast.error(translatedMessage);
+      } else {
+        setApiError(translatedMessage);
+        toast.error(translatedMessage);
+      }
     },
   });
 
@@ -91,6 +137,17 @@ const AdminStaffNew: React.FC = () => {
     }
     if (!formData.phone.trim()) {
       errors.phone = "Vui lòng nhập số điện thoại.";
+    } else {
+      // Validate phone number: must contain only digits
+      const phoneDigits = formData.phone.trim().replace(/\D/g, ""); // Remove non-digits
+      const originalPhone = formData.phone.trim();
+      
+      // Check if phone contains only digits
+      if (!/^\d+$/.test(originalPhone)) {
+        errors.phone = "Số điện thoại chỉ được chứa chữ số.";
+      } else if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+        errors.phone = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+      }
     }
     if (!formData.password.trim()) {
       errors.password = "Vui lòng nhập mật khẩu.";

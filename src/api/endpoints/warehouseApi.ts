@@ -45,6 +45,12 @@ export const deleteAllProviders = async (request: SelectAllRequest): Promise<voi
   });
 };
 
+export const activateAllProviders = async (request: SelectAllRequest): Promise<void> => {
+  // Sử dụng cùng endpoint nhưng với method PUT để activate
+  // Nếu backend chưa có endpoint này, sẽ cần thêm sau
+  await apiClient.put('/auth/v1/private/provider/all/activate', request);
+};
+
 export const createProvider = async (
   request: ProviderCreateRequest
 ): Promise<number> => {
