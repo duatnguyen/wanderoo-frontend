@@ -75,6 +75,18 @@ export interface CustomerOrderResponse extends OrderResponse {
   shippingProvider?: string | null;
   trackingNumber?: string | null;
   expectedDeliveryDate?: string | null;
+  receiverName?: string | null;
+  receiverPhone?: string | null;
+  receiverAddress?: string | null;
+  receiverProvinceName?: string | null;
+  receiverDistrictId?: number | null;
+  receiverDistrictName?: string | null;
+  receiverWardCode?: string | null;
+  receiverWardName?: string | null;
+  shopDistrictId?: number | null;
+  shopDistrictName?: string | null;
+  shopWardCode?: string | null;
+  shopWardName?: string | null;
 }
 
 export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> { }

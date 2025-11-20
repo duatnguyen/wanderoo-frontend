@@ -456,6 +456,20 @@ export interface CreateOrderResponse {
 
 export interface CustomerOrderResponse extends OrderResponse {
   userInfo: UserInfo;
+  receiverName?: string | null;
+  receiverPhone?: string | null;
+  receiverAddress?: string | null;
+  receiverProvinceName?: string | null;
+  receiverDistrictId?: number | null;
+  receiverDistrictName?: string | null;
+  receiverWardCode?: string | null;
+  receiverWardName?: string | null;
+  shippingProvider?: string | null;
+  shippingOrderCode?: string | null;
+  shopDistrictId?: number | null;
+  shopDistrictName?: string | null;
+  shopWardCode?: string | null;
+  shopWardName?: string | null;
 }
 
 export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> {}
@@ -526,6 +540,19 @@ export interface PickShiftResponse {
   id: number;
   time: string;
   available: boolean;
+}
+
+export interface AvailableServiceResponse {
+  serviceId: number;
+  serviceTypeId: number;
+  shortName: string;
+  serviceName?: string | null;
+  expectedDeliveryTime?: string | null;
+}
+
+export interface AvailableServicesRequest {
+  fromDistrict: number;
+  toDistrict: number;
 }
 
 export interface CreateGHNOrderRequest {

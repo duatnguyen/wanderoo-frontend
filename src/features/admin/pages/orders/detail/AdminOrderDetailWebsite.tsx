@@ -87,7 +87,12 @@ const AdminOrderDetailWebsite: React.FC = () => {
     setShowDeliveryPopup(true);
   };
 
-  const handleDeliveryConfirm = async (data: { pickShift: number[]; requiredNote: string }) => {
+  const handleDeliveryConfirm = async (data: {
+    pickShift: number[];
+    requiredNote: string;
+    paymentTypeId: number;
+    serviceTypeId: number;
+  }) => {
     if (!orderId) return;
 
     try {
