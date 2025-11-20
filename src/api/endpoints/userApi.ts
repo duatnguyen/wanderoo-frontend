@@ -339,8 +339,6 @@ export const setDefaultAdminAddress = async (addressId: number): Promise<ApiResp
   console.log("setDefaultAdminAddress API response:", response.data);
   return response.data;
 };
-<<<<<<< HEAD
-=======
 
 // Admin Profile APIs
 export const getAdminProfile = async (): Promise<AdminProfileDetailResponse> => {
@@ -373,4 +371,3 @@ export const uploadAdminAvatar = async (file: File): Promise<string> => {
 
 // Alias exports for backward compatibility
 // Note: authMe is now in authApi.ts
->>>>>>> a9f5ca7641fcbea590212719f28c9f3a4f15ff7a
