@@ -128,6 +128,12 @@ const AdminWarehouseSupplier = lazy(
 const AdminOrderOtherStatus = lazy(
   () => import("../../features/admin/pages/orders/list/AdminOrderOtherStatus")
 );
+const AdminOrderOtherStatusDetail = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/orders/detail/AdminOrderOtherStatusDetail"
+    )
+);
 const AdminProductsCategories = lazy(
   () =>
     import(
@@ -213,6 +219,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminOrderOtherStatus />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "orders/otherstatus/:orderId",
+    element: (
+      <LazyWrapper>
+        <AdminOrderOtherStatusDetail />
       </LazyWrapper>
     ),
   },

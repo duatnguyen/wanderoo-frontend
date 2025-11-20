@@ -8,53 +8,20 @@ import {
   TabMenu,
   OrderTableHeader,
 } from "@/components/common";
-import type { TabItem, OrderTableColumn } from "@/components/common";
-import { ChipStatus, type ChipStatusKey } from "@/components/ui/chip-status";
+import type { TabItem } from "@/components/common";
+import { ChipStatus } from "@/components/ui/chip-status";
 import { DetailIcon } from "@/components/icons";
+import {
+  otherStatusOrders,
+  STATUS_CHIP_MAP,
+  TABLE_COLUMNS,
+  type OtherStatusOrder,
+  type ReturnStatus,
+  type ShippingInfo,
+  type TableColumnId,
+} from "./orderOtherStatusData";
 
-type OrderCategory = "RETURN" | "CANCEL" | "FAILED";
-type ReturnStatus = "PENDING_REVIEW" | "RETURNING" | "REFUNDED" | "INVALID";
 type ReturnStatusTab = "ALL" | ReturnStatus;
-
-interface OrderProduct {
-  id: string;
-  name: string;
-  variant?: string;
-  quantity: number;
-  price: number;
-  image?: string;
-  classification?: string;
-}
-
-interface ShippingInfo {
-  label: string;
-  chip: ChipStatusKey;
-  note?: string;
-  timeline?: string[];
-}
-
-interface OtherStatusOrder {
-  id: string;
-  orderCode: string;
-  customerId: string;
-  customerName: string;
-  source: "Website" | "POS";
-  sourceNote: string;
-  category: OrderCategory;
-  statusKey: ReturnStatus;
-  statusLabel: string;
-  statusDescription: string;
-  reason: string;
-  reasonTags?: string[];
-  optionDescription: string;
-  options: string[];
-  products: OrderProduct[];
-  refundAmount: number;
-  forwardShipping: ShippingInfo;
-  returnShipping: ShippingInfo;
-  lastUpdated: string;
-}
-
 type MainTabValue = "ALL" | "RETURN" | "CANCEL" | "FAILED";
 
 const MAIN_TABS: TabItem[] = [
@@ -70,269 +37,6 @@ const RETURN_STATUS_TABS: Array<{ id: ReturnStatusTab; label: string }> = [
   { id: "RETURNING", label: "Đang trả hàng" },
   { id: "REFUNDED", label: "Đã hoàn tiền cho người mua" },
   { id: "INVALID", label: "Yêu cầu bị hủy/không hợp lệ" },
-];
-
-const STATUS_CHIP_MAP: Record<ReturnStatus, ChipStatusKey> = {
-  PENDING_REVIEW: "pending",
-  RETURNING: "return",
-  REFUNDED: "completed",
-  INVALID: "cancelled",
-};
-
-type TableColumnId =
-  | "product"
-  | "amount"
-  | "reason"
-  | "resolution"
-  | "status"
-  | "forward"
-  | "return"
-  | "source"
-  | "action";
-
-type ReturnTableColumn = OrderTableColumn & { id: TableColumnId };
-
-const TABLE_COLUMNS: ReturnTableColumn[] = [
-  {
-    id: "product",
-    title: "Sản phẩm",
-    width: "flex-1",
-    minWidth: "min-w-[320px]",
-    className: "justify-start",
-  },
-  {
-    id: "amount",
-    title: "Số tiền",
-    width: "w-[170px]",
-    minWidth: "min-w-[160px]",
-    className: "justify-start",
-  },
-  {
-    id: "reason",
-    title: "Lý do",
-    width: "w-[210px]",
-    minWidth: "min-w-[200px]",
-    className: "justify-start",
-  },
-  {
-    id: "resolution",
-    title: "Phương án cho Người mua",
-    width: "w-[230px]",
-    minWidth: "min-w-[220px]",
-    className: "justify-start",
-  },
-  {
-    id: "status",
-    title: "Trạng thái",
-    width: "w-[180px]",
-    minWidth: "min-w-[170px]",
-    className: "justify-start",
-  },
-  {
-    id: "forward",
-    title: "Vận chuyển chiều giao hàng",
-    width: "w-[220px]",
-    minWidth: "min-w-[210px]",
-    className: "justify-start",
-  },
-  {
-    id: "return",
-    title: "Vận chuyển hàng hoàn",
-    width: "w-[220px]",
-    minWidth: "min-w-[210px]",
-    className: "justify-start",
-  },
-  {
-    id: "source",
-    title: "Nguồn đơn",
-    width: "w-[140px]",
-    minWidth: "min-w-[130px]",
-    className: "justify-start",
-  },
-  {
-    id: "action",
-    title: "Thao tác",
-    width: "w-[150px]",
-    minWidth: "min-w-[140px]",
-    className: "justify-start",
-  },
-];
-
-const otherStatusOrders: OtherStatusOrder[] = [
-  {
-    id: "RET-23001",
-    orderCode: "WEB-2023301",
-    customerId: "KH-20321",
-    customerName: "Lê Thị Mai",
-    source: "Website",
-    sourceNote: "Khách đặt qua website chính thức",
-    category: "RETURN",
-    statusKey: "PENDING_REVIEW",
-    statusLabel: "Đang chờ xét duyệt",
-    statusDescription:
-      "Yêu cầu đang được bộ phận vận hành kiểm tra chứng cứ và tồn kho.",
-    reason:
-      "Khách phản hồi sản phẩm giao không đúng mô tả và thiếu phụ kiện trong hộp.",
-    reasonTags: ["Sai mô tả", "Thiếu phụ kiện"],
-    optionDescription: "Có 2 phương án do người mua chọn:",
-    options: ["Trả hàng & hoàn tiền", "Hoàn tiền ngay"],
-    products: [
-      {
-        id: "P-01",
-        name: "Giày thể thao Wanderoo Runner Pro",
-        variant: "Màu Đỏ / Size 39",
-        quantity: 1,
-        price: 899000,
-        image: "https://placehold.co/60x60/png",
-        classification: "Giày thể thao",
-      },
-      {
-        id: "P-02",
-        name: "Tất cổ cao Everyday Performance",
-        variant: "Free size",
-        quantity: 2,
-        price: 325000,
-        image: "https://placehold.co/60x60/png",
-        classification: "Phụ kiện",
-      },
-    ],
-    refundAmount: 1549000,
-    forwardShipping: {
-      label: "Đã hoàn thành",
-      chip: "completed",
-      note: "Các trạng thái sau:",
-      timeline: [
-        "Chờ xử lý hàng",
-        "Đang giao",
-        "Đã hoàn thành",
-        "Giao thất bại",
-      ],
-    },
-    returnShipping: {
-      label: "Đã hoàn thành",
-      chip: "completed",
-      note: "Bưu tá đã nhận lại hàng từ khách và chờ nhập kho.",
-    },
-    lastUpdated: "20/11/2025 10:15",
-  },
-  {
-    id: "RET-23002",
-    orderCode: "POS-563820",
-    customerId: "KH-56718",
-    customerName: "Trần Quốc Toàn",
-    source: "POS",
-    sourceNote: "Phiếu tạo trực tiếp tại cửa hàng Wanderoo Hub",
-    category: "RETURN",
-    statusKey: "REFUNDED",
-    statusLabel: "Đã hoàn tiền 1 phần",
-    statusDescription:
-      "Đã hoàn 50% giá trị đơn bằng tiền mặt theo yêu cầu khách.",
-    reason: "Khách trả vì sai size so với đặt giữ hàng online.",
-    optionDescription: "Có 1 phương án do người mua chọn:",
-    options: ["Trả hàng & hoàn tiền"],
-    products: [
-      {
-        id: "P-03",
-        name: "Áo khoác gió Wanderoo City Ride",
-        variant: "Màu Navy / Size M",
-        quantity: 1,
-        price: 899000,
-        image: "https://placehold.co/60x60/png",
-        classification: "Áo khoác",
-      },
-    ],
-    refundAmount: 450000,
-    forwardShipping: {
-      label: "Với ở POS sẽ luôn đã hoàn thành",
-      chip: "completed",
-      note: "POS xử lý giao/nhận hàng ngay tại quầy.",
-    },
-    returnShipping: {
-      label: "Hoàn tiền tại quầy",
-      chip: "return",
-      note: "Nhân viên đã xác nhận hoàn tiền trực tiếp.",
-    },
-    lastUpdated: "18/11/2025 14:42",
-  },
-  {
-    id: "CAN-7821",
-    orderCode: "WEB-88901",
-    customerId: "KH-90821",
-    customerName: "Đặng Quỳnh Nhi",
-    source: "Website",
-    sourceNote: "Khách tự hủy trước khi đóng gói.",
-    category: "CANCEL",
-    statusKey: "INVALID",
-    statusLabel: "Yêu cầu bị hủy",
-    statusDescription: "Đơn đã hủy theo yêu cầu khách, chờ hoàn tiền tự động.",
-    reason: "Khách thay đổi kế hoạch mua sắm, muốn hủy toàn bộ đơn.",
-    optionDescription: "Có 1 phương án áp dụng:",
-    options: ["Hoàn tiền về phương thức thanh toán ban đầu"],
-    products: [
-      {
-        id: "P-04",
-        name: "Bộ quần áo chạy bộ Wanderoo Sprint",
-        variant: "Màu Đen / Size L",
-        quantity: 1,
-        price: 1099000,
-        image: "https://placehold.co/60x60/png",
-        classification: "Trang phục thể thao",
-      },
-    ],
-    refundAmount: 1099000,
-    forwardShipping: {
-      label: "Chưa giao hàng",
-      chip: "pending",
-      note: "Đơn hủy trước khi bàn giao cho đối tác vận chuyển.",
-    },
-    returnShipping: {
-      label: "Không áp dụng",
-      chip: "default",
-      note: "Đơn chưa rời kho nên không có hàng hoàn.",
-    },
-    lastUpdated: "17/11/2025 09:05",
-  },
-  {
-    id: "FAIL-1290",
-    orderCode: "WEB-77612",
-    customerId: "KH-67110",
-    customerName: "Phạm Hữu Duy",
-    source: "Website",
-    sourceNote: "Giao qua đối tác GHTK",
-    category: "FAILED",
-    statusKey: "RETURNING",
-    statusLabel: "Đang trả hàng",
-    statusDescription: "Đơn giao không thành công, đang đưa hàng quay lại kho.",
-    reason: "Người nhận không nghe máy trong 3 lần giao hàng.",
-    optionDescription: "Có 2 phương án dự phòng:",
-    options: [
-      "Giữ hàng tại kho chờ khách xác nhận lại",
-      "Hoàn tiền khi hàng quay về",
-    ],
-    products: [
-      {
-        id: "P-05",
-        name: "Túi đeo chéo Wanderoo Urban Flow",
-        variant: "Màu Olive",
-        quantity: 1,
-        price: 659000,
-        image: "https://placehold.co/60x60/png",
-        classification: "Phụ kiện",
-      },
-    ],
-    refundAmount: 659000,
-    forwardShipping: {
-      label: "Đang giao lần 3",
-      chip: "shipping",
-      note: "Đối tác đã cố gắng giao 2/3 lần quy định.",
-    },
-    returnShipping: {
-      label: "Đang hoàn hàng",
-      chip: "return",
-      note: "Đối tác đang đưa hàng trở lại kho Wanderoo.",
-    },
-    lastUpdated: "19/11/2025 08:20",
-  },
 ];
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
@@ -391,11 +95,8 @@ const AdminOrderOtherStatus = () => {
   }, [activeMainTab, activeStatusTab]);
 
   const handleViewDetail = (order: OtherStatusOrder) => {
-    navigate(`/admin/orders/${order.id}`, {
-      state: {
-        status: order.statusLabel,
-        source: order.source,
-      },
+    navigate(`/admin/orders/otherstatus/${order.id}`, {
+      state: { order },
     });
   };
 
@@ -526,7 +227,7 @@ const AdminOrderOtherStatus = () => {
             alignTimeline ? "min-h-[72px]" : ""
           }`}
         >
-          {shipping.timeline.map((step) => (
+          {shipping.timeline.map((step: string) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
