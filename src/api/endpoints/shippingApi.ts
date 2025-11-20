@@ -25,9 +25,8 @@ import type {
   PrintOrderRequest,
   CancelGHNOrderRequest,
   SwitchStatusRequest,
-  AvailableServiceResponse,
-  AvailableServicesRequest,
 } from '../../types';
+import type { AvailableServiceResponse, AvailableServicesRequest } from '../../types/api';
 
 // Address APIs
 export const getProvinces = async (): Promise<ProvinceResponse[]> => {
@@ -87,11 +86,24 @@ export const getPickShifts = async (): Promise<PickShiftResponse> => {
 export const getAvailableServices = async (
   request: AvailableServicesRequest
 ): Promise<AvailableServiceResponse[]> => {
-  const response = await api.post<ApiResponse<AvailableServiceResponse[]>>(
+  // Transform camelCase to snake_case for backend compatibility
+  const requestBody = {
+    from_district: request.fromDistrict,
+    to_district: request.toDistrict,
+  };
+  const response = await api.post<ApiResponse<any[]>>(
     '/api/shipping/available-services',
-    request
+    requestBody
   );
-  return response.data.data;
+  
+  // Transform snake_case response to camelCase for frontend compatibility
+  return (response.data.data || []).map((item: any) => ({
+    serviceId: item.service_id,
+    serviceTypeId: item.service_type_id,
+    shortName: item.short_name || '',
+    serviceName: item.service_name || null,
+    expectedDeliveryTime: item.expected_delivery_time || null,
+  }));
 };
 
 // Order Management APIs

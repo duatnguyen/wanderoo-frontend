@@ -246,14 +246,14 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                 </div>
                 <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
                     <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
-                        Thông tin khách hàng đặt hàng
+                        Thông tin người nhận hàng
                     </p>
                     <div className="flex flex-col gap-[2px]">
                         <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
-                            {orderData.shippingDetail?.to_name || orderData.userInfo?.name || "Chưa có thông tin tên"}
+                            {orderData.receiverName || orderData.userInfo?.name || "Chưa có thông tin tên"}
                         </p>
                         <p className="font-montserrat font-medium text-[13px] leading-[1.3] text-[#666666]">
-                            📞 {orderData.shippingDetail?.to_phone || orderData.userInfo?.phone || "Chưa có thông tin số điện thoại"}
+                            📞 {orderData.receiverPhone || orderData.userInfo?.phone || "Chưa có thông tin số điện thoại"}
                         </p>
                     </div>
                 </div>
@@ -268,9 +268,38 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                     <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
                         Địa chỉ nhận hàng
                     </p>
-                    <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424] break-words min-w-0">
-                        {orderData.shippingDetail?.to_address || "Chưa có thông tin địa chỉ"}
-                    </p>
+                    <div className="flex flex-col gap-[4px] w-full">
+                        {orderData.receiverAddress || orderData.shippingDetail?.to_address ? (
+                            <>
+                                <p className="font-montserrat font-semibold text-[14px] leading-[1.4] text-[#272424] break-words">
+                                    {orderData.receiverAddress || orderData.shippingDetail?.to_address}
+                                </p>
+                                {(orderData.receiverWardName || orderData.receiverDistrictName || orderData.receiverProvinceName) && (
+                                    <div className="flex flex-wrap gap-[6px] items-center">
+                                        {orderData.receiverWardName && (
+                                            <span className="font-montserrat font-medium text-[12px] text-[#666666] bg-gray-100 px-[8px] py-[2px] rounded-[4px]">
+                                                {orderData.receiverWardName}
+                                            </span>
+                                        )}
+                                        {orderData.receiverDistrictName && (
+                                            <span className="font-montserrat font-medium text-[12px] text-[#666666] bg-gray-100 px-[8px] py-[2px] rounded-[4px]">
+                                                {orderData.receiverDistrictName}
+                                            </span>
+                                        )}
+                                        {orderData.receiverProvinceName && (
+                                            <span className="font-montserrat font-medium text-[12px] text-[#666666] bg-gray-100 px-[8px] py-[2px] rounded-[4px]">
+                                                {orderData.receiverProvinceName}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424] break-words min-w-0">
+                                Chưa có thông tin địa chỉ
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -331,7 +360,8 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                 </div>
             </div>
 
-            {/* Timeline */}
+            {/* Timeline - Only show when shippingDetail exists */}
+            {orderData.shippingDetail && (
             <div className="border border-[#e7e7e7] box-border flex flex-col relative rounded-[12px] w-full overflow-hidden min-w-0 bg-white">
                 {/* Timeline Header - Always visible */}
                 <div className="flex flex-col sm:flex-row h-auto sm:h-[80px] items-start justify-between p-[16px] gap-[12px] sm:gap-0">
@@ -417,12 +447,12 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                                         <div className="flex flex-col items-center gap-[8px] shrink-0">
                                             <div
                                                 className={`w-[16px] h-[16px] rounded-full border-3 flex items-center justify-center transition-all duration-200 ${step.isCompleted
-                                                        ? step.isCurrent
-                                                            ? "bg-[#04910c] border-[#04910c] shadow-lg shadow-green-200"
-                                                            : "bg-[#28a745] border-[#28a745] shadow-md shadow-green-100"
-                                                        : step.isCurrent
-                                                            ? "bg-[#ffc107] border-[#ffc107] shadow-lg shadow-yellow-200 animate-pulse"
-                                                            : "bg-white border-[#d1d1d1] shadow-sm"
+                                                    ? step.isCurrent
+                                                        ? "bg-[#04910c] border-[#04910c] shadow-lg shadow-green-200"
+                                                        : "bg-[#28a745] border-[#28a745] shadow-md shadow-green-100"
+                                                    : step.isCurrent
+                                                        ? "bg-[#ffc107] border-[#ffc107] shadow-lg shadow-yellow-200 animate-pulse"
+                                                        : "bg-white border-[#d1d1d1] shadow-sm"
                                                     }`}
                                             >
                                                 {step.isCompleted && (
@@ -446,8 +476,8 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                                             {index < getTimelineSteps().length - 1 && (
                                                 <div
                                                     className={`w-[2px] h-[24px] rounded-full transition-all duration-300 ${step.isCompleted
-                                                            ? "bg-gradient-to-b from-[#28a745] to-[#20c997]"
-                                                            : "bg-[#e7e7e7]"
+                                                        ? "bg-gradient-to-b from-[#28a745] to-[#20c997]"
+                                                        : "bg-[#e7e7e7]"
                                                         }`}
                                                 />
                                             )}
@@ -458,10 +488,10 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                                             <div className="flex items-center gap-[6px]">
                                                 <p
                                                     className={`font-montserrat font-medium text-[15px] leading-[1.4] transition-colors duration-200 ${step.isCurrent
-                                                            ? "text-[#04910c] font-semibold"
-                                                            : step.isCompleted
-                                                                ? "text-[#272424]"
-                                                                : "text-[#888888]"
+                                                        ? "text-[#04910c] font-semibold"
+                                                        : step.isCompleted
+                                                            ? "text-[#272424]"
+                                                            : "text-[#888888]"
                                                         }`}
                                                 >
                                                     {step.status}
@@ -491,6 +521,7 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                     </div>
                 )}
             </div>
+            )}
         </div>
     );
 };
