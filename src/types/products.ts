@@ -90,3 +90,45 @@ export interface CategoryParentUpdateRequest extends CategoryParentCreateRequest
 export interface CategoryChildUpdateRequest extends CategoryChildCreateRequest {
   id: number;
 }
+
+// Admin product list responses
+export interface AdminProductDetailResponse {
+  id: number;
+  imageUrl?: string;
+  nameDetail: string;
+  skuDetail: string;
+  barcode?: string;
+  totalQuantity: number;
+  availableQuantity: number;
+  websiteSoldQuantity: number;
+  posSoldQuantity: number;
+  sellingPrice: number | string;
+  importPrice: number | string;
+}
+
+export interface AdminProductResponse {
+  id: number;
+  imageUrl?: string;
+  name: string;
+  sku: string;
+  totalQuantity: number;
+  availableQuantity: number;
+  websiteSoldQuantity: number;
+  posSoldQuantity: number;
+  sellingPrice: number | string;
+  importPrice: number | string;
+  display?: string;
+  productDetails?: AdminProductDetailResponse[];
+}
+
+export interface AdminProductPageResponse {
+  totalProducts: number;
+  pageNumber?: number;
+  pageSize?: number;
+  page?: number;
+  size?: number;
+  totalPages?: number;
+  totalPage?: number;
+  totalElements?: number;
+  productResponseList: AdminProductResponse[];
+}

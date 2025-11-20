@@ -18,7 +18,15 @@ import type {
   CategoryParentUpdateRequest,
   CategoryChildUpdateRequest,
   VariantDetailIdRequest,
+  AdminProductPageResponse,
 } from '../../types';
+
+type ProductListQuery = {
+  keyword?: string;
+  sort?: string;
+  page?: number;
+  size?: number;
+};
 
 // Public Product APIs
 export const getProductDetail = async (id: number): Promise<ProductResponse> => {
@@ -37,33 +45,18 @@ export const createProductPrivate = async (productData: ProductCreateRequest): P
   return response.data;
 };
 
-export const getAllProductsPrivate = async (params?: {
-  keyword?: string;
-  sort?: string;
-  page?: number;
-  size?: number;
-}): Promise<ProductPageResponse> => {
-  const response = await api.get<ApiResponse<ProductPageResponse>>('/auth/v1/private/product/', { params });
+export const getAllProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
+  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/', { params });
   return response.data.data;
 };
 
-export const getActiveProductsPrivate = async (params?: {
-  keyword?: string;
-  sort?: string;
-  page?: number;
-  size?: number;
-}): Promise<ProductPageResponse> => {
-  const response = await api.get<ApiResponse<ProductPageResponse>>('/auth/v1/private/product/active', { params });
+export const getActiveProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
+  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/active', { params });
   return response.data.data;
 };
 
-export const getInactiveProductsPrivate = async (params?: {
-  keyword?: string;
-  sort?: string;
-  page?: number;
-  size?: number;
-}): Promise<ProductPageResponse> => {
-  const response = await api.get<ApiResponse<ProductPageResponse>>('/auth/v1/private/product/inactive', { params });
+export const getInactiveProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
+  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/inactive', { params });
   return response.data.data;
 };
 
