@@ -2,14 +2,17 @@
 import api from '../apiClient';
 import type {
   ApiResponse,
-  DiscountPageResponse,
-  DiscountResponse,
-  DiscountMetadataResponse,
-  DiscountCreateRequest,
   SelectAllRequest,
   DiscountPublicResponse,
   VoucherHistoryResponse,
-} from '../../types';
+} from '@/types/api';
+import type {
+  AdminDiscountPageResponse,
+  AdminDiscountResponse,
+  AdminDiscountMetadataResponse,
+  AdminDiscountCreateRequest,
+  DiscountStateValue,
+} from '@/types/discount';
 
 // Discount APIs
 export const getDiscounts = async (params?: {
@@ -17,28 +20,31 @@ export const getDiscounts = async (params?: {
   sort?: string;
   page?: number;
   size?: number;
-  state?: string;
-}): Promise<DiscountPageResponse> => {
-  const response = await api.get<ApiResponse<DiscountPageResponse>>('/auth/v1/private/discount', { params });
+  state?: DiscountStateValue;
+}): Promise<AdminDiscountPageResponse> => {
+  const response = await api.get<ApiResponse<AdminDiscountPageResponse>>('/auth/v1/private/discount', { params });
   return response.data.data;
 };
 
-export const getDiscountMetadata = async (): Promise<DiscountMetadataResponse> => {
-  const response = await api.get<ApiResponse<DiscountMetadataResponse>>('/auth/v1/private/discount/metadata');
+export const getDiscountMetadata = async (): Promise<AdminDiscountMetadataResponse> => {
+  const response = await api.get<ApiResponse<AdminDiscountMetadataResponse>>('/auth/v1/private/discount/metadata');
   return response.data.data;
 };
 
-export const getDiscountDetail = async (id: number): Promise<DiscountResponse> => {
-  const response = await api.get<ApiResponse<DiscountResponse>>(`/auth/v1/private/discount/${id}`);
+export const getDiscountDetail = async (id: number): Promise<AdminDiscountResponse> => {
+  const response = await api.get<ApiResponse<AdminDiscountResponse>>(`/auth/v1/private/discount/${id}`);
   return response.data.data;
 };
 
-export const createDiscount = async (discountData: DiscountCreateRequest): Promise<ApiResponse<number>> => {
+export const createDiscount = async (discountData: AdminDiscountCreateRequest): Promise<ApiResponse<number>> => {
   const response = await api.post<ApiResponse<number>>('/auth/v1/private/discount', discountData);
   return response.data;
 };
 
-export const updateDiscount = async (id: number, discountData: DiscountCreateRequest): Promise<ApiResponse<null>> => {
+export const updateDiscount = async (
+  id: number,
+  discountData: AdminDiscountCreateRequest
+): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(`/auth/v1/private/discount/${id}`, discountData);
   return response.data;
 };

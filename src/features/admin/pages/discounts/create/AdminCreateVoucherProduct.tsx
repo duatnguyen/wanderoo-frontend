@@ -84,6 +84,17 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const [confirmedProducts, setConfirmedProducts] = useState<VoucherProduct[]>([]);
   const [appliedProductsPage, setAppliedProductsPage] = useState(1);
   const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
+  const [minDateTime] = useState(() => formatDateTimeForInput(new Date().toISOString()));
+
+  const numericFields: Array<keyof VoucherFormData> = [
+    "discountValue",
+    "maxDiscountValue",
+    "minOrderAmount",
+    "maxUsage",
+    "maxUsagePerCustomer",
+  ];
+
+  const sanitizeNumericInput = (value: string) => value.replace(/[^0-9]/g, "");
 
   useEffect(() => {
     if (isEditMode && editData) {
@@ -306,9 +317,10 @@ const AdminCreateVoucherProduct: React.FC = () => {
   };
 
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
+    const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: processedValue,
     }));
   };
 
@@ -428,6 +440,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                       onChange={(e) =>
                         handleInputChange("startDate", e.target.value)
                       }
+                      min={minDateTime}
                       containerClassName="h-[36px] w-[240px]"
                       className={!formData.startDate ? "opacity-50" : ""}
                     />
@@ -445,6 +458,9 @@ const AdminCreateVoucherProduct: React.FC = () => {
                       value={formatDateTimeForInput(formData.endDate)}
                       onChange={(e) =>
                         handleInputChange("endDate", e.target.value)
+                      }
+                      min={
+                        formatDateTimeForInput(formData.startDate) || minDateTime
                       }
                       containerClassName="h-[36px] w-[240px]"
                       className={!formData.endDate ? "opacity-50" : ""}
