@@ -1,9 +1,9 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import CategoryTabMenu from "../../../../components/shop/CategoryTabMenu";
 import Button from "../../../../components/shop/Button";
-import { productsData } from "../../data/productsData";
 import { useCart } from "../../../../context/CartContext";
 import { useAuthCtx } from "../../../../app/providers/AuthProvider";
 import BannerSection from "../../../../components/shop/Main/BannerSection";
@@ -13,6 +13,14 @@ import SubBannerSection from "../../../../components/shop/Main/SubBannerSection"
 import NewProductsSection from "../../../../components/shop/Main/NewProductsSection";
 import GroupBannerSection from "../../../../components/shop/Main/GroupBannerSection";
 import TodaySuggestionsSection from "../../../../components/shop/Main/TodaySuggestionsSection";
+import {
+  getTopDiscountProducts,
+  getBestSellerProducts,
+  getNewestProducts,
+  getSuggestionProducts,
+  type HomepageProductResponse,
+} from "../../../../api/endpoints/homepageApi";
+import type { Product } from "../../data/productsData";
 
 const LandingPage: React.FC = () => {
   const { getCartCount } = useCart();
@@ -59,24 +67,54 @@ const LandingPage: React.FC = () => {
     },
   ];
 
-  // Flash sale products - products with high discount (35% and above) - take first 6
-  const flashSaleProducts = productsData
-    .filter((product) => (product.discountPercent || 0) >= 35)
-    .sort((a, b) => (b.discountPercent || 0) - (a.discountPercent || 0))
-    .slice(0, 6);
+  // Fetch homepage products from API
+  const { data: topDiscountProducts = [] } = useQuery({
+    queryKey: ["homepageTopDiscount"],
+    queryFn: () => getTopDiscountProducts(5),
+  });
 
-  // Featured products - first 6 products (best sellers)
-  const featuredProducts = productsData.slice(0, 6);
+  const currentYear = new Date().getFullYear();
+  const { data: bestSellerProducts = [] } = useQuery({
+    queryKey: ["homepageBestSeller", currentYear],
+    queryFn: () => getBestSellerProducts(currentYear, 5),
+  });
 
-  // New products - next 6 products
-  const newProducts = productsData.slice(6, 12);
+  const { data: newestProducts = [] } = useQuery({
+    queryKey: ["homepageNewest"],
+    queryFn: () => getNewestProducts(5),
+  });
 
-  // Today's suggestions - 18 products (3 rows x 6 columns)
-  // Take products starting from index 12, or from beginning if not enough
-  const remainingProducts = productsData.slice(12);
-  const todaySuggestions = remainingProducts.length >= 18 
-    ? remainingProducts.slice(0, 18)
-    : [...remainingProducts, ...productsData.slice(0, 18 - remainingProducts.length)];
+  const { data: suggestionProducts = [] } = useQuery({
+    queryKey: ["homepageSuggestions"],
+    queryFn: () => getSuggestionProducts(15),
+  });
+
+  // Convert HomepageProductResponse to Product format for components
+  const convertToProduct = (item: HomepageProductResponse): Product => {
+    const salePrice = item.salePrice ?? 0;
+    const originalPrice = item.originalPrice ?? salePrice;
+    return {
+      id: item.productId?.toString?.() || `${Math.random()}`,
+      name: item.name,
+      imageUrl: item.image || "",
+      price: salePrice,
+      originalPrice,
+      discountPercent:
+        typeof item.discountPercent === "number"
+          ? Math.round(item.discountPercent)
+          : undefined,
+      rating: 0, // API doesn't return rating yet
+      stock: 0,
+      category: "",
+      brand: "",
+      reviews: 0,
+    };
+  };
+
+  const flashSaleProducts = topDiscountProducts.map(convertToProduct);
+  const featuredProducts = bestSellerProducts.map(convertToProduct);
+  const newProducts = newestProducts.map(convertToProduct);
+  const todaySuggestions = suggestionProducts.map(convertToProduct);
 
   return (
     <div className="min-h-screen bg-white justify-center flex flex-col">

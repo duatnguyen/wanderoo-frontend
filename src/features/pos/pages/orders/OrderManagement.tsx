@@ -1,193 +1,161 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import OrderSearchPanel, {
   type Order,
 } from "../../../../components/pos/OrderSearchPanel";
 import OrderDetailsPanel, {
   type OrderDetails,
 } from "../../../../components/pos/OrderDetailsPanel";
+import { getPosOrderList, getPosOrderDetail } from "../../../../api/endpoints/posApi";
+import Loading from "../../../../components/common/Loading";
 
 const OrderManagement: React.FC = () => {
-  // Mock data
   const [searchValue, setSearchValue] = useState("");
-  const [startDate, setStartDate] = useState("2025-06-29");
-  const [endDate, setEndDate] = useState("2025-06-29");
-  const [selectedOrderId, setSelectedOrderId] = useState<string>("1003");
-
-  // Mock orders list
-  const mockOrders: Order[] = [
-    {
-      id: "1003",
-      totalAmount: 400000,
-      dateTime: "2025-06-29T14:30:00",
-      status: "Đã thanh toán",
-    },
-    {
-      id: "1004",
-      totalAmount: 250000,
-      dateTime: "2025-06-29T15:00:00",
-      status: "Đã thanh toán",
-    },
-    {
-      id: "1005",
-      totalAmount: 150000,
-      dateTime: "2025-06-29T16:00:00",
-      status: "Đã thanh toán",
-    },
-  ];
-
-  // Mock order details
-  const mockOrderDetails: Record<string, OrderDetails> = {
-    "1003": {
-      id: "1003",
-      createdBy: "Thanh",
-      createdAt: "2025-06-29T14:30:00",
-      products: [
-        {
-          id: "1",
-          name: "Vòng Đuổi Muỗi Di Động - Bảo Vệ Gia Đình Khỏi Muỗi Đốt, Thiết Kế Hiện Đại",
-          image:
-            "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=150&h=150&fit=crop",
-          variant: "Xanh",
-          price: 100000,
-          quantity: 1,
-        },
-        {
-          id: "2",
-          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
-          image:
-            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
-          variant: "Xanh",
-          price: 100000,
-          quantity: 1,
-        },
-        {
-          id: "2",
-          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
-          image:
-            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
-          variant: "Xanh",
-          price: 100000,
-          quantity: 1,
-        },
-        {
-          id: "2",
-          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
-          image:
-            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
-          variant: "Xanh",
-          price: 100000,
-          quantity: 1,
-        },
-        {
-          id: "2",
-          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
-          image:
-            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
-          variant: "Xanh",
-          price: 100000,
-          quantity: 1,
-        },
-        {
-          id: "2",
-          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
-          image:
-            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
-          variant: "Xanh",
-          price: 100000,
-          quantity: 1,
-        },
-        {
-          id: "2",
-          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
-          image:
-            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
-          variant: "Xanh",
-          price: 100000,
-          quantity: 1,
-        },
-        {
-          id: "2",
-          name: "Tất Chống Thấm Nước Đệm Chống Mài Mòn Trượt",
-          image:
-            "https://images.unsplash.com/photo-1586350977773-bd8d9d2f8c55?w=150&h=150&fit=crop",
-          variant: "Xanh",
-          price: 100000,
-          quantity: 1,
-        },
-        {
-          id: "3",
-          name: "Túi ngoài trời lưu trữ leo núi Rucksack 30L",
-          image:
-            "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=150&h=150&fit=crop",
-          variant: "Nâu",
-          price: 100000,
-          quantity: 2,
-        },
-      ],
-      totalAmount: 400000,
-      discount: 0,
-      finalAmount: 400000,
-      amountPaid: 400000,
-      change: 0,
-    },
-    "1004": {
-      id: "1004",
-      createdBy: "Admin",
-      createdAt: "2025-06-29T15:00:00",
-      products: [
-        {
-          id: "1",
-          name: "Product A",
-          price: 150000,
-          quantity: 1,
-        },
-        {
-          id: "2",
-          name: "Product B",
-          price: 100000,
-          quantity: 1,
-        },
-      ],
-      totalAmount: 250000,
-      discount: 0,
-      finalAmount: 250000,
-      amountPaid: 250000,
-      change: 0,
-    },
-    "1005": {
-      id: "1005",
-      createdBy: "Admin",
-      createdAt: "2025-06-29T16:00:00",
-      products: [
-        {
-          id: "1",
-          name: "Product C",
-          price: 150000,
-          quantity: 1,
-        },
-      ],
-      totalAmount: 150000,
-      discount: 0,
-      finalAmount: 150000,
-      amountPaid: 150000,
-      change: 0,
-    },
-  };
-
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 1;
+  const pageSize = 10;
 
-  const selectedOrder = selectedOrderId
-    ? mockOrderDetails[selectedOrderId]
+  // Fetch orders list
+  const {
+    data: ordersData,
+    isLoading: isLoadingOrders,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useQuery({
+    queryKey: ["posOrders", searchValue, startDate, endDate, currentPage],
+    queryFn: async () => {
+      return await getPosOrderList({
+        search: searchValue || undefined,
+        fromDate: startDate || undefined,
+        toDate: endDate || undefined,
+        page: currentPage - 1, // Backend uses 0-based pagination
+        size: pageSize,
+        sort: "createdAt,desc",
+      });
+    },
+  });
+
+  // Fetch order detail
+  const {
+    data: orderDetailData,
+    isLoading: isLoadingDetail,
+    error: detailError,
+  } = useQuery({
+    queryKey: ["posOrderDetail", selectedOrderId],
+    queryFn: async () => {
+      if (!selectedOrderId) return null;
+      try {
+        return await getPosOrderDetail(selectedOrderId);
+      } catch (error: any) {
+        console.error("Error fetching order detail:", error);
+        throw new Error(
+          error.response?.data?.message ||
+            error.message ||
+            "Không thể tải chi tiết đơn hàng"
+        );
+      }
+    },
+    enabled: !!selectedOrderId,
+    retry: 1,
+  });
+
+  // Auto-select first order when orders are loaded
+  useEffect(() => {
+    if (ordersData?.content && ordersData.content.length > 0 && !selectedOrderId) {
+      const firstOrder = ordersData.content[0];
+      setSelectedOrderId(firstOrder.id);
+    }
+  }, [ordersData, selectedOrderId]);
+
+  // Convert API response to component types
+  const orders: Order[] =
+    ordersData?.content.map((order) => ({
+      id: order.code || order.id.toString(), // Use code if available, fallback to id
+      totalAmount: order.totalOrderPrice || 0,
+      dateTime: order.createdAt,
+      status: getPaymentStatusText(order.paymentStatus),
+    })) || [];
+
+  const totalPages = ordersData?.totalPages || 1;
+
+  // Convert order detail to component type
+  const selectedOrder: OrderDetails | undefined = orderDetailData
+    ? {
+        id: orderDetailData.code || orderDetailData.id.toString(), // Use code if available
+        createdBy: orderDetailData.createdBy || "N/A",
+        createdAt: orderDetailData.createdAt,
+        products: orderDetailData.products.map((product) => ({
+          id: product.id.toString(),
+          name: product.productName,
+          image: product.productImage,
+          variant: product.category,
+          price: product.unitPrice || 0,
+          quantity: product.quantity || 0,
+        })),
+        totalAmount: orderDetailData.paymentSummary?.totalProductPrice || 0,
+        discount: orderDetailData.paymentSummary?.discountAmount || 0,
+        finalAmount: orderDetailData.paymentSummary?.totalOrderPrice || 0,
+        amountPaid: orderDetailData.paymentSummary?.cashReceived || 0,
+        change: orderDetailData.paymentSummary?.change || 0,
+      }
     : undefined;
+
+  // Helper function to convert payment status
+  function getPaymentStatusText(status: string): string {
+    const statusMap: Record<string, string> = {
+      PAID: "Đã thanh toán",
+      UNPAID: "Chưa thanh toán",
+      PARTIAL: "Thanh toán một phần",
+      REFUNDED: "Đã hoàn tiền",
+    };
+    return statusMap[status] || status;
+  }
 
   const handleExchange = () => {
     console.log("Exchange order:", selectedOrderId);
+    // TODO: Implement exchange order functionality
   };
 
   const handlePrintInvoice = () => {
     console.log("Print invoice for order:", selectedOrderId);
+    // TODO: Implement print invoice functionality
   };
+
+  const handleOrderSelect = (orderId: string) => {
+    // Find the actual order ID from the code
+    const order = ordersData?.content.find(
+      (o) => (o.code || o.id.toString()) === orderId
+    );
+    if (order) {
+      setSelectedOrderId(order.id);
+    }
+  };
+
+  if (isLoadingOrders && !ordersData) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+
+  if (ordersError) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Lỗi khi tải danh sách đơn hàng</p>
+          <button
+            onClick={() => refetchOrders()}
+            className="px-4 py-2 bg-[#e04d30] text-white rounded hover:bg-[#d04327]"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex overflow-hidden">
@@ -200,9 +168,14 @@ const OrderManagement: React.FC = () => {
           onStartDateChange={setStartDate}
           endDate={endDate}
           onEndDateChange={setEndDate}
-          orders={mockOrders}
-          selectedOrderId={selectedOrderId}
-          onOrderSelect={setSelectedOrderId}
+          orders={orders}
+          selectedOrderId={
+            selectedOrderId
+              ? ordersData?.content.find((o) => o.id === selectedOrderId)?.code ||
+                selectedOrderId.toString()
+              : undefined
+          }
+          onOrderSelect={handleOrderSelect}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
@@ -211,11 +184,39 @@ const OrderManagement: React.FC = () => {
 
       {/* Right Panel - Order Details */}
       <div className="flex-1 min-w-0">
-        <OrderDetailsPanel
-          order={selectedOrder}
-          onExchange={handleExchange}
-          onPrintInvoice={handlePrintInvoice}
-        />
+        {isLoadingDetail ? (
+          <div className="h-full flex items-center justify-center">
+            <Loading />
+          </div>
+        ) : detailError ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center p-4">
+              <p className="text-red-500 mb-2">Lỗi khi tải chi tiết đơn hàng</p>
+              <p className="text-sm text-gray-500">
+                {detailError instanceof Error
+                  ? detailError.message
+                  : "Vui lòng thử lại sau"}
+              </p>
+              <button
+                onClick={() => {
+                  if (selectedOrderId) {
+                    // Retry query by refetching
+                    window.location.reload();
+                  }
+                }}
+                className="mt-4 px-4 py-2 bg-[#e04d30] text-white rounded hover:bg-[#d04327] text-sm"
+              >
+                Thử lại
+              </button>
+            </div>
+          </div>
+        ) : (
+          <OrderDetailsPanel
+            order={selectedOrder}
+            onExchange={handleExchange}
+            onPrintInvoice={handlePrintInvoice}
+          />
+        )}
       </div>
     </div>
   );
