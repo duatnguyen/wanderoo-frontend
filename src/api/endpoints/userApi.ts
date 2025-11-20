@@ -26,50 +26,53 @@ export type AllowedRole =
   | "EMPLOYEE"
   | "OPERATIONS_MANAGER";
 
-// Private User Management APIs
-export const getUserProfile = async (): Promise<UserResponse> => {
-  const response = await api.get<ApiResponse<UserResponse>>('/auth/v1/private/users/profile');
+// Private User Management APIs (aligned with UserPrivateController)
+export const getUserInfo = async (): Promise<UserResponse> => {
+  const response = await api.get<ApiResponse<UserResponse>>('/auth/v1/private/users/info');
   return response.data.data;
 };
 
 export const updateUserProfile = async (userData: UserUpdateRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/profile', userData);
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users', userData);
   return response.data;
 };
 
 export const changePassword = async (passwordData: ChangePasswordRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/change-password', passwordData);
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/password', passwordData);
   return response.data;
 };
 
-// Address APIs
-export const getUserAddresses = async (params?: { page?: number; size?: number }): Promise<AddressPageResponse> => {
-  const response = await api.get<AddressPageResponse>('/auth/v1/private/users/addresses', { params });
-  return response.data;
+// Address APIs (customer)
+export const getUserAddresses = async (): Promise<AddressPageResponse> => {
+  const response = await api.get<ApiResponse<AddressDetailResponse[]>>('/auth/v1/private/users/address');
+  const addresses = response.data.data ?? [];
+  return { addresses };
 };
 
 export const setDefaultAddress = async (addressId: number): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/addresses/${addressId}/default`);
+  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/address/default`, undefined, {
+    params: { addressId },
+  });
   return response.data;
 };
 
 export const addAddress = async (addressData: AddressCreationRequest): Promise<ApiResponse<number>> => {
-  const response = await api.post<ApiResponse<number>>('/auth/v1/private/users/addresses', addressData);
+  const response = await api.post<ApiResponse<number>>('/auth/v1/private/users/address', addressData);
   return response.data;
 };
 
 export const getAddressById = async (addressId: number): Promise<AddressDetailResponse> => {
-  const response = await api.get<ApiResponse<AddressDetailResponse>>(`/auth/v1/private/users/addresses/${addressId}`);
+  const response = await api.get<ApiResponse<AddressDetailResponse>>(`/auth/v1/private/users/address/${addressId}`);
   return response.data.data;
 };
 
 export const updateAddress = async (addressData: AddressUpdateRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/addresses/${addressData.id}`, addressData);
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/address', addressData);
   return response.data;
 };
 
 export const deleteAddress = async (addressId: number): Promise<ApiResponse<null>> => {
-  const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/users/addresses/${addressId}`);
+  const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/users/address/${addressId}`);
   return response.data;
 };
 
@@ -298,11 +301,10 @@ export const createCustomerAddress = async (customerId: number, addressData: Add
 
 // Admin Address APIs
 export const getAdminAddresses = async (): Promise<AddressPageResponse> => {
-  console.log("getAdminAddresses API call");
-  const response = await api.get<ApiResponse<AddressPageResponse>>('/auth/v1/private/users/admin/address');
-  console.log("getAdminAddresses API response:", response.data);
-  // Backend returns AddressPageResponse with addresses array
-  return response.data.data;
+  const response = await api.get<ApiResponse<AddressDetailResponse[]>>('/auth/v1/private/users/admin/address');
+  return {
+    addresses: response.data.data ?? [],
+  };
 };
 
 export const createAdminAddress = async (addressData: AddressCreationRequest): Promise<ApiResponse<number>> => {
@@ -332,6 +334,3 @@ export const setDefaultAdminAddress = async (addressId: number): Promise<ApiResp
   console.log("setDefaultAdminAddress API response:", response.data);
   return response.data;
 };
-
-// Alias exports for backward compatibility
-// Note: authMe is now in authApi.ts
