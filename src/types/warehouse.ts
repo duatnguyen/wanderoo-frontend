@@ -19,7 +19,7 @@ export interface ProviderResponse {
   name: string;
   phone: string;
   email: string;
-  status?: "ACTIVE" | "INACTIVE";
+  status?: "ACTIVE" | "INACTIVE" | "NONE";
 }
 
 export interface ProviderPageResponse {

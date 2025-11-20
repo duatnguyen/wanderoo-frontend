@@ -43,6 +43,17 @@ export interface EmployeeResponse extends UserResponse {
 
 export interface EmployeePageResponse extends PageResponse<EmployeeResponse> {}
 
+export interface AdminProfileDetailResponse {
+  id: number;
+  image_url: string | null;
+  username: string;
+  name: string;
+  email: string;
+  phone: string;
+  gender: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday: string | null; // ISO date string
+}
+
 export interface CustomerResponse extends UserResponse {
   address: string;
   membershipLevel: string;
@@ -78,9 +89,27 @@ export interface UserUpdateRequest {
   image_url?: string | null;
 }
 
+// Admin profile update request (matches backend UserUpdateRequest)
+export interface AdminProfileUpdateRequest {
+  id: number;
+  name: string;
+  image_url?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string; // ISO date string
+  email?: string;
+  phone: string;
+}
+
 export interface ChangePasswordRequest {
   oldPassword: string;
   newPassword: string;
+}
+
+// Admin password update request (matches backend UpdatePasswordRequest)
+export interface AdminPasswordUpdateRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
 }
 
 export interface AddressCreationRequest {

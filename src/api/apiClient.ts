@@ -3,7 +3,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 // Base API configuration
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({

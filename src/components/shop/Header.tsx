@@ -1,9 +1,18 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingBag, Menu, LogOut, LogIn } from "lucide-react";
 import CategoryDropdown from "./CategoryDropdown";
 import shopLogo from "../../assets/icons/ShopLogo.png";
+<<<<<<< HEAD
 import { useAuth } from "../../context/AuthContext";
+=======
+import {
+  getPublicCategoryParents,
+  getPublicCategoryChildren,
+} from "../../api/endpoints/attributeApi";
+
+const { Search: SearchInput } = Input;
+>>>>>>> a9f5ca7641fcbea590212719f28c9f3a4f15ff7a
 
 function Logo({ onClick }: { onClick: () => void }) {
   return (
@@ -49,6 +58,7 @@ const Header: React.FC<HeaderProps> = ({
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const categoryButtonRef = useRef<HTMLDivElement>(null);
+<<<<<<< HEAD
   const { user: authUser, isAuthenticated, logout } = useAuth();
 
   const resolvedUsername = authUser?.username?.trim() || "";
@@ -104,6 +114,16 @@ const Header: React.FC<HeaderProps> = ({
       ],
     },
   ];
+=======
+  type DropdownCategory = {
+    id: string;
+    label: string;
+    subcategories: { id: string; label: string }[];
+    rawId: number;
+  };
+  const [mainCategories, setMainCategories] = useState<DropdownCategory[]>([]);
+  const [childLoadingState, setChildLoadingState] = useState<Record<string, boolean>>({});
+>>>>>>> a9f5ca7641fcbea590212719f28c9f3a4f15ff7a
 
   const handleSearch = () => {
     if (!searchValue.trim()) return;
@@ -130,6 +150,70 @@ const Header: React.FC<HeaderProps> = ({
     }
   }, [isCategoryDropdownOpen]);
 
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCategories = async () => {
+      try {
+        const parents = await getPublicCategoryParents();
+        if (!isMounted) return;
+        setMainCategories(
+          parents.map((parent) => ({
+            id: parent.id.toString(),
+            rawId: parent.id,
+            label: parent.name,
+            subcategories: [],
+          }))
+        );
+      } catch (error) {
+        if (isMounted) {
+          console.error("Không thể tải danh mục", error);
+        }
+      } finally {
+        // No-op
+      }
+    };
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleCategoryHover = useCallback(
+    async (categoryId: string) => {
+      const currentCategory = mainCategories.find((cat) => cat.id === categoryId);
+      if (
+        !currentCategory ||
+        currentCategory.subcategories.length > 0 ||
+        childLoadingState[categoryId]
+      ) {
+        return;
+      }
+
+      setChildLoadingState((prev) => ({ ...prev, [categoryId]: true }));
+      try {
+        const children = await getPublicCategoryChildren(currentCategory.rawId);
+        setMainCategories((prev) =>
+            prev.map((cat) =>
+              cat.id === categoryId
+                ? {
+                    ...cat,
+                    subcategories: children.map((child) => ({
+                      id: child.id.toString(),
+                      label: child.name,
+                    })),
+                  }
+                : cat
+            )
+          );
+      } catch (error) {
+        console.error("Không thể tải danh mục con", error);
+      } finally {
+        setChildLoadingState((prev) => ({ ...prev, [categoryId]: false }));
+      }
+    },
+    [mainCategories, childLoadingState]
+  );
+
   const handleCategoryClick = (categoryId: string) => {
     console.log("Category clicked:", categoryId);
     // Navigate to category page or filter products
@@ -137,6 +221,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
+<<<<<<< HEAD
     <header className="w-full bg-gradient-to-r from-[#132543] via-[#1c3b6c] to-[#132543] shadow-[0_4px_20px_rgba(9,22,45,0.25)] relative z-40 text-white">
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-4 py-3">
         <div className="flex flex-wrap items-center gap-3 md:flex-nowrap md:gap-4">
@@ -144,6 +229,69 @@ const Header: React.FC<HeaderProps> = ({
           <div
             ref={categoryButtonRef}
             className="relative flex h-[60px] flex-shrink-0 items-center gap-3 px-4 md:ml-6"
+=======
+    <header className="h-[83px] w-full px-4 bg-[#18345c] flex items-center gap-5 relative z-40">
+      <Logo onClick={() => navigate("/shop")} />
+      <div ref={categoryButtonRef} className="relative ml-6 mr-8">
+        <button
+          className="flex items-center gap-2 cursor-pointer"
+          aria-label="Mở menu danh mục"
+          onClick={() => {
+            setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+            onMenuClick?.();
+          }}
+          type="button"
+        >
+          <Menu className="w-6 h-6 text-white" />
+          <span className="text-white font-semibold text-[16px] select-none">
+            Danh mục
+          </span>
+        </button>
+        <CategoryDropdown
+          isOpen={isCategoryDropdownOpen}
+          onClose={() => setIsCategoryDropdownOpen(false)}
+          mainCategories={mainCategories}
+          onCategoryClick={handleCategoryClick}
+          onCategoryHover={handleCategoryHover}
+        />
+      </div>
+      <div className="flex-1 max-w-[800px]">
+        <SearchInput
+          placeholder="Bạn muốn mua gì hôm nay?"
+          className="w-full"
+          styles={{
+            input: {
+              backgroundColor: "#f6f6f6",
+              borderColor: "#454545",
+            },
+          }}
+          onSearch={(value) => {
+            // Handle search logic here
+            console.log("Search:", value);
+          }}
+        />
+      </div>
+      <div className="flex items-center gap-4 min-w-[150px] pl-5">
+        <button
+          onClick={() => navigate("/shop/cart")}
+          className="relative flex items-center hover:opacity-80 transition-opacity"
+          aria-label="Giỏ hàng"
+          type="button"
+        >
+          <ShoppingBag className="w-7 h-7 text-white cursor-pointer" />
+          {cartCount !== undefined && (
+            <span className="absolute top-[-7px] right-[-7px] w-5 h-5 bg-[#ffc107] text-[#18345c] rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
+              {cartCount}
+            </span>
+          )}
+        </button>
+        <div className="flex items-center gap-3 ml-[43px]">
+          <button
+            onClick={() => navigate("/user/profile/")}
+            className="hover:opacity-80 transition-opacity"
+            aria-label="Xem hồ sơ"
+            type="button"
+>>>>>>> a9f5ca7641fcbea590212719f28c9f3a4f15ff7a
           >
             <button
               className="flex items-center gap-3 cursor-pointer"

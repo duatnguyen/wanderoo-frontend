@@ -17,6 +17,7 @@ interface CategoryDropdownProps {
   onClose: () => void;
   mainCategories: MainCategory[];
   onCategoryClick?: (categoryId: string, mainCategoryId?: string) => void;
+  onCategoryHover?: (categoryId: string) => void;
 }
 
 const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
@@ -24,6 +25,7 @@ const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
   onClose,
   mainCategories,
   onCategoryClick,
+  onCategoryHover,
 }) => {
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(
     null
@@ -54,6 +56,11 @@ const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
         {/* Left Column - Main Categories (Wider) */}
         <div className="w-[280px] border-r border-gray-200 bg-white">
           <ul className="py-2">
+            {mainCategories.length === 0 && (
+              <li className="px-4 py-3 text-sm text-gray-400">
+                Không có danh mục
+              </li>
+            )}
             {mainCategories.map((category, index) => {
               const isHovered = hoveredCategoryId === category.id;
               return (
@@ -64,7 +71,10 @@ const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
                         ? "bg-gray-50 text-[#18345c] font-medium"
                         : "text-gray-700 hover:bg-gray-50"
                     }`}
-                    onMouseEnter={() => setHoveredCategoryId(category.id)}
+                    onMouseEnter={() => {
+                      setHoveredCategoryId(category.id);
+                      onCategoryHover?.(category.id);
+                    }}
                     onClick={() => {
                       onCategoryClick?.(category.id);
                       onClose();

@@ -17,6 +17,9 @@ import type {
   CustomerCreationRequest,
   CustomerUpdateRequest,
   SelectAllRequest,
+  AdminProfileDetailResponse,
+  AdminProfileUpdateRequest,
+  AdminPasswordUpdateRequest,
 } from '../../types';
 import type { CustomerResponse } from '../../types/api';
 
@@ -167,12 +170,14 @@ export const deleteEmployee = async (id: number): Promise<ApiResponse<null>> => 
 };
 
 export const disableEmployeeAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/employee/disable', selectData);
+  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/account/employee/disable/all', {
+    data: selectData,
+  });
   return response.data;
 };
 
 export const enableEmployeeAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/employee/enable', selectData);
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/employee/enable/all', selectData);
   return response.data;
 };
 
@@ -334,3 +339,38 @@ export const setDefaultAdminAddress = async (addressId: number): Promise<ApiResp
   console.log("setDefaultAdminAddress API response:", response.data);
   return response.data;
 };
+<<<<<<< HEAD
+=======
+
+// Admin Profile APIs
+export const getAdminProfile = async (): Promise<AdminProfileDetailResponse> => {
+  const response = await api.get<ApiResponse<AdminProfileDetailResponse>>('/auth/v1/private/users/admin/info');
+  return response.data.data;
+};
+
+export const updateAdminProfile = async (profileData: AdminProfileUpdateRequest): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/admin', profileData);
+  return response.data;
+};
+
+export const updateAdminPassword = async (passwordData: AdminPasswordUpdateRequest): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/admin/password', passwordData);
+  return response.data;
+};
+
+export const uploadAdminAvatar = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post<ApiResponse<string>>('/files/avatar', formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data.data;
+};
+
+// Alias exports for backward compatibility
+// Note: authMe is now in authApi.ts
+>>>>>>> a9f5ca7641fcbea590212719f28c9f3a4f15ff7a

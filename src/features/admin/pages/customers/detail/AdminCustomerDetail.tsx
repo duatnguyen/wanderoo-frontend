@@ -5,20 +5,38 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { ChipStatus } from "@/components/ui/chip-status";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import FormInput from "@/components/ui/form-input";
 import CustomRadio from "@/components/ui/custom-radio";
-import CityDropdown from "@/components/ui/city-dropdown";
-import DistrictDropdown from "@/components/ui/district-dropdown";
-import WardDropdown from "@/components/ui/ward-dropdown";
 import {
   PageContainer,
   ContentCard,
 } from "@/components/common";
 import { getCustomerById, updateCustomer, getCustomerAddresses, updateCustomerAddress, createCustomerAddress } from "@/api/endpoints/userApi";
+import { getProvinces, getDistrictsByPath, getWardsByPath } from "@/api/endpoints/shippingApi";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import CaretDown from "@/components/ui/caret-down";
 import { toast } from "sonner";
 import type { CustomerResponse, CustomerUpdateRequest } from "@/types/api";
-import type { AddressResponse, AddressUpdateRequest, AddressCreationRequest } from "@/types";
+import type { AddressResponse, AddressUpdateRequest, AddressCreationRequest, ProvinceResponse, DistrictResponse, WardResponse } from "@/types";
+
+type CustomerAddressFormState = {
+  id: number | null;
+  name: string;
+  phone: string;
+  province: string;
+  provinceId: number | null;
+  district: string;
+  districtId: number | null;
+  ward: string;
+  wardCode: string;
+  location: string;
+};
 
 const AdminCustomerDetail = () => {
   const { customerId } = useParams();
@@ -34,18 +52,218 @@ const AdminCustomerDetail = () => {
     gender: "Nữ",
     email: "",
   });
-  const [addressData, setAddressData] = useState({
-    id: null as number | null,
+  const [addressData, setAddressData] = useState<CustomerAddressFormState>({
+    id: null,
     name: "",
     phone: "",
     province: "",
+    provinceId: null,
     district: "",
+    districtId: null,
     ward: "",
-    location: "",
     wardCode: "",
-    districtId: null as number | null,
+    location: "",
   });
   const [defaultAddress, setDefaultAddress] = useState<AddressResponse | null>(null);
+
+  const shouldHideLocationName = (name: string) => {
+    const normalized = name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return normalized.includes("test") || normalized === "ha noi 02";
+  };
+
+  const {
+    data: provincesData,
+    isLoading: isLoadingProvinces,
+    isError: isProvinceError,
+  } = useQuery({
+    queryKey: ["shipping-provinces"],
+    queryFn: getProvinces,
+  });
+
+  const provinces = useMemo(() => {
+    if (!provincesData) return [];
+    return provincesData
+      .filter((province) => !shouldHideLocationName(province.provinceName))
+      .sort((a, b) =>
+        a.provinceName.localeCompare(b.provinceName, "vi", { sensitivity: "base" })
+      );
+  }, [provincesData]);
+
+  const {
+    data: districtsData,
+    isLoading: isLoadingDistricts,
+    isError: isDistrictError,
+  } = useQuery({
+    queryKey: ["shipping-districts", addressData.provinceId],
+    queryFn: async () => {
+      if (!addressData.provinceId) return [];
+      return getDistrictsByPath(addressData.provinceId);
+    },
+    enabled: Boolean(addressData.provinceId),
+  });
+
+  const districts = useMemo(() => {
+    if (!districtsData) return [];
+    return districtsData
+      .filter((district) => !shouldHideLocationName(district.districtName))
+      .sort((a, b) =>
+        a.districtName.localeCompare(b.districtName, "vi", { sensitivity: "base" })
+      );
+  }, [districtsData]);
+
+  const {
+    data: wardsData,
+    isLoading: isLoadingWards,
+    isError: isWardError,
+  } = useQuery({
+    queryKey: ["shipping-wards", addressData.districtId],
+    queryFn: async () => {
+      if (!addressData.districtId) return [];
+      return getWardsByPath(addressData.districtId);
+    },
+    enabled: Boolean(addressData.districtId),
+  });
+
+  const wards = useMemo(() => {
+    if (!wardsData) return [];
+    return wardsData
+      .filter((ward) => !shouldHideLocationName(ward.wardName))
+      .sort((a, b) =>
+        a.wardName.localeCompare(b.wardName, "vi", { sensitivity: "base" })
+      );
+  }, [wardsData]);
+
+  useEffect(() => {
+    if (
+      provinces.length > 0 &&
+      addressData.province &&
+      !addressData.provinceId
+    ) {
+      const matchedProvince = provinces.find(
+        (province) => province.provinceName === addressData.province
+      );
+      if (matchedProvince) {
+        setAddressData((prev) => ({
+          ...prev,
+          provinceId: matchedProvince.provinceId,
+        }));
+      }
+    }
+  }, [provinces, addressData.province, addressData.provinceId]);
+
+  useEffect(() => {
+    if (
+      districts.length > 0 &&
+      addressData.district &&
+      !addressData.districtId
+    ) {
+      const matchedDistrict = districts.find(
+        (district) => district.districtName === addressData.district
+      );
+      if (matchedDistrict) {
+        setAddressData((prev) => ({
+          ...prev,
+          districtId: matchedDistrict.districtId,
+        }));
+      }
+    }
+  }, [districts, addressData.district, addressData.districtId]);
+
+  useEffect(() => {
+    if (wards.length > 0 && addressData.ward && !addressData.wardCode) {
+      const matchedWard = wards.find(
+        (ward) => ward.wardName === addressData.ward
+      );
+      if (matchedWard) {
+        setAddressData((prev) => ({
+          ...prev,
+          wardCode: matchedWard.wardCode,
+        }));
+      }
+    }
+  }, [wards, addressData.ward, addressData.wardCode]);
+
+  const handleProvinceSelect = (province: ProvinceResponse) => {
+    setAddressData((prev) => ({
+      ...prev,
+      province: province.provinceName,
+      provinceId: province.provinceId,
+      district: "",
+      districtId: null,
+      ward: "",
+      wardCode: "",
+    }));
+  };
+
+  const handleDistrictSelect = (district: DistrictResponse) => {
+    setAddressData((prev) => ({
+      ...prev,
+      district: district.districtName,
+      districtId: district.districtId,
+      ward: "",
+      wardCode: "",
+    }));
+  };
+
+  const handleWardSelect = (ward: WardResponse) => {
+    setAddressData((prev) => ({
+      ...prev,
+      ward: ward.wardName,
+      wardCode: ward.wardCode,
+    }));
+  };
+
+  const provinceLabel = useMemo(() => {
+    if (isLoadingProvinces) return "Đang tải tỉnh/thành";
+    if (isProvinceError) return "Không thể tải tỉnh/thành";
+    return addressData.province || "Chọn tỉnh/thành phố";
+  }, [addressData.province, isLoadingProvinces, isProvinceError]);
+
+  const districtLabel = useMemo(() => {
+    if (!addressData.provinceId) return "Chọn tỉnh trước";
+    if (isLoadingDistricts) return "Đang tải quận/huyện";
+    if (isDistrictError) return "Không thể tải quận/huyện";
+    return addressData.district || "Chọn quận/huyện";
+  }, [
+    addressData.district,
+    addressData.provinceId,
+    isLoadingDistricts,
+    isDistrictError,
+  ]);
+
+  const wardLabel = useMemo(() => {
+    if (!addressData.districtId) return "Chọn quận/huyện trước";
+    if (isLoadingWards) return "Đang tải phường/xã";
+    if (isWardError) return "Không thể tải phường/xã";
+    return addressData.ward || "Chọn phường/xã";
+  }, [addressData.ward, addressData.districtId, isLoadingWards, isWardError]);
+
+  const renderMenuContent = <T extends { [key: string]: any }>(
+    list: T[] | null | undefined,
+    onSelect: (item: T) => void,
+    labelKey: keyof T
+  ) => {
+    if (!list || !Array.isArray(list) || list.length === 0) {
+      return (
+        <div className="px-3 py-2 text-[13px] text-[#888888]">
+          Không có dữ liệu
+        </div>
+      );
+    }
+
+    return list.map((item) => (
+      <DropdownMenuItem
+        key={String(item[labelKey])}
+        onClick={() => onSelect(item)}
+        className="text-[14px]"
+      >
+        {item[labelKey]}
+      </DropdownMenuItem>
+    ));
+  };
 
   // Fetch customer data from API
   const {
@@ -230,6 +448,7 @@ const AdminCustomerDetail = () => {
         name: defaultAddress.name || customer.name,
         phone: defaultAddress.phone || customer.phone,
         province: defaultAddress.province || "",
+        provinceId: null,
         district: defaultAddress.district || "",
         ward: defaultAddress.ward || "",
         location: defaultAddress.location || "",
@@ -243,6 +462,7 @@ const AdminCustomerDetail = () => {
         name: customer.name,
         phone: customer.phone,
         province: "",
+        provinceId: null,
         district: "",
         ward: "",
         location: "",
@@ -283,11 +503,21 @@ const AdminCustomerDetail = () => {
       toast.error("Vui lòng nhập địa chỉ chi tiết");
       return;
     }
+    if (!addressData.provinceId) {
+      toast.error("Vui lòng chọn tỉnh/thành hợp lệ");
+      return;
+    }
+    if (!addressData.districtId) {
+      toast.error("Vui lòng chọn quận/huyện hợp lệ");
+      return;
+    }
+    if (!addressData.wardCode.trim()) {
+      toast.error("Vui lòng chọn phường/xã hợp lệ");
+      return;
+    }
 
-    // Use existing wardCode and districtId if available, otherwise use defaults
-    // Note: In production, these should be fetched from an API based on selected district/ward
-    const finalWardCode = addressData.wardCode.trim() || "WARD001";
-    const finalDistrictId = addressData.districtId || 1;
+    const finalWardCode = addressData.wardCode.trim();
+    const finalDistrictId = addressData.districtId;
 
     if (addressData.id) {
       // Update existing address
@@ -786,13 +1016,30 @@ const AdminCustomerDetail = () => {
                 <label className="font-medium text-[#272424] text-[14px]">
                   Tỉnh/Thành phố <span className="text-[#e04d30]">*</span>
                 </label>
-                <CityDropdown
-                  value={addressData.province}
-                  onValueChange={(value) =>
-                    setAddressData({ ...addressData, province: value })
-                  }
-                  placeholder="Chọn tỉnh/thành phố"
-                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className={`bg-white border ${isProvinceError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                        } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] cursor-pointer`}
+                    >
+                      <span
+                        className={`text-[14px] ${
+                          addressData.province ? "text-[#272424]" : "text-[#888888]"
+                        }`}
+                      >
+                        {provinceLabel}
+                      </span>
+                      <CaretDown className="w-4 h-4 text-[#1a1a1a]" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-[240px] overflow-auto min-w-[280px]">
+                    {isLoadingProvinces ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">Đang tải...</div>
+                    ) : (
+                      renderMenuContent(provinces, handleProvinceSelect, "provinceName")
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* District */}
@@ -800,19 +1047,39 @@ const AdminCustomerDetail = () => {
                 <label className="font-medium text-[#272424] text-[14px]">
                   Quận/Huyện <span className="text-[#e04d30]">*</span>
                 </label>
-                <DistrictDropdown
-                  value={addressData.district}
-                  onValueChange={(value) => {
-                    setAddressData({ 
-                      ...addressData, 
-                      district: value,
-                      // Note: districtId will need to be set manually or via API
-                      // For now, we'll use a placeholder value
-                      districtId: addressData.districtId || 1
-                    });
-                  }}
-                  placeholder="Chọn quận/huyện"
-                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className={`bg-white border ${
+                        isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                      } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${
+                        !addressData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                      }`}
+                    >
+                      <span
+                        className={`text-[14px] ${
+                          addressData.district ? "text-[#272424]" : "text-[#888888]"
+                        }`}
+                      >
+                        {districtLabel}
+                      </span>
+                      <CaretDown className="w-4 h-4 text-[#1a1a1a]" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-[240px] overflow-auto min-w-[280px]">
+                    {!addressData.provinceId ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">
+                        Vui lòng chọn tỉnh/thành trước
+                      </div>
+                    ) : isLoadingDistricts ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">
+                        Đang tải...
+                      </div>
+                    ) : (
+                      renderMenuContent(districts, handleDistrictSelect, "districtName")
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Ward */}
@@ -820,19 +1087,39 @@ const AdminCustomerDetail = () => {
                 <label className="font-medium text-[#272424] text-[14px]">
                   Phường/Xã <span className="text-[#e04d30]">*</span>
                 </label>
-                <WardDropdown
-                  value={addressData.ward}
-                  onValueChange={(value) => {
-                    setAddressData({ 
-                      ...addressData, 
-                      ward: value,
-                      // Note: wardCode will need to be set manually or via API
-                      // For now, we'll use a placeholder value
-                      wardCode: addressData.wardCode || "WARD001"
-                    });
-                  }}
-                  placeholder="Chọn phường/xã"
-                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className={`bg-white border ${
+                        isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                      } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${
+                        !addressData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                      }`}
+                    >
+                      <span
+                        className={`text-[14px] ${
+                          addressData.ward ? "text-[#272424]" : "text-[#888888]"
+                        }`}
+                      >
+                        {wardLabel}
+                      </span>
+                      <CaretDown className="w-4 h-4 text-[#1a1a1a]" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-[240px] overflow-auto min-w-[280px]">
+                    {!addressData.districtId ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">
+                        Vui lòng chọn quận/huyện trước
+                      </div>
+                    ) : isLoadingWards ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">
+                        Đang tải...
+                      </div>
+                    ) : (
+                      renderMenuContent(wards, handleWardSelect, "wardName")
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {/* Detail Address */}
