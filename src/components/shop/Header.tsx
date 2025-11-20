@@ -1,9 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShoppingBag, Menu } from "lucide-react";
 import { Input } from "antd";
 import CategoryDropdown from "./CategoryDropdown";
 import shopLogo from "../../assets/icons/ShopLogo.png";
+import {
+  getPublicCategoryParents,
+  getPublicCategoryChildren,
+} from "../../api/endpoints/attributeApi";
 
 const { Search: SearchInput } = Input;
 
@@ -50,49 +54,14 @@ const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const categoryButtonRef = useRef<HTMLDivElement>(null);
-
-  // Category data - matching the image description
-  const mainCategories = [
-    {
-      id: "camping",
-      label: "Cắm trại",
-      subcategories: [
-        { id: "backpack", label: "Balo & Túi" },
-        { id: "mountain-clothing", label: "Trang phục đi núi" },
-        { id: "shoes-sticks", label: "Giày & Gậy hỗ trợ" },
-        { id: "eating-utensils", label: "Dụng cụ ăn uống" },
-        { id: "lights", label: "Đèn" },
-        { id: "survival-accessories", label: "Phụ kiện sinh tồn" },
-        { id: "flashlights", label: "Đèn pin" },
-        { id: "hats", label: "Mũ" },
-        { id: "tents", label: "Lều" },
-        { id: "sleeping-bags", label: "Túi ngủ" },
-        { id: "air-mattresses", label: "Đệm hơi" },
-        { id: "camping-tables", label: "Bàn cắm trại" },
-        { id: "cooking-utensils", label: "Dụng cụ nấu ăn" },
-      ],
-    },
-    {
-      id: "outdoor-sports",
-      label: "Thể thao ngoài trời",
-      subcategories: [
-        { id: "hiking-gear", label: "Đồ leo núi" },
-        { id: "water-sports", label: "Đồ dùng dưới nước" },
-        { id: "cycling", label: "Xe đạp" },
-        { id: "running", label: "Chạy bộ" },
-      ],
-    },
-    {
-      id: "accessories",
-      label: "Phụ kiện",
-      subcategories: [
-        { id: "backpacks", label: "Ba lô" },
-        { id: "tools", label: "Dụng cụ" },
-        { id: "electronics", label: "Thiết bị điện tử" },
-        { id: "clothing", label: "Quần áo" },
-      ],
-    },
-  ];
+  type DropdownCategory = {
+    id: string;
+    label: string;
+    subcategories: { id: string; label: string }[];
+    rawId: number;
+  };
+  const [mainCategories, setMainCategories] = useState<DropdownCategory[]>([]);
+  const [childLoadingState, setChildLoadingState] = useState<Record<string, boolean>>({});
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -112,6 +81,70 @@ const Header: React.FC<HeaderProps> = ({
       };
     }
   }, [isCategoryDropdownOpen]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCategories = async () => {
+      try {
+        const parents = await getPublicCategoryParents();
+        if (!isMounted) return;
+        setMainCategories(
+          parents.map((parent) => ({
+            id: parent.id.toString(),
+            rawId: parent.id,
+            label: parent.name,
+            subcategories: [],
+          }))
+        );
+      } catch (error) {
+        if (isMounted) {
+          console.error("Không thể tải danh mục", error);
+        }
+      } finally {
+        // No-op
+      }
+    };
+    fetchCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleCategoryHover = useCallback(
+    async (categoryId: string) => {
+      const currentCategory = mainCategories.find((cat) => cat.id === categoryId);
+      if (
+        !currentCategory ||
+        currentCategory.subcategories.length > 0 ||
+        childLoadingState[categoryId]
+      ) {
+        return;
+      }
+
+      setChildLoadingState((prev) => ({ ...prev, [categoryId]: true }));
+      try {
+        const children = await getPublicCategoryChildren(currentCategory.rawId);
+        setMainCategories((prev) =>
+            prev.map((cat) =>
+              cat.id === categoryId
+                ? {
+                    ...cat,
+                    subcategories: children.map((child) => ({
+                      id: child.id.toString(),
+                      label: child.name,
+                    })),
+                  }
+                : cat
+            )
+          );
+      } catch (error) {
+        console.error("Không thể tải danh mục con", error);
+      } finally {
+        setChildLoadingState((prev) => ({ ...prev, [categoryId]: false }));
+      }
+    },
+    [mainCategories, childLoadingState]
+  );
 
   const handleCategoryClick = (categoryId: string) => {
     console.log("Category clicked:", categoryId);
@@ -142,6 +175,7 @@ const Header: React.FC<HeaderProps> = ({
           onClose={() => setIsCategoryDropdownOpen(false)}
           mainCategories={mainCategories}
           onCategoryClick={handleCategoryClick}
+          onCategoryHover={handleCategoryHover}
         />
       </div>
       <div className="flex-1 max-w-[800px]">

@@ -62,6 +62,15 @@ export interface CategoryChildPageResponse {
   categoryChildResponseList: CategoryChildResponse[];
 }
 
+export interface SimpleCategoryResponse {
+  id: number;
+  name: string;
+}
+
+export interface CategoryPublicResponse {
+  categories: SimpleCategoryResponse[];
+}
+
 // Request types
 export interface ProductCreateRequest {
   name: string;
