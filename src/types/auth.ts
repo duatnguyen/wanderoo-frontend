@@ -80,9 +80,13 @@ export interface RefreshTokenRequest {
 }
 
 export interface UserUpdateRequest {
-  name?: string;
-  phone?: string;
+  id: number;
+  name: string;
+  phone: string;
   email?: string;
+  birthday?: string | null;
+  gender?: "MALE" | "FEMALE";
+  image_url?: string | null;
 }
 
 // Admin profile update request (matches backend UserUpdateRequest)
@@ -164,6 +168,9 @@ export interface User {
   phone: string;
   role: string;
   status: string;
+  avatar?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
 }
 
 export interface LoginCredentials {
@@ -194,4 +201,5 @@ export interface AuthContextType extends AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   refreshAuth: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
