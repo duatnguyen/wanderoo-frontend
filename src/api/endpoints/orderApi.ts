@@ -37,6 +37,8 @@ import type {
   OrderDetailCreateRequest,
   OrderDetailUpdateRequest,
   AdminOrdersApiResponse,
+  AdminOrderResponse,
+  OrderCountResponse,
 } from "../../types";
 
 // Public Order APIs
@@ -138,11 +140,50 @@ export const getAdminCustomerOrders = async (params?: {
   page?: number;
   size?: number;
 }): Promise<AdminOrdersApiResponse> => {
-  const response = await api.get<AdminOrdersApiResponse>(
+  const response = await api.get<ApiResponse<CustomerOrderPageResponse>>(
     "/auth/v1/private/orders",
     { params }
   );
-  return response.data;
+  // Transform CustomerOrderPageResponse to AdminOrdersApiResponse format
+  // Map orders to ensure all required fields are present (not undefined)
+  const orders = (response.data.data.orders || []).map((order) => {
+    const { items, ...restOrder } = order;
+    return {
+      ...restOrder,
+      picId: order.picId ?? null,
+      discountId: order.discountId ?? null,
+      method: order.method ?? "",
+      source: order.source ?? "",
+      paymentStatus: order.paymentStatus ?? "",
+      status: order.status ?? "",
+      shippingFee: order.shippingFee ?? 0,
+      totalProductPrice: order.totalProductPrice ?? 0,
+      totalOrderPrice: order.totalOrderPrice ?? 0,
+      notes: order.notes ?? "",
+      discountOrderId: order.discountOrderId ?? null,
+      discountShipId: order.discountShipId ?? null,
+      cashReceived: order.cashReceived ?? null,
+      changeAmount: order.changeAmount ?? null,
+      shippingOrderCode: order.shippingOrderCode ?? null,
+      shippingStatus: order.shippingStatus ?? null,
+      shippingProvider: order.shippingProvider ?? null,
+      trackingNumber: order.trackingNumber ?? null,
+      expectedDeliveryDate: order.expectedDeliveryDate ?? null,
+      // Only include items if it's the correct type, otherwise rely on orderDetails
+      items: undefined, // Remove items field as it's incompatible type
+    } as AdminOrderResponse;
+  });
+  return {
+    status: response.data.status,
+    message: response.data.message,
+    data: {
+      pageNumber: response.data.data.pageNumber,
+      pageSize: response.data.data.pageSize,
+      totalElements: response.data.data.totalElements,
+      totalPages: response.data.data.totalPages,
+      orders,
+    },
+  };
 };
 
 export const getAdminCustomerOrdersByStatus = async (
@@ -152,11 +193,104 @@ export const getAdminCustomerOrdersByStatus = async (
     size?: number;
   }
 ): Promise<AdminOrdersApiResponse> => {
-  const response = await api.get<AdminOrdersApiResponse>(
+  const response = await api.get<ApiResponse<CustomerOrderPageResponse>>(
     `/auth/v1/private/orders/status/${status}`,
     { params }
   );
-  return response.data;
+  // Transform CustomerOrderPageResponse to AdminOrdersApiResponse format
+  // Map orders to ensure all required fields are present (not undefined)
+  const orders = (response.data.data.orders || []).map((order) => {
+    const { items, ...restOrder } = order;
+    return {
+      ...restOrder,
+      picId: order.picId ?? null,
+      discountId: order.discountId ?? null,
+      method: order.method ?? "",
+      source: order.source ?? "",
+      paymentStatus: order.paymentStatus ?? "",
+      status: order.status ?? "",
+      shippingFee: order.shippingFee ?? 0,
+      totalProductPrice: order.totalProductPrice ?? 0,
+      totalOrderPrice: order.totalOrderPrice ?? 0,
+      notes: order.notes ?? "",
+      discountOrderId: order.discountOrderId ?? null,
+      discountShipId: order.discountShipId ?? null,
+      cashReceived: order.cashReceived ?? null,
+      changeAmount: order.changeAmount ?? null,
+      shippingOrderCode: order.shippingOrderCode ?? null,
+      shippingStatus: order.shippingStatus ?? null,
+      shippingProvider: order.shippingProvider ?? null,
+      trackingNumber: order.trackingNumber ?? null,
+      expectedDeliveryDate: order.expectedDeliveryDate ?? null,
+      // Only include items if it's the correct type, otherwise rely on orderDetails
+      items: undefined, // Remove items field as it's incompatible type
+    } as AdminOrderResponse;
+  });
+  return {
+    status: response.data.status,
+    message: response.data.message,
+    data: {
+      pageNumber: response.data.data.pageNumber,
+      pageSize: response.data.data.pageSize,
+      totalElements: response.data.data.totalElements,
+      totalPages: response.data.data.totalPages,
+      orders,
+    },
+  };
+};
+
+export const getAdminCustomerOrdersWithFilters = async (params?: {
+  page?: number;
+  size?: number;
+  status?: string;
+  paymentStatus?: string;
+  method?: string;
+  source?: string;
+}): Promise<AdminOrdersApiResponse> => {
+  const response = await api.get<ApiResponse<CustomerOrderPageResponse>>(
+    "/auth/v1/private/orders/filter",
+    { params }
+  );
+  // Transform CustomerOrderPageResponse to AdminOrdersApiResponse format
+  // Map orders to ensure all required fields are present (not undefined)
+  const orders = (response.data.data.orders || []).map((order) => {
+    const { items, ...restOrder } = order;
+    return {
+      ...restOrder,
+      picId: order.picId ?? null,
+      discountId: order.discountId ?? null,
+      method: order.method ?? "",
+      source: order.source ?? "",
+      paymentStatus: order.paymentStatus ?? "",
+      status: order.status ?? "",
+      shippingFee: order.shippingFee ?? 0,
+      totalProductPrice: order.totalProductPrice ?? 0,
+      totalOrderPrice: order.totalOrderPrice ?? 0,
+      notes: order.notes ?? "",
+      discountOrderId: order.discountOrderId ?? null,
+      discountShipId: order.discountShipId ?? null,
+      cashReceived: order.cashReceived ?? null,
+      changeAmount: order.changeAmount ?? null,
+      shippingOrderCode: order.shippingOrderCode ?? null,
+      shippingStatus: order.shippingStatus ?? null,
+      shippingProvider: order.shippingProvider ?? null,
+      trackingNumber: order.trackingNumber ?? null,
+      expectedDeliveryDate: order.expectedDeliveryDate ?? null,
+      // Only include items if it's the correct type, otherwise rely on orderDetails
+      items: undefined, // Remove items field as it's incompatible type
+    } as AdminOrderResponse;
+  });
+  return {
+    status: response.data.status,
+    message: response.data.message,
+    data: {
+      pageNumber: response.data.data.pageNumber,
+      pageSize: response.data.data.pageSize,
+      totalElements: response.data.data.totalElements,
+      totalPages: response.data.data.totalPages,
+      orders,
+    },
+  };
 };
 
 export const getAdminCustomerOrderDetail = async (
@@ -191,11 +325,23 @@ export const updateAdminCustomerOrder = async (
 
 export const confirmOrderAndCreateShipping = async (
   id: number,
-  data: { pickShift: number[]; requiredNote: string }
+  data: {
+    pickShift: number[];
+    requiredNote: string;
+    paymentTypeId: number;
+    serviceTypeId: number;
+  }
 ): Promise<OrderConfirmResponse> => {
+  // Transform camelCase to snake_case for backend
+  const requestData = {
+    pick_shift: data.pickShift,
+    required_note: data.requiredNote,
+    payment_type_id: data.paymentTypeId,
+    service_type_id: data.serviceTypeId,
+  };
   const response = await api.post<ApiResponse<OrderConfirmResponse>>(
     `/auth/v1/private/orders/${id}/confirm`,
-    data
+    requestData
   );
   return response.data.data;
 };
@@ -205,6 +351,13 @@ export const cancelAdminOrder = async (
 ): Promise<OrderCancelResponse> => {
   const response = await api.post<ApiResponse<OrderCancelResponse>>(
     `/auth/v1/private/orders/${id}/cancel`
+  );
+  return response.data.data;
+};
+
+export const getOrderCounts = async (): Promise<OrderCountResponse> => {
+  const response = await api.get<ApiResponse<OrderCountResponse>>(
+    "/auth/v1/private/orders/counts"
   );
   return response.data.data;
 };

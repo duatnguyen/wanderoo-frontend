@@ -81,7 +81,6 @@ const AdminOrderDetailWebsite: React.FC = () => {
   };
 
 
-
   const handleConfirmOrder = () => {
     // Mở popup xác nhận giao hàng
     setShowDeliveryPopup(true);
@@ -99,10 +98,15 @@ const AdminOrderDetailWebsite: React.FC = () => {
       await confirmOrderAndCreateShipping(parseInt(orderId), data);
       // Reload order data after confirmation
       await loadOrderDetail();
-      alert(`Đơn hàng đã được xác nhận thành công!`);
-    } catch (error) {
+      // Toast success is already shown in DeliveryConfirmationPopupWebsite
+    } catch (error: any) {
       console.error("Error confirming order:", error);
-      alert("Có lỗi xảy ra khi xác nhận đơn hàng!");
+      // Extract error message from response
+      const errorMessage = error?.response?.data?.message 
+        || error?.message 
+        || "Có lỗi xảy ra khi xác nhận đơn hàng";
+      // Re-throw to let DeliveryConfirmationPopupWebsite handle the toast
+      throw new Error(errorMessage);
     }
   };
 
@@ -124,10 +128,6 @@ const AdminOrderDetailWebsite: React.FC = () => {
       alert("Có lỗi xảy ra khi hủy đơn hàng!");
     }
   };
-
-
-
-
 
   // Get status card styling based on order status
   const getStatusCardStyle = () => {

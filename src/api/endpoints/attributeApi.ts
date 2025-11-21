@@ -9,7 +9,6 @@ import type {
   CategoryParentUpdateRequest,
   CategoryChildUpdateRequest,
   SelectAllRequest,
-  CategoryStatus,
   CategoryPublicResponse,
   SimpleCategoryResponse,
 } from '../../types';
@@ -122,4 +121,19 @@ export const getBrandList = async (params?: {
     { params }
   );
   return response.data.data;
+};
+
+// Public Category APIs
+export const getPublicCategoryParents = async (): Promise<SimpleCategoryResponse[]> => {
+  const response = await api.get<ApiResponse<CategoryPublicResponse>>('/auth/v1/public/attribute/category-parent');
+  return response.data.data.categories ?? [];
+};
+
+export const getPublicCategoryChildren = async (
+  parentId: number
+): Promise<SimpleCategoryResponse[]> => {
+  const response = await api.get<ApiResponse<CategoryPublicResponse>>(
+    `/auth/v1/public/attribute/category-child/${parentId}`
+  );
+  return response.data.data.categories ?? [];
 };

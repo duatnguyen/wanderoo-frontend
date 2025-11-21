@@ -16,8 +16,10 @@ import type {
   GHNTrackingResponse,
   GeneratePrintTokenResponse,
   SwitchStatusResponse,
+  AvailableServiceResponse,
   CalculateShippingFeeRequest,
   GetStationsRequest,
+  AvailableServicesRequest,
   CreateGHNOrderRequest,
   UpdateGHNOrderRequest,
   GetOrderDetailRequest,
@@ -108,6 +110,16 @@ export const getStationsByPath = async (
 export const getPickShifts = async (): Promise<PickShiftResponse> => {
   const response = await api.get<ApiResponse<PickShiftResponse>>(
     "/api/shipping/pick-shifts"
+  );
+  return response.data.data;
+};
+
+export const getAvailableServices = async (
+  request: AvailableServicesRequest
+): Promise<AvailableServiceResponse[]> => {
+  const response = await api.post<ApiResponse<AvailableServiceResponse[]>>(
+    "/api/shipping/available-services",
+    request
   );
   return response.data.data;
 };

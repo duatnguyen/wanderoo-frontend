@@ -476,7 +476,13 @@ export interface CustomerOrderResponse extends OrderResponse {
   shopWardName?: string | null;
 }
 
-export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> {}
+export interface CustomerOrderPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  orders: CustomerOrderResponse[];
+}
 
 export interface CustomerOrderCancelResponse {
   orderId: number;
@@ -528,35 +534,67 @@ export interface ShippingItem {
 }
 
 export interface GetStationsRequest {
-  districtId: number;
-  wardCode: string;
+  district_id: string;
+  ward_code: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface StationData {
+  address: string;
+  locationName: string;
+  region?: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  email?: string;
+  latitude?: number;
+  longitude?: number;
+  wardName?: string;
+  districtName?: string;
+  provinceName?: string;
+  iframeMap?: string;
 }
 
 export interface StationResponse {
+  id?: number;
+  name?: string;
+  address?: string;
+  districtId?: number;
+  wardCode?: string;
+}
+
+export interface StationsResponse {
+  code: number;
+  message: string;
+  data: StationData[];
+}
+
+export interface PickShiftData {
   id: number;
-  name: string;
-  address: string;
-  districtId: number;
-  wardCode: string;
+  title: string;
+  from_time: number;
+  to_time: number;
 }
 
 export interface PickShiftResponse {
-  id: number;
-  time: string;
-  available: boolean;
+  code: number;
+  message: string;
+  data: PickShiftData[];
 }
 
 export interface AvailableServiceResponse {
-  serviceId: number;
-  serviceTypeId: number;
-  shortName: string;
-  serviceName?: string | null;
-  expectedDeliveryTime?: string | null;
+  service_id: number;
+  service_type_id: number;
+  short_name: string;
+  service_name?: string | null;
+  description?: string | null;
+  expected_delivery_time?: string | null;
 }
 
 export interface AvailableServicesRequest {
-  fromDistrict: number;
-  toDistrict: number;
+  from_district: number;
+  to_district: number;
 }
 
 export interface CreateGHNOrderRequest {
@@ -600,17 +638,108 @@ export interface ShippingOrderDetailResponse {
   // Other details
 }
 
+export interface ShippingFeeResponse {
+  total?: number;
+  service_type_id?: number;
+  service_fee?: number;
+  insurance_fee?: number;
+  coupon_value?: number;
+  r2s_fee?: number;
+  return_again?: number;
+  document_return?: number;
+  double_check?: number;
+  cod_fee?: number;
+  pick_station_fee?: number;
+  deliver_station_fee?: number;
+  thirteen_hour_fee?: number;
+  next_day_fee?: number;
+}
+
 export interface GetOrderDetailRequest {
   orderCode: string;
 }
 
+export interface PreviewItemRequest {
+  name: string;
+  code?: string;
+  quantity: number;
+  price: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  category?: {
+    level1: string;
+  };
+}
+
 export interface PreviewOrderRequest {
-  // Define based on API
+  payment_type_id?: number;
+  note?: string;
+  required_note?: string;
+  return_phone?: string;
+  return_address?: string;
+  return_district_id?: number;
+  return_ward_code?: string;
+  client_order_code?: string;
+  to_name: string;
+  to_phone: string;
+  to_address: string;
+  to_ward_code: string;
+  to_district_id: number;
+  cod_amount?: number;
+  insurance_value?: number;
+  content?: string;
+  weight: number;
+  length: number;
+  width: number;
+  height: number;
+  pick_station_id?: number;
+  service_id?: number;
+  service_type_id: number;
+  coupon?: string;
+  pick_shift?: number[];
+  items: PreviewItemRequest[];
+}
+
+export interface PreviewOrderFee {
+  main_service?: number;
+  insurance?: number;
+  cod_fee?: number;
+  station_do?: number;
+  station_pu?: number;
+  return?: number;
+  r2s?: number;
+  return_again?: number;
+  coupon?: number;
+  document_return?: number;
+  double_check?: number;
+  cod_failed_fee?: number;
+  pick_remote_areas_fee?: number;
+  deliver_remote_areas_fee?: number;
+  pick_remote_areas_fee_return?: number;
+  deliver_remote_areas_fee_return?: number;
+}
+
+export interface PreviewOrderData {
+  order_code?: string;
+  sort_code?: string;
+  trans_type?: string;
+  ward_encode?: string;
+  district_encode?: string;
+  fee?: PreviewOrderFee;
+  total_fee?: number;
+  expected_delivery_time?: string;
+  operation_partner?: string;
+  promo_discount?: number;
+  insurance_fee?: number;
+  pick_station_fee?: number;
+  coupon_value?: number;
 }
 
 export interface PreviewOrderResponse {
-  fee: number;
-  expectedDeliveryTime: string;
+  code: number;
+  message: string;
+  data: PreviewOrderData;
 }
 
 export interface TrackingResponse {
@@ -631,7 +760,7 @@ export interface OrderStatusResponse {
 }
 
 export interface CancelGHNOrderRequest {
-  orderCode: string;
+  order_codes: string[];
 }
 
 export interface CancelOrderResponse {
@@ -640,12 +769,9 @@ export interface CancelOrderResponse {
 }
 
 export interface SwitchStatusRequest {
-  orderCode: string;
+  order_codes: string[];
 }
 
-export interface StationsResponse {
-  stations: StationResponse[];
-}
 
 export interface GHNOrderDetailResponse {
   orderCode: string;
@@ -692,7 +818,7 @@ export interface UserOrderResponse {
 }
 
 export interface PrintOrderRequest {
-  orderCode: string;
+  order_codes: string[];
 }
 
 export interface PrintTokenResponse {
@@ -935,12 +1061,14 @@ export interface EmployeeUpdateRequest extends EmployeeCreationRequest {
 }
 
 export interface CustomerCreationRequest {
-  username: string;
-  email: string;
-  password: string;
+  username?: string;
+  email?: string;
+  password?: string;
   name: string;
   phone: string;
-  address: string;
+  address?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string;
 }
 
 export interface CustomerUpdateRequest extends CustomerCreationRequest {
@@ -1026,4 +1154,14 @@ export interface OrderDetailUpdateRequest {
   snapshotProductName: string;
   snapshotProductSku: string;
   snapshotProductPrice: number;
+}
+
+// Attribute Types
+export interface SimpleCategoryResponse {
+  id: number;
+  name: string;
+}
+
+export interface CategoryPublicResponse {
+  categories: SimpleCategoryResponse[];
 }

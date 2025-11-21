@@ -29,7 +29,15 @@ export type AllowedRole =
 // Private User Management APIs
 export const getUserProfile = async (): Promise<UserResponse> => {
   const response = await api.get<ApiResponse<UserResponse>>(
-    "/auth/v1/private/users/profile"
+    "/auth/v1/private/users/info"
+  );
+  return response.data.data;
+};
+
+// Private User Management APIs
+export const getUserInfo = async (): Promise<UserResponse> => {
+  const response = await api.get<ApiResponse<UserResponse>>(
+    "/auth/v1/private/users/info"
   );
   return response.data.data;
 };
@@ -38,7 +46,7 @@ export const updateUserProfile = async (
   userData: UserUpdateRequest
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/users/profile",
+    "/auth/v1/private/users",
     userData
   );
   return response.data;

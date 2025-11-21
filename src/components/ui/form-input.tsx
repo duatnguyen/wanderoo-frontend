@@ -7,37 +7,36 @@ export type FormInputProps = React.ComponentProps<"input"> & {
   label?: string;
 };
 
-export function FormInput({
-  className,
-  containerClassName,
-  right,
-  label,
-  ...props
-}: FormInputProps) {
-  return (
-    <div className="w-full">
-      {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {label}
-        </label>
-      )}
-      <div
-        className={cn(
-          "bg-white border-2 border-[#e04d30] flex items-center h-[40px] px-[16px] rounded-[12px] w-full",
-          containerClassName
+export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
+  ({ className, containerClassName, right, label, ...props }, ref) => {
+    return (
+      <div className="w-full">
+        {label && (
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {label}
+          </label>
         )}
-      >
-        <input
-          {...props}
+        <div
           className={cn(
-            "border-0 outline-none bg-transparent text-[14px] font-semibold placeholder:text-[#888888] text-black flex-1 text-left",
-            className
+            "bg-white border-2 border-[#e04d30] flex items-center h-[40px] px-[16px] rounded-[12px] w-full",
+            containerClassName
           )}
-        />
-        {right ? <div className="ml-2 flex items-center">{right}</div> : null}
+        >
+          <input
+            ref={ref}
+            {...props}
+            className={cn(
+              "border-0 outline-none bg-transparent text-[14px] font-semibold placeholder:text-[#888888] text-black flex-1 text-left",
+              className
+            )}
+          />
+          {right ? <div className="ml-2 flex items-center">{right}</div> : null}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+);
+
+FormInput.displayName = "FormInput";
 
 export default FormInput;

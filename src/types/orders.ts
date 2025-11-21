@@ -88,8 +88,13 @@ export interface CustomerOrderResponse extends OrderResponse {
   shopWardName?: string | null;
 }
 
-export interface CustomerOrderPageResponse
-  extends PageResponse<CustomerOrderResponse> {}
+export interface CustomerOrderPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  orders: CustomerOrderResponse[];
+}
 
 export interface CartResponse {
   id: number;
@@ -283,4 +288,15 @@ export interface AdminOrdersApiResponse {
     totalPages: number;
     orders: AdminOrderResponse[];
   };
+}
+
+export interface OrderCountResponse {
+  all: number;
+  pending: number;
+  confirmed: number;
+  shipping: number;
+  complete: number;
+  canceled: number;
+  refund: number;
+  shippingFailed: number;
 }

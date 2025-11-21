@@ -87,10 +87,15 @@ const AdminAddCustomer = () => {
   const districts = useMemo(() => {
     if (!districtsData) return [];
     return districtsData
-      .filter((district) => !shouldHideLocationName(district.districtName))
-      .sort((a, b) =>
-        a.districtName.localeCompare(b.districtName, "vi", { sensitivity: "base" })
-      );
+      .filter((district) => {
+        const districtName = (district as any).districtName || (district as any).name;
+        return !shouldHideLocationName(districtName);
+      })
+      .sort((a, b) => {
+        const nameA = (a as any).districtName || (a as any).name;
+        const nameB = (b as any).districtName || (b as any).name;
+        return nameA.localeCompare(nameB, "vi", { sensitivity: "base" });
+      });
   }, [districtsData]);
 
   const {
@@ -109,10 +114,15 @@ const AdminAddCustomer = () => {
   const wards = useMemo(() => {
     if (!wardsData) return [];
     return wardsData
-      .filter((ward) => !shouldHideLocationName(ward.wardName))
-      .sort((a, b) =>
-        a.wardName.localeCompare(b.wardName, "vi", { sensitivity: "base" })
-      );
+      .filter((ward) => {
+        const wardName = (ward as any).wardName || (ward as any).name;
+        return !shouldHideLocationName(wardName);
+      })
+      .sort((a, b) => {
+        const nameA = (a as any).wardName || (a as any).name;
+        const nameB = (b as any).wardName || (b as any).name;
+        return nameA.localeCompare(nameB, "vi", { sensitivity: "base" });
+      });
   }, [wardsData]);
 
   const handleProvinceSelect = (province: ProvinceResponse) => {
@@ -128,20 +138,62 @@ const AdminAddCustomer = () => {
   };
 
   const handleDistrictSelect = (district: DistrictResponse) => {
+    // Support both API response formats: {districtId, districtName} or {id, name}
+    const districtId = (district as any).districtId ?? (district as any).id;
+    const districtName = (district as any).districtName ?? (district as any).name;
+    
+    console.log("Selected district:", district);
+    console.log("Extracted districtId:", districtId, "type:", typeof districtId, "districtName:", districtName);
+    
+    if (districtId === null || districtId === undefined) {
+      console.error("District missing districtId:", district);
+      toast.error("Không thể lấy mã quận/huyện. Vui lòng thử lại.");
+      return;
+    }
+    
+    // Ensure districtId is a number
+    const numericDistrictId = typeof districtId === 'number' ? districtId : Number(districtId);
+    if (isNaN(numericDistrictId)) {
+      console.error("Invalid districtId format:", districtId);
+      toast.error("Mã quận/huyện không hợp lệ. Vui lòng thử lại.");
+      return;
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      district: district.districtName,
-      districtId: district.districtId,
+      district: districtName || "",
+      districtId: numericDistrictId,
       ward: "",
       wardCode: "",
     }));
   };
 
   const handleWardSelect = (ward: WardResponse) => {
+    // Support both API response formats: {wardCode, wardName} or {code, name}
+    const wardCode = (ward as any).wardCode ?? (ward as any).code;
+    const wardName = (ward as any).wardName ?? (ward as any).name;
+    
+    console.log("Selected ward:", ward);
+    console.log("Extracted wardCode:", wardCode, "type:", typeof wardCode, "wardName:", wardName);
+    
+    if (!wardCode || wardCode === null || wardCode === undefined) {
+      console.error("Ward missing wardCode:", ward);
+      toast.error("Không thể lấy mã phường/xã. Vui lòng thử lại.");
+      return;
+    }
+    
+    // Ensure wardCode is a string
+    const stringWardCode = String(wardCode).trim();
+    if (!stringWardCode) {
+      console.error("Invalid wardCode format:", wardCode);
+      toast.error("Mã phường/xã không hợp lệ. Vui lòng thử lại.");
+      return;
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      ward: ward.wardName,
-      wardCode: ward.wardCode,
+      ward: wardName || "",
+      wardCode: stringWardCode,
     }));
   };
 
@@ -170,10 +222,22 @@ const AdminAddCustomer = () => {
     return formData.ward || "Chọn phường/xã";
   }, [formData.ward, formData.districtId, isLoadingWards, isWardError]);
 
+  const getProvinceLabel = (province: any): string => {
+    return province.provinceName || province.name || "";
+  };
+
+  const getDistrictLabel = (district: any): string => {
+    return district.districtName || district.name || "";
+  };
+
+  const getWardLabel = (ward: any): string => {
+    return ward.wardName || ward.name || "";
+  };
+
   const renderMenuContent = <T extends { [key: string]: any }>(
     list: T[] | null | undefined,
     onSelect: (item: T) => void,
-    labelKey: keyof T
+    getLabel: (item: T) => string
   ) => {
     if (!list || !Array.isArray(list) || list.length === 0) {
       return (
@@ -183,13 +247,13 @@ const AdminAddCustomer = () => {
       );
     }
 
-    return list.map((item) => (
+    return list.map((item, index) => (
       <DropdownMenuItem
-        key={String(item[labelKey])}
+        key={index}
         onClick={() => onSelect(item)}
         className="text-[14px]"
       >
-        {item[labelKey]}
+        {getLabel(item)}
       </DropdownMenuItem>
     ));
   };
@@ -199,7 +263,7 @@ const AdminAddCustomer = () => {
     onSuccess: async (response) => {
       const customerId = response.data;
       console.log("Customer created with ID:", customerId);
-      
+
       // Create address if provided
       if (
         formData.province &&
@@ -207,20 +271,34 @@ const AdminAddCustomer = () => {
         formData.ward &&
         formData.location
       ) {
-        if (!formData.provinceId || !formData.districtId || !formData.wardCode.trim()) {
+        console.log("Creating address with formData:", {
+          provinceId: formData.provinceId,
+          districtId: formData.districtId,
+          wardCode: formData.wardCode,
+          district: formData.district,
+          ward: formData.ward,
+        });
+        
+        if (!formData.provinceId || !formData.districtId || !formData.wardCode || !formData.wardCode.trim()) {
+          console.error("Missing address data:", {
+            provinceId: formData.provinceId,
+            districtId: formData.districtId,
+            wardCode: formData.wardCode,
+          });
           toast.warning("Không thể tạo địa chỉ vì thiếu thông tin tỉnh/thành hợp lệ");
         } else {
           try {
             const addressData: AddressCreationRequest = {
               name: formData.addressName.trim() || formData.name.trim(),
               phone: formData.addressPhone.trim() || formData.phone.trim(),
-              province: formData.province.trim(),
-              district: formData.district.trim(),
-              ward: formData.ward.trim(),
-              location: formData.location.trim(),
+              street: formData.location.trim(),
               wardCode: formData.wardCode.trim(),
+              wardName: formData.ward.trim(),
               districtId: formData.districtId,
+              districtName: formData.district.trim(),
+              provinceName: formData.province.trim(),
             };
+            console.log("Address data to send:", addressData);
             await createCustomerAddress(customerId, addressData);
             console.log("Address created for customer:", customerId);
           } catch (error) {
@@ -230,7 +308,7 @@ const AdminAddCustomer = () => {
           }
         }
       }
-      
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["admin-customers"] }),
         queryClient.invalidateQueries({ queryKey: ["admin-customers-all"] }),
@@ -270,11 +348,11 @@ const AdminAddCustomer = () => {
     const customerData: CustomerCreationRequest = {
       name: formData.name.trim(),
       phone: formData.phone.trim(),
-      email: formData.email.trim() || undefined,
-      username: formData.username.trim() || undefined, // Optional - backend will auto-generate
-      password: formData.password.trim() || undefined, // Optional - backend will auto-generate
-      gender: gender as any,
-      birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : undefined,
+      ...(formData.email.trim() && { email: formData.email.trim() }),
+      ...(formData.username.trim() && { username: formData.username.trim() }),
+      ...(formData.password.trim() && { password: formData.password.trim() }),
+      ...(gender && { gender }),
+      ...(formData.birthdate && { birthday: new Date(formData.birthdate).toISOString() }),
       // Note: Address is managed separately via Address entity, not in customer creation
     };
 
@@ -483,9 +561,8 @@ const AdminAddCustomer = () => {
                     className={`bg-white border ${isProvinceError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] cursor-pointer`}
                   >
                     <span
-                      className={`text-[14px] font-semibold ${
-                        formData.province ? "text-[#272424]" : "text-[#888888]"
-                      }`}
+                      className={`text-[14px] font-semibold ${formData.province ? "text-[#272424]" : "text-[#888888]"
+                        }`}
                     >
                       {provinceLabel}
                     </span>
@@ -498,7 +575,7 @@ const AdminAddCustomer = () => {
                       Đang tải...
                     </div>
                   ) : (
-                    renderMenuContent(provinces, handleProvinceSelect, "provinceName")
+                    renderMenuContent(provinces, handleProvinceSelect, getProvinceLabel)
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -511,14 +588,12 @@ const AdminAddCustomer = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border ${isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${
-                      !formData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                    }`}
+                    className={`bg-white border ${isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${!formData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                      }`}
                   >
                     <span
-                      className={`text-[14px] font-semibold ${
-                        formData.district ? "text-[#272424]" : "text-[#888888]"
-                      }`}
+                      className={`text-[14px] font-semibold ${formData.district ? "text-[#272424]" : "text-[#888888]"
+                        }`}
                     >
                       {districtLabel}
                     </span>
@@ -535,7 +610,7 @@ const AdminAddCustomer = () => {
                       Đang tải...
                     </div>
                   ) : (
-                    renderMenuContent(districts, handleDistrictSelect, "districtName")
+                    renderMenuContent(districts, handleDistrictSelect, getDistrictLabel)
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -548,14 +623,12 @@ const AdminAddCustomer = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border ${isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${
-                      !formData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                    }`}
+                    className={`bg-white border ${isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${!formData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                      }`}
                   >
                     <span
-                      className={`text-[14px] font-semibold ${
-                        formData.ward ? "text-[#272424]" : "text-[#888888]"
-                      }`}
+                      className={`text-[14px] font-semibold ${formData.ward ? "text-[#272424]" : "text-[#888888]"
+                        }`}
                     >
                       {wardLabel}
                     </span>
@@ -572,7 +645,7 @@ const AdminAddCustomer = () => {
                       Đang tải...
                     </div>
                   ) : (
-                    renderMenuContent(wards, handleWardSelect, "wardName")
+                    renderMenuContent(wards, handleWardSelect, getWardLabel)
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>

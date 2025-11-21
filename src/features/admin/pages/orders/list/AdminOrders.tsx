@@ -5,20 +5,28 @@ import {
   PageContainer,
   ContentCard,
   PageHeader,
-  TableFilters,
   OrderTable,
   TabMenuWithBadge,
-  type FilterOption,
   type OrderTableColumn,
   type TabItemWithBadge,
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
+import { SearchBar } from "@/components/ui/search-bar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import CaretDown from "@/components/ui/caret-down";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
 import {
   getAdminCustomerOrders,
   getAdminCustomerOrdersByStatus,
+  getAdminCustomerOrdersWithFilters,
+  getOrderCounts,
 } from "@/api/endpoints/orderApi";
-import type { AdminOrderResponse } from "@/types";
+import type { AdminOrderResponse, OrderCountResponse } from "@/types";
 import { toast } from "sonner";
 
 const AdminOrders: React.FC = () => {
@@ -30,6 +38,24 @@ const AdminOrders: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
+  
+  // Order counts state
+  const [orderCounts, setOrderCounts] = useState<OrderCountResponse>({
+    all: 0,
+    pending: 0,
+    confirmed: 0,
+    shipping: 0,
+    complete: 0,
+    canceled: 0,
+    refund: 0,
+    shippingFailed: 0,
+  });
+  
+  // Filter states
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("ALL");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("ALL");
+  const [sourceFilter, setSourceFilter] = useState<string>("ALL");
+  
   const navigate = useNavigate();
 
   // Fetch orders from API
@@ -39,13 +65,26 @@ const AdminOrders: React.FC = () => {
       setError(null);
 
       const params: any = {
-        page: page - 1, // API uses 0-based pagination
+        page: page, // Backend expects 1-based pagination
         size: 10,
       };
 
+      // Use the new filter endpoint if any filters are active
+      const hasFilters = 
+        paymentStatusFilter !== "ALL" ||
+        paymentMethodFilter !== "ALL" ||
+        sourceFilter !== "ALL";
+
       let response;
-      if (status && status !== "ALL") {
-        // Use the new status-specific endpoint
+      if (hasFilters) {
+        // Use the new filter endpoint with all filters
+        params.status = status && status !== "ALL" ? status : undefined;
+        params.paymentStatus = paymentStatusFilter !== "ALL" ? paymentStatusFilter : undefined;
+        params.method = paymentMethodFilter !== "ALL" ? paymentMethodFilter : undefined;
+        params.source = sourceFilter !== "ALL" ? sourceFilter : undefined;
+        response = await getAdminCustomerOrdersWithFilters(params);
+      } else if (status && status !== "ALL") {
+        // Use the status-specific endpoint
         response = await getAdminCustomerOrdersByStatus(status, params);
       } else {
         // Use the general endpoint for all orders
@@ -78,35 +117,44 @@ const AdminOrders: React.FC = () => {
     }
   };
 
-  // Initial load and when filters change
+  // Fetch order counts from API
+  const fetchOrderCounts = async () => {
+    try {
+      const counts = await getOrderCounts();
+      setOrderCounts(counts);
+    } catch (err) {
+      console.error("Error fetching order counts:", err);
+      // Don't show error toast for counts, just log it
+    }
+  };
+
+  // Fetch order counts on mount and when orders change
+  useEffect(() => {
+    fetchOrderCounts();
+  }, []);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, paymentStatusFilter, paymentMethodFilter, sourceFilter]);
+
+  // Fetch orders when page or filters change
   useEffect(() => {
     const status = activeTab === "ALL" ? undefined : activeTab;
     fetchOrders(currentPage, status);
-  }, [activeTab, currentPage]);
+    // Refresh counts after fetching orders
+    fetchOrderCounts();
+  }, [activeTab, currentPage, paymentStatusFilter, paymentMethodFilter, sourceFilter]);
 
-  // Calculate order counts by status (this would ideally come from a separate API call)
-  const orderCounts = useMemo(() => {
-    // For now, we'll use placeholder counts since we don't have a summary API
-    // In a real implementation, you'd call a separate endpoint for counts
-    return {
-      ALL: totalElements,
-      PENDING: 0, // These would come from API
-      CONFIRMED: 0,
-      SHIPPING: 0,
-      COMPLETE: 0,
-      CANCELED: 0,
-    };
-  }, [totalElements]);
-
-  // Create order tabs with counts
+  // Create order tabs with counts from API
   const orderTabsWithCounts: TabItemWithBadge[] = useMemo(
     () => [
-      { id: "ALL", label: "TẤT CẢ", count: orderCounts.ALL },
-      { id: "PENDING", label: "CHỜ XÁC NHẬN", count: orderCounts.PENDING },
-      { id: "CONFIRMED", label: "ĐÃ XÁC NHẬN", count: orderCounts.CONFIRMED },
-      { id: "SHIPPING", label: "ĐANG GIAO", count: orderCounts.SHIPPING },
-      { id: "COMPLETE", label: "ĐÃ HOÀN THÀNH", count: orderCounts.COMPLETE },
-      { id: "CANCELED", label: "ĐÃ HỦY", count: orderCounts.CANCELED },
+      { id: "ALL", label: "TẤT CẢ", count: orderCounts.all },
+      { id: "PENDING", label: "CHỜ XÁC NHẬN", count: orderCounts.pending },
+      { id: "CONFIRMED", label: "ĐÃ XÁC NHẬN", count: orderCounts.confirmed },
+      { id: "SHIPPING", label: "ĐANG GIAO", count: orderCounts.shipping },
+      { id: "COMPLETE", label: "ĐÃ HOÀN THÀNH", count: orderCounts.complete },
+      { id: "CANCELED", label: "ĐÃ HỦY", count: orderCounts.canceled },
     ],
     [orderCounts]
   );
@@ -182,25 +230,23 @@ const AdminOrders: React.FC = () => {
     });
   };
 
-  // Filter orders by active tab, search term, and source
+  // Filter orders by search term only (other filters are handled server-side)
   const filteredOrders = useMemo(() => {
-    // Since we're already filtering by status in the API call,
-    // we mainly need to handle search filtering on the client side
-    const result = (orders || []).filter((order) => {
-      // Search term filtering - search in order ID, customer name, phone
-      const matchesSearch =
-        searchTerm === "" ||
-        String(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (order.code &&
-          order.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        String(order.userInfo?.id)
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+    // Only filter by search term on client-side since payment status, method, and source are filtered server-side
+    if (!searchTerm || searchTerm.trim() === "") {
+      return orders || [];
+    }
 
-      return matchesSearch;
+    const searchLower = searchTerm.toLowerCase();
+    return (orders || []).filter((order) => {
+      return (
+        String(order.id).toLowerCase().includes(searchLower) ||
+        (order.code && order.code.toLowerCase().includes(searchLower)) ||
+        String(order.userInfo?.id).toLowerCase().includes(searchLower) ||
+        (order.userInfo?.name && order.userInfo.name.toLowerCase().includes(searchLower)) ||
+        (order.userInfo?.phone && order.userInfo.phone.toLowerCase().includes(searchLower))
+      );
     });
-
-    return result;
   }, [orders, searchTerm]);
 
   // Transform API response to match OrderTable component expectations
@@ -284,11 +330,11 @@ const AdminOrders: React.FC = () => {
       category: order.source || "Website",
       date: order.createdAt
         ? new Date(order.createdAt).toLocaleDateString("vi-VN") +
-          " " +
-          new Date(order.createdAt).toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
+        " " +
+        new Date(order.createdAt).toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
         : "N/A",
       tabStatus: order.status || "PENDING",
       totalAmount: order.totalOrderPrice || 0,
@@ -300,15 +346,39 @@ const AdminOrders: React.FC = () => {
   // No need for client-side pagination since API already does it
   const paginatedOrders = transformedOrders;
 
-  // Filter options
-  const statusFilterOptions: FilterOption[] = [
-    { value: "ALL", label: "TẤT CẢ" },
-    { value: "PENDING", label: "CHỜ XÁC NHẬN" },
-    { value: "CONFIRMED", label: "ĐÃ XÁC NHẬN" },
-    { value: "SHIPPING", label: "ĐANG GIAO" },
-    { value: "COMPLETE", label: "ĐÃ HOÀN THÀNH" },
-    { value: "CANCELED", label: "ĐÃ HỦY" },
+  // Payment status filter options
+  const paymentStatusOptions = [
+    { value: "ALL", label: "Tất cả trạng thái thanh toán" },
+    { value: "PENDING", label: "Chưa thanh toán" },
+    { value: "PAID", label: "Đã thanh toán" },
+    { value: "FAILED", label: "Thanh toán thất bại" },
   ];
+
+  // Payment method filter options
+  const paymentMethodOptions = [
+    { value: "ALL", label: "Tất cả phương thức" },
+    { value: "CASH", label: "Tiền mặt" },
+    { value: "BANKING", label: "Chuyển khoản" },
+  ];
+
+  // Source filter options
+  const sourceOptions = [
+    { value: "ALL", label: "Tất cả nguồn" },
+    { value: "WEBSITE", label: "Website" },
+    { value: "POS", label: "POS" },
+  ];
+
+  const getPaymentStatusFilterLabel = (value: string) => {
+    return paymentStatusOptions.find((opt) => opt.value === value)?.label || "Tất cả trạng thái thanh toán";
+  };
+
+  const getPaymentMethodFilterLabel = (value: string) => {
+    return paymentMethodOptions.find((opt) => opt.value === value)?.label || "Tất cả phương thức";
+  };
+
+  const getSourceFilterLabel = (value: string) => {
+    return sourceOptions.find((opt) => opt.value === value)?.label || "Tất cả nguồn";
+  };
 
   // Order table columns definition
   const orderTableColumns: OrderTableColumn[] = [
@@ -375,7 +445,7 @@ const AdminOrders: React.FC = () => {
       <ContentCard>
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center min-h-[400px] w-full">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e04d30] mx-auto mb-4"></div>
               <p className="text-gray-600">Đang tải danh sách đơn hàng...</p>
@@ -423,15 +493,82 @@ const AdminOrders: React.FC = () => {
         {!loading && !error && (
           <>
             {/* Filters Section */}
-            <TableFilters
-              searchValue={searchTerm}
-              onSearchChange={setSearchTerm}
-              searchPlaceholder="Tìm kiếm mã đơn hàng, ID khách hàng..."
-              filterValue={activeTab}
-              onFilterChange={setActiveTab}
-              filterOptions={statusFilterOptions}
-              filterLabel="Trạng thái"
-            />
+            <div className="flex gap-[8px] items-center w-full flex-wrap">
+              {/* Search Bar */}
+              <SearchBar
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm kiếm mã đơn hàng, ID khách hàng, tên, SĐT..."
+                className="flex-1 min-w-0 max-w-[400px]"
+              />
+
+              {/* Filter Dropdowns */}
+              {/* Payment Status Filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
+                    <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
+                      {getPaymentStatusFilterLabel(paymentStatusFilter)}
+                    </span>
+                    <CaretDown className="text-[#e04d30]" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {paymentStatusOptions.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => setPaymentStatusFilter(option.value)}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Payment Method Filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
+                    <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
+                      {getPaymentMethodFilterLabel(paymentMethodFilter)}
+                    </span>
+                    <CaretDown className="text-[#e04d30]" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {paymentMethodOptions.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => setPaymentMethodFilter(option.value)}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Source Filter */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
+                    <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
+                      {getSourceFilterLabel(sourceFilter)}
+                    </span>
+                    <CaretDown className="text-[#e04d30]" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {sourceOptions.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => setSourceFilter(option.value)}
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
             {/* Order Table */}
             <OrderTable

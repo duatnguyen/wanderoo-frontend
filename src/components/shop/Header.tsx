@@ -1,15 +1,15 @@
-import React, {useState, useRef, useEffect, useCallback} from "react";
-import {useNavigate} from "react-router-dom";
-import {ShoppingBag, Menu, LogOut, LogIn} from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { ShoppingBag, Menu, LogOut, LogIn } from "lucide-react";
 import CategoryDropdown from "./CategoryDropdown";
 import shopLogo from "../../assets/icons/ShopLogo.png";
-import {useAuth} from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import {
     getPublicCategoryParents,
     getPublicCategoryChildren,
 } from "../../api/endpoints/attributeApi";
 
-function Logo({onClick}: { onClick: () => void }) {
+function Logo({ onClick }: { onClick: () => void }) {
     return (
         <button
             onClick={onClick}
@@ -26,7 +26,7 @@ function Logo({onClick}: { onClick: () => void }) {
     );
 }
 
-function UserAvatar({src}: { src?: string }) {
+function UserAvatar({ src }: { src?: string }) {
     return (
         <img
             src={src ?? "https://randomuser.me/api/portraits/men/32.jpg"}
@@ -44,16 +44,16 @@ export type HeaderProps = {
 };
 
 const Header: React.FC<HeaderProps> = ({
-                                           userName,
-                                           avatarUrl,
-                                           cartCount = 0,
-                                           onMenuClick,
-                                       }) => {
+    userName,
+    avatarUrl,
+    cartCount = 0,
+    onMenuClick,
+}) => {
     const navigate = useNavigate();
     const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
     const [searchValue, setSearchValue] = useState("");
     const categoryButtonRef = useRef<HTMLDivElement>(null);
-    const {user: authUser, isAuthenticated, logout} = useAuth();
+    const { user: authUser, isAuthenticated, logout } = useAuth();
 
     const resolvedUsername = authUser?.username?.trim() || "";
 
@@ -61,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({
         userName?.trim() ||
         authUser?.name?.trim() ||
         resolvedUsername ||
-        "Thanh";
+        "Khách hàng";
 
     const displayAvatar = (avatarUrl || authUser?.avatar) ?? undefined;
     const usernameTag = resolvedUsername ? `@${resolvedUsername}` : "";
@@ -75,10 +75,14 @@ const Header: React.FC<HeaderProps> = ({
     const [mainCategories, setMainCategories] = useState<DropdownCategory[]>([]);
     const [childLoadingState, setChildLoadingState] = useState<Record<string, boolean>>({});
 
+    type SimpleCategory = {
+        id: number;
+        name: string;
+    };
+
     const handleSearch = () => {
         if (!searchValue.trim()) return;
-        console.log("Search:", searchValue);
-        // navigate(`/shop/search?keyword=${encodeURIComponent(searchValue)}`);
+        navigate(`/shop/search?q=${encodeURIComponent(searchValue.trim())}`);
     };
 
     // Close dropdown when clicking outside
@@ -103,8 +107,8 @@ const Header: React.FC<HeaderProps> = ({
     useEffect(() => {
         // Fetch main categories
         getPublicCategoryParents()
-            .then((response) => {
-                const categories: DropdownCategory[] = response.map((attr: any) => ({
+            .then((response: SimpleCategory[]) => {
+                const categories: DropdownCategory[] = response.map((attr) => ({
                     id: attr.id.toString(),
                     label: attr.name,
                     subcategories: [], // Will be loaded on hover
@@ -112,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({
                 }));
                 setMainCategories(categories);
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 console.error("Error fetching categories:", error);
             });
     }, []);
@@ -128,9 +132,9 @@ const Header: React.FC<HeaderProps> = ({
                 return;
             }
 
-            setChildLoadingState((prev) => ({...prev, [categoryId]: true}));
+            setChildLoadingState((prev) => ({ ...prev, [categoryId]: true }));
             try {
-                const children = await getPublicCategoryChildren(currentCategory.rawId);
+                const children: SimpleCategory[] = await getPublicCategoryChildren(currentCategory.rawId);
                 setMainCategories((prev) =>
                     prev.map((cat) =>
                         cat.id === categoryId
@@ -147,7 +151,7 @@ const Header: React.FC<HeaderProps> = ({
             } catch (error) {
                 console.error("Không thể tải danh mục con", error);
             } finally {
-                setChildLoadingState((prev) => ({...prev, [categoryId]: false}));
+                setChildLoadingState((prev) => ({ ...prev, [categoryId]: false }));
             }
         },
         [mainCategories, childLoadingState]
@@ -164,7 +168,7 @@ const Header: React.FC<HeaderProps> = ({
             className="w-full bg-gradient-to-r from-[#132543] via-[#1c3b6c] to-[#132543] shadow-[0_4px_20px_rgba(9,22,45,0.25)] relative z-40 text-white">
             <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-4 py-3">
                 <div className="flex flex-wrap items-center gap-3 md:flex-nowrap md:gap-4">
-                    <Logo onClick={() => navigate("/shop")}/>
+                    <Logo onClick={() => navigate("/shop")} />
                     <div
                         ref={categoryButtonRef}
                         className="relative flex h-[60px] flex-shrink-0 items-center gap-3 px-4 md:ml-6"
@@ -178,10 +182,10 @@ const Header: React.FC<HeaderProps> = ({
                             }}
                             type="button"
                         >
-                            <Menu className="w-6 h-6 text-white"/>
+                            <Menu className="w-6 h-6 text-white" />
                             <span className="text-white font-semibold text-[16px] select-none">
-                Danh mục
-              </span>
+                                Danh mục
+                            </span>
                         </button>
                         <CategoryDropdown
                             isOpen={isCategoryDropdownOpen}
@@ -201,7 +205,7 @@ const Header: React.FC<HeaderProps> = ({
                                 placeholder="Tìm kiếm lều, balo, phụ kiện..."
                                 className="flex-1 bg-transparent text-sm text-[#1f2937] placeholder:text-gray-400 focus:outline-none"
                             />
-                            <div className="h-5 w-px bg-gray-200"/>
+                            <div className="h-5 w-px bg-gray-200" />
                             <button
                                 onClick={handleSearch}
                                 className="ml-3 rounded-xl bg-[#f97316] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:bg-[#ea580c]"
@@ -218,12 +222,12 @@ const Header: React.FC<HeaderProps> = ({
                             aria-label="Giỏ hàng"
                             type="button"
                         >
-                            <ShoppingBag className="w-7 h-7 text-white cursor-pointer"/>
+                            <ShoppingBag className="w-7 h-7 text-white cursor-pointer" />
                             {cartCount !== undefined && (
                                 <span
                                     className="absolute top-[-7px] right-[-7px] w-5 h-5 bg-[#ffc107] text-[#18345c] rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
-                  {cartCount}
-                </span>
+                                    {cartCount}
+                                </span>
                             )}
                         </button>
                         {isAuthenticated ? (
@@ -234,16 +238,16 @@ const Header: React.FC<HeaderProps> = ({
                                     aria-label="Xem hồ sơ"
                                     type="button"
                                 >
-                                    <UserAvatar src={displayAvatar}/>
+                                    <UserAvatar src={displayAvatar} />
                                 </button>
                                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-white">
-                    {displayName}
-                  </span>
+                                    <span className="text-sm font-semibold text-white">
+                                        {displayName}
+                                    </span>
                                     {usernameTag && (
                                         <span className="text-[11px] text-white/70">
-                      {usernameTag}
-                    </span>
+                                            {usernameTag}
+                                        </span>
                                     )}
                                 </div>
                                 <button
@@ -255,7 +259,7 @@ const Header: React.FC<HeaderProps> = ({
                                     aria-label="Đăng xuất"
                                     type="button"
                                 >
-                                    <LogOut size={16}/>
+                                    <LogOut size={16} />
                                 </button>
                             </div>
                         ) : (
@@ -264,7 +268,7 @@ const Header: React.FC<HeaderProps> = ({
                                 className="flex items-center gap-2 rounded-2xl border border-white px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-white hover:text-[#1c3b6c]"
                                 type="button"
                             >
-                                <LogIn size={16}/>
+                                <LogIn size={16} />
                                 Đăng nhập
                             </button>
                         )}

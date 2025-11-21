@@ -75,7 +75,7 @@ const AdminShipping: React.FC = () => {
     id: addr.id,
     name: addr.name || "",
     phone: addr.phone || "",
-    address: `${addr.location || ""}, ${addr.ward || ""}, ${addr.district || ""}, ${addr.province || ""}`.replace(/^,\s*|,\s*$/g, ""),
+    address: addr.fullAddress || `${addr.street || ""}, ${addr.wardName || ""}, ${addr.districtName || ""}, ${addr.provinceName || ""}`.replace(/^,\s*|,\s*$/g, ""),
     isDefault: typeof addr.isDefault === "string" 
       ? addr.isDefault === "Địa chỉ mặc định" || addr.isDefault === "true"
       : addr.isDefault === true,
@@ -203,7 +203,7 @@ const AdminShipping: React.FC = () => {
         id: originalAddress.id,
         name: originalAddress.name || "",
         phone: originalAddress.phone || "",
-        address: `${originalAddress.location || ""}, ${originalAddress.ward || ""}, ${originalAddress.district || ""}, ${originalAddress.province || ""}`.replace(/^,\s*|,\s*$/g, ""),
+        address: originalAddress.fullAddress || `${originalAddress.street || ""}, ${originalAddress.wardName || ""}, ${originalAddress.districtName || ""}, ${originalAddress.provinceName || ""}`.replace(/^,\s*|,\s*$/g, ""),
         isDefault: typeof originalAddress.isDefault === "string" 
           ? originalAddress.isDefault === "Địa chỉ mặc định" || originalAddress.isDefault === "true"
           : originalAddress.isDefault === true,
@@ -224,15 +224,20 @@ const AdminShipping: React.FC = () => {
   };
 
   const handleAddressFormSubmit = (formData: AddressFormData) => {
+    console.log("Form data submitted:", formData);
+    console.log("districtId:", formData.districtId, "wardCode:", formData.wardCode);
+    
     if (!formData.districtId || !formData.wardCode) {
+      console.error("Missing districtId or wardCode:", { districtId: formData.districtId, wardCode: formData.wardCode });
       toast.error("Vui lòng chọn đầy đủ tỉnh/thành, quận/huyện và phường/xã");
       return;
     }
 
-    const location = formData.detailAddress.trim();
-    const ward = formData.ward.trim();
-    const district = formData.district.trim();
-    const province = formData.province.trim();
+    const street = formData.detailAddress.trim();
+    const wardName = formData.ward.trim();
+    const districtName = formData.district.trim();
+    const provinceName = formData.province.trim();
+    const fullAddress = `${street}, ${wardName}, ${districtName}, ${provinceName}`.replace(/^,\s*|,\s*$/g, "");
 
     if (editingAddress) {
       // Update existing address
@@ -240,26 +245,30 @@ const AdminShipping: React.FC = () => {
         id: editingAddress.id,
         name: formData.fullName.trim(),
         phone: formData.phone.trim(),
-        province: province,
-        district: district,
-        ward: ward,
-        location: location,
+        street: street,
         wardCode: formData.wardCode,
+        wardName: wardName,
         districtId: formData.districtId,
+        districtName: districtName,
+        provinceName: provinceName,
+        fullAddress: fullAddress,
       };
+      console.log("Update data:", updateData);
       updateMutation.mutate(updateData);
     } else {
       // Add new address
       const createData: AddressCreationRequest = {
         name: formData.fullName.trim(),
         phone: formData.phone.trim(),
-        province: province,
-        district: district,
-        ward: ward,
-        location: location,
+        street: street,
         wardCode: formData.wardCode,
+        wardName: wardName,
         districtId: formData.districtId,
+        districtName: districtName,
+        provinceName: provinceName,
+        fullAddress: fullAddress,
       };
+      console.log("Create data:", createData);
       createMutation.mutate(createData);
     }
   };
@@ -462,10 +471,10 @@ const AdminShipping: React.FC = () => {
                           ? {
                               fullName: originalAddress.name || "",
                               phone: originalAddress.phone || "",
-                              province: originalAddress.province || "",
-                              district: originalAddress.district || "",
-                              ward: originalAddress.ward || "",
-                              detailAddress: originalAddress.location || "",
+                              province: originalAddress.provinceName || "",
+                              district: originalAddress.districtName || "",
+                              ward: originalAddress.wardName || "",
+                              detailAddress: originalAddress.street || "",
                               districtId: originalAddress.districtId,
                               wardCode: originalAddress.wardCode,
                               isDefault: typeof originalAddress.isDefault === "string" 

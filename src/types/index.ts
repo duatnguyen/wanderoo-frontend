@@ -32,4 +32,8 @@ export type {
   DiscountTypeValue,
   DiscountCategoryValue,
   ClaimVoucherRequest,
+  SimpleCategoryResponse,
+  CategoryPublicResponse,
+  AvailableServicesRequest,
+  AvailableServiceResponse,
 } from "./api";

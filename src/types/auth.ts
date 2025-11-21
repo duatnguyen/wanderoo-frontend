@@ -15,14 +15,15 @@ export interface UserResponse {
 
 export interface AddressResponse {
   id: number;
-  province: string;
-  district: string;
-  ward: string;
-  location: string;
+  street: string;
+  wardCode: string;
+  wardName: string;
+  districtId: number;
+  districtName: string;
+  provinceName: string;
+  fullAddress?: string;
   name: string;
   phone: string;
-  wardCode: string;
-  districtId: number;
   isDefault: string | boolean; // Backend returns "Địa chỉ mặc định" or "Địa chỉ không mặc định" as string
 }
 
@@ -113,14 +114,15 @@ export interface AdminPasswordUpdateRequest {
 }
 
 export interface AddressCreationRequest {
-  province: string;
-  district: string;
-  ward: string;
-  location: string;
+  street: string;
+  wardCode: string;
+  wardName: string;
+  districtId: number;
+  districtName: string;
+  provinceName: string;
+  fullAddress?: string;
   name: string;
   phone: string;
-  wardCode: string;
-  districtId: number;
 }
 
 export interface AddressUpdateRequest extends AddressCreationRequest {
@@ -143,12 +145,14 @@ export interface EmployeeUpdateRequest extends EmployeeCreationRequest {
 }
 
 export interface CustomerCreationRequest {
-  username: string;
-  email: string;
-  password: string;
+  username?: string;
+  email?: string;
+  password?: string;
   name: string;
   phone: string;
-  address: string;
+  address?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string;
 }
 
 export interface CustomerUpdateRequest extends CustomerCreationRequest {

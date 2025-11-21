@@ -4,6 +4,7 @@ import { getPickShifts, getAvailableServices } from "../../../api/endpoints/ship
 import type { PickShiftItem } from "../../../types/shipping";
 import type { AvailableServiceResponse } from "../../../types/api";
 import type { CustomerOrderResponse } from "../../../types/orders";
+import { toast } from "sonner";
 
 interface DeliveryConfirmationPopupWebsiteProps {
     isOpen: boolean;
@@ -131,8 +132,8 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             setServicesError(null);
             try {
                 const services = await getAvailableServices({
-                    fromDistrict: fromDistrictId,
-                    toDistrict: toDistrictId,
+                    from_district: fromDistrictId,
+                    to_district: toDistrictId,
                 });
                 setAvailableServices(services || []);
                 setSelectedService(services && services.length > 0 ? services[0] : null);
@@ -173,20 +174,22 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             // For "self" method, we send default pickShift [2] (backend will handle it)
             // For "pickup" method, we send the selected shift ID
             const confirmData = {
-                pickShift: selectedMethod === "pickup" && selectedShift 
-                    ? [selectedShift.id] 
+                pickShift: selectedMethod === "pickup" && selectedShift
+                    ? [selectedShift.id]
                     : [2], // Default shift ID for self delivery (backend will use this or determine automatically)
-                requiredNote: selectedMethod === "pickup" 
-                    ? requiredNote 
+                requiredNote: selectedMethod === "pickup"
+                    ? requiredNote
                     : "KHONGCHOXEMHANG",
-                paymentTypeId: selectedMethod === "pickup" 
-                    ? paymentTypeId 
+                paymentTypeId: selectedMethod === "pickup"
+                    ? paymentTypeId
                     : 2, // Default: Buyer pays
-                serviceTypeId: selectedMethod === "pickup" && selectedService 
-                    ? (selectedService.serviceTypeId ?? 2) 
+                serviceTypeId: selectedMethod === "pickup" && selectedService
+                    ? (selectedService.service_type_id ?? 2)
                     : 2, // Default service type
             };
             await onConfirm(confirmData);
+            // Show success toast
+            toast.success("Xác nhận giao hàng thành công!");
             // Reset form
             setSelectedMethod(null);
             setSelectedShift(pickShifts.length > 0 ? pickShifts[0] : null);
@@ -195,8 +198,13 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             setShowServiceDropdown(false);
             setPaymentTypeId(2);
             onClose();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error confirming delivery:", error);
+            // Extract error message from response
+            const errorMessage = error?.response?.data?.message 
+                || error?.message 
+                || "Có lỗi xảy ra khi xác nhận đơn hàng";
+            toast.error(errorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -434,45 +442,46 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                     {/* Available Services - Only show when pickup method is selected */}
                     {selectedMethod === "pickup" && (
                         <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
-                            <div className="flex items-center gap-2">
-                                <div className="w-1 h-5 bg-[#e04d30] rounded-full"></div>
-                                <h3 className="font-montserrat font-semibold text-[16px] text-gray-900">
-                                    Chọn dịch vụ vận chuyển (Available Services)
-                                </h3>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-5 bg-[#e04d30] rounded-full"></div>
+                                    <h3 className="font-montserrat font-semibold text-[16px] text-gray-900">
+                                        Chọn dịch vụ vận chuyển
+                                    </h3>
+                                </div>
+                                {availableServices.length > 0 && (
+                                    <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-montserrat font-semibold">
+                                        {availableServices.length} dịch vụ
+                                    </span>
+                                )}
                             </div>
-                            <div className="text-sm text-gray-600 font-montserrat space-y-1">
-                                <p>
-                                    From district:{" "}
-                                    <span className="font-semibold">
-                                        {fromDistrictId ?? "N/A"}
-                                        {fromDistrictName ? ` - ${fromDistrictName}` : ""}
-                                    </span>
-                                </p>
-                                <p>
-                                    From ward:{" "}
-                                    <span className="font-semibold">
-                                        {fromWardCode ?? "N/A"}
-                                        {fromWardName ? ` - ${fromWardName}` : ""}
-                                    </span>
-                                </p>
-                                <p>
-                                    To district:{" "}
-                                    <span className="font-semibold">
-                                        {toDistrictId ?? "N/A"}
-                                        {toDistrictName ? ` - ${toDistrictName}` : ""}
-                                    </span>
-                                </p>
-                                <p>
-                                    To ward:{" "}
-                                    <span className="font-semibold">
-                                        {toWardCode ?? "N/A"}
-                                        {toWardName ? ` - ${toWardName}` : ""}
-                                    </span>
-                                </p>
-                            </div>
-                            {servicesError && (
-                                <p className="text-sm text-red-500 font-montserrat">{servicesError}</p>
+
+                            {/* Compact Address Info - Collapsible */}
+                            {(fromDistrictId || toDistrictId) && (
+                                <div className="bg-gray-50 rounded-[10px] p-3 border border-gray-200">
+                                    <div className="grid grid-cols-2 gap-2 text-xs font-montserrat">
+                                        <div>
+                                            <span className="text-gray-500">Từ:</span>
+                                            <span className="ml-1 font-semibold text-gray-700">
+                                                {fromDistrictName || fromDistrictId || "N/A"}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">Đến:</span>
+                                            <span className="ml-1 font-semibold text-gray-700">
+                                                {toDistrictName || toDistrictId || "N/A"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
+
+                            {servicesError && (
+                                <div className="p-3 bg-red-50 border border-red-200 rounded-[10px]">
+                                    <p className="text-sm text-red-600 font-montserrat font-medium">{servicesError}</p>
+                                </div>
+                            )}
+
                             {isLoadingServices ? (
                                 <div className="flex items-center justify-center py-8">
                                     <div className="w-6 h-6 border-2 border-[#e04d30]/30 border-t-[#e04d30] rounded-full animate-spin"></div>
@@ -480,85 +489,134 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                                         Đang tải dịch vụ vận chuyển...
                                     </span>
                                 </div>
+                            ) : availableServices.length === 0 && !servicesError ? (
+                                <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-[14px] text-center">
+                                    <Truck className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                    <p className="font-montserrat font-medium text-[14px] text-gray-600">
+                                        Không có dịch vụ vận chuyển khả dụng
+                                    </p>
+                                    <p className="font-montserrat text-[12px] text-gray-500 mt-1">
+                                        Vui lòng kiểm tra lại thông tin địa chỉ
+                                    </p>
+                                </div>
                             ) : (
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowServiceDropdown(!showServiceDropdown)}
                                         disabled={isSubmitting || availableServices.length === 0}
-                                        className="w-full p-4 bg-white border-2 border-gray-200 hover:border-[#e04d30]/50 rounded-[14px] flex items-center justify-between transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                        className={`w-full p-4 bg-white border-2 rounded-[14px] flex items-center justify-between transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group ${selectedService
+                                            ? "border-[#1a71f6] bg-[#1a71f6]/5"
+                                            : "border-gray-200 hover:border-[#e04d30]/50"
+                                            }`}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                                                <Truck className="w-5 h-5 text-blue-600" />
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${selectedService
+                                                ? "bg-[#1a71f6] text-white"
+                                                : "bg-blue-100 text-blue-600 group-hover:bg-blue-200"
+                                                }`}>
+                                                <Truck className="w-5 h-5" />
                                             </div>
-                                            <div className="text-left">
-                                                <p className="font-montserrat font-semibold text-[14px] text-gray-900">
-                                                    {selectedService ? (selectedService.shortName || selectedService.serviceName || `Service #${selectedService.serviceId}`) : "Chọn dịch vụ vận chuyển"}
-                                                </p>
-                                                {selectedService && (
-                                                    <p className="font-montserrat font-medium text-[12px] text-gray-500">
-                                                        Loại dịch vụ: {selectedService.serviceTypeId}
-                                                        {selectedService.expectedDeliveryTime && ` • Dự kiến: ${selectedService.expectedDeliveryTime}`}
+                                            <div className="text-left flex-1 min-w-0">
+                                                {selectedService ? (
+                                                    <>
+                                                        <p className="font-montserrat font-semibold text-[14px] text-gray-900 truncate">
+                                                            {selectedService.short_name || selectedService.service_name || `Dịch vụ #${selectedService.service_id}`}
+                                                        </p>
+                                                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[11px] font-montserrat font-semibold">
+                                                                Loại {selectedService.service_type_id}
+                                                            </span>
+                                                            {selectedService.expected_delivery_time && (
+                                                                <span className="text-[11px] font-montserrat font-medium text-gray-500">
+                                                                    ⏱️ {selectedService.expected_delivery_time}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {selectedService.description && (
+                                                            <p className="text-[11px] font-montserrat text-gray-500 mt-1 line-clamp-1">
+                                                                {selectedService.description}
+                                                            </p>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <p className="font-montserrat font-semibold text-[14px] text-gray-900">
+                                                        Chọn dịch vụ vận chuyển
                                                     </p>
                                                 )}
                                             </div>
                                         </div>
-                                        <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${showServiceDropdown ? "rotate-180" : ""}`} />
+                                        <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 flex-shrink-0 ml-2 ${showServiceDropdown ? "rotate-180" : ""}`} />
                                     </button>
 
                                     {/* Dropdown Menu */}
                                     {showServiceDropdown && availableServices.length > 0 && (
-                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-gray-200 rounded-[14px] shadow-lg z-10 max-h-60 overflow-y-auto">
-                                            {availableServices.map((service) => (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-gray-200 rounded-[14px] shadow-xl z-10 max-h-72 overflow-y-auto">
+                                            {availableServices.map((service, index) => (
                                                 <button
-                                                    key={service.serviceId}
+                                                    key={service.service_id}
                                                     onClick={() => {
                                                         setSelectedService(service);
                                                         setShowServiceDropdown(false);
                                                     }}
-                                                    className={`w-full p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors first:rounded-t-[12px] last:rounded-b-[12px] ${selectedService?.serviceId === service.serviceId
-                                                        ? "bg-blue-50 border-l-4 border-l-blue-500"
-                                                        : ""
+                                                    className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors ${index === 0 ? "rounded-t-[12px]" : ""
+                                                        } ${index === availableServices.length - 1 ? "rounded-b-[12px]" : ""
+                                                        } ${selectedService?.service_id === service.service_id
+                                                            ? "bg-blue-50 border-l-4 border-l-[#1a71f6]"
+                                                            : ""
                                                         }`}
                                                 >
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedService?.serviceId === service.serviceId
-                                                        ? "bg-blue-100"
-                                                        : "bg-gray-100"
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${selectedService?.service_id === service.service_id
+                                                        ? "bg-[#1a71f6] text-white"
+                                                        : "bg-gray-100 text-gray-600"
                                                         }`}>
-                                                        <Truck className={`w-4 h-4 ${selectedService?.serviceId === service.serviceId
-                                                            ? "text-blue-600"
-                                                            : "text-gray-600"
-                                                            }`} />
+                                                        <Truck className="w-5 h-5" />
                                                     </div>
-                                                    <div className="text-left flex-1">
-                                                        <p className={`font-montserrat font-semibold text-[13px] ${selectedService?.serviceId === service.serviceId
-                                                            ? "text-blue-900"
-                                                            : "text-gray-900"
-                                                            }`}>
-                                                            {service.shortName || service.serviceName || `Service #${service.serviceId}`}
-                                                        </p>
-                                                        <p className="font-montserrat font-medium text-[11px] text-gray-500">
-                                                            Loại: {service.serviceTypeId}
-                                                            {service.expectedDeliveryTime && ` • ${service.expectedDeliveryTime}`}
-                                                        </p>
-                                                    </div>
-                                                    {selectedService?.serviceId === service.serviceId && (
-                                                        <div className="ml-auto w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                                                            <svg
-                                                                className="w-2.5 h-2.5 text-white"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={3}
-                                                                    d="M5 13l4 4L19 7"
-                                                                />
-                                                            </svg>
+                                                    <div className="text-left flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <p className={`font-montserrat font-semibold text-[13px] flex-1 ${selectedService?.service_id === service.service_id
+                                                                ? "text-[#1a71f6]"
+                                                                : "text-gray-900"
+                                                                }`}>
+                                                                {service.short_name || service.service_name || `Dịch vụ #${service.service_id}`}
+                                                            </p>
+                                                            {selectedService?.service_id === service.service_id && (
+                                                                <div className="w-5 h-5 bg-[#1a71f6] rounded-full flex items-center justify-center flex-shrink-0">
+                                                                    <svg
+                                                                        className="w-3 h-3 text-white"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        viewBox="0 0 24 24"
+                                                                    >
+                                                                        <path
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeWidth={3}
+                                                                            d="M5 13l4 4L19 7"
+                                                                        />
+                                                                    </svg>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className={`px-2 py-0.5 rounded text-[11px] font-montserrat font-semibold ${selectedService?.service_id === service.service_id
+                                                                ? "bg-[#1a71f6]/20 text-[#1a71f6]"
+                                                                : "bg-gray-200 text-gray-700"
+                                                                }`}>
+                                                                Loại {service.service_type_id}
+                                                            </span>
+                                                            {service.expected_delivery_time && (
+                                                                <span className="text-[11px] font-montserrat font-medium text-gray-500 flex items-center gap-1">
+                                                                    <Clock className="w-3 h-3" />
+                                                                    {service.expected_delivery_time}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {service.description && (
+                                                            <p className="text-[11px] font-montserrat text-gray-500 mt-1.5 line-clamp-2">
+                                                                {service.description}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </button>
                                             ))}
                                         </div>
@@ -734,23 +792,23 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                             </div>
 
                             <div className="space-y-3">
-                                    {[
-                                        {
-                                            value: "CHOTHUHANG",
-                                            label: "CHOTHUHANG",
-                                            description: "Buyer can request to see and trial goods (Cho thử hàng)",
-                                        },
-                                        {
-                                            value: "CHOXEMHANGKHONGTHU",
-                                            label: "CHOXEMHANGKHONGTHU",
-                                            description: "Buyer can see goods but not trial (Cho xem hàng không thử)",
-                                        },
-                                        {
-                                            value: "KHONGCHOXEMHANG",
-                                            label: "KHONGCHOXEMHANG",
-                                            description: "Buyer not allow to see goods (Không cho xem hàng)",
-                                        },
-                                    ].map((option) => (
+                                {[
+                                    {
+                                        value: "CHOTHUHANG",
+                                        label: "CHOTHUHANG",
+                                        description: "Buyer can request to see and trial goods (Cho thử hàng)",
+                                    },
+                                    {
+                                        value: "CHOXEMHANGKHONGTHU",
+                                        label: "CHOXEMHANGKHONGTHU",
+                                        description: "Buyer can see goods but not trial (Cho xem hàng không thử)",
+                                    },
+                                    {
+                                        value: "KHONGCHOXEMHANG",
+                                        label: "KHONGCHOXEMHANG",
+                                        description: "Buyer not allow to see goods (Không cho xem hàng)",
+                                    },
+                                ].map((option) => (
                                     <label
                                         key={option.value}
                                         className="flex items-start gap-3 p-4 bg-white border-2 border-gray-200 hover:border-[#e04d30]/50 rounded-[12px] cursor-pointer transition-all duration-200 group"
@@ -829,8 +887,8 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                                             <p className="font-montserrat font-medium text-[12px] text-red-600 mt-1">
                                                 Hướng dẫn: {
                                                     requiredNote === "CHOTHUHANG" ? "Cho thử hàng" :
-                                                    requiredNote === "CHOXEMHANGKHONGTHU" ? "Cho xem hàng không thử" :
-                                                    "Không cho xem hàng"
+                                                        requiredNote === "CHOXEMHANGKHONGTHU" ? "Cho xem hàng không thử" :
+                                                            "Không cho xem hàng"
                                                 }
                                             </p>
                                         )}

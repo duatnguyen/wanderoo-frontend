@@ -79,20 +79,30 @@ const AddressForm: React.FC<AddressFormProps> = ({
   };
 
   const handleDistrictSelect = (district: DistrictResponse) => {
+    console.log("Selected district:", district);
+    const districtId = district.districtId;
+    if (!districtId) {
+      console.error("District missing districtId:", district);
+    }
     setFormData((prev) => ({
       ...prev,
       district: district.districtName,
-      districtId: district.districtId,
+      districtId: districtId,
       ward: "",
       wardCode: undefined,
     }));
   };
 
   const handleWardSelect = (ward: WardResponse) => {
+    console.log("Selected ward:", ward);
+    const wardCode = ward.wardCode;
+    if (!wardCode) {
+      console.error("Ward missing wardCode:", ward);
+    }
     setFormData((prev) => ({
       ...prev,
       ward: ward.wardName,
-      wardCode: ward.wardCode,
+      wardCode: wardCode,
     }));
   };
 

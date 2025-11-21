@@ -201,15 +201,39 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
     }));
   };
 
-  // Get timeline text based on order status (for collapsed view)
-  // Always show the last step (most recent status) in the header
+  // Get timeline text based on shippingStatus or order status (for collapsed view)
   const getTimelineText = () => {
+    // If shippingStatus exists, use it; otherwise use order status
+    const statusToDisplay = orderData.shippingStatus || orderData.status;
+    
+    // Map shippingStatus to Vietnamese
+    const getStatusLabel = (status: string) => {
+      switch (status?.toUpperCase()) {
+        case "PENDING":
+          return "Chờ xác nhận";
+        case "CONFIRMED":
+          return "Đã xác nhận";
+        case "SHIPPING":
+          return "Đang giao hàng";
+        case "COMPLETE":
+        case "DELIVERED":
+          return "Đã hoàn thành";
+        case "CANCELED":
+        case "CANCELLED":
+          return "Đã hủy";
+        case "REFUND":
+          return "Hoàn tiền";
+        default:
+          return status || "Chờ xác nhận";
+      }
+    };
+
     const steps = getTimelineSteps();
-    // Always get the last step (most recent status)
     const lastStep = steps[steps.length - 1];
+    
     return {
-      status: lastStep.status,
-      date: lastStep.date,
+      status: getStatusLabel(statusToDisplay),
+      date: lastStep.date || formatTimelineDate(orderData.updatedAt || orderData.createdAt),
     };
   };
 
@@ -255,13 +279,15 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
           </p>
           <div className="flex flex-col gap-[2px]">
             <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
-              {orderData.shippingDetail?.to_name ||
+              {orderData.receiverName ||
+                orderData.shippingDetail?.to_name ||
                 orderData.userInfo?.name ||
                 "Chưa có thông tin tên"}
             </p>
             <p className="font-montserrat font-medium text-[13px] leading-[1.3] text-[#666666]">
               📞{" "}
-              {orderData.shippingDetail?.to_phone ||
+              {orderData.receiverPhone ||
+                orderData.shippingDetail?.to_phone ||
                 orderData.userInfo?.phone ||
                 "Chưa có thông tin số điện thoại"}
             </p>
@@ -279,7 +305,8 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
             Địa chỉ nhận hàng
           </p>
           <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424] break-words min-w-0">
-            {orderData.shippingDetail?.to_address ||
+            {orderData.receiverAddress ||
+              orderData.shippingDetail?.to_address ||
               "Chưa có thông tin địa chỉ"}
           </p>
         </div>
@@ -344,159 +371,182 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="border border-[#e7e7e7] box-border flex flex-col relative rounded-[12px] w-full overflow-hidden min-w-0 bg-white">
-        {/* Timeline Header - Always visible */}
-        <div className="flex flex-col sm:flex-row h-auto sm:h-[80px] items-start justify-between p-[16px] gap-[12px] sm:gap-0">
-          <div className="box-border flex gap-[12px] items-center relative shrink-0 min-w-0 flex-1">
-            {/* Status Icon */}
-            <div className="flex items-center justify-center w-[48px] h-[48px] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full border-2 border-blue-100 shrink-0">
-              {orderData!.status === "SHIPPING" ? (
-                <Truck className="w-6 h-6 text-blue-600" />
-              ) : orderData!.status === "COMPLETE" ? (
-                <Package className="w-6 h-6 text-green-600" />
-              ) : orderData!.status === "PENDING" ? (
-                <svg
-                  className="w-6 h-6 text-amber-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              ) : orderData!.status === "CONFIRMED" ? (
-                <svg
-                  className="w-6 h-6 text-emerald-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="w-6 h-6 text-red-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
+      {/* Timeline - Only show if shippingDetail exists */}
+      {orderData.shippingDetail && (
+        <div className="border border-[#e7e7e7] box-border flex flex-col relative rounded-[8px] w-full overflow-hidden min-w-0 bg-white">
+          {/* Timeline Header */}
+          <div className="flex flex-col sm:flex-row items-start justify-between p-[16px] gap-[12px] sm:gap-0">
+            <div className="box-border flex gap-[12px] items-center relative shrink-0 min-w-0 flex-1">
+              {/* Status Icon */}
+              <div className={`flex items-center justify-center w-[40px] h-[40px] rounded-full border shrink-0 ${
+                orderData.shippingStatus === "SHIPPING" || orderData.status === "SHIPPING"
+                  ? "bg-blue-50 border-blue-200"
+                  : orderData.shippingStatus === "COMPLETE" || orderData.status === "COMPLETE"
+                  ? "bg-green-50 border-green-200"
+                  : orderData.shippingStatus === "PENDING" || orderData.status === "PENDING"
+                  ? "bg-amber-50 border-amber-200"
+                  : orderData.shippingStatus === "CONFIRMED" || orderData.status === "CONFIRMED"
+                  ? "bg-emerald-50 border-emerald-200"
+                  : "bg-red-50 border-red-200"
+              }`}>
+                {orderData.shippingStatus === "SHIPPING" || orderData.status === "SHIPPING" ? (
+                  <Truck className="w-5 h-5 text-blue-600" />
+                ) : orderData.shippingStatus === "COMPLETE" || orderData.status === "COMPLETE" ? (
+                  <Package className="w-5 h-5 text-green-600" />
+                ) : orderData.shippingStatus === "PENDING" || orderData.status === "PENDING" ? (
+                  <svg
+                    className="w-5 h-5 text-amber-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : orderData.shippingStatus === "CONFIRMED" || orderData.status === "CONFIRMED" ? (
+                  <svg
+                    className="w-5 h-5 text-emerald-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5 text-red-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </div>
+
+              {/* Status Text */}
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[16px] leading-[1.3] text-[#272424]">
+                  {getTimelineText().status}
+                </p>
+                <div className="flex items-center gap-[6px]">
+                  <svg
+                    className="w-3 h-3 text-[#737373]"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <p className="font-montserrat font-medium text-[13px] leading-[1.3] text-[#737373]">
+                    {getTimelineText().date}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Status Text */}
-            <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
-              <p className="font-montserrat font-semibold text-[16px] leading-[1.3] text-[#272424]">
-                {getTimelineText().status}
-              </p>
-              <p className="font-montserrat font-medium text-[13px] leading-[1.3] text-[#737373]">
-                {getTimelineText().date}
-              </p>
-            </div>
+            <button
+              onClick={handleToggleTimeline}
+              className="box-border flex gap-[6px] items-center justify-center px-[12px] py-[8px] relative rounded-[6px] shrink-0 whitespace-nowrap cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200"
+            >
+              <span className="font-montserrat font-medium text-[13px] leading-[normal] text-[#555555]">
+                {isTimelineExpanded ? "Thu gọn" : "Xem chi tiết"}
+              </span>
+              <div
+                className={`relative shrink-0 size-[14px] transition-transform duration-200 ${isTimelineExpanded ? "rotate-180" : ""}`}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8 10L5 7M8 10L11 7M8 10V4"
+                    stroke="#555555"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </button>
           </div>
 
-          <button
-            onClick={handleToggleTimeline}
-            className="box-border flex gap-[8px] items-center justify-center px-[16px] py-[10px] relative rounded-[8px] shrink-0 whitespace-nowrap cursor-pointer hover:bg-gray-50 transition-all duration-200 border border-gray-200"
-          >
-            <span className="font-inter font-medium text-[13px] leading-[normal] text-[#555555]">
-              {isTimelineExpanded ? "Thu gọn" : "Xem chi tiết"}
-            </span>
-            <div
-              className={`relative shrink-0 size-[16px] transition-transform duration-200 ${isTimelineExpanded ? "rotate-180" : ""}`}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M8 10L5 7M8 10L11 7M8 10V4"
-                  stroke="#555555"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          </button>
-        </div>
-
-        {/* Expanded Timeline Steps */}
-        {isTimelineExpanded && (
-          <div className="border-t border-[#e7e7e7] p-[20px] bg-gradient-to-b from-gray-50 to-white">
-            <div className="flex flex-col gap-[20px]">
-              <div className="flex items-center gap-[8px]">
-                <div className="w-[4px] h-[20px] bg-[#e04d30] rounded-full"></div>
-                <h3 className="font-montserrat font-semibold text-[18px] text-[#272424]">
-                  Lịch sử đơn hàng
-                </h3>
-              </div>
+          {/* Expanded Timeline Steps */}
+          {isTimelineExpanded && (
+            <div className="border-t border-[#e7e7e7] p-[16px] bg-white">
               <div className="flex flex-col gap-[16px]">
-                {getTimelineSteps().map((step, index) => (
-                  <div
-                    key={step.id}
-                    className="flex items-start gap-[16px] group"
-                  >
-                    {/* Timeline Icon */}
-                    <div className="flex flex-col items-center gap-[8px] shrink-0">
-                      <div
-                        className={`w-[16px] h-[16px] rounded-full border-3 flex items-center justify-center transition-all duration-200 ${
-                          step.isCompleted
-                            ? step.isCurrent
-                              ? "bg-[#04910c] border-[#04910c] shadow-lg shadow-green-200"
-                              : "bg-[#28a745] border-[#28a745] shadow-md shadow-green-100"
-                            : step.isCurrent
-                              ? "bg-[#ffc107] border-[#ffc107] shadow-lg shadow-yellow-200 animate-pulse"
-                              : "bg-white border-[#d1d1d1] shadow-sm"
-                        }`}
-                      >
-                        {step.isCompleted && (
-                          <svg
-                            width="10"
-                            height="8"
-                            viewBox="0 0 10 8"
-                            fill="none"
-                            className="text-white"
-                          >
-                            <path
-                              d="M1.5 4L3.5 6L8.5 1.5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                <div className="flex items-center gap-[8px]">
+                  <div className="w-[3px] h-[16px] bg-[#e04d30] rounded-full"></div>
+                  <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                    Lịch sử đơn hàng
+                  </h3>
+                </div>
+                <div className="flex flex-col gap-[12px] pl-[6px]">
+                  {getTimelineSteps().map((step, index) => (
+                    <div
+                      key={step.id}
+                      className="flex items-start gap-[12px]"
+                    >
+                      {/* Timeline Icon */}
+                      <div className="flex flex-col items-center gap-[6px] shrink-0">
+                        <div
+                          className={`w-[12px] h-[12px] rounded-full border-2 flex items-center justify-center ${
+                            step.isCompleted
+                              ? step.isCurrent
+                                ? "bg-[#04910c] border-[#04910c]"
+                                : "bg-[#28a745] border-[#28a745]"
+                              : step.isCurrent
+                                ? "bg-[#ffc107] border-[#ffc107]"
+                                : "bg-white border-[#d1d1d1]"
+                          }`}
+                        >
+                          {step.isCompleted && (
+                            <svg
+                              width="8"
+                              height="6"
+                              viewBox="0 0 10 8"
+                              fill="none"
+                              className="text-white"
+                            >
+                              <path
+                                d="M1.5 4L3.5 6L8.5 1.5"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        {index < getTimelineSteps().length - 1 && (
+                          <div
+                            className={`w-[2px] h-[20px] rounded-full ${
+                              step.isCompleted
+                                ? "bg-[#28a745]"
+                                : "bg-[#e7e7e7]"
+                            }`}
+                          />
                         )}
                       </div>
-                      {index < getTimelineSteps().length - 1 && (
-                        <div
-                          className={`w-[2px] h-[24px] rounded-full transition-all duration-300 ${
-                            step.isCompleted
-                              ? "bg-gradient-to-b from-[#28a745] to-[#20c997]"
-                              : "bg-[#e7e7e7]"
-                          }`}
-                        />
-                      )}
-                    </div>
 
-                    {/* Timeline Content */}
-                    <div className="flex flex-col gap-[4px] min-w-0 flex-1 pb-[8px]">
-                      <div className="flex items-center gap-[6px]">
+                      {/* Timeline Content */}
+                      <div className="flex flex-col gap-[4px] min-w-0 flex-1 pb-[4px]">
                         <p
-                          className={`font-montserrat font-medium text-[15px] leading-[1.4] transition-colors duration-200 ${
+                          className={`font-montserrat font-medium text-[14px] leading-[1.4] ${
                             step.isCurrent
                               ? "text-[#04910c] font-semibold"
                               : step.isCompleted
@@ -506,40 +556,33 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                         >
                           {step.status}
                         </p>
-                        {/* Debug: Show raw status in development */}
-                        {(step as any).rawStatus &&
-                          process.env.NODE_ENV === "development" && (
-                            <span className="font-montserrat font-normal text-[10px] text-gray-400 italic">
-                              ({(step as any).rawStatus})
-                            </span>
-                          )}
+                        {step.date && (
+                          <div className="flex items-center gap-[6px]">
+                            <svg
+                              className="w-3 h-3 text-[#737373]"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#737373]">
+                              {step.date}
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      {step.date && (
-                        <div className="flex items-center gap-[6px]">
-                          <svg
-                            className="w-3 h-3 text-[#737373]"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#737373]">
-                            {step.date}
-                          </p>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
