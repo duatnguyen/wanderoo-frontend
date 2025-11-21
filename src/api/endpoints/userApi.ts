@@ -46,9 +46,16 @@ export const changePassword = async (passwordData: ChangePasswordRequest): Promi
 };
 
 // Address APIs (customer)
+type AddressListApiResponse = AddressDetailResponse[] | { addresses?: AddressDetailResponse[] };
+
 export const getUserAddresses = async (): Promise<AddressPageResponse> => {
-  const response = await api.get<ApiResponse<AddressDetailResponse[]>>('/auth/v1/private/users/address');
-  const addresses = response.data.data ?? [];
+  const response = await api.get<ApiResponse<AddressListApiResponse>>('/auth/v1/private/users/address');
+  const payload = response.data.data;
+  const addresses = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.addresses)
+      ? payload.addresses
+      : [];
   return { addresses };
 };
 

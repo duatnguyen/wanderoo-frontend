@@ -7,7 +7,7 @@ interface FlashSaleSectionProps {
 }
 
 const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
-  const displayProducts = products.slice(0, 6);
+  const displayProducts = products.slice(0, 5);
 
   return (
     <section className="w-full py-6">

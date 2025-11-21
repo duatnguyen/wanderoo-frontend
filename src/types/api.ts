@@ -70,6 +70,45 @@ export interface ProductResponse {
   updatedAt: string;
 }
 
+export interface ProductCategoryInfo {
+  id: number;
+  name: string;
+}
+
+export interface ProductBrandInfo {
+  id: number;
+  name: string;
+}
+
+export interface ProductAttributeValueResponse {
+  id: number;
+  value: string;
+}
+
+export interface ProductAttributeResponse {
+  name: string;
+  values: ProductAttributeValueResponse[];
+}
+
+export interface ProductDetailsResponse {
+  id: number;
+  images?: string[];
+  name: string;
+  barcode?: string;
+  categoryResponse?: ProductCategoryInfo | null;
+  brandResponse?: ProductBrandInfo | null;
+  description?: string;
+  attributes?: ProductAttributeResponse[];
+  quantity?: number;
+  price?: string | null;
+  discountPrice?: string | null;
+  discountValue?: string | null;
+  packagedWeight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+}
+
 export interface VariantResponse {
   id: number;
   productId: number;
@@ -77,6 +116,15 @@ export interface VariantResponse {
   price: number;
   quantity: number;
   status: string;
+}
+
+export interface VariantDetailIdResponse {
+  productDetailId: number;
+  productDetailSku: string;
+  productDetailPrice: string;
+  productDetailDiscountPrice?: string | null;
+  discountValue?: string | null;
+  productDetailQuantity?: number | null;
 }
 
 // Order Types

@@ -103,6 +103,7 @@ export interface AdminProfileUpdateRequest {
 export interface ChangePasswordRequest {
   oldPassword: string;
   newPassword: string;
+  confirmNewPassword: string;
 }
 
 // Admin password update request (matches backend UpdatePasswordRequest)
