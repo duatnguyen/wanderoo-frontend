@@ -18,7 +18,23 @@ import type {
   CategoryParentUpdateRequest,
   CategoryChildUpdateRequest,
   VariantDetailIdRequest,
-} from "../../types";
+  AdminProductPageResponse,
+  AdminProductDetailResponse,
+  ProductVariantListResponse,
+} from '../../types';
+
+type ProductListQuery = {
+  keyword?: string;
+  sort?: string;
+  page?: number;
+  size?: number;
+};
+
+type VariantListQuery = {
+  page?: number;
+  size?: number;
+  sort?: string;
+};
 
 // Public Product APIs
 export const getProductDetail = async (
@@ -51,42 +67,18 @@ export const createProductPrivate = async (
   return response.data;
 };
 
-export const getAllProductsPrivate = async (params?: {
-  keyword?: string;
-  sort?: string;
-  page?: number;
-  size?: number;
-}): Promise<ProductPageResponse> => {
-  const response = await api.get<ApiResponse<ProductPageResponse>>(
-    "/auth/v1/private/product/",
-    { params }
-  );
+export const getAllProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
+  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/', { params });
   return response.data.data;
 };
 
-export const getActiveProductsPrivate = async (params?: {
-  keyword?: string;
-  sort?: string;
-  page?: number;
-  size?: number;
-}): Promise<ProductPageResponse> => {
-  const response = await api.get<ApiResponse<ProductPageResponse>>(
-    "/auth/v1/private/product/active",
-    { params }
-  );
+export const getActiveProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
+  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/active', { params });
   return response.data.data;
 };
 
-export const getInactiveProductsPrivate = async (params?: {
-  keyword?: string;
-  sort?: string;
-  page?: number;
-  size?: number;
-}): Promise<ProductPageResponse> => {
-  const response = await api.get<ApiResponse<ProductPageResponse>>(
-    "/auth/v1/private/product/inactive",
-    { params }
-  );
+export const getInactiveProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
+  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/inactive', { params });
   return response.data.data;
 };
 
@@ -101,17 +93,31 @@ export const getProductDetailPrivate = async (
 
 export const getProductVariantsPrivate = async (
   productId: number,
-  params?: {
-    page?: number;
-    size?: number;
-    sort?: string;
-  }
-): Promise<VariantPageResponse> => {
-  const response = await api.get<ApiResponse<VariantPageResponse>>(
+  params?: VariantListQuery
+): Promise<ProductVariantListResponse> => {
+  const response = await api.get<ApiResponse<ProductVariantListResponse>>(
     `/auth/v1/private/product/${productId}/variants`,
     { params }
   );
-  return response.data.data;
+
+  const data = response.data.data;
+  const variantsArray =
+    (Array.isArray(data?.variants)
+      ? (data?.variants as unknown as AdminProductDetailResponse[])
+      : undefined) ??
+    (Array.isArray((data as unknown as VariantPageResponse)?.content)
+      ? ((data as unknown as VariantPageResponse)?.content as unknown as AdminProductDetailResponse[])
+      : undefined) ??
+    [];
+  const variants = variantsArray as AdminProductDetailResponse[];
+
+  return {
+    variants,
+    pageNumber: data.pageNumber ?? (data as any)?.page ?? params?.page ?? 0,
+    pageSize: data.pageSize ?? params?.size ?? 20,
+    totalPages: data.totalPages ?? 1,
+    totalElements: data.totalElements ?? variants.length,
+  };
 };
 
 export const getVariantDetailPrivate = async (
@@ -143,23 +149,17 @@ export const updateVariantPrivate = async (
   return response.data;
 };
 
-export const disableProductsPrivate = async (
-  request: any
-): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/product/disable",
-    request
-  );
+type SelectIdsRequest = {
+  getAll: number[];
+};
+
+export const disableProductsPrivate = async (request: SelectIdsRequest): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/product/disable', request);
   return response.data;
 };
 
-export const enableProductsPrivate = async (
-  request: any
-): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/product/enable",
-    request
-  );
+export const enableProductsPrivate = async (request: SelectIdsRequest): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/product/enable', request);
   return response.data;
 };
 
@@ -305,13 +305,33 @@ export const getChildCategories = async (
   return response.data.data;
 };
 
-export const createParentCategory = async (
-  categoryData: CategoryParentCreateRequest
-): Promise<ApiResponse<number>> => {
-  const response = await api.post<ApiResponse<number>>(
-    "/attributes/v1/admin/category-parent",
-    categoryData
+export const getChildCategories = async (parentId: number): Promise<CategoryChildPageResponse> => {
+  const response = await api.get<ApiResponse<CategoryChildPageResponse>>(`/attributes/v1/admin/category-child/${parentId}`);
+  return response.data.data;
+};
+
+export const getCategoryChildOptions = async (
+  params?: { page?: number; size?: number }
+): Promise<CategoryChildPageResponse & { categoryChildResponseList?: CategoryChildPageResponse["content"] }> => {
+  const response = await api.get<ApiResponse<CategoryChildPageResponse & { categoryChildResponseList?: CategoryChildPageResponse["content"] }>>(
+    '/auth/v1/private/attribute/category-child',
+    { params }
   );
+
+  const data = response.data.data;
+  const content =
+    data.content ??
+    (data.categoryChildResponseList as CategoryChildPageResponse["content"]) ??
+    [];
+
+  return {
+    ...data,
+    content,
+  };
+};
+
+export const createParentCategory = async (categoryData: CategoryParentCreateRequest): Promise<ApiResponse<number>> => {
+  const response = await api.post<ApiResponse<number>>('/attributes/v1/admin/category-parent', categoryData);
   return response.data;
 };
 

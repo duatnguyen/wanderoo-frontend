@@ -8,33 +8,35 @@ export const productValidationRules: ValidationRules = {
   productName: [
     { required: true, message: "Tên sản phẩm là bắt buộc" },
     { minLength: 2, message: "Tên sản phẩm phải có ít nhất 2 ký tự" },
-    { maxLength: 100, message: "Tên sản phẩm không được vượt quá 100 ký tự" },
+    { maxLength: 100, message: "Tên sản phẩm không được vượt quá 100 ký tự" }
+  ],
+  category: [
+    { required: true, message: "Danh mục là bắt buộc" }
+  ],
+  brand: [
+    { required: true, message: "Thương hiệu là bắt buộc" }
   ],
   brand: [{ required: true, message: "Thương hiệu là bắt buộc" }],
   description: [
     { required: true, message: "Mô tả sản phẩm là bắt buộc" },
     { minLength: 10, message: "Mô tả phải có ít nhất 10 ký tự" },
   ],
-  costPrice: [
-    { required: true, message: "Giá vốn là bắt buộc" },
-    { pattern: /^\d+$/, message: "Giá vốn phải là số" },
-  ],
-  sellingPrice: [
-    { required: true, message: "Giá bán là bắt buộc" },
-    { pattern: /^\d+$/, message: "Giá bán phải là số" },
-  ],
-  inventory: [
-    { required: true, message: "Tồn kho là bắt buộc" },
-    { pattern: /^\d+$/, message: "Tồn kho phải là số nguyên" },
-  ],
-  available: [
-    { required: true, message: "Số lượng có thể bán là bắt buộc" },
-    { pattern: /^\d+$/, message: "Số lượng có thể bán phải là số nguyên" },
-  ],
   weight: [
     { required: true, message: "Cân nặng là bắt buộc" },
-    { pattern: /^\d+(\.\d+)?$/, message: "Cân nặng phải là số" },
+    { pattern: /^\d+(\.\d+)?$/, message: "Cân nặng phải là số" }
   ],
+  length: [
+    { required: true, message: "Chiều dài là bắt buộc" },
+    { pattern: /^\d+(\.\d+)?$/, message: "Chiều dài phải là số" }
+  ],
+  width: [
+    { required: true, message: "Chiều rộng là bắt buộc" },
+    { pattern: /^\d+(\.\d+)?$/, message: "Chiều rộng phải là số" }
+  ],
+  height: [
+    { required: true, message: "Chiều cao là bắt buộc" },
+    { pattern: /^\d+(\.\d+)?$/, message: "Chiều cao phải là số" }
+  ]
 };
 
 export const validateField = (field: string, value: string): string => {
@@ -74,23 +76,13 @@ export const validateForm = (formData: ProductFormData): FormErrors => {
       errors[field] = error;
     }
   });
-
-  // Custom validation for price comparison
-  if (formData.costPrice && formData.sellingPrice) {
-    const cost = parseFloat(formData.costPrice);
-    const selling = parseFloat(formData.sellingPrice);
-    if (selling <= cost) {
-      errors.sellingPrice = "Giá bán phải lớn hơn giá vốn";
-    }
+  
+  if (!formData.categoryId) {
+    errors.category = "Vui lòng chọn danh mục";
   }
 
-  // Custom validation for inventory vs available
-  if (formData.inventory && formData.available) {
-    const inventory = parseInt(formData.inventory);
-    const available = parseInt(formData.available);
-    if (available > inventory) {
-      errors.available = "Số lượng có thể bán không được lớn hơn tồn kho";
-    }
+  if (!formData.brandId) {
+    errors.brand = "Vui lòng chọn thương hiệu";
   }
 
   return errors;

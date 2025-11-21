@@ -34,8 +34,28 @@ export interface CategoryParentResponse {
 export interface CategoryChildResponse {
   id: number;
   name: string;
-  parentId: number;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  status: CategoryStatus;
+  productCount: number;
+  parentId?: number;
+}
+
+export interface CategoryParentPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categories: CategoryParentResponse[];
+}
+
+export interface CategoryChildPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categoryChildResponseList: CategoryChildResponse[];
+  content?: CategoryChildResponse[];
 }
 
 export interface CategoryParentPageResponse
@@ -45,11 +65,26 @@ export interface CategoryChildPageResponse
   extends PageResponse<CategoryChildResponse> {}
 
 // Request types
+export interface ProductAttributeInputRequest {
+  name: string;
+  values: string[];
+}
+
 export interface ProductCreateRequest {
   name: string;
   description: string;
-  price: number;
   categoryId: number;
+  brandId: number;
+  images?: string[];
+  attributes?: ProductAttributeInputRequest[];
+  packagedWeight: number;
+  length: number;
+  width: number;
+  height: number;
+  importPrice?: number;
+  sellingPrice?: number;
+  totalQuantity?: number;
+  availableQuantity?: number;
 }
 
 export interface ProductUpdateRequest extends ProductCreateRequest {
@@ -92,4 +127,57 @@ export interface CategoryParentUpdateRequest
 
 export interface CategoryChildUpdateRequest extends CategoryChildCreateRequest {
   id: number;
+  name: string;
+  imageUrl?: string;
+}
+
+// Admin product list responses
+export interface AdminProductDetailResponse {
+  id: number;
+  imageUrl?: string;
+  nameDetail: string;
+  skuDetail: string;
+  barcode?: string;
+  totalQuantity: number;
+  availableQuantity: number;
+  websiteSoldQuantity: number;
+  posSoldQuantity: number;
+  sellingPrice: number | string;
+  importPrice: number | string;
+}
+
+export interface AdminProductResponse {
+  id: number;
+  imageUrl?: string;
+  name: string;
+  sku: string;
+  totalQuantity: number;
+  availableQuantity: number;
+  websiteSoldQuantity: number;
+  posSoldQuantity: number;
+  sellingPrice: number | string;
+  importPrice: number | string;
+  display?: string;
+  productDetails?: AdminProductDetailResponse[];
+}
+
+export interface AdminProductPageResponse {
+  totalProducts: number;
+  pageNumber?: number;
+  pageSize?: number;
+  page?: number;
+  size?: number;
+  totalPages?: number;
+  totalPage?: number;
+  totalElements?: number;
+  productResponseList: AdminProductResponse[];
+}
+
+export interface ProductVariantListResponse {
+  variants?: AdminProductDetailResponse[];
+  content?: AdminProductDetailResponse[];
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  totalElements?: number;
 }

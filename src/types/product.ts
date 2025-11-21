@@ -4,7 +4,9 @@ export interface ProductFormData {
   productName: string;
   barcode: string;
   category: string;
+  categoryId: number | null;
   brand: string;
+  brandId: number | null;
   description: string;
   costPrice: string;
   sellingPrice: string;
@@ -21,18 +23,15 @@ export interface ProductAttribute {
   values: string[];
 }
 
-export interface CurrentAttribute {
-  name: string;
-  value: string;
-}
-
 export interface ProductVersion {
   id: string;
-  combination: string[];
   name: string;
-  price: string;
-  inventory: string;
-  available: string;
+  price?: string;
+  inventory?: string;
+  available?: string;
+  image?: string | null;
+  sku?: string;
+  barcode?: string;
 }
 
 export interface EditingVersion {
@@ -44,6 +43,7 @@ export interface EditingVersion {
   inventory: string;
   available: string;
   image: string;
+  sku?: string;
 }
 
 export interface ProductImage {

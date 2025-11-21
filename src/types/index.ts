@@ -32,4 +32,7 @@ export type {
   DiscountTypeValue,
   DiscountCategoryValue,
   ClaimVoucherRequest,
+  BrandCreateRequest,
+  BrandPageResponse,
 } from "./api";
+

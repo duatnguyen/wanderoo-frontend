@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Select, Spin, Pagination } from "antd";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
 import {
@@ -19,106 +20,78 @@ import ImageUpload from "@/components/ui/image-upload";
 import type {
   ProductFormData,
   ProductAttribute,
-  CurrentAttribute,
   ProductVersion,
   EditingVersion,
   ProductImage,
   FormErrors,
 } from "@/types/product";
+import type { ProductCreateRequest } from "@/types";
 import { validateForm, validateField } from "@/utils/productValidation";
+import {
+  createProductPrivate,
+  getCategoryChildOptions,
+  getProductVariantsPrivate,
+} from "@/api/endpoints/productApi";
+import {
+  getBrandList,
+  createBrand as createBrandApi,
+  deleteBrand as deleteBrandApi,
+} from "@/api/endpoints/attributeApi";
+import { toast } from "sonner";
 import "@/styles/animations.css";
 
-// Generate all combinations of attribute values (cartesian product)
-const generateCombinations = (
-  arrs: string[][],
-  index: number = 0,
-  current: string[] = []
-): string[][] => {
-  if (index === arrs.length) {
-    return [current];
+const formatCurrencyDisplay = (value?: string | number | null): string => {
+  if (value === null || value === undefined || value === "") {
+    return "0đ";
   }
-
-  const result: string[][] = [];
-  for (const value of arrs[index]) {
-    result.push(...generateCombinations(arrs, index + 1, [...current, value]));
+  const numeric =
+    typeof value === "number"
+      ? value
+      : Number(value.toString().replace(/[^\d.-]/g, ""));
+  if (!Number.isFinite(numeric)) {
+    return "0đ";
   }
-  return result;
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(numeric);
 };
 
-// Fake data for versions (6 rows as per Figma design)
-const FAKE_VERSIONS = [
-  {
-    id: "fake-1",
-    combination: ["40", "Xám"],
-    name: "40 / Xám",
-    price: "150000",
-    inventory: "50",
-    available: "45",
-  },
-  {
-    id: "fake-2",
-    combination: ["40", "Xanh đậm"],
-    name: "40 / Xanh đậm",
-    price: "150000",
-    inventory: "30",
-    available: "28",
-  },
-  {
-    id: "fake-3",
-    combination: ["41", "Xám"],
-    name: "41 / Xám",
-    price: "160000",
-    inventory: "45",
-    available: "40",
-  },
-  {
-    id: "fake-4",
-    combination: ["41", "Xanh đậm"],
-    name: "41 / Xanh đậm",
-    price: "160000",
-    inventory: "35",
-    available: "32",
-  },
-  {
-    id: "fake-5",
-    combination: ["42", "Xám"],
-    name: "42 / Xám",
-    price: "170000",
-    inventory: "40",
-    available: "38",
-  },
-  {
-    id: "fake-6",
-    combination: ["42", "Xanh đậm"],
-    name: "42 / Xanh đậm",
-    price: "170000",
-    inventory: "25",
-    available: "22",
-  },
-];
+const CATEGORY_PAGE_SIZE = 20;
+const BRAND_PAGE_SIZE = 20;
+const MAX_ATTRIBUTES = 5;
+const VARIANT_PAGE_SIZE = 20;
+
+const INITIAL_FORM_DATA: ProductFormData = {
+  productName: "",
+  barcode: "",
+  category: "",
+  categoryId: null,
+  brand: "",
+  brandId: null,
+  description: "",
+  costPrice: "",
+  sellingPrice: "",
+  inventory: "",
+  available: "",
+  weight: "",
+  length: "",
+  width: "",
+  height: "",
+};
 
 const AdminProductsNew: React.FC = () => {
-  const [formData, setFormData] = useState<ProductFormData>({
-    productName: "",
-    barcode: "",
-    category: "",
-    brand: "",
-    description: "",
-    costPrice: "",
-    sellingPrice: "",
-    inventory: "",
-    available: "",
-    weight: "",
-    length: "",
-    width: "",
-    height: "",
-  });
+  const [formData, setFormData] = useState<ProductFormData>(INITIAL_FORM_DATA);
 
   const [showAttributes, setShowAttributes] = useState(false);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
-  const [currentAttributes, setCurrentAttributes] = useState<
-    CurrentAttribute[]
-  >([{ name: "", value: "" }]);
+  const [newAttributeName, setNewAttributeName] = useState("");
+  const [newAttributeValueInput, setNewAttributeValueInput] = useState("");
+  const [newAttributeValues, setNewAttributeValues] = useState<string[]>([]);
+  const [attributeError, setAttributeError] = useState("");
+  const [editingAttributeIndex, setEditingAttributeIndex] = useState<number | null>(null);
+  const [isAttributeFormVisible, setIsAttributeFormVisible] = useState(true);
   const [images, setImages] = useState<ProductImage[]>([]);
   const [versions, setVersions] = useState<ProductVersion[]>([]);
   const [selectedVersions, setSelectedVersions] = useState<Set<string>>(
@@ -137,20 +110,33 @@ const AdminProductsNew: React.FC = () => {
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const editVersionFileInputRef = useRef<HTMLInputElement>(null);
-  const [isComposingMap, setIsComposingMap] = useState<Record<number, boolean>>(
-    {}
-  );
-  const [brandOptions, setBrandOptions] = useState<string[]>([
-    "Nike",
-    "Adidas",
-    "Puma",
-    "New Balance",
-  ]);
+  const [brandOptions, setBrandOptions] = useState<{ id: number; name: string }[]>([]);
   const [showBrandModal, setShowBrandModal] = useState(false);
   const [newBrandName, setNewBrandName] = useState("");
+  const [brandPage, setBrandPage] = useState(0);
+  const [brandHasMore, setBrandHasMore] = useState(true);
+  const [brandLoading, setBrandLoading] = useState(false);
+  const [isBrandSubmitting, setIsBrandSubmitting] = useState(false);
+  const [brandModalError, setBrandModalError] = useState("");
+  const [brandToDelete, setBrandToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeletingBrand, setIsDeletingBrand] = useState(false);
+  const [categoryOptions, setCategoryOptions] = useState<{ value: number; label: string }[]>([]);
+  const [categoryPage, setCategoryPage] = useState(0);
+  const [categoryHasMore, setCategoryHasMore] = useState(true);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<number | null>(null);
+  const [isVariantSectionVisible, setIsVariantSectionVisible] = useState(false);
+  const [variantStatusMessage, setVariantStatusMessage] = useState<string | null>(null);
+  const [variantError, setVariantError] = useState<string | null>(null);
+  const [isVariantLoading, setIsVariantLoading] = useState(false);
+  const [variantPagination, setVariantPagination] = useState({
+    page: 0,
+    pageSize: VARIANT_PAGE_SIZE,
+    total: 0,
+    totalPages: 0,
+  });
 
   // Form steps for progress indicator
   const formSteps = [
@@ -175,252 +161,518 @@ const AdminProductsNew: React.FC = () => {
         }));
       }
 
-      // Real-time validation for specific fields
-      const fieldError = validateField(field, value);
-      if (fieldError) {
-        setErrors((prev) => ({
-          ...prev,
-          [field]: fieldError,
-        }));
+  const fetchProductVariants = useCallback(
+    async (productId: number, page = 0, size = VARIANT_PAGE_SIZE) => {
+      setIsVariantLoading(true);
+      setVariantError(null);
+      try {
+        const response = await getProductVariantsPrivate(productId, {
+          page,
+          size,
+          sort: "asc",
+        });
+
+        const mappedVersions: ProductVersion[] =
+          response.variants?.map((variant) => ({
+            id: String(variant.id),
+            name: variant.nameDetail || variant.skuDetail || `Phiên bản #${variant.id}`,
+            price:
+              variant.sellingPrice !== undefined && variant.sellingPrice !== null
+                ? String(variant.sellingPrice)
+                : "",
+            inventory:
+              variant.totalQuantity !== undefined && variant.totalQuantity !== null
+                ? String(variant.totalQuantity)
+                : "",
+            available:
+              variant.availableQuantity !== undefined && variant.availableQuantity !== null
+                ? String(variant.availableQuantity)
+                : "",
+            image: variant.imageUrl ?? null,
+            sku: variant.skuDetail ?? "",
+            barcode: variant.barcode ?? "",
+          })) ?? [];
+
+        setVersions(mappedVersions);
+        setSelectedVersions(new Set());
+        setVariantPagination({
+          page: response.pageNumber ?? page,
+          pageSize: response.pageSize ?? size,
+          total: response.totalElements ?? mappedVersions.length,
+          totalPages: response.totalPages ?? 1,
+        });
+      } catch (error) {
+        console.error("Không thể tải phiên bản sản phẩm", error);
+        setVariantError("Không thể tải phiên bản. Vui lòng thử lại.");
+      } finally {
+        setIsVariantLoading(false);
       }
     },
-    [errors]
+    []
   );
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      // Validate form
-      const formErrors = validateForm(formData);
-
-      // Check if images are required and missing
-      if (images.length === 0) {
-        formErrors.images = "Vui lòng tải lên ít nhất một hình ảnh sản phẩm";
-      }
+    setErrors(formErrors);
 
       setErrors(formErrors);
 
-      if (Object.keys(formErrors).length > 0) {
-        console.log("Form has errors:", formErrors);
-        return;
+    setIsSubmitting(true);
+    setVariantStatusMessage("Đang tạo sản phẩm và tải phiên bản...");
+    setVariantError(null);
+    setIsVariantSectionVisible(true);
+
+    try {
+      const toFloat = (value: string): number => parseFloat(value) || 0;
+      const toOptionalFloat = (value: string): number | undefined => {
+        const parsed = parseFloat(value);
+        return Number.isNaN(parsed) ? undefined : parsed;
+      };
+      const toOptionalInt = (value: string): number | undefined => {
+        const parsed = parseInt(value, 10);
+        return Number.isNaN(parsed) ? undefined : parsed;
+      };
+
+      const payload: ProductCreateRequest = {
+        name: formData.productName.trim(),
+        description: formData.description.trim(),
+        categoryId: formData.categoryId!,
+        brandId: formData.brandId!,
+        images: images.map((img) => img.url).filter(Boolean),
+        attributes: attributes.length > 0 ? attributes : [],
+        packagedWeight: toFloat(formData.weight),
+        length: toFloat(formData.length),
+        width: toFloat(formData.width),
+        height: toFloat(formData.height),
+        importPrice: toOptionalFloat(formData.costPrice),
+        sellingPrice: toOptionalFloat(formData.sellingPrice),
+        totalQuantity: toOptionalInt(formData.inventory),
+        availableQuantity: toOptionalInt(formData.available),
+      };
+
+      const creationResponse = await createProductPrivate(payload);
+      const newProductId = creationResponse?.data;
+
+      if (typeof newProductId === "number") {
+        setCreatedProductId(newProductId);
+        await fetchProductVariants(newProductId, 0, VARIANT_PAGE_SIZE);
+        setVariantStatusMessage(null);
+        toast.success("Thêm sản phẩm thành công!");
+      } else {
+        setVariantStatusMessage(null);
+        toast.success("Thêm sản phẩm thành công nhưng không lấy được dữ liệu phiên bản.");
       }
-
-      setIsSubmitting(true);
-
-      try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log("Form submitted successfully:", formData);
-
-        // Reset form or navigate to products list
-        // navigate('/admin/products');
-      } catch (error) {
-        console.error("Error submitting form:", error);
-        setErrors({
-          submit: "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại.",
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [formData, images]
-  );
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setVariantStatusMessage(null);
+      toast.error("Không thể thêm sản phẩm. Vui lòng thử lại.");
+      setErrors({ submit: "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại." });
+    } finally {
+      setVariantStatusMessage(null);
+      setIsSubmitting(false);
+    }
+  }, [attributes, fetchProductVariants, formData, images]);
 
   const handleCancel = () => {
-    console.log("Form cancelled");
+    setFormData(INITIAL_FORM_DATA);
+    setImages([]);
+    setAttributes([]);
+    setNewAttributeName("");
+    setNewAttributeValueInput("");
+    setNewAttributeValues([]);
+    setAttributeError("");
+    setEditingAttributeIndex(null);
+    setIsAttributeFormVisible(true);
+    setErrors({});
+    setSelectedVersions(new Set());
+    setVersions([]);
+    setCreatedProductId(null);
+    setIsVariantSectionVisible(false);
+    setVariantStatusMessage(null);
+    setVariantError(null);
+    toast.success("Đã làm mới form. Bạn có thể nhập sản phẩm mới.");
   };
 
   const handleBrandModalClose = () => {
+    if (isBrandSubmitting) return;
     setShowBrandModal(false);
     setNewBrandName("");
+    setBrandModalError("");
   };
 
-  const handleBrandSubmit = () => {
+  const loadBrands = useCallback(async (page = 0, append = false) => {
+    setBrandLoading(true);
+    try {
+      const response = await getBrandList({ page, size: BRAND_PAGE_SIZE });
+      const mappedBrands =
+        response.content?.map((brand) => ({
+          id: brand.id,
+          name: brand.name,
+        })) ?? [];
+
+      setBrandOptions((prev) => {
+        const combined = append ? [...prev, ...mappedBrands] : mappedBrands;
+        const unique = new Map<number, { id: number; name: string }>();
+        combined.forEach((brand) => {
+          unique.set(brand.id, brand);
+        });
+        return Array.from(unique.values());
+      });
+
+      const currentPage = response.pageNumber ?? page;
+      const totalPages = response.totalPages ?? 1;
+      const last = response.last ?? currentPage + 1 >= totalPages;
+      setBrandPage(currentPage);
+      setBrandHasMore(!last);
+    } catch (error) {
+      console.error("Không thể tải danh sách thương hiệu", error);
+    } finally {
+      setBrandLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadBrands(0, false);
+  }, [loadBrands]);
+
+  const handleBrandLoadMore = useCallback(() => {
+    if (brandLoading || !brandHasMore) return;
+    loadBrands(brandPage + 1, true);
+  }, [brandLoading, brandHasMore, brandPage, loadBrands]);
+
+  const handleBrandSelect = useCallback((brand?: { id: number; name: string }) => {
+    setFormData((prev) => ({
+      ...prev,
+      brand: brand?.name ?? "",
+      brandId: brand?.id ?? null,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      brand: brand ? "" : "Vui lòng chọn thương hiệu",
+    }));
+  }, []);
+
+  const handleBrandSubmit = async () => {
     const trimmed = newBrandName.trim();
     if (!trimmed) {
+      setBrandModalError("Vui lòng nhập tên thương hiệu");
       return;
     }
 
-    const existing = brandOptions.find(
-      (brand) => brand.toLowerCase() === trimmed.toLowerCase()
-    );
-
-    const finalName = existing ?? trimmed;
-
-    if (!existing) {
-      setBrandOptions((prev) => [...prev, finalName]);
+    setIsBrandSubmitting(true);
+    setBrandModalError("");
+    try {
+      const response = await createBrandApi({ name: trimmed });
+      const newBrandId = response.data ?? Date.now();
+      const newBrand = { id: newBrandId, name: trimmed };
+      setBrandOptions((prev) => {
+        const filtered = prev.filter((brand) => brand.id !== newBrandId);
+        return [newBrand, ...filtered];
+      });
+      handleBrandSelect(newBrand);
+      toast.success("Thêm thương hiệu thành công");
+      handleBrandModalClose();
+    } catch (error) {
+      console.error("Không thể thêm thương hiệu", error);
+      setBrandModalError("Không thể thêm thương hiệu. Vui lòng thử lại.");
+    } finally {
+      setIsBrandSubmitting(false);
     }
-
-    handleInputChange("brand", finalName);
-    handleBrandModalClose();
   };
+
+  const handleConfirmDeleteBrand = async () => {
+    if (!brandToDelete) return;
+    setIsDeletingBrand(true);
+    try {
+      await deleteBrandApi(brandToDelete.id);
+      setBrandOptions((prev) =>
+        prev.filter((brand) => brand.id !== brandToDelete.id)
+      );
+      if (formData.brandId === brandToDelete.id) {
+        setFormData((prev) => ({
+          ...prev,
+          brandId: null,
+          brand: "",
+        }));
+        setErrors((prev) => ({
+          ...prev,
+          brand: "Vui lòng chọn thương hiệu",
+        }));
+      }
+      toast.success("Xóa thương hiệu thành công");
+      setBrandToDelete(null);
+    } catch (error) {
+      console.error("Không thể xóa thương hiệu", error);
+      toast.error("Xóa thương hiệu thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsDeletingBrand(false);
+    }
+  };
+
+  const loadCategories = useCallback(async (page = 0, append = false) => {
+    setCategoryLoading(true);
+    try {
+      const response = await getCategoryChildOptions({
+        page,
+        size: CATEGORY_PAGE_SIZE,
+      });
+
+      const mappedOptions =
+        response.content?.map((item) => ({
+          value: item.id,
+          label: item.name,
+        })) ?? [];
+
+      setCategoryOptions((prev) => {
+        const combined = append ? [...prev, ...mappedOptions] : mappedOptions;
+        const unique = new Map<number, { value: number; label: string }>();
+        combined.forEach((option) => {
+          unique.set(option.value, option);
+        });
+        return Array.from(unique.values());
+      });
+
+      const currentPage = response.pageNumber ?? page;
+      const totalPages = response.totalPages ?? 1;
+      setCategoryPage(currentPage);
+      setCategoryHasMore(currentPage + 1 < totalPages);
+    } catch (error) {
+      console.error("Không thể tải danh mục con", error);
+    } finally {
+      setCategoryLoading(false);
+    }
+  }, []);
+
+  const handleVariantPageChange = useCallback(
+    (page: number, pageSize?: number) => {
+      if (!createdProductId) return;
+      fetchProductVariants(createdProductId, page - 1, pageSize ?? variantPagination.pageSize);
+    },
+    [createdProductId, fetchProductVariants, variantPagination.pageSize]
+  );
+
+  React.useEffect(() => {
+    loadCategories(0, false);
+  }, [loadCategories]);
+
+  const handleCategoryLoadMore = useCallback(() => {
+    if (categoryLoading || !categoryHasMore) return;
+    loadCategories(categoryPage + 1, true);
+  }, [categoryLoading, categoryHasMore, categoryPage, loadCategories]);
+
+  const handleCategorySelect = useCallback(
+    (value?: number) => {
+      const selectedOption = categoryOptions.find(
+        (option) => option.value === value
+      );
+      const label = selectedOption?.label ?? "";
+
+      setFormData((prev) => ({
+        ...prev,
+        categoryId: typeof value === "number" ? value : null,
+        category: label,
+      }));
+
+      const fieldError = validateField("category", label);
+      setErrors((prev) => ({
+        ...prev,
+        category: fieldError,
+      }));
+    },
+    [categoryOptions]
+  );
+
+  const normalizeAttributeName = (value: string) => value.trim().toLowerCase();
+
+  const resetAttributeDraft = useCallback(() => {
+    setNewAttributeName("");
+    setNewAttributeValueInput("");
+    setNewAttributeValues([]);
+    setAttributeError("");
+    setEditingAttributeIndex(null);
+  }, []);
+
+  const attributeNameExists = useCallback(
+    (name: string, ignoreIndex: number | null = null) =>
+      attributes.some(
+        (attr, index) =>
+          index !== ignoreIndex &&
+          normalizeAttributeName(attr.name) === normalizeAttributeName(name)
+      ),
+    [attributes]
+  );
 
   const handleAddAttribute = () => {
     setShowAttributes(true);
-    // Ensure there is at least one empty row ready for input
-    setCurrentAttributes((prev) =>
-      prev && prev.length > 0 ? prev : [{ name: "", value: "" }]
-    );
+    setIsAttributeFormVisible(true);
+    resetAttributeDraft();
   };
 
-  const handleAttributeNameChange = (index: number, value: string) => {
-    setCurrentAttributes((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], name: value };
-      return updated;
-    });
-  };
-
-  const handleAttributeValueChange = (index: number, value: string) => {
-    setCurrentAttributes((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], value };
-      return updated;
-    });
-  };
-
-  const handleAddAttributeValue = (index: number) => {
-    const currentAttribute = currentAttributes[index];
-    const rawValue = currentAttribute?.value ?? "";
-    const newValue = rawValue.trim();
-    if (currentAttribute && currentAttribute.name && newValue) {
-      // Check if attribute name already exists
-      const existingAttrIndex = attributes.findIndex(
-        (attr) => attr.name === currentAttribute.name
-      );
-
-      if (existingAttrIndex !== -1) {
-        // Add value to existing attribute
-        setAttributes((prev) => {
-          const updated = [...prev];
-          const existingValues = updated[existingAttrIndex].values;
-          // Prevent duplicates (case-sensitive to keep exactly what user typed)
-          if (!existingValues.includes(newValue)) {
-            updated[existingAttrIndex] = {
-              ...updated[existingAttrIndex],
-              values: [...existingValues, newValue],
-            };
-          }
-          return updated;
-        });
-      } else {
-        // Create new attribute with value
-        setAttributes((prev) => [
-          ...prev,
-          { name: currentAttribute.name, values: [newValue] },
-        ]);
-      }
-
-      // Clear the input after adding so user sees chip and can type tiếp
-      setCurrentAttributes((prev) => {
-        const updated = [...prev];
-        updated[index] = { name: currentAttribute.name, value: "" };
-        return updated;
-      });
-    }
-  };
-
-  const handleRemoveAttribute = (index: number) => {
-    console.log("Removing attribute at index:", index);
-    console.log("Current attributes:", attributes);
-    const updatedAttributes = attributes.filter((_, i) => i !== index);
-    console.log("Updated attributes:", updatedAttributes);
-    setAttributes(updatedAttributes);
-
-    // If no attributes left, go back to sales information form
-    if (updatedAttributes.length === 0) {
-      console.log("No attributes left, reverting to sales info");
-      setShowAttributes(false);
-      setCurrentAttributes([{ name: "", value: "" }]);
-    }
-  };
-
-  const handleRemoveAttributeValue = (
+  const handleRemoveExistingAttributeValue = (
     attrIndex: number,
     valueIndex: number
   ) => {
     setAttributes((prev) => {
       const updated = [...prev];
-      const newValues = updated[attrIndex].values.filter(
-        (_, i) => i !== valueIndex
-      );
+      const newValues = updated[attrIndex].values.filter((_, i) => i !== valueIndex);
 
       if (newValues.length === 0) {
-        // If no values left, remove the entire attribute
-        const filteredAttributes = updated.filter((_, i) => i !== attrIndex);
-
-        // If no attributes left after removing this one, revert to sales info
-        if (filteredAttributes.length === 0) {
+        const filtered = updated.filter((_, i) => i !== attrIndex);
+        if (filtered.length === 0) {
           setShowAttributes(false);
-          setCurrentAttributes([{ name: "", value: "" }]);
+          setIsAttributeFormVisible(true);
         }
 
-        return filteredAttributes;
-      } else {
-        updated[attrIndex] = {
-          ...updated[attrIndex],
-          values: newValues,
-        };
-        return updated;
-      }
-    });
-  };
+        if (editingAttributeIndex === attrIndex) {
+          resetAttributeDraft();
+        } else if (editingAttributeIndex !== null && editingAttributeIndex > attrIndex) {
+          setEditingAttributeIndex((prev) => (prev !== null ? prev - 1 : prev));
+        }
 
-  const handleAddAnotherAttribute = () => {
-    setCurrentAttributes((prev) => [...prev, { name: "", value: "" }]);
-  };
-
-  const handleRemoveCurrentAttributeRow = (index: number) => {
-    setCurrentAttributes((prev) => {
-      const updated = prev.filter((_, i) => i !== index);
-      // If no rows left, revert UI to sales information section
-      if (updated.length === 0) {
-        setShowAttributes(false);
-        setAttributes([]);
-        setVersions([]);
-        setSelectedVersions(new Set());
+        return filtered;
       }
+
+      updated[attrIndex] = {
+        ...updated[attrIndex],
+        values: newValues,
+      };
       return updated;
     });
   };
 
-  // Removed: handleCancelAttributes (no longer used after multi-row input support)
+  const handleDeleteAttribute = (index: number) => {
+    const isEditingDeletedAttribute = editingAttributeIndex === index;
 
-  // Memoized version calculation
-  const generatedVersions = useMemo(() => {
-    if (
-      attributes.length === 0 ||
-      attributes.some((attr) => attr.values.length === 0)
-    ) {
-      return FAKE_VERSIONS;
-    }
-
-    const valueArrays = attributes.map((attr) => attr.values);
-    const combinations = generateCombinations(valueArrays);
-
-    const newVersions = combinations.map((combination, index) => {
-      const name = combination.join(" / ");
-      const versionId = `version-${index}`;
-
-      return {
-        id: versionId,
-        combination,
-        name,
-        price: "",
-        inventory: "",
-        available: "",
-      };
+    setAttributes((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length === 0) {
+        setShowAttributes(false);
+        setIsAttributeFormVisible(true);
+      }
+      return updated;
     });
 
-    return [...newVersions, ...FAKE_VERSIONS];
-  }, [attributes]);
+    if (isEditingDeletedAttribute) {
+      resetAttributeDraft();
+    } else if (editingAttributeIndex !== null && editingAttributeIndex > index) {
+      setEditingAttributeIndex((prev) => (prev !== null ? prev - 1 : prev));
+    }
+  };
 
-  // Update versions when attributes change
-  React.useEffect(() => {
-    setVersions(generatedVersions);
-  }, [generatedVersions]);
+  const handleRemoveNewAttributeValue = (index: number) => {
+    setNewAttributeValues((prev) => prev.filter((_, i) => i !== index));
+    setAttributeError("");
+  };
 
+  const handleEditAttribute = (index: number) => {
+    const targetAttribute = attributes[index];
+    if (!targetAttribute) return;
+
+    setShowAttributes(true);
+    setIsAttributeFormVisible(true);
+    setEditingAttributeIndex(index);
+    setNewAttributeName(targetAttribute.name);
+    setNewAttributeValues(targetAttribute.values);
+    setNewAttributeValueInput("");
+    setAttributeError("");
+  };
+
+  const handleCancelEditingAttribute = () => {
+    resetAttributeDraft();
+    setIsAttributeFormVisible(false);
+  };
+
+  const handleSubmitNewAttribute = useCallback(() => {
+    const trimmedName = newAttributeName.trim();
+    if (!trimmedName) {
+      setAttributeError("Tên thuộc tính không được để trống.");
+      return;
+    }
+
+    const isEditing = editingAttributeIndex !== null;
+    if (attributeNameExists(trimmedName, isEditing ? editingAttributeIndex : null)) {
+      setAttributeError("Tên thuộc tính đã tồn tại.");
+      return;
+    }
+
+    if (newAttributeValues.length === 0) {
+      setAttributeError("Phải có ít nhất một giá trị cho thuộc tính.");
+      return;
+    }
+
+    if (!isEditing && attributes.length >= MAX_ATTRIBUTES) {
+      setAttributeError(`Chỉ được thêm tối đa ${MAX_ATTRIBUTES} thuộc tính.`);
+      return;
+    }
+
+    if (isEditing) {
+      setAttributes((prev) =>
+        prev.map((attr, index) =>
+          index === editingAttributeIndex ? { name: trimmedName, values: newAttributeValues } : attr
+        )
+      );
+    } else {
+      setAttributes((prev) => [...prev, { name: trimmedName, values: newAttributeValues }]);
+      setShowAttributes(true);
+    }
+
+    resetAttributeDraft();
+    setIsAttributeFormVisible(false);
+  }, [attributeNameExists, attributes.length, editingAttributeIndex, newAttributeName, newAttributeValues, resetAttributeDraft]);
+
+  const handleNewAttributeValueKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
+
+    e.preventDefault();
+    const trimmedValue = newAttributeValueInput.trim();
+
+    if (!trimmedValue) {
+      if (newAttributeValues.length > 0) {
+        handleSubmitNewAttribute();
+      }
+      return;
+    }
+
+    const exists = newAttributeValues.some(
+      (value) => normalizeAttributeName(value) === normalizeAttributeName(trimmedValue)
+    );
+
+    if (exists) {
+      setAttributeError("Giá trị thuộc tính đã tồn tại.");
+      return;
+    }
+
+    setNewAttributeValues((prev) => [...prev, trimmedValue]);
+    setNewAttributeValueInput("");
+    setAttributeError("");
+  };
+
+  const canAddMoreAttributes = attributes.length < MAX_ATTRIBUTES;
+  const shouldShowAttributeForm =
+    editingAttributeIndex !== null || (isAttributeFormVisible && canAddMoreAttributes);
+  const canSubmitAttribute =
+    newAttributeName.trim() !== "" &&
+    newAttributeValues.length > 0 &&
+    !attributeNameExists(newAttributeName, editingAttributeIndex) &&
+    (editingAttributeIndex !== null || canAddMoreAttributes);
+
+  useEffect(() => {
+    if (attributes.length === 0) {
+      setIsAttributeFormVisible(true);
+    }
+  }, [attributes.length]);
+
+  // Memoized version calculation
   const handleVersionToggle = (versionId: string) => {
     setSelectedVersions((prev) => {
       const newSet = new Set(prev);
@@ -524,12 +776,13 @@ const AdminProductsNew: React.FC = () => {
       setEditingVersion({
         id: version.id,
         name: version.name,
-        barcode: "", // You can add barcode to version state if needed
+        barcode: version.barcode || "",
         costPrice: "",
         sellingPrice: version.price || "",
         inventory: version.inventory || "",
         available: version.available || "",
-        image: "",
+        image: version.image || "",
+        sku: version.sku,
       });
       setShowEditVersionModal(true);
     }
@@ -650,7 +903,6 @@ const AdminProductsNew: React.FC = () => {
             onImagesChange={setImages}
             maxImages={9}
             maxSizeInMB={2}
-            required={true}
           />
 
           {/* Basic Information Section */}
@@ -662,8 +914,8 @@ const AdminProductsNew: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-6">
-              {/* Product Name and Barcode */}
-              <div className="flex flex-col md:flex-row gap-4">
+              {/* Product Name */}
+              <div className="flex flex-col gap-4">
                 <FormField
                   label="Tên sản phẩm"
                   required
@@ -689,22 +941,6 @@ const AdminProductsNew: React.FC = () => {
                     }`}
                   />
                 </FormField>
-
-                <FormField
-                  label="Mã vạch/barcode"
-                  error={errors.barcode}
-                  hint="Có thể để trống, hệ thống sẽ tự tạo"
-                  className="flex-1"
-                >
-                  <FormInput
-                    placeholder="Nhập mã vạch"
-                    value={formData.barcode}
-                    onChange={(e) =>
-                      handleInputChange("barcode", e.target.value)
-                    }
-                    containerClassName="h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring"
-                  />
-                </FormField>
               </div>
 
               {/* Category and Brand */}
@@ -714,40 +950,63 @@ const AdminProductsNew: React.FC = () => {
                   error={errors.category}
                   className="flex-1"
                 >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] w-full h-[36px]">
-                        <span className="text-[14px] font-semibold text-[#888888]">
-                          {formData.category || "Chọn danh mục"}
-                        </span>
-                        <ChevronDown className="w-6 h-6 text-[#322f30]" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[var(--radix-dropdown-menu-trigger-width)]"
-                    >
-                      <DropdownMenuItem
-                        onClick={() =>
-                          handleInputChange("category", "Thể thao")
-                        }
-                      >
-                        Thể thao
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() =>
-                          handleInputChange("category", "Thời trang")
-                        }
-                      >
-                        Thời trang
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleInputChange("category", "Điện tử")}
-                      >
-                        Điện tử
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div
+                    className={`bg-white rounded-[12px] border-2 ${
+                      errors.category ? "border-[#ff4d4f]" : "border-[#e04d30]"
+                    } flex items-center px-2 h-[40px]`}
+                  >
+                    <Select<number>
+                      bordered={false}
+                      placeholder="Chọn danh mục"
+                      value={formData.categoryId ?? undefined}
+                      onChange={(value) =>
+                        handleCategorySelect(value as number | undefined)
+                      }
+                      onClear={() => handleCategorySelect(undefined)}
+                      allowClear
+                      suffixIcon={
+                        <ChevronDown className="w-4 h-4 text-[#322f30]" />
+                      }
+                      style={{ width: "100%" }}
+                      loading={categoryLoading && categoryOptions.length === 0}
+                      notFoundContent={
+                        categoryLoading ? (
+                          <div className="py-2 text-center">
+                            <Spin size="small" />
+                          </div>
+                        ) : (
+                          "Không có danh mục"
+                        )
+                      }
+                      dropdownRender={(menu) => (
+                        <>
+                          {menu}
+                          <div className="px-3 py-2 border-t border-gray-100">
+                            {categoryHasMore ? (
+                              <button
+                                type="button"
+                                onClick={handleCategoryLoadMore}
+                                disabled={categoryLoading}
+                                className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
+                              >
+                                {categoryLoading ? (
+                                  <Spin size="small" />
+                                ) : (
+                                  "Tải thêm danh mục..."
+                                )}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400">
+                                Đã tải tất cả danh mục
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      options={categoryOptions}
+                      popupClassName="category-select-dropdown"
+                    />
+                  </div>
                 </FormField>
 
                 <FormField
@@ -758,25 +1017,96 @@ const AdminProductsNew: React.FC = () => {
                 >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="bg-white border-2 border-[#e04d30] flex items-center justify-between px-4 rounded-[12px] w-full h-[36px]">
-                        <span className="text-[14px] font-semibold text-[#888888]">
+                      <button
+                        type="button"
+                        className={`bg-white border-2 ${
+                          errors.brand ? "border-[#ff4d4f]" : "border-[#e04d30]"
+                        } flex items-center justify-between px-4 rounded-[12px] w-full h-[40px]`}
+                      >
+                        <span
+                          className={`text-[14px] font-semibold ${
+                            formData.brand ? "text-[#272424]" : "text-[#888888]"
+                          }`}
+                        >
                           {formData.brand || "Chọn thương hiệu"}
                         </span>
-                        <ChevronDown className="w-6 h-6 text-[#322f30]" />
+                        <ChevronDown className="w-5 h-5 text-[#322f30]" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align="start"
-                      className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[var(--radix-dropdown-menu-trigger-width)]"
+                      className="min-w-[240px]"
                     >
-                      {brandOptions.map((brand) => (
-                        <DropdownMenuItem
-                          key={brand}
-                          onClick={() => handleInputChange("brand", brand)}
-                        >
-                          {brand}
-                        </DropdownMenuItem>
-                      ))}
+                      <div className="max-h-64 overflow-y-auto">
+                        {brandOptions.length === 0 && (
+                          <div className="px-4 py-2 text-sm text-gray-500">
+                            {brandLoading ? "Đang tải thương hiệu..." : "Chưa có thương hiệu"}
+                          </div>
+                        )}
+                        {brandOptions.map((brand) => (
+                          <DropdownMenuItem
+                            key={brand.id}
+                            className="flex items-center justify-between gap-3 text-[14px] font-semibold text-[#272424]"
+                            onClick={() => handleBrandSelect(brand)}
+                          >
+                            <span>{brand.name}</span>
+                            <button
+                              type="button"
+                              className="text-[#f44336] hover:text-[#d32f2f]"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setBrandToDelete(brand);
+                              }}
+                              title={`Xóa ${brand.name}`}
+                            >
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M3 6H5H21"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                      <DropdownMenuSeparator />
+                      <div className="px-4 py-2">
+                        {brandHasMore ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleBrandLoadMore();
+                            }}
+                            disabled={brandLoading}
+                            className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
+                          >
+                            {brandLoading ? <Spin size="small" /> : "Tải thêm thương hiệu..."}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400">
+                            Đã tải tất cả thương hiệu
+                          </span>
+                        )}
+                      </div>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => setShowBrandModal(true)}
@@ -837,14 +1167,9 @@ const AdminProductsNew: React.FC = () => {
                 {/* Cost Price and Selling Price */}
                 <div className="flex gap-4">
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                        *
-                      </span>
-                      <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                        Giá vốn
-                      </label>
-                    </div>
+                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                      Giá vốn
+                    </label>
                     <FormInput
                       placeholder="Nhập giá vốn"
                       value={formData.costPrice}
@@ -856,14 +1181,9 @@ const AdminProductsNew: React.FC = () => {
                   </div>
 
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                        *
-                      </span>
-                      <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                        Giá bán
-                      </label>
-                    </div>
+                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                      Giá bán
+                    </label>
                     <FormInput
                       placeholder="Nhập giá bán"
                       value={formData.sellingPrice}
@@ -878,14 +1198,9 @@ const AdminProductsNew: React.FC = () => {
                 {/* Inventory and Available */}
                 <div className="flex gap-4">
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                        *
-                      </span>
-                      <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                        Tồn kho
-                      </label>
-                    </div>
+                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                      Tồn kho
+                    </label>
                     <FormInput
                       placeholder="Nhập số lượng tồn kho"
                       value={formData.inventory}
@@ -897,14 +1212,9 @@ const AdminProductsNew: React.FC = () => {
                   </div>
 
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                        *
-                      </span>
-                      <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                        Có thể bán
-                      </label>
-                    </div>
+                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                      Có thể bán
+                    </label>
                     <FormInput
                       placeholder="Nhập số lượng có thể bán"
                       value={formData.available}
@@ -918,206 +1228,325 @@ const AdminProductsNew: React.FC = () => {
               </div>
             </div>
           ) : (
-            /* Attributes Section - Replaces entire Sales Information when attributes are added */
             <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
                   Thuộc tính
                 </h2>
+                <span className="text-sm text-gray-500">
+                  {attributes.length}/{MAX_ATTRIBUTES}
+                </span>
               </div>
 
-              {/* Column headers - keep labels close to inputs */}
-              <div className="flex gap-4 items-center mb-0">
-                <div className="w-[28%] min-w-[200px]">
-                  <span className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                    Tên thuộc tính
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <span className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                    Giá trị
-                  </span>
-                </div>
-              </div>
-
-              {/* Attribute Name and Value Input - support multiple rows */}
-              {currentAttributes.map((item, index) => (
-                <div className="flex gap-4 items-start -mt-3" key={index}>
-                  <div className="w-[28%] min-w-[200px] flex flex-col gap-0">
-                    <FormInput
-                      placeholder="Nhập tên thuộc tính"
-                      value={item.name}
-                      onChange={(e) =>
-                        handleAttributeNameChange(index, e.target.value)
-                      }
-                      containerClassName="h-[36px] px-4"
-                    />
-                  </div>
-
-                  <div className="flex-1 flex flex-col gap-0">
-                    <div className="flex gap-[9px] items-center">
-                      {/* Chip input: show existing values for this attribute name */}
-                      <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-2 py-[6px] flex flex-wrap items-center gap-2 w-full min-h-[36px]">
-                        {(() => {
-                          const attrIndex = attributes.findIndex(
-                            (a) => a.name === item.name
-                          );
-                          const attr =
-                            attrIndex >= 0 ? attributes[attrIndex] : null;
-                          return attr
-                            ? attr.values.map((value, valueIndex) => (
-                                <div
-                                  key={`${value}-${valueIndex}`}
-                                  className="bg-[#eef3ff] rounded-[16px] px-3 py-1 flex items-center gap-2 border border-[#d1dbff]"
+              <div className="flex flex-col gap-3">
+                {attributes.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    Chưa có thuộc tính nào. Hãy thêm thuộc tính đầu tiên bên dưới.
+                  </p>
+                ) : (
+                  attributes.map((attribute, index) => {
+                    const isEditingAttribute = editingAttributeIndex === index;
+                    return (
+                      <div
+                        key={`${attribute.name}-${index}`}
+                        className={`border rounded-[12px] px-4 py-3 flex flex-col gap-2 transition-all ${
+                          isEditingAttribute ? "border-[#1a71f6] bg-[#f5f9ff]" : "border-[#e7e7e7]"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="w-[28%] min-w-[200px]">
+                            <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                              {attribute.name}
+                              {isEditingAttribute && (
+                                <span className="ml-2 text-xs text-[#1a71f6] font-medium">
+                                  (Đang chỉnh sửa)
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex-1 flex flex-wrap gap-2">
+                            {attribute.values.map((value, valueIndex) => (
+                              <div
+                                key={`${value}-${valueIndex}`}
+                                className="bg-[#eef3ff] rounded-[16px] px-3 py-1 flex items-center gap-2 border border-[#d1dbff]"
+                              >
+                                <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                                  {value}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="text-[#737373] hover:text-[#1a71f6]"
+                                  onClick={() =>
+                                    handleRemoveExistingAttributeValue(index, valueIndex)
+                                  }
                                 >
-                                  <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
-                                    {value}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleRemoveAttributeValue(
-                                        attrIndex,
-                                        valueIndex
-                                      )
-                                    }
-                                    className="flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
-                                  >
-                                    <svg
-                                      width="12"
-                                      height="12"
-                                      viewBox="0 0 12 12"
-                                      fill="none"
-                                    >
-                                      <path
-                                        d="M9 3L3 9M3 3L9 9"
-                                        stroke="#737373"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                  </button>
-                                </div>
-                              ))
-                            : null;
-                        })()}
-                        <input
-                          type="text"
-                          placeholder="Nhập ký tự và ấn enter"
-                          value={item.value}
-                          onChange={(e) =>
-                            handleAttributeValueChange(index, e.target.value)
-                          }
-                          onCompositionStart={() =>
-                            setIsComposingMap((prev) => ({
-                              ...prev,
-                              [index]: true,
-                            }))
-                          }
-                          onCompositionEnd={() =>
-                            setIsComposingMap((prev) => ({
-                              ...prev,
-                              [index]: false,
-                            }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !isComposingMap[index]) {
-                              e.preventDefault();
-                              handleAddAttributeValue(index);
-                            }
-                          }}
-                          className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat min-w-[80px]"
-                        />
+                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                    <path
+                                      d="M9 3L3 9M3 3L9 9"
+                                      stroke="currentColor"
+                                      strokeWidth="1.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              className="text-[#1a71f6] hover:text-[#0f5ad8]"
+                              onClick={() => handleEditAttribute(index)}
+                              title="Chỉnh sửa thuộc tính này"
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path
+                                  d="M12 20h9"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              className="text-[#f44336] hover:text-[#d32f2f]"
+                              onClick={() => handleDeleteAttribute(index)}
+                              title="Xóa thuộc tính này"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path
+                                  d="M3 6H5H21"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
                       </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {shouldShowAttributeForm ? (
+                <div className="flex flex-col gap-3 border-t border-dashed border-[#e7e7e7] pt-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                      {editingAttributeIndex !== null
+                        ? "Chỉnh sửa thuộc tính"
+                        : "Thêm thuộc tính mới"}
+                    </p>
+                    {editingAttributeIndex !== null && (
                       <button
                         type="button"
-                        onClick={() => handleRemoveCurrentAttributeRow(index)}
-                        className="p-2 -m-2 flex items-center justify-center shrink-0 cursor-pointer rounded transition-all text-[#737373] hover:text-[#1a71f6]"
-                        style={{ minWidth: "32px", minHeight: "32px" }}
-                        aria-label="Xoá dòng này"
+                        className="text-sm text-[#f44336] hover:text-[#d32f2f]"
+                        onClick={handleCancelEditingAttribute}
                       >
-                        <svg
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          style={{ pointerEvents: "none" }}
-                        >
-                          <path
-                            d="M3 6H5H21"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                        Huỷ chỉnh sửa
                       </button>
+                    )}
+                  </div>
+                  <div className="flex gap-4 items-start">
+                    <div className="w-[28%] min-w-[200px]">
+                      <FormInput
+                        placeholder="Nhập tên thuộc tính"
+                        value={newAttributeName}
+                        onChange={(e) => {
+                          setNewAttributeName(e.target.value);
+                          setAttributeError("");
+                        }}
+                        containerClassName="h-[36px] px-4"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-2 py-[6px] flex flex-wrap items-center gap-2 min-h-[40px]">
+                        {newAttributeValues.map((value, index) => (
+                          <div
+                            key={`${value}-${index}`}
+                            className="bg-[#eef3ff] rounded-[16px] px-3 py-1 flex items-center gap-2 border border-[#d1dbff]"
+                          >
+                            <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                              {value}
+                            </span>
+                            <button
+                              type="button"
+                              className="text-[#737373] hover:text-[#1a71f6]"
+                              onClick={() => handleRemoveNewAttributeValue(index)}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path
+                                  d="M9 3L3 9M3 3L9 9"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                        <input
+                          type="text"
+                          placeholder="Nhập ký tự và ấn Enter"
+                          value={newAttributeValueInput}
+                          onChange={(e) => {
+                            setNewAttributeValueInput(e.target.value);
+                            setAttributeError("");
+                          }}
+                          onKeyDown={handleNewAttributeValueKeyDown}
+                          className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat min-w-[120px]"
+                        />
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSubmitNewAttribute}
+                      className={`flex items-center gap-1 text-[14px] font-bold ${
+                        canSubmitAttribute
+                          ? "text-[#1a71f6]"
+                          : "text-gray-400 cursor-not-allowed"
+                      }`}
+                      disabled={!canSubmitAttribute}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M12 5V19M5 12H19"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      {editingAttributeIndex !== null
+                        ? "Cập nhật thuộc tính"
+                        : "Thêm thuộc tính khác"}
+                    </button>
+                    {editingAttributeIndex !== null && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditingAttribute}
+                        className="text-[14px] font-semibold text-[#737373] hover:text-[#1a71f6]"
+                      >
+                        Hủy
+                      </button>
+                    )}
+                  </div>
+                  {attributeError && (
+                    <p className="text-sm text-red-500 mt-1">{attributeError}</p>
+                  )}
                 </div>
-              ))}
-
-              {/* Add Another Attribute Button */}
-              <div className="flex items-center justify-center gap-1">
+              ) : canAddMoreAttributes ? (
                 <button
                   type="button"
-                  onClick={handleAddAnotherAttribute}
-                  className="flex items-center gap-0 cursor-pointer hover:opacity-70 transition-opacity"
+                  onClick={handleAddAttribute}
+                  className="flex items-center gap-1 text-[14px] font-bold text-[#1a71f6]"
                 >
-                  <svg width="25" height="25" viewBox="0 0 25 25" fill="none">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path
-                      d="M12.5 5V20M5 12.5H20"
-                      stroke="#1a71f6"
+                      d="M12 5V19M5 12H19"
+                      stroke="currentColor"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                   </svg>
-                  <span className="text-[14px] font-bold text-[#1a71f6] font-montserrat">
-                    Thêm thuộc tính khác
-                  </span>
+                  Thêm thuộc tính khác
                 </button>
-              </div>
-
-              {/* Hidden list of added attributes as requested; values remain visible in inputs */}
+              ) : (
+                <p className="text-sm text-gray-500 border-t border-dashed border-[#e7e7e7] pt-4">
+                  Bạn đã thêm tối đa {MAX_ATTRIBUTES} thuộc tính.
+                </p>
+              )}
             </div>
           )}
 
-          {/* Version Section - Show when attributes are added */}
-          {showAttributes && attributes.length > 0 && versions.length > 0 && (
+          {/* Version Section */}
+          {isVariantSectionVisible && (
             <div className="bg-white border border-[#e7e7e7] rounded-[24px] py-6 flex flex-col gap-4">
-              <div className="flex items-center gap-1 px-6">
-                <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
-                  Phiên bản
-                </h2>
+              <div className="flex items-center justify-between px-6 flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+                    Phiên bản
+                  </h2>
+                  <span className="text-sm text-gray-500 font-montserrat">
+                    {variantPagination.total.toLocaleString("vi-VN")} phiên bản
+                  </span>
+                </div>
+                {createdProductId && (
+                  <span className="text-sm text-gray-500 font-montserrat">
+                    Mã sản phẩm: #{createdProductId}
+                  </span>
+                )}
               </div>
 
-              {/* Filter Section - removed per request */}
+              {(variantStatusMessage || variantError) && (
+                <div className="px-6 flex flex-col gap-3">
+                  {variantStatusMessage && (
+                    <div className="bg-[#f0f7ff] border border-[#d0e3ff] text-[#1a56db] px-4 py-2 rounded-[12px] text-sm font-medium">
+                      {variantStatusMessage}
+                    </div>
+                  )}
+                  {variantError && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-[12px] text-sm flex items-center gap-3 flex-wrap">
+                      <span>{variantError}</span>
+                      <button
+                        type="button"
+                        className="text-[#e04d30] font-semibold hover:underline"
+                        onClick={() => {
+                          if (createdProductId) {
+                            fetchProductVariants(
+                              createdProductId,
+                              variantPagination.page,
+                              variantPagination.pageSize
+                            );
+                          }
+                        }}
+                      >
+                        Thử lại
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* Versions Table */}
               <div className="bg-white rounded-[16px] flex flex-col px-6">
-                {/* Header Row */}
                 <div className="flex items-start border-b border-[#e7e7e7]">
-                  <div className="w-[400px] flex gap-2 items-center px-3 py-[14px]">
-                    <CustomCheckbox
-                      checked={
-                        versions.length > 0 &&
-                        selectedVersions.size === versions.length
-                      }
-                      onChange={handleSelectAll}
-                    />
+                  <div className="w-[420px] flex gap-3 items-center px-3 py-[14px]">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={
+                          versions.length > 0 &&
+                          selectedVersions.size === versions.length
+                        }
+                        onChange={handleSelectAll}
+                      />
+                    </div>
                     <p className="text-[14px] font-bold text-[#272424] font-montserrat">
                       {selectedCount > 0
                         ? `Đã chọn ${selectedCount} phiên bản`
-                        : `${versions.length} phiên bản`}
+                        : `${variantPagination.total.toLocaleString("vi-VN")} phiên bản`}
                     </p>
                   </div>
                   {selectedCount > 0 && (
@@ -1144,40 +1573,147 @@ const AdminProductsNew: React.FC = () => {
                   )}
                 </div>
 
-                {/* Version Rows */}
-                {versions.map((version, index) => (
-                  <div
-                    key={version.id}
-                    className={`flex items-start cursor-pointer hover:bg-gray-50 transition-colors ${
-                      index < versions.length - 1
-                        ? "border-b border-[#e7e7e7]"
-                        : ""
-                    }`}
-                    onClick={() => handleVersionRowClick(version.id)}
-                  >
-                    <div className="w-[400px] flex gap-2 items-center px-3 py-[14px]">
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <CustomCheckbox
-                          checked={selectedVersions.has(version.id)}
-                          onChange={() => handleVersionToggle(version.id)}
-                        />
-                      </div>
-                      <p className="text-[14px] font-medium text-[#272424] font-montserrat leading-[140%]">
-                        {version.name}
-                      </p>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-2 items-end justify-center px-3 py-[14px]">
-                      <p className="text-[12px] font-medium text-[#272424] font-montserrat leading-[140%]">
-                        Giá bán: {version.price || "0"}đ
-                      </p>
-                      <p className="text-[12px] font-medium text-[#272424] font-montserrat leading-[140%]">
-                        Tồn kho: {version.inventory || "0"}, Có thể bán:{" "}
-                        {version.available || "0"}
-                      </p>
-                    </div>
+                {isVariantLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Spin />
                   </div>
-                ))}
+                ) : versions.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-500 font-montserrat">
+                    Chưa có phiên bản nào. Hãy kiểm tra lại cấu hình thuộc tính hoặc tải lại dữ liệu.
+                  </div>
+                ) : (
+                  versions.map((version, index) => (
+                    <div
+                      key={version.id}
+                      className={`flex items-center cursor-pointer hover:bg-gray-50 transition-colors ${index < versions.length - 1 ? "border-b border-[#e7e7e7]" : ""
+                        }`}
+                      onClick={() => handleVersionRowClick(version.id)}
+                    >
+                      <div className="w-[420px] flex gap-3 items-center px-3 py-[14px]">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <CustomCheckbox
+                            checked={selectedVersions.has(version.id)}
+                            onChange={() => handleVersionToggle(version.id)}
+                          />
+                        </div>
+                        <div className="w-[44px] h-[44px] rounded-[12px] bg-[#f5f5f5] overflow-hidden flex items-center justify-center">
+                          {version.image ? (
+                            <img
+                              src={version.image}
+                              alt={version.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Icon name="image" size={20} color="#a1a1aa" />
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.name}
+                          </p>
+                          {(version.sku || version.barcode) && (
+                            <p className="text-xs text-gray-500 font-montserrat">
+                              {version.sku && `SKU: ${version.sku}`}
+                              {version.sku && version.barcode ? " • " : ""}
+                              {version.barcode && `Barcode: ${version.barcode}`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 grid grid-cols-[repeat(3,minmax(0,1fr))_auto] gap-4 items-center px-3 py-[14px]">
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {formatCurrencyDisplay(version.price)}
+                          </p>
+                          <p className="text-xs text-gray-500">Giá bán</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.inventory || "0"}
+                          </p>
+                          <p className="text-xs text-gray-500">Tồn kho</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.available || "0"}
+                          </p>
+                          <p className="text-xs text-gray-500">Có thể bán</p>
+                        </div>
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            className="text-[#1a71f6] hover:text-[#0f5ad8]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVersionRowClick(version.id);
+                            }}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path
+                                d="M12 20h9"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className="text-[#f44336] hover:text-[#d32f2f]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // TODO: Hook up delete logic when API is available
+                              console.log("Delete variant", version.id);
+                            }}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path
+                                d="M3 6H5H21"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
+
+              {variantPagination.total > variantPagination.pageSize && (
+                <div className="flex items-center justify-between px-6">
+                  <span className="text-sm text-gray-500">
+                    Trang {variantPagination.page + 1}/{Math.max(variantPagination.totalPages, 1)} • Tổng{" "}
+                    {variantPagination.total.toLocaleString("vi-VN")} phiên bản
+                  </span>
+                  <Pagination
+                    current={variantPagination.page + 1}
+                    pageSize={variantPagination.pageSize}
+                    total={variantPagination.total}
+                    showSizeChanger={false}
+                    onChange={handleVariantPageChange}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -1311,15 +1847,6 @@ const AdminProductsNew: React.FC = () => {
             </div>
           )}
 
-          {/* Images Error */}
-          {errors.images && (
-            <div className="bg-red-50 border border-red-200 rounded-[12px] p-4">
-              <p className="text-red-600 text-[14px] font-medium">
-                {errors.images}
-              </p>
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-100">
             <div className="text-sm text-gray-500">
@@ -1417,7 +1944,10 @@ const AdminProductsNew: React.FC = () => {
               <FormInput
                 placeholder="Nhập tên thương hiệu"
                 value={newBrandName}
-                onChange={(e) => setNewBrandName(e.target.value)}
+                onChange={(e) => {
+                  setNewBrandName(e.target.value);
+                  setBrandModalError("");
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -1426,12 +1956,75 @@ const AdminProductsNew: React.FC = () => {
                 }}
                 containerClassName="h-[40px] px-4"
               />
+              {brandModalError && (
+                <p className="text-sm text-red-500 mt-2">{brandModalError}</p>
+              )}
             </div>
             <div className="px-6 py-4 border-t border-[#d1d1d1] flex items-center justify-end gap-3">
-              <Button variant="secondary" onClick={handleBrandModalClose}>
+              <Button
+                variant="secondary"
+                onClick={handleBrandModalClose}
+                disabled={isBrandSubmitting}
+              >
                 Hủy
               </Button>
-              <Button onClick={handleBrandSubmit}>Thêm</Button>
+              <Button onClick={handleBrandSubmit} disabled={isBrandSubmitting}>
+                {isBrandSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Đang thêm...
+                  </div>
+                ) : (
+                  "Thêm"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {brandToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => (!isDeletingBrand ? setBrandToDelete(null) : undefined)}
+          />
+          <div
+            className="relative z-50 bg-white rounded-[24px] w-full max-w-[420px] overflow-hidden shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 pt-6 pb-3 border-b border-[#d1d1d1]">
+              <h2 className="text-[20px] font-bold text-[#272424] font-montserrat">
+                Xóa thương hiệu
+              </h2>
+            </div>
+            <div className="px-6 py-6">
+              <p className="text-[14px] text-[#272424] leading-[150%]">
+                Bạn có chắc chắn muốn xóa thương hiệu{" "}
+                <span className="font-semibold">{brandToDelete.name}</span> không?
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Hành động này không thể hoàn tác.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-[#d1d1d1] flex items-center justify-end gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => (!isDeletingBrand ? setBrandToDelete(null) : undefined)}
+                disabled={isDeletingBrand}
+              >
+                Hủy
+              </Button>
+              <Button onClick={handleConfirmDeleteBrand} disabled={isDeletingBrand}>
+                {isDeletingBrand ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Đang xóa...
+                  </div>
+                ) : (
+                  "Xác nhận"
+                )}
+              </Button>
             </div>
           </div>
         </div>
