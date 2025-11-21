@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import SearchBar from "@/components/ui/search-bar";
 import ProductItem from "../../../../../components/admin/table/ProductItem";
 import ProductTableHeader from "../../../../../components/admin/table/ProductTableHeader";
@@ -112,6 +112,7 @@ const AdminProducts: React.FC = () => {
     inactive: 0,
   });
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const latestRequestRef = useRef(0);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -159,6 +160,7 @@ const AdminProducts: React.FC = () => {
   }, [fetchTabCounts]);
 
   const fetchProducts = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -181,18 +183,29 @@ const AdminProducts: React.FC = () => {
       const mappedProducts =
         response?.productResponseList?.map(mapProductToUi) ?? [];
 
-      setProducts(mappedProducts);
-      setTotalPages(
-        response?.totalPages ??
-          response?.totalPage ??
-          Math.max(1, Math.ceil((response?.totalProducts ?? 1) / itemsPerPage))
-      );
+      if (requestId === latestRequestRef.current) {
+        setProducts(mappedProducts);
+        setTotalPages(
+          response?.totalPages ??
+            response?.totalPage ??
+            Math.max(
+              1,
+              Math.ceil((response?.totalProducts ?? 1) / itemsPerPage)
+            )
+        );
+      }
     } catch (error) {
-      console.error("Không thể tải danh sách sản phẩm", error);
-      setProducts([]);
-      setErrorMessage("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
+      if (requestId === latestRequestRef.current) {
+        console.error("Không thể tải danh sách sản phẩm", error);
+        setProducts([]);
+        setErrorMessage(
+          "Không thể tải danh sách sản phẩm. Vui lòng thử lại."
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [activeTab, currentPage, debouncedSearch, itemsPerPage]);
 
