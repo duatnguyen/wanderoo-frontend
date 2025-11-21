@@ -60,6 +60,7 @@ export interface CategoryChildPageResponse {
   totalElements: number;
   totalPages: number;
   categoryChildResponseList: CategoryChildResponse[];
+  content?: CategoryChildResponse[];
 }
 
 export interface SimpleCategoryResponse {
@@ -179,4 +180,13 @@ export interface AdminProductPageResponse {
   totalPage?: number;
   totalElements?: number;
   productResponseList: AdminProductResponse[];
+}
+
+export interface ProductVariantListResponse {
+  variants?: AdminProductDetailResponse[];
+  content?: AdminProductDetailResponse[];
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  totalElements?: number;
 }

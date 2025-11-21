@@ -19,6 +19,8 @@ import type {
   CategoryChildUpdateRequest,
   VariantDetailIdRequest,
   AdminProductPageResponse,
+  AdminProductDetailResponse,
+  ProductVariantListResponse,
 } from '../../types';
 
 type ProductListQuery = {
@@ -26,6 +28,12 @@ type ProductListQuery = {
   sort?: string;
   page?: number;
   size?: number;
+};
+
+type VariantListQuery = {
+  page?: number;
+  size?: number;
+  sort?: string;
 };
 
 // Public Product APIs
@@ -65,13 +73,33 @@ export const getProductDetailPrivate = async (id: number): Promise<ProductRespon
   return response.data.data;
 };
 
-export const getProductVariantsPrivate = async (productId: number, params?: {
-  page?: number;
-  size?: number;
-  sort?: string;
-}): Promise<VariantPageResponse> => {
-  const response = await api.get<ApiResponse<VariantPageResponse>>(`/auth/v1/private/product/${productId}/variants`, { params });
-  return response.data.data;
+export const getProductVariantsPrivate = async (
+  productId: number,
+  params?: VariantListQuery
+): Promise<ProductVariantListResponse> => {
+  const response = await api.get<ApiResponse<ProductVariantListResponse>>(
+    `/auth/v1/private/product/${productId}/variants`,
+    { params }
+  );
+
+  const data = response.data.data;
+  const variantsArray =
+    (Array.isArray(data?.variants)
+      ? (data?.variants as unknown as AdminProductDetailResponse[])
+      : undefined) ??
+    (Array.isArray((data as unknown as VariantPageResponse)?.content)
+      ? ((data as unknown as VariantPageResponse)?.content as unknown as AdminProductDetailResponse[])
+      : undefined) ??
+    [];
+  const variants = variantsArray as AdminProductDetailResponse[];
+
+  return {
+    variants,
+    pageNumber: data.pageNumber ?? (data as any)?.page ?? params?.page ?? 0,
+    pageSize: data.pageSize ?? params?.size ?? 20,
+    totalPages: data.totalPages ?? 1,
+    totalElements: data.totalElements ?? variants.length,
+  };
 };
 
 export const getVariantDetailPrivate = async (variantId: number): Promise<VariantResponse> => {

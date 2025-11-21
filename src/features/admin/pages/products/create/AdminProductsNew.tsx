@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { Select, Spin } from "antd";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Select, Spin, Pagination } from "antd";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
 import {
@@ -30,7 +30,11 @@ import type {
 } from "@/types/product";
 import type { ProductCreateRequest } from "@/types";
 import { validateForm, validateField } from "@/utils/productValidation";
-import { createProductPrivate, getCategoryChildOptions } from "@/api/endpoints/productApi";
+import {
+  createProductPrivate,
+  getCategoryChildOptions,
+  getProductVariantsPrivate,
+} from "@/api/endpoints/productApi";
 import {
   getBrandList,
   createBrand as createBrandApi,
@@ -39,97 +43,49 @@ import {
 import { toast } from "sonner";
 import "@/styles/animations.css";
 
-// Generate all combinations of attribute values (cartesian product)
-const generateCombinations = (
-  arrs: string[][],
-  index: number = 0,
-  current: string[] = []
-): string[][] => {
-  if (index === arrs.length) {
-    return [current];
+const formatCurrencyDisplay = (value?: string | number | null): string => {
+  if (value === null || value === undefined || value === "") {
+    return "0đ";
   }
-
-  const result: string[][] = [];
-  for (const value of arrs[index]) {
-    result.push(...generateCombinations(arrs, index + 1, [...current, value]));
+  const numeric =
+    typeof value === "number"
+      ? value
+      : Number(value.toString().replace(/[^\d.-]/g, ""));
+  if (!Number.isFinite(numeric)) {
+    return "0đ";
   }
-  return result;
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(numeric);
 };
-
-// Fake data for versions (6 rows as per Figma design)
-const FAKE_VERSIONS = [
-  {
-    id: "fake-1",
-    combination: ["40", "Xám"],
-    name: "40 / Xám",
-    price: "150000",
-    inventory: "50",
-    available: "45",
-  },
-  {
-    id: "fake-2",
-    combination: ["40", "Xanh đậm"],
-    name: "40 / Xanh đậm",
-    price: "150000",
-    inventory: "30",
-    available: "28",
-  },
-  {
-    id: "fake-3",
-    combination: ["41", "Xám"],
-    name: "41 / Xám",
-    price: "160000",
-    inventory: "45",
-    available: "40",
-  },
-  {
-    id: "fake-4",
-    combination: ["41", "Xanh đậm"],
-    name: "41 / Xanh đậm",
-    price: "160000",
-    inventory: "35",
-    available: "32",
-  },
-  {
-    id: "fake-5",
-    combination: ["42", "Xám"],
-    name: "42 / Xám",
-    price: "170000",
-    inventory: "40",
-    available: "38",
-  },
-  {
-    id: "fake-6",
-    combination: ["42", "Xanh đậm"],
-    name: "42 / Xanh đậm",
-    price: "170000",
-    inventory: "25",
-    available: "22",
-  },
-];
 
 const CATEGORY_PAGE_SIZE = 20;
 const BRAND_PAGE_SIZE = 20;
 const MAX_ATTRIBUTES = 5;
+const VARIANT_PAGE_SIZE = 20;
+
+const INITIAL_FORM_DATA: ProductFormData = {
+  productName: "",
+  barcode: "",
+  category: "",
+  categoryId: null,
+  brand: "",
+  brandId: null,
+  description: "",
+  costPrice: "",
+  sellingPrice: "",
+  inventory: "",
+  available: "",
+  weight: "",
+  length: "",
+  width: "",
+  height: "",
+};
 
 const AdminProductsNew: React.FC = () => {
-  const [formData, setFormData] = useState<ProductFormData>({
-    productName: "",
-    barcode: "",
-    category: "",
-    categoryId: null,
-    brand: "",
-    brandId: null,
-    description: "",
-    costPrice: "",
-    sellingPrice: "",
-    inventory: "",
-    available: "",
-    weight: "",
-    length: "",
-    width: "",
-    height: "",
-  });
+  const [formData, setFormData] = useState<ProductFormData>(INITIAL_FORM_DATA);
 
   const [showAttributes, setShowAttributes] = useState(false);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
@@ -167,6 +123,17 @@ const AdminProductsNew: React.FC = () => {
   const [categoryPage, setCategoryPage] = useState(0);
   const [categoryHasMore, setCategoryHasMore] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<number | null>(null);
+  const [isVariantSectionVisible, setIsVariantSectionVisible] = useState(false);
+  const [variantStatusMessage, setVariantStatusMessage] = useState<string | null>(null);
+  const [variantError, setVariantError] = useState<string | null>(null);
+  const [isVariantLoading, setIsVariantLoading] = useState(false);
+  const [variantPagination, setVariantPagination] = useState({
+    page: 0,
+    pageSize: VARIANT_PAGE_SIZE,
+    total: 0,
+    totalPages: 0,
+  });
 
   // Form steps for progress indicator
   const formSteps = [
@@ -200,6 +167,56 @@ const AdminProductsNew: React.FC = () => {
     }
   }, [errors]);
 
+  const fetchProductVariants = useCallback(
+    async (productId: number, page = 0, size = VARIANT_PAGE_SIZE) => {
+      setIsVariantLoading(true);
+      setVariantError(null);
+      try {
+        const response = await getProductVariantsPrivate(productId, {
+          page,
+          size,
+          sort: "asc",
+        });
+
+        const mappedVersions: ProductVersion[] =
+          response.variants?.map((variant) => ({
+            id: String(variant.id),
+            name: variant.nameDetail || variant.skuDetail || `Phiên bản #${variant.id}`,
+            price:
+              variant.sellingPrice !== undefined && variant.sellingPrice !== null
+                ? String(variant.sellingPrice)
+                : "",
+            inventory:
+              variant.totalQuantity !== undefined && variant.totalQuantity !== null
+                ? String(variant.totalQuantity)
+                : "",
+            available:
+              variant.availableQuantity !== undefined && variant.availableQuantity !== null
+                ? String(variant.availableQuantity)
+                : "",
+            image: variant.imageUrl ?? null,
+            sku: variant.skuDetail ?? "",
+            barcode: variant.barcode ?? "",
+          })) ?? [];
+
+        setVersions(mappedVersions);
+        setSelectedVersions(new Set());
+        setVariantPagination({
+          page: response.pageNumber ?? page,
+          pageSize: response.pageSize ?? size,
+          total: response.totalElements ?? mappedVersions.length,
+          totalPages: response.totalPages ?? 1,
+        });
+      } catch (error) {
+        console.error("Không thể tải phiên bản sản phẩm", error);
+        setVariantError("Không thể tải phiên bản. Vui lòng thử lại.");
+      } finally {
+        setIsVariantLoading(false);
+      }
+    },
+    []
+  );
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -214,6 +231,9 @@ const AdminProductsNew: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    setVariantStatusMessage("Đang tạo sản phẩm và tải phiên bản...");
+    setVariantError(null);
+    setIsVariantSectionVisible(true);
 
     try {
       const toFloat = (value: string): number => parseFloat(value) || 0;
@@ -232,7 +252,7 @@ const AdminProductsNew: React.FC = () => {
         categoryId: formData.categoryId!,
         brandId: formData.brandId!,
         images: images.map((img) => img.url).filter(Boolean),
-        attributes: attributes.length > 0 ? attributes : undefined,
+        attributes: attributes.length > 0 ? attributes : [],
         packagedWeight: toFloat(formData.weight),
         length: toFloat(formData.length),
         width: toFloat(formData.width),
@@ -243,19 +263,47 @@ const AdminProductsNew: React.FC = () => {
         availableQuantity: toOptionalInt(formData.available),
       };
 
-      await createProductPrivate(payload);
-      toast.success("Thêm sản phẩm thành công!");
+      const creationResponse = await createProductPrivate(payload);
+      const newProductId = creationResponse?.data;
+
+      if (typeof newProductId === "number") {
+        setCreatedProductId(newProductId);
+        await fetchProductVariants(newProductId, 0, VARIANT_PAGE_SIZE);
+        setVariantStatusMessage(null);
+        toast.success("Thêm sản phẩm thành công!");
+      } else {
+        setVariantStatusMessage(null);
+        toast.success("Thêm sản phẩm thành công nhưng không lấy được dữ liệu phiên bản.");
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
+      setVariantStatusMessage(null);
       toast.error("Không thể thêm sản phẩm. Vui lòng thử lại.");
       setErrors({ submit: "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại." });
     } finally {
+      setVariantStatusMessage(null);
       setIsSubmitting(false);
     }
-  }, [attributes, formData, images]);
+  }, [attributes, fetchProductVariants, formData, images]);
 
   const handleCancel = () => {
-    console.log("Form cancelled");
+    setFormData(INITIAL_FORM_DATA);
+    setImages([]);
+    setAttributes([]);
+    setNewAttributeName("");
+    setNewAttributeValueInput("");
+    setNewAttributeValues([]);
+    setAttributeError("");
+    setEditingAttributeIndex(null);
+    setIsAttributeFormVisible(true);
+    setErrors({});
+    setSelectedVersions(new Set());
+    setVersions([]);
+    setCreatedProductId(null);
+    setIsVariantSectionVisible(false);
+    setVariantStatusMessage(null);
+    setVariantError(null);
+    toast.success("Đã làm mới form. Bạn có thể nhập sản phẩm mới.");
   };
 
   const handleBrandModalClose = () => {
@@ -408,6 +456,14 @@ const AdminProductsNew: React.FC = () => {
       setCategoryLoading(false);
     }
   }, []);
+
+  const handleVariantPageChange = useCallback(
+    (page: number, pageSize?: number) => {
+      if (!createdProductId) return;
+      fetchProductVariants(createdProductId, page - 1, pageSize ?? variantPagination.pageSize);
+    },
+    [createdProductId, fetchProductVariants, variantPagination.pageSize]
+  );
 
   React.useEffect(() => {
     loadCategories(0, false);
@@ -625,39 +681,6 @@ const AdminProductsNew: React.FC = () => {
   }, [attributes.length]);
 
   // Memoized version calculation
-  const generatedVersions = useMemo(() => {
-    if (
-      attributes.length === 0 ||
-      attributes.some((attr) => attr.values.length === 0)
-    ) {
-      return FAKE_VERSIONS;
-    }
-
-    const valueArrays = attributes.map((attr) => attr.values);
-    const combinations = generateCombinations(valueArrays);
-
-    const newVersions = combinations.map((combination, index) => {
-      const name = combination.join(" / ");
-      const versionId = `version-${index}`;
-
-      return {
-        id: versionId,
-        combination,
-        name,
-        price: "",
-        inventory: "",
-        available: "",
-      };
-    });
-
-    return [...newVersions, ...FAKE_VERSIONS];
-  }, [attributes]);
-
-  // Update versions when attributes change
-  React.useEffect(() => {
-    setVersions(generatedVersions);
-  }, [generatedVersions]);
-
   const handleVersionToggle = (versionId: string) => {
     setSelectedVersions((prev) => {
       const newSet = new Set(prev);
@@ -761,12 +784,13 @@ const AdminProductsNew: React.FC = () => {
       setEditingVersion({
         id: version.id,
         name: version.name,
-        barcode: "", // You can add barcode to version state if needed
+        barcode: version.barcode || "",
         costPrice: "",
         sellingPrice: version.price || "",
         inventory: version.inventory || "",
         available: version.available || "",
-        image: "",
+        image: version.image || "",
+        sku: version.sku,
       });
       setShowEditVersionModal(true);
     }
@@ -1458,33 +1482,71 @@ const AdminProductsNew: React.FC = () => {
             </div>
           )}
 
-          {/* Version Section - Show when attributes are added */}
-          {showAttributes && attributes.length > 0 && versions.length > 0 && (
+          {/* Version Section */}
+          {isVariantSectionVisible && (
             <div className="bg-white border border-[#e7e7e7] rounded-[24px] py-6 flex flex-col gap-4">
-              <div className="flex items-center gap-1 px-6">
-                <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
-                  Phiên bản
-                </h2>
+              <div className="flex items-center justify-between px-6 flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+                    Phiên bản
+                  </h2>
+                  <span className="text-sm text-gray-500 font-montserrat">
+                    {variantPagination.total.toLocaleString("vi-VN")} phiên bản
+                  </span>
+                </div>
+                {createdProductId && (
+                  <span className="text-sm text-gray-500 font-montserrat">
+                    Mã sản phẩm: #{createdProductId}
+                  </span>
+                )}
               </div>
 
-              {/* Filter Section - removed per request */}
+              {(variantStatusMessage || variantError) && (
+                <div className="px-6 flex flex-col gap-3">
+                  {variantStatusMessage && (
+                    <div className="bg-[#f0f7ff] border border-[#d0e3ff] text-[#1a56db] px-4 py-2 rounded-[12px] text-sm font-medium">
+                      {variantStatusMessage}
+                    </div>
+                  )}
+                  {variantError && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-[12px] text-sm flex items-center gap-3 flex-wrap">
+                      <span>{variantError}</span>
+                      <button
+                        type="button"
+                        className="text-[#e04d30] font-semibold hover:underline"
+                        onClick={() => {
+                          if (createdProductId) {
+                            fetchProductVariants(
+                              createdProductId,
+                              variantPagination.page,
+                              variantPagination.pageSize
+                            );
+                          }
+                        }}
+                      >
+                        Thử lại
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* Versions Table */}
               <div className="bg-white rounded-[16px] flex flex-col px-6">
-                {/* Header Row */}
                 <div className="flex items-start border-b border-[#e7e7e7]">
-                  <div className="w-[400px] flex gap-2 items-center px-3 py-[14px]">
-                    <CustomCheckbox
-                      checked={
-                        versions.length > 0 &&
-                        selectedVersions.size === versions.length
-                      }
-                      onChange={handleSelectAll}
-                    />
+                  <div className="w-[420px] flex gap-3 items-center px-3 py-[14px]">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={
+                          versions.length > 0 &&
+                          selectedVersions.size === versions.length
+                        }
+                        onChange={handleSelectAll}
+                      />
+                    </div>
                     <p className="text-[14px] font-bold text-[#272424] font-montserrat">
                       {selectedCount > 0
                         ? `Đã chọn ${selectedCount} phiên bản`
-                        : `${versions.length} phiên bản`}
+                        : `${variantPagination.total.toLocaleString("vi-VN")} phiên bản`}
                     </p>
                   </div>
                   {selectedCount > 0 && (
@@ -1511,39 +1573,147 @@ const AdminProductsNew: React.FC = () => {
                   )}
                 </div>
 
-                {/* Version Rows */}
-                {versions.map((version, index) => (
-                  <div
-                    key={version.id}
-                    className={`flex items-start cursor-pointer hover:bg-gray-50 transition-colors ${index < versions.length - 1
-                      ? "border-b border-[#e7e7e7]"
-                      : ""
-                      }`}
-                    onClick={() => handleVersionRowClick(version.id)}
-                  >
-                    <div className="w-[400px] flex gap-2 items-center px-3 py-[14px]">
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <CustomCheckbox
-                          checked={selectedVersions.has(version.id)}
-                          onChange={() => handleVersionToggle(version.id)}
-                        />
-                      </div>
-                      <p className="text-[14px] font-medium text-[#272424] font-montserrat leading-[140%]">
-                        {version.name}
-                      </p>
-                    </div>
-                    <div className="flex-1 flex flex-col gap-2 items-end justify-center px-3 py-[14px]">
-                      <p className="text-[12px] font-medium text-[#272424] font-montserrat leading-[140%]">
-                        Giá bán: {version.price || "0"}đ
-                      </p>
-                      <p className="text-[12px] font-medium text-[#272424] font-montserrat leading-[140%]">
-                        Tồn kho: {version.inventory || "0"}, Có thể bán:{" "}
-                        {version.available || "0"}
-                      </p>
-                    </div>
+                {isVariantLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Spin />
                   </div>
-                ))}
+                ) : versions.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-500 font-montserrat">
+                    Chưa có phiên bản nào. Hãy kiểm tra lại cấu hình thuộc tính hoặc tải lại dữ liệu.
+                  </div>
+                ) : (
+                  versions.map((version, index) => (
+                    <div
+                      key={version.id}
+                      className={`flex items-center cursor-pointer hover:bg-gray-50 transition-colors ${index < versions.length - 1 ? "border-b border-[#e7e7e7]" : ""
+                        }`}
+                      onClick={() => handleVersionRowClick(version.id)}
+                    >
+                      <div className="w-[420px] flex gap-3 items-center px-3 py-[14px]">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <CustomCheckbox
+                            checked={selectedVersions.has(version.id)}
+                            onChange={() => handleVersionToggle(version.id)}
+                          />
+                        </div>
+                        <div className="w-[44px] h-[44px] rounded-[12px] bg-[#f5f5f5] overflow-hidden flex items-center justify-center">
+                          {version.image ? (
+                            <img
+                              src={version.image}
+                              alt={version.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Icon name="image" size={20} color="#a1a1aa" />
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.name}
+                          </p>
+                          {(version.sku || version.barcode) && (
+                            <p className="text-xs text-gray-500 font-montserrat">
+                              {version.sku && `SKU: ${version.sku}`}
+                              {version.sku && version.barcode ? " • " : ""}
+                              {version.barcode && `Barcode: ${version.barcode}`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 grid grid-cols-[repeat(3,minmax(0,1fr))_auto] gap-4 items-center px-3 py-[14px]">
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {formatCurrencyDisplay(version.price)}
+                          </p>
+                          <p className="text-xs text-gray-500">Giá bán</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.inventory || "0"}
+                          </p>
+                          <p className="text-xs text-gray-500">Tồn kho</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.available || "0"}
+                          </p>
+                          <p className="text-xs text-gray-500">Có thể bán</p>
+                        </div>
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            className="text-[#1a71f6] hover:text-[#0f5ad8]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVersionRowClick(version.id);
+                            }}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path
+                                d="M12 20h9"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className="text-[#f44336] hover:text-[#d32f2f]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // TODO: Hook up delete logic when API is available
+                              console.log("Delete variant", version.id);
+                            }}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path
+                                d="M3 6H5H21"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
+
+              {variantPagination.total > variantPagination.pageSize && (
+                <div className="flex items-center justify-between px-6">
+                  <span className="text-sm text-gray-500">
+                    Trang {variantPagination.page + 1}/{Math.max(variantPagination.totalPages, 1)} • Tổng{" "}
+                    {variantPagination.total.toLocaleString("vi-VN")} phiên bản
+                  </span>
+                  <Pagination
+                    current={variantPagination.page + 1}
+                    pageSize={variantPagination.pageSize}
+                    total={variantPagination.total}
+                    showSizeChanger={false}
+                    onChange={handleVariantPageChange}
+                  />
+                </div>
+              )}
             </div>
           )}
 

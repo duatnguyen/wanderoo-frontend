@@ -25,11 +25,13 @@ export interface ProductAttribute {
 
 export interface ProductVersion {
   id: string;
-  combination: string[];
   name: string;
-  price: string;
-  inventory: string;
-  available: string;
+  price?: string;
+  inventory?: string;
+  available?: string;
+  image?: string | null;
+  sku?: string;
+  barcode?: string;
 }
 
 export interface EditingVersion {
@@ -41,6 +43,7 @@ export interface EditingVersion {
   inventory: string;
   available: string;
   image: string;
+  sku?: string;
 }
 
 export interface ProductImage {
