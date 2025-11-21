@@ -23,19 +23,36 @@ export interface AddressResponse {
   phone: string;
   wardCode: string;
   districtId: number;
-  isDefault: boolean;
+  isDefault: string | boolean; // Backend returns "Địa chỉ mặc định" or "Địa chỉ không mặc định" as string
 }
 
-export interface AddressPageResponse extends PageResponse<AddressResponse> {}
+export interface AddressPageResponse {
+  addresses: AddressResponse[];
+}
 
 export interface AddressDetailResponse extends AddressResponse {}
 
 export interface EmployeeResponse extends UserResponse {
-  department: string;
-  position: string;
+  department?: string;
+  position?: string;
+  type?: string;
+  image_url?: string | null;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null;
 }
 
 export interface EmployeePageResponse extends PageResponse<EmployeeResponse> {}
+
+export interface AdminProfileDetailResponse {
+  id: number;
+  image_url: string | null;
+  username: string;
+  name: string;
+  email: string;
+  phone: string;
+  gender: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday: string | null; // ISO date string
+}
 
 export interface CustomerResponse extends UserResponse {
   address: string;
@@ -63,14 +80,36 @@ export interface RefreshTokenRequest {
 }
 
 export interface UserUpdateRequest {
-  name?: string;
-  phone?: string;
+  id: number;
+  name: string;
+  phone: string;
   email?: string;
+  birthday?: string | null;
+  gender?: "MALE" | "FEMALE";
+  image_url?: string | null;
+}
+
+// Admin profile update request (matches backend UserUpdateRequest)
+export interface AdminProfileUpdateRequest {
+  id: number;
+  name: string;
+  image_url?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string; // ISO date string
+  email?: string;
+  phone: string;
 }
 
 export interface ChangePasswordRequest {
   oldPassword: string;
   newPassword: string;
+}
+
+// Admin password update request (matches backend UpdatePasswordRequest)
+export interface AdminPasswordUpdateRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
 }
 
 export interface AddressCreationRequest {
@@ -89,13 +128,14 @@ export interface AddressUpdateRequest extends AddressCreationRequest {
 }
 
 export interface EmployeeCreationRequest {
-  username: string;
-  email: string;
-  password: string;
   name: string;
+  username: string;
   phone: string;
-  department: string;
-  position: string;
+  password: string;
+  email?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string;
+  image_url?: string;
 }
 
 export interface EmployeeUpdateRequest extends EmployeeCreationRequest {
@@ -116,7 +156,7 @@ export interface CustomerUpdateRequest extends CustomerCreationRequest {
 }
 
 export interface SelectAllRequest {
-  ids: number[];
+  getAll: number[];
 }
 
 // Context and state types
@@ -128,6 +168,9 @@ export interface User {
   phone: string;
   role: string;
   status: string;
+  avatar?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
 }
 
 export interface LoginCredentials {
@@ -158,4 +201,5 @@ export interface AuthContextType extends AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   refreshAuth: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }

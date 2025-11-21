@@ -72,11 +72,9 @@ export const DataTable = <T extends Record<string, any>>({
       index === data.length - 1 ? "border-transparent" : "border-[#e7e7e7]"
     }`;
 
-    if (selectable && selectedRows.has(getRowId(record))) {
-      classes += " bg-blue-50";
-    } else {
-      classes += " hover:bg-gray-50";
-    }
+    classes += selectable && selectedRows.has(getRowId(record))
+      ? " bg-gray-50"
+      : " hover:bg-gray-50";
 
     if (onRowClick) {
       classes += " cursor-pointer";
@@ -116,6 +114,7 @@ export const DataTable = <T extends Record<string, any>>({
                   checked={isAllSelected}
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   className="w-[18px] h-[18px] rounded border-2 border-gray-300"
+                  style={{ accentColor: "#E04D30" }}
                 />
               </div>
             )}
@@ -168,6 +167,7 @@ export const DataTable = <T extends Record<string, any>>({
                       }
                       onClick={(e) => e.stopPropagation()}
                       className="w-[18px] h-[18px] rounded border-2 border-gray-300"
+                      style={{ accentColor: "#E04D30" }}
                     />
                   </div>
                 )}

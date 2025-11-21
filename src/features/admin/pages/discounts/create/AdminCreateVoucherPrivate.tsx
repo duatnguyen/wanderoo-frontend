@@ -79,6 +79,15 @@ const AdminCreateVoucherPrivate: React.FC = () => {
   const isEditMode = mode === "edit" && !!editData;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
+  const [minDateTime] = useState(() => formatDateTimeForInput(new Date().toISOString()));
+  const numericFields: Array<keyof VoucherFormData> = [
+    "discountValue",
+    "maxDiscountValue",
+    "minOrderAmount",
+    "maxUsage",
+    "maxUsagePerCustomer",
+  ];
+  const sanitizeNumericInput = (value: string) => value.replace(/[^0-9]/g, "");
 
   useEffect(() => {
     if (isEditMode && editData) {
@@ -105,9 +114,10 @@ const AdminCreateVoucherPrivate: React.FC = () => {
   const pageTitle = isEditMode ? "Chỉnh sửa mã giảm giá" : "Tạo mã giảm giá mới";
 
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
+    const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: processedValue,
     }));
   };
 
@@ -228,6 +238,7 @@ const AdminCreateVoucherPrivate: React.FC = () => {
                       onChange={(e) =>
                         handleInputChange("startDate", e.target.value)
                       }
+                      min={minDateTime}
                       containerClassName="h-[36px] w-[240px]"
                       className={!formData.startDate ? "opacity-50" : ""}
                     />
@@ -245,6 +256,9 @@ const AdminCreateVoucherPrivate: React.FC = () => {
                       value={formatDateTimeForInput(formData.endDate)}
                       onChange={(e) =>
                         handleInputChange("endDate", e.target.value)
+                      }
+                      min={
+                        formatDateTimeForInput(formData.startDate) || minDateTime
                       }
                       containerClassName="h-[36px] w-[240px]"
                       className={!formData.endDate ? "opacity-50" : ""}

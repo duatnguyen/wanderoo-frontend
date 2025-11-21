@@ -128,8 +128,18 @@ export const updateAdminCustomerOrder = async (id: number, orderData: CustomerOr
   return response.data.data;
 };
 
-export const confirmOrderAndCreateShipping = async (id: number, data: { pickShift: number[]; requiredNote: string }): Promise<OrderConfirmResponse> => {
-  const response = await api.post<ApiResponse<OrderConfirmResponse>>(`/auth/v1/private/orders/${id}/confirm`, data);
+export const confirmOrderAndCreateShipping = async (
+  id: number,
+  data: { pickShift: number[]; requiredNote: string; paymentTypeId: number; serviceTypeId: number }
+): Promise<OrderConfirmResponse> => {
+  // Transform camelCase to snake_case for backend compatibility
+  const requestBody = {
+    pick_shift: data.pickShift,
+    required_note: data.requiredNote,
+    payment_type_id: data.paymentTypeId,
+    service_type_id: data.serviceTypeId,
+  };
+  const response = await api.post<ApiResponse<OrderConfirmResponse>>(`/auth/v1/private/orders/${id}/confirm`, requestBody);
   return response.data.data;
 };
 

@@ -15,7 +15,7 @@ export interface OrderResponse {
   customerId: number;
   totalAmount: number;
   status: string;
-  paymentStatus: string;
+  paymentStatus?: string; // Made optional for compatibility
   createdAt: string;
   updatedAt: string;
 }
@@ -37,11 +37,56 @@ export interface OrderItemResponse {
 }
 
 
+export interface OrderDetailItemResponse {
+  id: number;
+  orderId: number;
+  productDetailId: number;
+  quantity: number;
+  snapshotProductName: string;
+  snapshotProductSku: string;
+  snapshotProductPrice: number;
+  snapshotPackagedWeight?: number;
+  snapshotLength?: number;
+  snapshotWidth?: number;
+  snapshotHeight?: number;
+  snapshotVariantAttributes?: VariantAttribute[];
+}
+
 export interface CustomerOrderResponse extends OrderResponse {
   userInfo: UserInfo;
   shippingDetail?: any; // GHN shipping details
-  items?: OrderItemResponse[]; // Order items
+  items?: OrderItemResponse[]; // Order items (legacy, for backward compatibility)
+  orderDetails?: OrderDetailItemResponse[]; // Order details with product information
   source?: string; // Order source (WEBSITE, POS, etc.)
+  picId?: number | null;
+  discountId?: number | null;
+  method?: string;
+  paymentStatus?: string;
+  shippingFee?: number;
+  totalProductPrice?: number;
+  totalOrderPrice?: number;
+  notes?: string;
+  discountOrderId?: number | null;
+  discountShipId?: number | null;
+  cashReceived?: number | null;
+  changeAmount?: number | null;
+  shippingOrderCode?: string | null;
+  shippingStatus?: string | null;
+  shippingProvider?: string | null;
+  trackingNumber?: string | null;
+  expectedDeliveryDate?: string | null;
+  receiverName?: string | null;
+  receiverPhone?: string | null;
+  receiverAddress?: string | null;
+  receiverProvinceName?: string | null;
+  receiverDistrictId?: number | null;
+  receiverDistrictName?: string | null;
+  receiverWardCode?: string | null;
+  receiverWardName?: string | null;
+  shopDistrictId?: number | null;
+  shopDistrictName?: string | null;
+  shopWardCode?: string | null;
+  shopWardName?: string | null;
 }
 
 export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> { }
@@ -222,7 +267,8 @@ export interface AdminOrderResponse {
   expectedDeliveryDate: string | null;
   createdAt: string;
   updatedAt: string;
-  items: AdminOrderItemResponse[];
+  items?: AdminOrderItemResponse[]; // Legacy field for backward compatibility
+  orderDetails?: OrderDetailItemResponse[]; // New field with product information
 }
 
 export interface AdminOrdersApiResponse {

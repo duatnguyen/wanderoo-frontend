@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
@@ -20,6 +20,12 @@ import {
   TableFilters,
   type TabItemWithBadge,
 } from "@/components/common";
+import {
+  getImportInvoices,
+  getImportInvoicesPending,
+  getImportInvoicesDone,
+} from "@/api/endpoints/warehouseApi";
+import type { InvoiceResponse } from "@/types/warehouse";
 
 type ImportStatus = "all" | "processing" | "completed";
 
@@ -37,93 +43,187 @@ interface WarehouseImport {
   totalValue: number;
 }
 
-const mockImports: WarehouseImport[] = [
-  {
-    id: "1",
-    importCode: "NK001",
-    createdDate: "2024-01-15",
-    paymentMethod: "cash",
-    status: "processing",
-    importStatus: "not_imported",
-    paymentStatus: "unpaid",
-    supplier: "Công ty TNHH ABC",
-    createdBy: "Nguyễn Văn A",
-    totalItems: 150,
-    totalValue: 25000000,
-  },
-  {
-    id: "2",
-    importCode: "NK002",
-    createdDate: "2024-01-16",
-    paymentMethod: "transfer",
-    status: "processing",
-    importStatus: "imported",
-    paymentStatus: "paid",
-    supplier: "Công ty XYZ",
-    createdBy: "Trần Thị B",
-    totalItems: 200,
-    totalValue: 35000000,
-  },
-  {
-    id: "3",
-    importCode: "NK003",
-    createdDate: "2024-01-10",
-    paymentMethod: "transfer",
-    status: "completed",
-    importStatus: "imported",
-    paymentStatus: "paid",
-    supplier: "Nhà cung cấp DEF",
-    createdBy: "Lê Văn C",
-    totalItems: 75,
-    totalValue: 12000000,
-  },
-  {
-    id: "4",
-    importCode: "NK004",
-    createdDate: "2024-01-12",
-    paymentMethod: "cash",
-    status: "processing",
-    importStatus: "not_imported",
-    paymentStatus: "unpaid",
-    supplier: "Công ty GHI",
-    createdBy: "Phạm Thị D",
-    totalItems: 300,
-    totalValue: 50000000,
-  },
-  {
-    id: "5",
-    importCode: "NK005",
-    createdDate: "2024-01-08",
-    paymentMethod: "transfer",
-    status: "completed",
-    importStatus: "imported",
-    paymentStatus: "paid",
-    supplier: "Nhà cung cấp JKL",
-    createdBy: "Hoàng Văn E",
-    totalItems: 120,
-    totalValue: 18000000,
-  },
-];
-
 const AdminWarehouseImports = () => {
-  document.title = "Nhập hàng | Wanderoo";
-
-  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<ImportStatus>("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [imports] = useState<WarehouseImport[]>(mockImports);
+  const [importsData, setImportsData] = useState<WarehouseImport[]>([]);
   const [selectedStatus, setSelectedStatus] = useState("Tất cả trạng thái");
+  const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [tabCounts, setTabCounts] = useState({
+    all: 0,
+    processing: 0,
+    completed: 0,
+  });
 
-  // Calculate counts for each tab
-  const tabCounts = useMemo(() => {
-    const counts = {
-      all: imports.length,
-      processing: imports.filter((item) => item.status === "processing").length,
-      completed: imports.filter((item) => item.status === "completed").length,
+  // Set document title
+  useEffect(() => {
+    document.title = "Nhập hàng | Wanderoo";
+  }, []);
+
+  // Fetch tab counts on mount
+  useEffect(() => {
+    const fetchTabCounts = async () => {
+      try {
+        const [allRes, pendingRes, doneRes] = await Promise.all([
+          getImportInvoices(undefined, undefined, 0, 1),
+          getImportInvoicesPending(undefined, undefined, 0, 1),
+          getImportInvoicesDone(undefined, undefined, 0, 1),
+        ]);
+
+        setTabCounts({
+          all: allRes.totalElements || 0,
+          processing: pendingRes.totalElements || 0,
+          completed: doneRes.totalElements || 0,
+        });
+      } catch (error) {
+        console.error("Error fetching tab counts:", error);
+      }
     };
-    return counts;
-  }, [imports]);
+
+    fetchTabCounts();
+  }, []);
+
+  // Map InvoiceResponse to WarehouseImport
+  const mapInvoiceToWarehouseImport = (invoice: InvoiceResponse): WarehouseImport => {
+    console.log("Mapping invoice:", invoice);
+    
+    // Map status: DONE -> completed, PENDING -> processing
+    const status = invoice.status === "DONE" ? "completed" : "processing";
+    
+    // Map productStatus: DONE -> imported, PENDING -> not_imported
+    const importStatus = invoice.productStatus === "DONE" ? "imported" : "not_imported";
+    
+    // Map paymentStatus: DONE -> paid, PENDING -> unpaid
+    const paymentStatus = invoice.paymentStatus === "DONE" ? "paid" : "unpaid";
+    
+    // Map method: CASH -> cash, BANKING -> transfer, UNDEFINED -> cash (default)
+    const paymentMethod = invoice.method === "CASH" ? "cash" : 
+                         invoice.method === "BANKING" ? "transfer" : "cash";
+
+    // Hiển thị code trực tiếp từ backend (không convert) - hiển thị đúng string backend trả về
+    const importCode = invoice.code || "";
+
+    // Format date: parse and format createdAt properly
+    // Backend returns date as string like "2025-11-13 05:31:21" or ISO string
+    let createdDate: string;
+    if (invoice.createdAt) {
+      try {
+        let date: Date;
+        if (typeof invoice.createdAt === 'string') {
+          // Try parsing as "YYYY-MM-DD HH:mm:ss" format first
+          if (invoice.createdAt.includes(' ') && !invoice.createdAt.includes('T')) {
+            // Format: "2025-11-13 05:31:21"
+            date = new Date(invoice.createdAt.replace(' ', 'T'));
+          } else {
+            // ISO format or other
+            date = new Date(invoice.createdAt);
+          }
+        } else {
+          date = new Date(invoice.createdAt);
+        }
+        
+        if (!isNaN(date.getTime())) {
+          createdDate = date.toISOString();
+        } else {
+          createdDate = new Date().toISOString();
+        }
+      } catch (error) {
+        console.error("Error parsing date:", invoice.createdAt, error);
+        createdDate = new Date().toISOString();
+      }
+    } else {
+      createdDate = new Date().toISOString();
+    }
+
+    // Use providerName and picName directly from API response (hiển thị giá trị thực từ DB)
+    const supplier = invoice.providerName || "";
+    const createdBy = invoice.picName || "";
+
+    // Ensure totalPrice is a valid number (Float from backend)
+    const totalValue = invoice.totalPrice != null && 
+                       !isNaN(Number(invoice.totalPrice)) && 
+                       isFinite(Number(invoice.totalPrice))
+                      ? Number(invoice.totalPrice) 
+                      : 0;
+
+    // Ensure totalQuantity is a valid number (int from backend)
+    const totalItems = invoice.totalQuantity != null && 
+                       !isNaN(Number(invoice.totalQuantity)) && 
+                       isFinite(Number(invoice.totalQuantity))
+                      ? Number(invoice.totalQuantity) 
+                      : 0;
+
+    return {
+      id: invoice.id ? invoice.id.toString() : "",
+      importCode,
+      createdDate,
+      paymentMethod,
+      status,
+      importStatus,
+      paymentStatus,
+      supplier,
+      createdBy,
+      totalItems,
+      totalValue,
+    };
+  };
+
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const page = currentPage - 1; // API uses 0-based pagination
+        let response;
+
+        // Truyền keyword và size=10 cho backend
+        const keyword = searchTerm && searchTerm.trim() !== "" ? searchTerm.trim() : undefined;
+        const size = 10;
+
+        if (activeTab === "processing") {
+          response = await getImportInvoicesPending(keyword, undefined, page, size);
+        } else if (activeTab === "completed") {
+          response = await getImportInvoicesDone(keyword, undefined, page, size);
+        } else {
+          response = await getImportInvoices(keyword, undefined, page, size);
+        }
+
+        console.log("API Response:", response);
+        
+        if (!response || !response.invoices) {
+          console.error("Invalid response structure:", response);
+          setImportsData([]);
+          setTotalPages(0);
+          setTotalElements(0);
+          return;
+        }
+
+        console.log("Invoices from API:", response.invoices);
+        console.log("First invoice:", response.invoices[0]);
+
+        const mappedImports = response.invoices.map(mapInvoiceToWarehouseImport);
+        console.log("Mapped imports:", mappedImports);
+        console.log("First mapped import:", mappedImports[0]);
+        
+        setImportsData(mappedImports);
+        setTotalPages(response.totalPages || 1);
+        setTotalElements(response.totalElements || 0);
+      } catch (error) {
+        console.error("Error fetching import invoices:", error);
+        setImportsData([]);
+        setTotalPages(0);
+        setTotalElements(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [activeTab, currentPage, searchTerm]);
 
   const tabs: TabItemWithBadge[] = [
     { id: "all", label: "Tất cả", count: tabCounts.all },
@@ -131,27 +231,8 @@ const AdminWarehouseImports = () => {
     { id: "completed", label: "Đã hoàn thành", count: tabCounts.completed },
   ];
 
-  const filteredImports = useMemo(() => {
-    return imports.filter((importItem) => {
-      const matchesTab = activeTab === "all" || importItem.status === activeTab;
-      const matchesSearch =
-        searchTerm === "" ||
-        importItem.importCode
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        importItem.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        importItem.createdBy.toLowerCase().includes(searchTerm.toLowerCase());
-
-      return matchesTab && matchesSearch;
-    });
-  }, [imports, activeTab, searchTerm]);
-
-  const paginatedImports = useMemo(() => {
-    const startIndex = (currentPage - 1) * 10;
-    return filteredImports.slice(startIndex, startIndex + 10);
-  }, [filteredImports, currentPage]);
-
-  const totalPages = Math.ceil(filteredImports.length / 10);
+  // Data is already filtered and paginated by the API
+  const paginatedImports = importsData;
 
   const getStatusChip = (status: ImportStatus) => {
     if (status === "processing" || status === "completed") {
@@ -174,20 +255,55 @@ const AdminWarehouseImports = () => {
     return null;
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      currencyDisplay: "code",
-    })
-      .format(amount)
-      .replace("VND", "đ")
-      .replace(/\s/g, "");
+  // Format price: hiển thị số + "vnđ" (ví dụ: 960000 vnđ)
+  const formatPrice = (amount: number) => {
+    if (amount == null || isNaN(amount) || !isFinite(amount)) {
+      return "0 vnđ";
+    }
+    // Format số với dấu phẩy ngăn cách hàng nghìn
+    return `${Number(amount).toLocaleString('vi-VN')} vnđ`;
   };
 
+  // Format date: parse "2025-11-13 05:31:21" → "13/11/2025"
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN");
+    try {
+      let date: Date;
+      if (dateString.includes(' ') && !dateString.includes('T')) {
+        // Format: "2025-11-13 05:31:21"
+        date = new Date(dateString.replace(' ', 'T'));
+      } else {
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) {
+        return dateString; // Return original if can't parse
+      }
+      
+      // Format as DD/MM/YYYY
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      console.error("Error formatting date:", dateString, error);
+      return dateString;
+    }
   };
+
+  // Calculate pagination display text (size = 10)
+  const paginationText = useMemo(() => {
+    if (totalElements === 0) {
+      return "Không có dữ liệu";
+    }
+    const start = (currentPage - 1) * 10 + 1;
+    const end = Math.min(currentPage * 10, totalElements);
+    return `Đang hiển thị ${start} - ${end} trong tổng ${totalElements} trang`;
+  }, [currentPage, totalElements]);
+
+  // Reset to page 1 when searchTerm changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   return (
     <PageContainer>
@@ -332,7 +448,16 @@ const AdminWarehouseImports = () => {
 
           {/* Scrollable Table Body */}
           <div className="max-h-[600px] overflow-y-auto">
-            {paginatedImports.map((importItem, index) => (
+            {loading ? (
+              <div className="flex justify-center items-center py-10">
+                <span className="text-[#272424] text-[14px]">Đang tải...</span>
+              </div>
+            ) : paginatedImports.length === 0 ? (
+              <div className="flex justify-center items-center py-10">
+                <span className="text-[#272424] text-[14px]">Không có dữ liệu</span>
+              </div>
+            ) : (
+              paginatedImports.map((importItem, index) => (
               <div
                 key={importItem.id}
                 className={`border-b border-[#e7e7e7] hover:bg-gray-50 ${index === paginatedImports.length - 1 ? "border-b-0 rounded-bl-[16px] rounded-br-[16px]" : ""}`}
@@ -385,11 +510,8 @@ const AdminWarehouseImports = () => {
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
-                    <span
-                      className="font-medium text-[#272424] text-[12px]"
-                      title={formatCurrency(importItem.totalValue)}
-                    >
-                      {(importItem.totalValue / 1000000).toFixed(0)}M
+                    <span className="font-medium text-[#272424] text-[12px]">
+                      {formatPrice(importItem.totalValue)}
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
@@ -447,8 +569,7 @@ const AdminWarehouseImports = () => {
                     <div className="flex justify-between text-[11px]">
                       <span className="text-gray-600">SL / Giá trị:</span>
                       <span className="font-medium">
-                        {importItem.totalItems} /{" "}
-                        {(importItem.totalValue / 1000000).toFixed(0)}M
+                        {importItem.totalItems} / {formatPrice(importItem.totalValue)}
                       </span>
                     </div>
                   </div>
@@ -470,12 +591,16 @@ const AdminWarehouseImports = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
 
         {/* Pagination */}
-        <div className="py-[8px] w-full flex-shrink-0">
+        <div className="py-[8px] w-full flex-shrink-0 flex justify-between items-center">
+          <div className="text-[#272424] text-[12px]">
+            {paginationText}
+          </div>
           <Pagination
             current={currentPage}
             total={totalPages}

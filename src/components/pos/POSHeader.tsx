@@ -6,8 +6,8 @@ import { Loader2, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { POSOrderTabs, type OrderTab } from "./POSOrderTabs";
 import { searchProducts } from "@/api/endpoints/saleApi";
-import type { SaleProductResponse } from "@/types";
 import { usePOSContext } from "@/context/POSContext";
+import type {SaleProductResponse} from "@/types/api.ts";
 
 export type { OrderTab };
 

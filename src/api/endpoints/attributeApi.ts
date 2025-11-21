@@ -9,6 +9,9 @@ import type {
   CategoryParentUpdateRequest,
   CategoryChildUpdateRequest,
   SelectAllRequest,
+  CategoryStatus,
+  CategoryPublicResponse,
+  SimpleCategoryResponse,
 } from '../../types';
 
 // Category Parent APIs
@@ -25,8 +28,15 @@ export const createCategoryParent = async (categoryData: CategoryParentCreateReq
   return response.data;
 };
 
-export const updateCategoryParent = async (categoryData: CategoryParentUpdateRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/attribute/category-parent', categoryData);
+export const updateCategoryParent = async (
+  categoryData: CategoryParentUpdateRequest,
+  status: CategoryStatus
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    '/auth/v1/private/attribute/category-parent',
+    categoryData,
+    { params: { status } }
+  );
   return response.data;
 };
 
@@ -52,8 +62,15 @@ export const createCategoryChild = async (categoryData: CategoryChildCreateReque
   return response.data;
 };
 
-export const updateCategoryChild = async (categoryData: CategoryChildUpdateRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/attribute/category-child', categoryData);
+export const updateCategoryChild = async (
+  categoryData: CategoryChildUpdateRequest,
+  status: CategoryStatus
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    '/auth/v1/private/attribute/category-child',
+    categoryData,
+    { params: { status } }
+  );
   return response.data;
 };
 
@@ -75,4 +92,19 @@ export const getBrandList = async (params?: {
 }): Promise<any> => { // TODO: Define proper BrandPageResponse type
   const response = await api.get<ApiResponse<any>>('/auth/v1/private/attribute/brand', { params });
   return response.data.data;
+};
+
+// Public Category APIs
+export const getPublicCategoryParents = async (): Promise<SimpleCategoryResponse[]> => {
+  const response = await api.get<ApiResponse<CategoryPublicResponse>>('/auth/v1/public/attribute/category-parent');
+  return response.data.data.categories ?? [];
+};
+
+export const getPublicCategoryChildren = async (
+  parentId: number
+): Promise<SimpleCategoryResponse[]> => {
+  const response = await api.get<ApiResponse<CategoryPublicResponse>>(
+    `/auth/v1/public/attribute/category-child/${parentId}`
+  );
+  return response.data.data.categories ?? [];
 };

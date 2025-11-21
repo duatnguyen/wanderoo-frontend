@@ -1,6 +1,8 @@
 // src/pages/admin/AdminDiscounts.tsx
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import TabMenuAccount from "@/components/ui/tab-menu-account";
 import type { TabItem } from "@/components/ui/tab-menu-account";
 import { PageHeader } from "@/components/admin/table/PageHeader";
@@ -19,39 +21,13 @@ import type {
   Voucher,
   VoucherOrder,
   VoucherOrderSummary,
-  VoucherProduct,
 } from "@/types/voucher";
 import VoucherOrdersModal from "@/components/admin/voucher/VoucherOrdersModal";
-
-const sampleProducts: VoucherProduct[] = [
-  {
-    id: "PRO-001",
-    name: "Giày leo núi nữ Humtto Hiking Shoes 14013",
-    image: "/placeholder-product.jpg",
-    barcode: "MS:HUMTTO14013",
-    price: 1299000,
-    available: 12,
-    quantity: 1,
-  },
-  {
-    id: "PRO-002",
-    name: "Giày chạy trail ON Cloudventure Ice Heron",
-    image: "/placeholder-product.jpg",
-    barcode: "MS:ONCLOUDVENTURE",
-    price: 3490000,
-    available: 8,
-    quantity: 1,
-  },
-  {
-    id: "PRO-003",
-    name: "Bình giữ nhiệt Hydro Flask 621ml",
-    image: "/placeholder-product.jpg",
-    barcode: "MS:HYDROFLASK621",
-    price: 890000,
-    available: 25,
-    quantity: 2,
-  },
-];
+import { getDiscounts } from "@/api/endpoints/discountApi";
+import type {
+  AdminDiscountResponse,
+  DiscountStateValue,
+} from "@/types/discount";
 
 const formatDisplayDate = (iso: string) => {
   if (!iso) return "";
@@ -64,165 +40,6 @@ const formatDisplayDate = (iso: string) => {
   const day = date.toLocaleDateString("vi-VN");
   return `${time} ${day}`;
 };
-
-const mockVouchers: Voucher[] = [
-  {
-    id: "SHOP-001",
-    code: "SHOP5",
-    name: "Tháng 3 - Giảm 5% toàn shop",
-    type: "Voucher toàn shop",
-    voucherCategory: "Khuyến Mãi",
-    products: "Tất cả sản phẩm",
-    discount: "5%",
-    maxUsage: 200,
-    used: 48,
-    savedCount: 512,
-    display: "Website",
-    startDate: formatDisplayDate("2024-03-01T08:00:00"),
-    endDate: formatDisplayDate("2024-04-01T23:59:00"),
-    status: "Đang diễn ra",
-    editData: {
-      voucherName: "Tháng 3 - Giảm 5% toàn shop",
-      voucherCode: "SHOP5",
-      description: "Khuyến mãi đầu xuân áp dụng cho toàn bộ sản phẩm.",
-      startDate: "2024-03-01T08:00:00",
-      endDate: "2024-04-01T23:59:00",
-      discountType: "percentage",
-      discountValue: "5",
-      maxDiscountLimit: "limited",
-      maxDiscountValue: "50000",
-      minOrderAmount: "300000",
-      maxUsage: "200",
-      maxUsagePerCustomer: "2",
-      displaySetting: "website",
-    },
-  },
-  {
-    id: "PRO-001",
-    code: "GEAR50",
-    name: "Combo đồ leo núi - Giảm 50K",
-    type: "Voucher sản phẩm",
-    voucherCategory: "Khuyến Mãi",
-    products: "3 sản phẩm được chọn",
-    discount: "50.000đ",
-    maxUsage: 120,
-    used: 5,
-    savedCount: 86,
-    display: "POS + Website",
-    startDate: formatDisplayDate("2024-04-05T09:00:00"),
-    endDate: formatDisplayDate("2024-05-05T22:00:00"),
-    status: "Sắp diễn ra",
-    editData: {
-      voucherName: "Combo đồ leo núi - Giảm 50K",
-      voucherCode: "GEAR50",
-      description: "Ưu đãi cho nhóm sản phẩm leo núi bán chạy.",
-      startDate: "2024-04-05T09:00:00",
-      endDate: "2024-05-05T22:00:00",
-      discountType: "fixed",
-      discountValue: "50000",
-      maxDiscountLimit: "unlimited",
-      minOrderAmount: "500000",
-      maxUsage: "120",
-      maxUsagePerCustomer: "1",
-      displaySetting: "pos-website",
-      appliedProducts: sampleProducts,
-    },
-  },
-  {
-    id: "NEW-001",
-    code: "WELCOME20",
-    name: "Khách hàng mới - Giảm 20%",
-    type: "Voucher khách hàng mới",
-    voucherCategory: "Khuyến Mãi",
-    products: "Tất cả sản phẩm",
-    discount: "20%",
-    maxUsage: 500,
-    used: 132,
-    savedCount: 218,
-    display: "Website",
-    startDate: formatDisplayDate("2024-01-15T00:00:00"),
-    endDate: formatDisplayDate("2024-06-30T23:59:00"),
-    status: "Đang diễn ra",
-    editData: {
-      voucherName: "Khách hàng mới - Giảm 20%",
-      voucherCode: "WELCOME20",
-      description: "Chào mừng khách hàng mới lần đầu mua sắm tại shop.",
-      startDate: "2024-01-15T00:00:00",
-      endDate: "2024-06-30T23:59:00",
-      discountType: "percentage",
-      discountValue: "20",
-      maxDiscountLimit: "limited",
-      maxDiscountValue: "80000",
-      minOrderAmount: "200000",
-      maxUsage: "500",
-      maxUsagePerCustomer: "1",
-      displaySetting: "website",
-    },
-  },
-  {
-    id: "RET-001",
-    code: "RETURN15",
-    name: "Khách hàng mua lại - Giảm 15%",
-    type: "Voucher khách hàng mua lại",
-    voucherCategory: "Khuyến Mãi",
-    products: "Tất cả sản phẩm",
-    discount: "15%",
-    maxUsage: 300,
-    used: 74,
-    savedCount: 190,
-    display: "Website",
-    startDate: formatDisplayDate("2024-02-01T09:30:00"),
-    endDate: formatDisplayDate("2024-04-30T21:00:00"),
-    status: "Đang diễn ra",
-    editData: {
-      voucherName: "Khách hàng mua lại - Giảm 15%",
-      voucherCode: "RETURN15",
-      description: "Tri ân khách hàng đã từng mua sắm tại shop.",
-      startDate: "2024-02-01T09:30:00",
-      endDate: "2024-04-30T21:00:00",
-      discountType: "percentage",
-      discountValue: "15",
-      maxDiscountLimit: "limited",
-      maxDiscountValue: "70000",
-      minOrderAmount: "250000",
-      maxUsage: "300",
-      maxUsagePerCustomer: "2",
-      displaySetting: "website",
-      totalSpendingAmount: "5000000",
-      spendingDays: "60",
-    },
-  },
-  {
-    id: "PRI-001",
-    code: "VIP2024",
-    name: "Voucher VIP nội bộ - 10%",
-    type: "Voucher riêng tư",
-    voucherCategory: "Chương trình nội bộ",
-    products: "Tất cả sản phẩm",
-    discount: "10%",
-    maxUsage: 80,
-    used: 80,
-    savedCount: 64,
-    display: "POS",
-    startDate: formatDisplayDate("2023-10-01T08:00:00"),
-    endDate: formatDisplayDate("2024-01-01T22:00:00"),
-    status: "Đã kết thúc",
-    editData: {
-      voucherName: "Voucher VIP nội bộ - 10%",
-      voucherCode: "VIP2024",
-      description: "Ưu đãi dành riêng cho nhân viên và đối tác.",
-      startDate: "2023-10-01T08:00:00",
-      endDate: "2024-01-01T22:00:00",
-      discountType: "percentage",
-      discountValue: "10",
-      maxDiscountLimit: "unlimited",
-      minOrderAmount: "0",
-      maxUsage: "80",
-      maxUsagePerCustomer: "3",
-      displaySetting: "pos",
-    },
-  },
-];
 
 const defaultSummary: VoucherOrderSummary = {
   totalOrders: 0,
@@ -474,6 +291,100 @@ const voucherRouteMap: Record<string, string> = {
   "Voucher riêng tư": "/admin/discounts/new/private",
 };
 
+const tabToStateMap: Record<string, DiscountStateValue | undefined> = {
+  all: undefined,
+  ongoing: "ONGOING",
+  upcoming: "UPCOMING",
+  ended: "ENDED",
+};
+
+const applyOnLabelMap: Record<string, string> = {
+  WEBSITE: "Website",
+  POS: "POS",
+  BOTH: "POS + Website",
+};
+
+const displaySettingMap: Record<string, "pos" | "website" | "pos-website"> = {
+  WEBSITE: "website",
+  POS: "pos",
+  BOTH: "pos-website",
+};
+
+const formatCurrency = (value?: number | null) => {
+  if (value == null) return "-";
+  return `${value.toLocaleString("vi-VN")}đ`;
+};
+
+const mapDiscountTypeLabel = (discount: AdminDiscountResponse) => {
+  if (discount.applyTo === "PRODUCT") return "Voucher sản phẩm";
+  if (discount.contextAllowed === "SIGNUP") return "Voucher khách hàng mới";
+  if (discount.contextAllowed === "EVENT") return "Voucher khách hàng mua lại";
+  if (discount.applyOn === "POS" && discount.contextAllowed === "OTHER") {
+    return "Voucher riêng tư";
+  }
+  return "Voucher toàn shop";
+};
+
+const getVoucherStatus = (discount: AdminDiscountResponse): Voucher["status"] => {
+  if (discount.status === "DISABLE") {
+    return "Đã kết thúc";
+  }
+  const now = new Date();
+  const start = discount.startDate ? new Date(discount.startDate) : null;
+  const end = discount.endDate ? new Date(discount.endDate) : null;
+
+  if (start && start > now) return "Sắp diễn ra";
+  if (end && end < now) return "Đã kết thúc";
+  return "Đang diễn ra";
+};
+
+const mapDiscountToVoucher = (discount: AdminDiscountResponse): Voucher => {
+  const status = getVoucherStatus(discount);
+  const typeLabel = mapDiscountTypeLabel(discount);
+  const discountValueText =
+    discount.type === "PERCENT"
+      ? `${discount.value ?? 0}%`
+      : formatCurrency(discount.value);
+
+  const applyOnLabel = applyOnLabelMap[discount.applyOn] || discount.applyOn || "-";
+
+  const editData = {
+    voucherName: discount.name ?? "",
+    voucherCode: discount.code ?? "",
+    description: discount.description ?? "",
+    startDate: discount.startDate ? new Date(discount.startDate).toISOString() : "",
+    endDate: discount.endDate ? new Date(discount.endDate).toISOString() : "",
+    discountType: discount.type === "PERCENT" ? "percentage" : "fixed",
+    discountValue: discount.value != null ? discount.value.toString() : "",
+    maxDiscountLimit: discount.maxOrderValue ? "limited" : "unlimited",
+    maxDiscountValue: discount.maxOrderValue != null ? discount.maxOrderValue.toString() : "",
+    minOrderAmount: discount.minOrderValue != null ? discount.minOrderValue.toString() : "",
+    maxUsage: discount.discountUsage != null ? discount.discountUsage.toString() : "",
+    maxUsagePerCustomer: "",
+    displaySetting: displaySettingMap[discount.applyOn] ?? "website",
+    totalSpendingAmount: "",
+    spendingDays: "",
+  };
+
+  return {
+    id: discount.id ?? discount.code,
+    code: discount.code ?? "",
+    name: discount.name ?? "",
+    type: typeLabel,
+    voucherCategory: discount.category ?? "",
+    products: discount.applyTo === "PRODUCT" ? "Sản phẩm được chọn" : "Tất cả sản phẩm",
+    discount: discountValueText,
+    maxUsage: discount.discountUsage ?? discount.quantity ?? 0,
+    used: 0,
+    savedCount: undefined,
+    display: applyOnLabel,
+    startDate: formatDisplayDate(discount.startDate?.toString() ?? ""),
+    endDate: formatDisplayDate(discount.endDate?.toString() ?? ""),
+    status,
+    editData,
+  };
+};
+
 const AdminDiscounts: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -482,18 +393,41 @@ const AdminDiscounts: React.FC = () => {
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
-  // Filter vouchers based on active tab and search term
-  const filteredVouchers = mockVouchers.filter((voucher) => {
-    const matchesTab = activeTab === "all" ||
-      (activeTab === "ongoing" && voucher.status === "Đang diễn ra") ||
-      (activeTab === "upcoming" && voucher.status === "Sắp diễn ra") ||
-      (activeTab === "ended" && voucher.status === "Đã kết thúc");
-
-    const matchesSearch = voucher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      voucher.code.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesTab && matchesSearch;
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-discounts", activeTab, searchTerm],
+    queryFn: () =>
+      getDiscounts({
+        keyword: searchTerm.trim() || undefined,
+        state: tabToStateMap[activeTab],
+        page: 1,
+        size: 100,
+      }),
+    staleTime: 30_000,
+    onError: (error: unknown) => {
+      const message =
+        (error as any)?.response?.data?.message ?? "Không thể tải danh sách mã giảm giá.";
+      toast.error(message);
+    },
   });
+
+  const vouchers = useMemo(() => {
+    const discounts = data?.discounts ?? [];
+    return discounts.map(mapDiscountToVoucher);
+  }, [data]);
+
+  const filteredVouchers = useMemo(() => {
+    if (!searchTerm.trim()) return vouchers;
+    const lower = searchTerm.trim().toLowerCase();
+    return vouchers.filter(
+      (voucher) =>
+        voucher.name.toLowerCase().includes(lower) ||
+        voucher.code.toLowerCase().includes(lower)
+    );
+  }, [vouchers, searchTerm]);
+
+  useEffect(() => {
+    setSelectedRows(new Set());
+  }, [activeTab, searchTerm, vouchers]);
 
   // Selection handlers
   const handleSelectRow = (id: string | number, checked: boolean) => {
@@ -508,7 +442,7 @@ const AdminDiscounts: React.FC = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIds = new Set(filteredVouchers.map(v => v.id));
+      const allIds = new Set(filteredVouchers.map((v) => v.id));
       setSelectedRows(allIds);
     } else {
       setSelectedRows(new Set());
@@ -518,7 +452,8 @@ const AdminDiscounts: React.FC = () => {
   // Action handlers
   const handleEdit = (voucher: Voucher) => {
     const route = voucherRouteMap[voucher.type] || "/admin/discounts/new";
-    navigate(route, { state: { mode: "edit", voucher } });
+    const querySuffix = voucher.id ? `?id=${voucher.id}` : "";
+    navigate(`${route}${querySuffix}`, { state: { mode: "edit", voucher } });
   };
 
   const handleViewOrders = (voucher: Voucher) => {
@@ -605,6 +540,7 @@ const AdminDiscounts: React.FC = () => {
         {/* Voucher Table */}
         <DiscountTable
           vouchers={filteredVouchers}
+          loading={isLoading}
           selectedRows={selectedRows}
           onSelectRow={handleSelectRow}
           onSelectAll={handleSelectAll}

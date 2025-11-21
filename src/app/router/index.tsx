@@ -82,13 +82,15 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // POS routes (temporarily public for UI development)
+  // POS routes - require authentication and ADMIN or EMPLOYEE role
   {
     path: "/pos",
     element: (
-      <RoleGuard allow={["ADMIN", "MANAGER", "EMPLOYEE", "OPERATIONS_MANAGER"]}>
-        <POSLayout />
-      </RoleGuard>
+      <AuthGuard>
+        <RoleGuard allow={["ADMIN", "EMPLOYEE"]}>
+          <POSLayout />
+        </RoleGuard>
+      </AuthGuard>
     ),
     children: posRoutes,
   },

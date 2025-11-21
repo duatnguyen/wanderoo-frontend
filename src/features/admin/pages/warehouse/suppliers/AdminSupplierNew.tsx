@@ -1,17 +1,31 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
 import { ArrowLeft } from "lucide-react";
-import CityDropdown from "@/components/ui/city-dropdown";
-import DistrictDropdown from "@/components/ui/district-dropdown";
-import WardDropdown from "@/components/ui/ward-dropdown";
+import CaretDown from "@/components/ui/caret-down";
 import {
-  TabMenuWithBadge,
-  PageContainer,
-  ContentCard,
-  type TabItemWithBadge,
-} from "@/components/common";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useQuery } from "@tanstack/react-query";
+import { createProvider } from "@/api/endpoints/warehouseApi";
+import {
+  getProvinces,
+  getDistrictsByPath,
+  getWardsByPath,
+} from "@/api/endpoints/shippingApi";
+import { toast } from "sonner";
+import type { ApiResponse } from "@/types";
+import type {
+  ProvinceResponse,
+  DistrictResponse,
+  WardResponse,
+} from "@/types";
+import { PageContainer, ContentCard } from "@/components/common";
 const AdminSupplierNew = () => {
   document.title = "Thêm nhà cung cấp | Wanderoo";
   const navigate = useNavigate();
@@ -24,18 +38,228 @@ const AdminSupplierNew = () => {
     // Address fields
     street: "",
     city: "",
+    provinceId: undefined as number | undefined,
     district: "",
+    districtId: undefined as number | undefined,
     ward: "",
+    wardCode: undefined as string | undefined,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (
+    field: keyof typeof formData,
+    value: string | number | undefined
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
+  };
+
+  const handleProvinceSelect = (province: ProvinceResponse) => {
+    setFormData((prev) => ({
+      ...prev,
+      city: province.provinceName,
+      provinceId: province.provinceId,
+      district: "",
+      districtId: undefined,
+      ward: "",
+      wardCode: undefined,
+    }));
+  };
+
+  const handleDistrictSelect = (district: DistrictResponse) => {
+    setFormData((prev) => ({
+      ...prev,
+      district: district.districtName,
+      districtId: district.districtId,
+      ward: "",
+      wardCode: undefined,
+    }));
+  };
+
+  const handleWardSelect = (ward: WardResponse) => {
+    setFormData((prev) => ({
+      ...prev,
+      ward: ward.wardName,
+      wardCode: ward.wardCode,
+    }));
+  };
+
+  const shouldHideLocationName = (name: string) => {
+    const normalized = name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return normalized.includes("test") || normalized === "ha noi 02";
+  };
+
+  const {
+    data: provincesData,
+    isLoading: isLoadingProvinces,
+    isError: isProvinceError,
+  } = useQuery({
+    queryKey: ["shipping-provinces"],
+    queryFn: getProvinces,
+  });
+
+  const provinces = useMemo(() => {
+    if (!provincesData) return [];
+    return provincesData
+      .filter((province) => !shouldHideLocationName(province.provinceName))
+      .sort((a, b) =>
+        a.provinceName.localeCompare(b.provinceName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [provincesData]);
+
+  const {
+    data: districtsData,
+    isLoading: isLoadingDistricts,
+    isError: isDistrictError,
+  } = useQuery({
+    queryKey: ["shipping-districts", formData.provinceId],
+    queryFn: async () => {
+      if (!formData.provinceId) return [];
+      return getDistrictsByPath(formData.provinceId);
+    },
+    enabled: Boolean(formData.provinceId),
+  });
+
+  const districts = useMemo(() => {
+    if (!districtsData) return [];
+    return districtsData
+      .filter((district) => !shouldHideLocationName(district.districtName))
+      .sort((a, b) =>
+        a.districtName.localeCompare(b.districtName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [districtsData]);
+
+  const {
+    data: wardsData,
+    isLoading: isLoadingWards,
+    isError: isWardError,
+  } = useQuery({
+    queryKey: ["shipping-wards", formData.districtId],
+    queryFn: async () => {
+      if (!formData.districtId) return [];
+      return getWardsByPath(formData.districtId);
+    },
+    enabled: Boolean(formData.districtId),
+  });
+
+  const wards = useMemo(() => {
+    if (!wardsData) return [];
+    return wardsData
+      .filter((ward) => !shouldHideLocationName(ward.wardName))
+      .sort((a, b) =>
+        a.wardName.localeCompare(b.wardName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [wardsData]);
+
+  useEffect(() => {
+    if (
+      provinces.length > 0 &&
+      formData.city &&
+      !formData.provinceId
+    ) {
+      const matchedProvince = provinces.find(
+        (province) => province.provinceName === formData.city
+      );
+      if (matchedProvince) {
+        setFormData((prev) => ({
+          ...prev,
+          provinceId: matchedProvince.provinceId,
+        }));
+      }
+    }
+  }, [provinces, formData.city, formData.provinceId]);
+
+  useEffect(() => {
+    if (
+      districts.length > 0 &&
+      formData.district &&
+      !formData.districtId
+    ) {
+      const matchedDistrict = districts.find(
+        (district) => district.districtName === formData.district
+      );
+      if (matchedDistrict) {
+        setFormData((prev) => ({
+          ...prev,
+          districtId: matchedDistrict.districtId,
+        }));
+      }
+    }
+  }, [districts, formData.district, formData.districtId]);
+
+  useEffect(() => {
+    if (wards.length > 0 && formData.ward && !formData.wardCode) {
+      const matchedWard = wards.find(
+        (ward) => ward.wardName === formData.ward
+      );
+      if (matchedWard) {
+        setFormData((prev) => ({
+          ...prev,
+          wardCode: matchedWard.wardCode,
+        }));
+      }
+    }
+  }, [wards, formData.ward, formData.wardCode]);
+
+  const provinceLabel = useMemo(() => {
+    if (isLoadingProvinces) return "Đang tải tỉnh/thành";
+    if (isProvinceError) return "Không thể tải tỉnh/thành";
+    return formData.city || "Chọn tỉnh/thành phố";
+  }, [formData.city, isLoadingProvinces, isProvinceError]);
+
+  const districtLabel = useMemo(() => {
+    if (!formData.provinceId) return "Chọn tỉnh trước";
+    if (isLoadingDistricts) return "Đang tải quận/huyện";
+    if (isDistrictError) return "Không thể tải quận/huyện";
+    return formData.district || "Chọn quận/huyện";
+  }, [
+    formData.district,
+    formData.provinceId,
+    isLoadingDistricts,
+    isDistrictError,
+  ]);
+
+  const wardLabel = useMemo(() => {
+    if (!formData.districtId) return "Chọn quận/huyện trước";
+    if (isLoadingWards) return "Đang tải phường/xã";
+    if (isWardError) return "Không thể tải phường/xã";
+    return formData.ward || "Chọn phường/xã";
+  }, [formData.ward, formData.districtId, isLoadingWards, isWardError]);
+
+  const renderMenuContent = <T extends { [key: string]: any }>(
+    list: T[] | null | undefined,
+    onSelect: (item: T) => void,
+    labelKey: keyof T
+  ) => {
+    if (!list || !Array.isArray(list) || list.length === 0) {
+      return (
+        <div className="px-3 py-2 text-[13px] text-[#888888]">
+          Không có dữ liệu
+        </div>
+      );
+    }
+
+    return list.map((item) => (
+      <DropdownMenuItem
+        key={String(item[labelKey])}
+        onClick={() => onSelect(item)}
+      >
+        {item[labelKey]}
+      </DropdownMenuItem>
+    ));
   };
 
   const validateForm = () => {
@@ -46,10 +270,11 @@ const AdminSupplierNew = () => {
       newErrors.supplierName = "Tên nhà cung cấp là bắt buộc";
     }
 
-    if (!formData.phone.trim()) {
+    const normalizedPhone = formData.phone.trim();
+    if (!normalizedPhone) {
       newErrors.phone = "Số điện thoại là bắt buộc";
-    } else if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
-      newErrors.phone = "Số điện thoại không hợp lệ";
+    } else if (!/^\d{10,13}$/.test(normalizedPhone)) {
+      newErrors.phone = "Số điện thoại phải gồm 10-13 chữ số";
     }
 
     if (!formData.email.trim()) {
@@ -79,14 +304,34 @@ const AdminSupplierNew = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (validateForm()) {
-      // TODO: Implement API call to create supplier
-      console.log("Creating supplier:", formData);
-      // Navigate back to suppliers list
-      navigate("/admin/warehouse/supplier");
+      try {
+        setIsSubmitting(true);
+        await createProvider({
+          name: formData.supplierName.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email.trim(),
+          note: formData.note?.trim() || "",
+          province: formData.city.trim(),
+          ward: formData.ward.trim(),
+          district: formData.district.trim(),
+          location: formData.street.trim(),
+        });
+        toast.success("Thêm nhà cung cấp thành công");
+        navigate("/admin/warehouse/supplier", {
+          state: { shouldFocusLastPage: true },
+        });
+      } catch (err) {
+        const message = getErrorMessage(err);
+        toast.error(message);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -196,11 +441,35 @@ const AdminSupplierNew = () => {
               <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
                 Tỉnh/Thành phố <span className="text-red-500">*</span>
               </label>
-              <CityDropdown
-                value={formData.city}
-                onValueChange={(value) => handleInputChange("city", value)}
-                error={!!errors.city}
-              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div
+                    className={`bg-white border-2 ${
+                      errors.city || isProvinceError
+                        ? "border-red-500"
+                        : "border-[#e04d30]"
+                    } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer`}
+                  >
+                    <span
+                      className={`text-[14px] font-semibold leading-[1.4] flex-1 ${
+                        formData.city ? "text-black" : "text-[#888888]"
+                      }`}
+                    >
+                      {provinceLabel}
+                    </span>
+                    <CaretDown className="text-[#e04d30]" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[240px] overflow-auto">
+                  {isLoadingProvinces ? (
+                    <div className="px-3 py-2 text-[13px] text-[#888888]">
+                      Đang tải...
+                    </div>
+                  ) : (
+                    renderMenuContent(provinces, handleProvinceSelect, "provinceName")
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {errors.city && (
                 <span className="text-red-500 text-[12px]">{errors.city}</span>
               )}
@@ -211,11 +480,41 @@ const AdminSupplierNew = () => {
               <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
                 Quận/Huyện <span className="text-red-500">*</span>
               </label>
-              <DistrictDropdown
-                value={formData.district}
-                onValueChange={(value) => handleInputChange("district", value)}
-                error={!!errors.district}
-              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div
+                    className={`bg-white border-2 ${
+                      errors.district || isDistrictError
+                        ? "border-red-500"
+                        : "border-[#e04d30]"
+                    } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
+                      !formData.provinceId ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <span
+                      className={`text-[14px] font-semibold leading-[1.4] flex-1 ${
+                        formData.district ? "text-black" : "text-[#888888]"
+                      }`}
+                    >
+                      {districtLabel}
+                    </span>
+                    <CaretDown className="text-[#e04d30]" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[240px] overflow-auto">
+                  {!formData.provinceId ? (
+                    <div className="px-3 py-2 text-[13px] text-[#888888]">
+                      Vui lòng chọn tỉnh/thành trước
+                    </div>
+                  ) : isLoadingDistricts ? (
+                    <div className="px-3 py-2 text-[13px] text-[#888888]">
+                      Đang tải...
+                    </div>
+                  ) : (
+                    renderMenuContent(districts, handleDistrictSelect, "districtName")
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {errors.district && (
                 <span className="text-red-500 text-[12px]">
                   {errors.district}
@@ -228,11 +527,41 @@ const AdminSupplierNew = () => {
               <label className="text-[#272424] text-[14px] font-semibold leading-[1.4]">
                 Phường/Xã <span className="text-red-500">*</span>
               </label>
-              <WardDropdown
-                value={formData.ward}
-                onValueChange={(value) => handleInputChange("ward", value)}
-                error={!!errors.ward}
-              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div
+                    className={`bg-white border-2 ${
+                      errors.ward || isWardError
+                        ? "border-red-500"
+                        : "border-[#e04d30]"
+                    } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
+                      !formData.districtId ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <span
+                      className={`text-[14px] font-semibold leading-[1.4] flex-1 ${
+                        formData.ward ? "text-black" : "text-[#888888]"
+                      }`}
+                    >
+                      {wardLabel}
+                    </span>
+                    <CaretDown className="text-[#e04d30]" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-[240px] overflow-auto">
+                  {!formData.districtId ? (
+                    <div className="px-3 py-2 text-[13px] text-[#888888]">
+                      Vui lòng chọn quận/huyện trước
+                    </div>
+                  ) : isLoadingWards ? (
+                    <div className="px-3 py-2 text-[13px] text-[#888888]">
+                      Đang tải...
+                    </div>
+                  ) : (
+                    renderMenuContent(wards, handleWardSelect, "wardName")
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {errors.ward && (
                 <span className="text-red-500 text-[12px]">{errors.ward}</span>
               )}
@@ -291,13 +620,25 @@ const AdminSupplierNew = () => {
             type="submit"
             onClick={handleSubmit}
             className="px-[24px] py-[12px]"
+            disabled={isSubmitting}
           >
-            Thêm mới
+            {isSubmitting ? "Đang tạo..." : "Thêm mới"}
           </Button>
         </div>
       </ContentCard>
     </PageContainer>
   );
+};
+
+const getErrorMessage = (error: unknown) => {
+  const defaultMessage = "Không thể tạo nhà cung cấp, vui lòng thử lại.";
+  if (isAxiosError<ApiResponse<unknown>>(error)) {
+    return error.response?.data?.message ?? defaultMessage;
+  }
+  if (error instanceof Error) {
+    return error.message || defaultMessage;
+  }
+  return defaultMessage;
 };
 
 export default AdminSupplierNew;

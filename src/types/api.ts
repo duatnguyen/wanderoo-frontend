@@ -58,12 +58,6 @@ export interface AddressResponse {
   isDefault: boolean;
 }
 
-export interface AddressPageResponse extends PageResponse<AddressResponse> {}
-
-export interface AddressDetailResponse extends AddressResponse {
-  // Additional fields if any
-}
-
 // Product Types
 export interface ProductResponse {
   id: number;
@@ -76,8 +70,6 @@ export interface ProductResponse {
   updatedAt: string;
 }
 
-export interface ProductPageResponse extends PageResponse<ProductResponse> {}
-
 export interface VariantResponse {
   id: number;
   productId: number;
@@ -86,8 +78,6 @@ export interface VariantResponse {
   quantity: number;
   status: string;
 }
-
-export interface VariantPageResponse extends PageResponse<VariantResponse> {}
 
 // Order Types
 export interface OrderResponse {
@@ -99,8 +89,6 @@ export interface OrderResponse {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface OrderPageResponse extends PageResponse<OrderResponse> {}
 
 export interface OrderDetailResponse extends OrderResponse {
   items: OrderItemResponse[];
@@ -143,8 +131,6 @@ export interface ReviewResponse {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface ReviewPageResponse extends PageResponse<ReviewResponse> {}
 
 // Shipping Types
 export interface ProvinceResponse {
@@ -190,17 +176,53 @@ export interface CustomerVoucherResponse extends VoucherResponse {
   usedAt?: string;
 }
 
-export interface CustomerVoucherPageResponse extends PageResponse<CustomerVoucherResponse> {}
+export type DiscountTypeValue = "PERCENT" | "FIXED";
+export type DiscountCategoryValue =
+  | "ORDER_DISCOUNT"
+  | "PRODUCT_DISCOUNT"
+  | "SHIPPING_DISCOUNT";
+export type VoucherStatus =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "EXPIRED"
+  | "USED"
+  | "AVAILABLE";
 
-// Discount Types
-export interface DiscountResponse {
+export interface DiscountPublicResponse {
   id: number;
   name: string;
-  type: string;
+  code: string;
+  category: DiscountCategoryValue;
+  type: DiscountTypeValue;
   value: number;
-  status: string;
-  startDate: string;
-  endDate: string;
+  minOrderValue?: number | null;
+  maxOrderValue?: number | null;
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  quantity?: number | null;
+  isAvailable?: boolean;
+  discountText?: string | null;
+}
+
+export interface VoucherHistoryResponse {
+  id: number;
+  discountId: number;
+  discountCode: string;
+  discountName: string;
+  discountText?: string | null;
+  minOrderValue?: number | null;
+  maxOrderValue?: number | null;
+  quantity?: number | null;
+  status: VoucherStatus;
+  expirationDate?: string | null;
+  statusLabel?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface ClaimVoucherRequest {
+  code: string;
 }
 
 // POS Types
@@ -213,7 +235,6 @@ export interface SaleProductResponse {
   sellingPrice?: number | null;
 }
 
-export interface SaleProductPageResponse extends PageResponse<SaleProductResponse> {}
 export type SaleProductListResponse = SaleProductResponse[];
 
 export interface CustomerSearchResponse {
@@ -286,17 +307,37 @@ export interface SimpleInventoryItemResponse {
   sellingPrice?: number | null;
 }
 
-export interface SimpleInventoryPageResponse extends PageResponse<SimpleInventoryItemResponse> {}
+export interface SimpleInventoryPageResponse
+  extends PageResponse<SimpleInventoryItemResponse> {}
 
 export interface ProviderResponse {
   id: number;
+  code: string;
   name: string;
-  contact: string;
-  address: string;
-  status: string;
+  phone: string;
+  email: string;
+  status?: "ACTIVE" | "INACTIVE";
 }
 
-export interface ProviderPageResponse extends PageResponse<ProviderResponse> {}
+export interface ProviderPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  providers: ProviderResponse[];
+}
+
+export interface ProviderDetailResponse {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  note?: string;
+  province: string;
+  ward: string;
+  district: string;
+  location: string;
+}
 
 export interface InvoiceResponse {
   id: number;
@@ -419,6 +460,20 @@ export interface CreateOrderResponse {
 
 export interface CustomerOrderResponse extends OrderResponse {
   userInfo: UserInfo;
+  receiverName?: string | null;
+  receiverPhone?: string | null;
+  receiverAddress?: string | null;
+  receiverProvinceName?: string | null;
+  receiverDistrictId?: number | null;
+  receiverDistrictName?: string | null;
+  receiverWardCode?: string | null;
+  receiverWardName?: string | null;
+  shippingProvider?: string | null;
+  shippingOrderCode?: string | null;
+  shopDistrictId?: number | null;
+  shopDistrictName?: string | null;
+  shopWardCode?: string | null;
+  shopWardName?: string | null;
 }
 
 export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> {}
@@ -489,6 +544,19 @@ export interface PickShiftResponse {
   id: number;
   time: string;
   available: boolean;
+}
+
+export interface AvailableServiceResponse {
+  serviceId: number;
+  serviceTypeId: number;
+  shortName: string;
+  serviceName?: string | null;
+  expectedDeliveryTime?: string | null;
+}
+
+export interface AvailableServicesRequest {
+  fromDistrict: number;
+  toDistrict: number;
 }
 
 export interface CreateGHNOrderRequest {
@@ -754,38 +822,62 @@ export interface ExpireVoucherRequest {
   voucherId: number;
 }
 
+export type CategoryStatus = "ACTIVE" | "INACTIVE";
+
 export interface CategoryParentResponse {
   id: number;
   name: string;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  categoryChildCount: number;
+  status: CategoryStatus;
 }
 
 export interface CategoryChildResponse {
   id: number;
   name: string;
-  parentId: number;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  status: CategoryStatus;
+  productCount: number;
+  parentId?: number;
 }
 
-export interface CategoryParentPageResponse extends PageResponse<CategoryParentResponse> {}
+export interface CategoryParentPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categories: CategoryParentResponse[];
+}
 
-export interface CategoryChildPageResponse extends PageResponse<CategoryChildResponse> {}
+export interface CategoryChildPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categoryChildResponseList: CategoryChildResponse[];
+}
 
 export interface CategoryParentCreateRequest {
   name: string;
+  imageUrl?: string;
 }
 
 export interface CategoryChildCreateRequest {
   name: string;
   parentId: number;
+  imageUrl?: string;
 }
 
 export interface CategoryParentUpdateRequest extends CategoryParentCreateRequest {
   id: number;
 }
 
-export interface CategoryChildUpdateRequest extends CategoryChildCreateRequest {
+export interface CategoryChildUpdateRequest {
   id: number;
+  name: string;
+  imageUrl?: string;
 }
 
 export interface VariantRequest {
@@ -856,13 +948,18 @@ export interface CustomerUpdateRequest extends CustomerCreationRequest {
 }
 
 export interface SelectAllRequest {
-  ids: number[];
+  getAll: number[];
 }
 
 export interface ProviderCreateRequest {
   name: string;
-  contact: string;
-  address: string;
+  phone: string;
+  email: string;
+  note?: string;
+  province: string;
+  ward: string;
+  district: string;
+  location: string;
 }
 
 export interface ProviderUpdateRequest extends ProviderCreateRequest {

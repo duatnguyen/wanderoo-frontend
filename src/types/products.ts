@@ -25,22 +25,51 @@ export interface VariantResponse {
 
 export interface VariantPageResponse extends PageResponse<VariantResponse> {}
 
+export type CategoryStatus = 'ACTIVE' | 'INACTIVE';
+
 export interface CategoryParentResponse {
   id: number;
   name: string;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  categoryChildCount: number;
+  status: CategoryStatus;
 }
 
 export interface CategoryChildResponse {
   id: number;
   name: string;
-  parentId: number;
-  status: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  status: CategoryStatus;
+  productCount: number;
+  parentId?: number;
 }
 
-export interface CategoryParentPageResponse extends PageResponse<CategoryParentResponse> {}
+export interface CategoryParentPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categories: CategoryParentResponse[];
+}
 
-export interface CategoryChildPageResponse extends PageResponse<CategoryChildResponse> {}
+export interface CategoryChildPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  categoryChildResponseList: CategoryChildResponse[];
+}
+
+export interface SimpleCategoryResponse {
+  id: number;
+  name: string;
+}
+
+export interface CategoryPublicResponse {
+  categories: SimpleCategoryResponse[];
+}
 
 // Request types
 export interface ProductCreateRequest {
@@ -76,17 +105,21 @@ export interface VariantQuantityUpdateRequest {
 
 export interface CategoryParentCreateRequest {
   name: string;
+  imageUrl?: string;
 }
 
 export interface CategoryChildCreateRequest {
   name: string;
   parentId: number;
+  imageUrl?: string;
 }
 
 export interface CategoryParentUpdateRequest extends CategoryParentCreateRequest {
   id: number;
 }
 
-export interface CategoryChildUpdateRequest extends CategoryChildCreateRequest {
+export interface CategoryChildUpdateRequest {
   id: number;
+  name: string;
+  imageUrl?: string;
 }

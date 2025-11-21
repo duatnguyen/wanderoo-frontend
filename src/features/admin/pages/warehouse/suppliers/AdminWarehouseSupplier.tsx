@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/icons/Icon";
 import { SearchBar } from "@/components/ui/search-bar";
@@ -7,6 +9,10 @@ import CaretDown from "@/components/ui/caret-down";
 import { Pagination } from "@/components/ui/pagination";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import { ChipStatus } from "@/components/ui/chip-status";
+import { getProviderList, deleteAllProviders, activateAllProviders } from "@/api/endpoints/warehouseApi";
+import type { ProviderResponse } from "@/types";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,164 +20,132 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Supplier = {
-  id: string;
+type SupplierRow = {
+  id: number;
+  code: string;
   name: string;
-  company: string;
   email: string;
   phone: string;
-  address: string;
   status: "active" | "inactive";
-  contactPerson: string;
-  registrationDate: string;
-  totalProducts: number;
-  lastOrderDate: string;
 };
 
-const mockSuppliers: Supplier[] = [
-  {
-    id: "S001",
-    name: "Công ty TNHH Thời trang ABC",
-    company: "ABC Fashion Co.",
-    email: "contact@abcfashion.com",
-    phone: "0123456789",
-    address: "123 Đường ABC, Quận 1, TP.HCM",
-    status: "active",
-    contactPerson: "Nguyễn Văn A",
-    registrationDate: "2024-01-15",
-    totalProducts: 150,
-    lastOrderDate: "2024-10-15",
-  },
-  {
-    id: "S002",
-    name: "Nhà cung cấp Thể thao XYZ",
-    company: "XYZ Sports Supply",
-    email: "info@xyzsports.com",
-    phone: "0987654321",
-    address: "456 Đường XYZ, Quận 2, TP.HCM",
-    status: "active",
-    contactPerson: "Trần Thị B",
-    registrationDate: "2024-02-20",
-    totalProducts: 89,
-    lastOrderDate: "2024-10-10",
-  },
-  {
-    id: "S003",
-    name: "Công ty Dệt may DEF",
-    company: "DEF Textile Ltd.",
-    email: "sales@deftextile.com",
-    phone: "0369852147",
-    address: "789 Đường DEF, Quận 3, TP.HCM",
-    status: "inactive",
-    contactPerson: "Lê Văn C",
-    registrationDate: "2024-03-10",
-    totalProducts: 200,
-    lastOrderDate: "2024-09-20",
-  },
-  {
-    id: "S004",
-    name: "Nhà cung cấp Phụ kiện GHI",
-    company: "GHI Accessories Co.",
-    email: "contact@ghiaccessories.com",
-    phone: "0741258963",
-    address: "321 Đường GHI, Quận 4, TP.HCM",
-    status: "active",
-    contactPerson: "Phạm Thị D",
-    registrationDate: "2024-01-05",
-    totalProducts: 75,
-    lastOrderDate: "2024-10-12",
-  },
-  {
-    id: "S005",
-    name: "Công ty Giày dép JKL",
-    company: "JKL Footwear Inc.",
-    email: "info@jklfootwear.com",
-    phone: "0852369741",
-    address: "654 Đường JKL, Quận 5, TP.HCM",
-    status: "active",
-    contactPerson: "Hoàng Văn E",
-    registrationDate: "2024-04-12",
-    totalProducts: 120,
-    lastOrderDate: "2024-10-08",
-  },
-  {
-    id: "S006",
-    name: "Nhà cung cấp Túi xách MNO",
-    company: "MNO Bags & More",
-    email: "sales@mnobags.com",
-    phone: "0963258741",
-    address: "987 Đường MNO, Quận 6, TP.HCM",
-    status: "active",
-    contactPerson: "Vũ Thị F",
-    registrationDate: "2024-02-28",
-    totalProducts: 95,
-    lastOrderDate: "2024-10-05",
-  },
-  {
-    id: "S007",
-    name: "Công ty Đồng hồ PQR",
-    company: "PQR Watches Co.",
-    email: "contact@pqrwatches.com",
-    phone: "0147258369",
-    address: "147 Đường PQR, Quận 7, TP.HCM",
-    status: "inactive",
-    contactPerson: "Đặng Văn G",
-    registrationDate: "2024-01-20",
-    totalProducts: 60,
-    lastOrderDate: "2024-08-15",
-  },
-  {
-    id: "S008",
-    name: "Nhà cung cấp Trang sức STU",
-    company: "STU Jewelry Ltd.",
-    email: "info@stujewelry.com",
-    phone: "0789632145",
-    address: "258 Đường STU, Quận 8, TP.HCM",
-    status: "active",
-    contactPerson: "Bùi Thị H",
-    registrationDate: "2024-03-25",
-    totalProducts: 180,
-    lastOrderDate: "2024-10-18",
-  },
-];
+const PAGE_SIZE = 10;
 
 const AdminWarehouseSupplier = () => {
   document.title = "Nhà cung cấp | Wanderoo";
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
   >("all");
-  const [suppliers] = useState<Supplier[]>(mockSuppliers);
-  const [selectedSuppliers, setSelectedSuppliers] = useState<Set<string>>(
-    new Set()
-  );
+  const [selectedSuppliers, setSelectedSuppliers] = useState<Set<number>>(new Set());
+  const [statusOverrides, setStatusOverrides] = useState<Record<number, "active" | "inactive">>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [shouldFocusLastPage, setShouldFocusLastPage] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
 
-  const filtered = useMemo(() => {
-    const result = suppliers.filter((s) => {
-      const matchesStatus = statusFilter === "all" || s.status === statusFilter;
-      const matchesSearch =
-        searchTerm === "" ||
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.contactPerson.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesStatus && matchesSearch;
-    });
-    // Reset to page 1 when filters change
-    if (currentPage > 1) {
-      setCurrentPage(1);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 350);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
+
+  // Check if we should focus on last page after adding new supplier
+  useEffect(() => {
+    if (location.state?.shouldFocusLastPage) {
+      setShouldFocusLastPage(true);
+      // Clear the state to avoid re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
     }
-    return result;
-  }, [suppliers, statusFilter, searchTerm, currentPage]);
+  }, [location.state, navigate, location.pathname]);
+
+  const { data, isLoading, isFetching, isError, error } = useQuery({
+    queryKey: ["providers", { keyword: debouncedSearch, page: currentPage }],
+    queryFn: () =>
+      getProviderList(
+        debouncedSearch || undefined,
+        undefined,
+        currentPage,
+        PAGE_SIZE
+      ),
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 1000,
+  });
+
+  const providers = data?.providers ?? [];
+  const totalPages = data?.totalPages ?? 1;
+
+  // Auto-navigate to last page when data is loaded and flag is set
+  useEffect(() => {
+    if (shouldFocusLastPage && data && totalPages > 0 && !isLoading && !isFetching) {
+      setCurrentPage(totalPages);
+      setShouldFocusLastPage(false);
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+    }
+  }, [shouldFocusLastPage, data, totalPages, isLoading, isFetching, queryClient]);
+
+  const normalizedSuppliers = useMemo<SupplierRow[]>(() => {
+    return providers.map((provider: ProviderResponse) => {
+      // Map backend status (ACTIVE, INACTIVE, NONE) to frontend status (active, inactive)
+      let backendStatus: "active" | "inactive" = "active";
+      if (provider.status) {
+        const statusUpper = provider.status.toUpperCase();
+        backendStatus = statusUpper === "INACTIVE" ? "inactive" : "active";
+      }
+      const overrideStatus = statusOverrides[provider.id];
+      return {
+        id: provider.id,
+        code:
+          provider.code ||
+          `NCC${(provider.id ?? 0).toString().padStart(4, "0")}`,
+        name: provider.name ?? "—",
+        email: provider.email ?? "—",
+        phone: provider.phone ?? "—",
+        status: overrideStatus ?? backendStatus,
+      };
+    });
+  }, [providers, statusOverrides]);
+
+  useEffect(() => {
+    if (!providers.length) return;
+    setStatusOverrides((prev) => {
+      const next = { ...prev };
+      providers.forEach((provider) => {
+        // Map backend status to frontend status
+        let backendStatus: "active" | "inactive" = "active";
+        if (provider.status) {
+          const statusUpper = provider.status.toUpperCase();
+          backendStatus = statusUpper === "INACTIVE" ? "inactive" : "active";
+        }
+        const override = next[provider.id];
+        if (override && override === backendStatus) {
+          delete next[provider.id];
+        }
+      });
+      return next;
+    });
+  }, [providers]);
 
   const paginatedSuppliers = useMemo(() => {
-    const startIndex = (currentPage - 1) * 10;
-    const endIndex = startIndex + 10;
-    return filtered.slice(startIndex, endIndex);
-  }, [filtered, currentPage]);
+    if (statusFilter === "all") {
+      return normalizedSuppliers;
+    }
+    return normalizedSuppliers.filter(
+      (supplier) => supplier.status === statusFilter
+    );
+  }, [normalizedSuppliers, statusFilter]);
+
+  useEffect(() => {
+    setSelectedSuppliers(new Set());
+  }, [currentPage, normalizedSuppliers]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -187,7 +161,7 @@ const AdminWarehouseSupplier = () => {
     }
   };
 
-  const handleSelectItem = (supplierId: string) => (checked: boolean) => {
+  const handleSelectItem = (supplierId: number) => (checked: boolean) => {
     const newSelected = new Set(selectedSuppliers);
     if (checked) {
       newSelected.add(supplierId);
@@ -197,23 +171,77 @@ const AdminWarehouseSupplier = () => {
     setSelectedSuppliers(newSelected);
   };
 
-  const handlePrimaryAction = () => {
-    // TODO: Implement primary action (e.g., activate suppliers)
-    console.log(
-      "Primary action on selected suppliers:",
-      Array.from(selectedSuppliers)
-    );
-    setSelectedSuppliers(new Set());
+  const { mutateAsync: deactivateSuppliers, isPending: isDeactivating } = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await deleteAllProviders({ getAll: ids });
+    },
+    onSuccess: (_, ids) => {
+      toast.success(`Đã ngừng kích hoạt ${ids.length} nhà cung cấp`);
+      setSelectedSuppliers(new Set());
+      setStatusOverrides((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => {
+          next[id] = "inactive";
+        });
+        return next;
+      });
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+    },
+    onError: (error) => {
+      const message =
+        isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : "Không thể ngừng kích hoạt, vui lòng thử lại.";
+      toast.error(message);
+    },
+  });
+
+  const { mutateAsync: activateSuppliers, isPending: isActivating } = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await activateAllProviders({ getAll: ids });
+    },
+    onSuccess: (_, ids) => {
+      toast.success(`Đã kích hoạt ${ids.length} nhà cung cấp`);
+      setSelectedSuppliers(new Set());
+      setStatusOverrides((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => {
+          next[id] = "active";
+        });
+        return next;
+      });
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+    },
+    onError: (error) => {
+      const message =
+        isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : "Không thể kích hoạt, vui lòng thử lại.";
+      toast.error(message);
+    },
+  });
+
+  const handlePrimaryAction = async () => {
+    const ids = Array.from(selectedSuppliers);
+    if (ids.length === 0) return;
+    await activateSuppliers(ids);
   };
 
-  const handleSecondaryAction = () => {
-    // TODO: Implement secondary action (e.g., deactivate suppliers)
-    console.log(
-      "Secondary action on selected suppliers:",
-      Array.from(selectedSuppliers)
-    );
-    setSelectedSuppliers(new Set());
+  const handleSecondaryAction = async () => {
+    const ids = Array.from(selectedSuppliers);
+    if (ids.length === 0) return;
+    await deactivateSuppliers(ids);
   };
+
+  const isEmpty = !isLoading && !isFetching && paginatedSuppliers.length === 0;
+  const safeTotalPages = Math.max(1, totalPages);
+  const loadingState = isLoading || isFetching;
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "Vui lòng thử lại sau.";
 
   return (
     <div className="flex flex-col gap-[8px] items-center w-full max-w-full overflow-hidden">
@@ -269,10 +297,10 @@ const AdminWarehouseSupplier = () => {
         </div>
 
         {/* Table */}
-        <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
+        <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto relative">
           {/* Table Header */}
           <div className="bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full min-w-[1180px] h-[56px]">
-            <div className="flex flex-row items-center w-full">
+                  <div className="flex flex-row items-center w-full">
               <div className="flex gap-[6px] items-center px-[4px] py-[12px] min-w-[24px] flex-shrink-0">
                 <CustomCheckbox
                   checked={
@@ -292,13 +320,15 @@ const AdminWarehouseSupplier = () => {
                       variant="default"
                       onClick={handlePrimaryAction}
                       className="text-[12px] px-[12px] py-[6px] h-auto"
+                      disabled={isActivating || isDeactivating}
                     >
-                      Đang kích hoạt
+                      Kích hoạt
                     </Button>
                     <Button
                       variant="secondary"
                       onClick={handleSecondaryAction}
                       className="text-[12px] px-[12px] py-[6px] h-auto whitespace-nowrap"
+                      disabled={isActivating || isDeactivating}
                     >
                       Ngừng kích hoạt
                     </Button>
@@ -365,15 +395,12 @@ const AdminWarehouseSupplier = () => {
                         navigate(`/admin/warehouse/supplier/${s.id}`)
                       }
                     >
-                      {s.id}
+                      {s.code}
                     </span>
                   </div>
                   <div className="flex flex-col gap-[2px] h-full items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4] text-center">
                       {s.name}
-                    </span>
-                    <span className="font-medium text-[#737373] text-[11px] leading-[1.3] text-center">
-                      {s.company}
                     </span>
                   </div>
                   <div className="flex flex-col gap-[2px] h-full items-center justify-center px-[12px] py-[12px] flex-1 min-w-0">
@@ -402,12 +429,36 @@ const AdminWarehouseSupplier = () => {
               </div>
             </div>
           ))}
+
+          {isEmpty && (
+            <div className="flex flex-col items-center justify-center w-full min-w-[1180px] py-10 text-[#737373]">
+              <p className="text-sm font-medium">Không có nhà cung cấp nào phù hợp.</p>
+              <p className="text-xs">Hãy kiểm tra lại bộ lọc hoặc từ khóa tìm kiếm.</p>
+            </div>
+          )}
+
+          {loadingState && (
+            <div className="absolute inset-0 bg-white/75 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="w-6 h-6 text-[#e04d30] animate-spin" />
+              <p className="text-sm font-semibold text-[#e04d30]">
+                Đang tải danh sách nhà cung cấp...
+              </p>
+            </div>
+          )}
+
+          {isError && (
+            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-2 px-4 text-center">
+              <AlertCircle className="w-6 h-6 text-red-500" />
+              <p className="font-semibold text-red-600">Không thể tải danh sách nhà cung cấp</p>
+              <p className="text-sm text-[#737373]">{errorMessage}</p>
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
         <Pagination
           current={currentPage}
-          total={Math.ceil(filtered.length / 10)}
+          total={safeTotalPages}
           onChange={setCurrentPage}
         />
       </div>

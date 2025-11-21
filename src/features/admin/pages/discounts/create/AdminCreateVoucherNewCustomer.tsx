@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
@@ -13,6 +13,10 @@ import { CreditCardPercentIcon } from "@/components/icons/discount";
 import Icon from "@/components/icons/Icon";
 import CustomRadio from "@/components/ui/custom-radio";
 import type { VoucherEditData } from "@/types/voucher";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { createDiscount, getDiscountDetail, updateDiscount } from "@/api/endpoints/discountApi";
+import type { AdminDiscountCreateRequest, AdminDiscountResponse } from "@/types/discount";
 
 // Date formatting utilities
 const formatDateTimeForInput = (dateString: string) => {
@@ -42,7 +46,6 @@ interface VoucherFormData {
   maxDiscountValue: string;
   minOrderAmount: string;
   maxUsage: string;
-  maxUsagePerCustomer: string;
 
   // Display Settings
   displaySetting: "pos" | "website" | "pos-website";
@@ -51,6 +54,7 @@ interface VoucherFormData {
 interface EditLocationState {
   mode?: "edit";
   voucher?: {
+    id?: string | number;
     editData?: VoucherEditData;
   };
 }
@@ -67,21 +71,126 @@ const createDefaultFormData = (): VoucherFormData => ({
   maxDiscountValue: "",
   minOrderAmount: "",
   maxUsage: "",
-  maxUsagePerCustomer: "",
   displaySetting: "website",
 });
 
 const AdminCreateVoucherNewCustomer: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const discountIdQuery = searchParams.get("id");
+  const discountIdFromQuery = discountIdQuery ? Number(discountIdQuery) : undefined;
   const { mode, voucher } = (location.state as EditLocationState | undefined) || {};
   const editData = voucher?.editData;
-  const isEditMode = mode === "edit" && !!editData;
+  const stateDiscountId = voucher?.id ? Number(voucher.id) : undefined;
+  const fetchDiscountId = useMemo(() => {
+    if (discountIdFromQuery && !Number.isNaN(discountIdFromQuery)) {
+      return discountIdFromQuery;
+    }
+    if (stateDiscountId && !Number.isNaN(stateDiscountId)) {
+      return stateDiscountId;
+    }
+    return undefined;
+  }, [discountIdFromQuery, stateDiscountId]);
+  const isEditMode = Boolean(fetchDiscountId);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
+  const [minDateTime] = useState(() => formatDateTimeForInput(new Date().toISOString()));
+
+  const displaySettingToApplyOn: Record<VoucherFormData["displaySetting"], AdminDiscountCreateRequest["applyOn"]> = {
+    pos: "POS",
+    website: "WEBSITE",
+    "pos-website": "BOTH",
+  };
+
+  const discountTypeToEnum: Record<VoucherFormData["discountType"], AdminDiscountCreateRequest["type"]> = {
+    percentage: "PERCENT",
+    fixed: "FIXED",
+  };
+
+  const applyOnToDisplaySetting: Record<AdminDiscountCreateRequest["applyOn"], VoucherFormData["displaySetting"]> = {
+    POS: "pos",
+    WEBSITE: "website",
+    BOTH: "pos-website",
+  };
+
+  const handleApiError = (error: unknown) => {
+    const message =
+      (error as any)?.response?.data?.message || "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+    toast.error(message);
+  };
+
+  const mapDetailToFormData = (detail: AdminDiscountResponse): VoucherFormData => ({
+    voucherName: detail.name ?? "",
+    voucherCode: detail.code ?? "",
+    description: detail.description ?? "",
+    startDate: detail.startDate ? new Date(detail.startDate).toISOString() : "",
+    endDate: detail.endDate ? new Date(detail.endDate).toISOString() : "",
+    discountType: detail.type === "PERCENT" ? "percentage" : "fixed",
+    discountValue: detail.value != null ? detail.value.toString() : "",
+    maxDiscountLimit: detail.maxOrderValue != null ? "limited" : "unlimited",
+    maxDiscountValue: detail.maxOrderValue != null ? detail.maxOrderValue.toString() : "",
+    minOrderAmount: detail.minOrderValue != null ? detail.minOrderValue.toString() : "",
+    maxUsage:
+      detail.discountUsage != null
+        ? detail.discountUsage.toString()
+        : detail.quantity != null
+        ? detail.quantity.toString()
+        : "",
+    displaySetting: applyOnToDisplaySetting[detail.applyOn] ?? "website",
+  });
+
+  const {
+    data: discountDetail,
+    error: discountDetailError,
+  } = useQuery<AdminDiscountResponse, Error>({
+    queryKey: ["admin-discount-detail", fetchDiscountId ?? "new"] as const,
+    queryFn: () => getDiscountDetail(fetchDiscountId!),
+    enabled: Boolean(fetchDiscountId),
+    staleTime: 30000,
+  });
 
   useEffect(() => {
-    if (isEditMode && editData) {
+    if (discountDetail) {
+      setFormData(mapDetailToFormData(discountDetail));
+    }
+  }, [discountDetail]);
+
+  useEffect(() => {
+    if (discountDetailError) {
+      handleApiError(discountDetailError);
+    }
+  }, [discountDetailError]);
+
+  const createDiscountMutation = useMutation({
+    mutationFn: (payload: AdminDiscountCreateRequest) => createDiscount(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
+      toast.success("Tạo mã giảm giá thành công");
+      navigate("/admin/discounts");
+    },
+    onError: handleApiError,
+  });
+
+  const updateDiscountMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: AdminDiscountCreateRequest }) =>
+      updateDiscount(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
+      toast.success("Cập nhật mã giảm giá thành công");
+      navigate("/admin/discounts");
+    },
+    onError: handleApiError,
+  });
+
+  const isSubmitting = createDiscountMutation.isPending || updateDiscountMutation.isPending;
+
+  useEffect(() => {
+    if (fetchDiscountId) {
+      return;
+    }
+    if (mode === "edit" && editData) {
       setFormData({
         voucherName: editData.voucherName ?? "",
         voucherCode: editData.voucherCode ?? "",
@@ -94,20 +203,29 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
         maxDiscountValue: editData.maxDiscountValue ?? "",
         minOrderAmount: editData.minOrderAmount ?? "",
         maxUsage: editData.maxUsage ?? "",
-        maxUsagePerCustomer: editData.maxUsagePerCustomer ?? "",
         displaySetting: editData.displaySetting ?? "website",
       });
     } else {
       setFormData(createDefaultFormData());
     }
-  }, [isEditMode, editData]);
+  }, [fetchDiscountId, mode, editData]);
 
   const pageTitle = isEditMode ? "Chỉnh sửa mã giảm giá" : "Tạo mã giảm giá mới";
 
+  const numericFields: Array<keyof VoucherFormData> = [
+    "discountValue",
+    "maxDiscountValue",
+    "minOrderAmount",
+    "maxUsage",
+  ];
+
+  const sanitizeNumericInput = (value: string) => value.replace(/[^0-9]/g, "");
+
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
+    const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: processedValue,
     }));
   };
 
@@ -115,13 +233,99 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
     navigate("/admin/discounts");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const normalizeDateValue = (value: string) => {
+    if (!value) return "";
+    if (value.endsWith("Z") || value.length > 16) {
+      return value;
+    }
+    return value.length === 16 ? `${value}:00` : value;
+  };
+
+  const validateForm = () => {
+    if (!formData.voucherName.trim()) {
+      return "Vui lòng nhập tên chương trình giảm giá.";
+    }
+    if (!formData.voucherCode.trim()) {
+      return "Vui lòng nhập mã voucher.";
+    }
+    const discountValue = Number(formData.discountValue);
+    if (!formData.discountValue || Number.isNaN(discountValue) || discountValue <= 0) {
+      return "Mức giảm phải lớn hơn 0.";
+    }
+    if (!formData.startDate || !formData.endDate) {
+      return "Vui lòng chọn thời gian áp dụng.";
+    }
+    if (new Date(formData.startDate) >= new Date(formData.endDate)) {
+      return "Thời gian bắt đầu phải trước thời gian kết thúc.";
+    }
+    if (formData.maxDiscountLimit === "limited") {
+      const maxDiscount = Number(formData.maxDiscountValue);
+      if (!formData.maxDiscountValue || Number.isNaN(maxDiscount) || maxDiscount <= 0) {
+        return "Vui lòng nhập mức giảm tối đa hợp lệ.";
+      }
+    }
+    if (formData.minOrderAmount && Number.isNaN(Number(formData.minOrderAmount))) {
+      return "Giá trị đơn hàng tối thiểu không hợp lệ.";
+    }
+    if (formData.maxUsage && (Number.isNaN(Number(formData.maxUsage)) || Number(formData.maxUsage) <= 0)) {
+      return "Tổng lượt sử dụng tối đa phải lớn hơn 0.";
+    }
+    return null;
+  };
+
+  const parseOptionalNumber = (value: string) => {
+    if (!value) return undefined;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  };
+
+  const buildPayload = (): AdminDiscountCreateRequest => {
+    const usageLimit = formData.maxUsage ? Number(formData.maxUsage) : 1;
+    return {
+      name: formData.voucherName.trim(),
+      code: formData.voucherCode.trim().toUpperCase(),
+      category: "ORDER_DISCOUNT",
+      type: discountTypeToEnum[formData.discountType],
+      applyTo: "ORDER",
+      applyOn: displaySettingToApplyOn[formData.displaySetting],
+      value: Number(formData.discountValue),
+      minOrderValue: parseOptionalNumber(formData.minOrderAmount),
+      maxOrderValue:
+        formData.maxDiscountLimit === "limited"
+          ? parseOptionalNumber(formData.maxDiscountValue)
+          : undefined,
+      discountUsage: formData.maxUsage ? usageLimit : undefined,
+      contextAllowed: "SIGNUP",
+      startDate: normalizeDateValue(formData.startDate),
+      endDate: normalizeDateValue(formData.endDate),
+      quantity: usageLimit,
+      status: "ENABLE",
+      description: formData.description?.trim() || undefined,
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(
-      isEditMode ? "Voucher form updated:" : "Voucher form submitted:",
-      formData
-    );
-    // Handle form submission logic here
+    if (isSubmitting) return;
+
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    const payload = buildPayload();
+
+    if (isEditMode) {
+      if (!fetchDiscountId) {
+        toast.error("Không xác định được mã giảm giá cần chỉnh sửa.");
+        return;
+      }
+      await updateDiscountMutation.mutateAsync({ id: fetchDiscountId, payload });
+      return;
+    }
+
+    await createDiscountMutation.mutateAsync(payload);
   };
 
   return (
@@ -224,6 +428,7 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                       onChange={(e) =>
                         handleInputChange("startDate", e.target.value)
                       }
+                    min={minDateTime}
                       containerClassName="h-[36px] w-[240px]"
                       className={!formData.startDate ? "opacity-50" : ""}
                     />
@@ -241,6 +446,9 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                       value={formatDateTimeForInput(formData.endDate)}
                       onChange={(e) =>
                         handleInputChange("endDate", e.target.value)
+                      }
+                    min={
+                      formatDateTimeForInput(formData.startDate) || minDateTime
                       }
                       containerClassName="h-[36px] w-[240px]"
                       className={!formData.endDate ? "opacity-50" : ""}
@@ -428,22 +636,6 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Maximum Usage Per Customer */}
-              <div className="flex flex-row items-start gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                  Lượt sử dụng tối đa/người
-                </label>
-                <div className="flex-1">
-                  <FormInput
-                    placeholder="Nhập số lượt sử dụng"
-                    value={formData.maxUsagePerCustomer}
-                    onChange={(e) =>
-                      handleInputChange("maxUsagePerCustomer", e.target.value)
-                    }
-                    containerClassName="h-[36px] w-[873px]"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 
@@ -494,12 +686,22 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
               type="button"
               variant="secondary"
               onClick={handleBackClick}
+              disabled={isSubmitting}
               className="text-[14px]"
             >
               Hủy
             </Button>
-            <Button type="submit" variant="default" className="text-[14px]">
-              {isEditMode ? "Lưu thay đổi" : "Xác nhận"}
+            <Button
+              type="submit"
+              variant="default"
+              className="text-[14px]"
+              disabled={isSubmitting}
+            >
+              {isSubmitting
+                ? "Đang xử lý..."
+                : isEditMode
+                ? "Lưu thay đổi"
+                : "Xác nhận"}
             </Button>
           </div>
         </form>

@@ -4,6 +4,7 @@ import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
 import { useCart } from "../../../../context/CartContext";
+import { useAuth } from "../../../../context/AuthContext";
 import { getProductById } from "../../data/productsData";
 import CartTable from "../../../../components/shop/Cart/CartTable";
 import RecommendedProducts from "../../../../components/shop/Cart/RecommendedProducts";
@@ -25,8 +26,68 @@ const CartPage: React.FC = () => {
   const navigate = useNavigate();
   const { cartItems, updateQuantity, removeFromCart, addToCart, getCartCount } =
     useCart();
+  const { isAuthenticated } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+  // If not authenticated, show login prompt
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <main className="flex-1">
+          {/* Login Prompt Content */}
+          <section className="w-full bg-gray-50 py-8">
+            <div className="max-w-[1200px] mx-auto px-4">
+              <h1 className="text-[20px] font-bold text-[#E04D30] mb-4">
+                Giỏ hàng của bạn
+              </h1>
+
+              <div className="text-center py-16">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-500 mb-6">
+                  <svg
+                    className="h-8 w-8"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  Đăng nhập để tiếp tục
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  Vui lòng đăng nhập để xem và quản lý các sản phẩm trong giỏ hàng của bạn.
+                </p>
+                <div className="space-y-3">
+                  <Button
+                    onClick={() => navigate("/login")}
+                    className="bg-[#E04D30] hover:bg-[#c53b1d] text-white py-2 px-4 rounded-lg mr-4"
+                  >
+                    Đăng nhập
+                  </Button>
+                  <Button
+                    onClick={() => navigate("/register")}
+                    variant="outline"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50 py-2 px-4 rounded-lg"
+                  >
+                    Tạo tài khoản
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   // Map cart items to display format with product data
   const cartItemsDisplay: CartItemDisplay[] = useMemo(() => {
