@@ -21,6 +21,7 @@ import type {
   AdminProductPageResponse,
   AdminProductDetailResponse,
   ProductVariantListResponse,
+  ProductDetailsResponse,
 } from '../../types';
 
 type ProductListQuery = {
