@@ -21,6 +21,7 @@ import type {
   AdminProductPageResponse,
   AdminProductDetailResponse,
   ProductVariantListResponse,
+  ProductDetailsResponse,
 } from '../../types';
 
 type ProductListQuery = {
@@ -68,8 +69,8 @@ export const getInactiveProductsPrivate = async (params?: ProductListQuery): Pro
   return response.data.data;
 };
 
-export const getProductDetailPrivate = async (id: number): Promise<ProductResponse> => {
-  const response = await api.get<ApiResponse<ProductResponse>>(`/auth/v1/private/product/${id}`);
+export const getProductDetailPrivate = async (id: number): Promise<ProductDetailsResponse> => {
+  const response = await api.get<ApiResponse<ProductDetailsResponse>>(`/auth/v1/private/product/${id}`);
   return response.data.data;
 };
 

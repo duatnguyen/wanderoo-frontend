@@ -26,7 +26,7 @@ import type {
   ProductVersion,
   EditingVersion,
   ProductImage,
-  FormErrors
+  FormErrors,
 } from "@/types/product";
 import type { ProductCreateRequest } from "@/types";
 import { validateForm, validateField } from "@/utils/productValidation";
@@ -84,19 +84,55 @@ const INITIAL_FORM_DATA: ProductFormData = {
   height: "",
 };
 
-const AdminProductsNew: React.FC = () => {
-  const [formData, setFormData] = useState<ProductFormData>(INITIAL_FORM_DATA);
+type VariantPaginationState = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+interface AdminProductsNewProps {
+  mode?: "create" | "edit" | "view";
+  initialFormData?: Partial<ProductFormData>;
+  initialImages?: ProductImage[];
+  initialAttributes?: ProductAttribute[];
+  initialVersions?: ProductVersion[];
+  initialVariantPagination?: VariantPaginationState;
+  productId?: number | null;
+  onBack?: () => void;
+  title?: string;
+}
+
+const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
+  mode = "create",
+  initialFormData,
+  initialImages,
+  initialAttributes,
+  initialVersions,
+  initialVariantPagination,
+  productId = null,
+  onBack,
+  title,
+}) => {
+  const [formData, setFormData] = useState<ProductFormData>({
+    ...INITIAL_FORM_DATA,
+    ...(initialFormData ?? {}),
+  });
 
   const [showAttributes, setShowAttributes] = useState(false);
-  const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [attributes, setAttributes] = useState<ProductAttribute[]>(
+    initialAttributes ?? []
+  );
   const [newAttributeName, setNewAttributeName] = useState("");
   const [newAttributeValueInput, setNewAttributeValueInput] = useState("");
   const [newAttributeValues, setNewAttributeValues] = useState<string[]>([]);
   const [attributeError, setAttributeError] = useState("");
   const [editingAttributeIndex, setEditingAttributeIndex] = useState<number | null>(null);
   const [isAttributeFormVisible, setIsAttributeFormVisible] = useState(true);
-  const [images, setImages] = useState<ProductImage[]>([]);
-  const [versions, setVersions] = useState<ProductVersion[]>([]);
+  const [images, setImages] = useState<ProductImage[]>(initialImages ?? []);
+  const [versions, setVersions] = useState<ProductVersion[]>(
+    initialVersions ?? []
+  );
   const [selectedVersions, setSelectedVersions] = useState<Set<string>>(new Set());
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>({});
@@ -123,17 +159,73 @@ const AdminProductsNew: React.FC = () => {
   const [categoryPage, setCategoryPage] = useState(0);
   const [categoryHasMore, setCategoryHasMore] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(false);
-  const [createdProductId, setCreatedProductId] = useState<number | null>(null);
-  const [isVariantSectionVisible, setIsVariantSectionVisible] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<number | null>(productId);
+  const [isVariantSectionVisible, setIsVariantSectionVisible] = useState(
+    (initialVersions?.length ?? 0) > 0
+  );
   const [variantStatusMessage, setVariantStatusMessage] = useState<string | null>(null);
   const [variantError, setVariantError] = useState<string | null>(null);
   const [isVariantLoading, setIsVariantLoading] = useState(false);
-  const [variantPagination, setVariantPagination] = useState({
-    page: 0,
-    pageSize: VARIANT_PAGE_SIZE,
-    total: 0,
-    totalPages: 0,
-  });
+  const [variantPagination, setVariantPagination] = useState<VariantPaginationState>(
+    initialVariantPagination ?? {
+      page: 0,
+      pageSize: VARIANT_PAGE_SIZE,
+      total: 0,
+      totalPages: 0,
+    }
+  );
+  const isViewMode = mode === "view";
+  const isEditMode = mode === "edit";
+  const headingTitle =
+    title ??
+    (isViewMode
+      ? "Chi tiết sản phẩm"
+      : isEditMode
+      ? "Chỉnh sửa sản phẩm"
+      : "Thêm sản phẩm mới");
+
+  useEffect(() => {
+    if (initialFormData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...initialFormData,
+      }));
+    }
+  }, [initialFormData]);
+
+  useEffect(() => {
+    if (initialImages) {
+      setImages(initialImages);
+    }
+  }, [initialImages]);
+
+  useEffect(() => {
+    if (initialAttributes) {
+      setAttributes(initialAttributes);
+      setShowAttributes(initialAttributes.length > 0);
+    }
+  }, [initialAttributes]);
+
+  useEffect(() => {
+    if (initialVersions) {
+      setVersions(initialVersions);
+      if (initialVersions.length > 0) {
+        setIsVariantSectionVisible(true);
+      }
+    }
+  }, [initialVersions]);
+
+  useEffect(() => {
+    if (initialVariantPagination) {
+      setVariantPagination(initialVariantPagination);
+    }
+  }, [initialVariantPagination]);
+
+  useEffect(() => {
+    if (typeof productId === "number" && !Number.isNaN(productId)) {
+      setCreatedProductId(productId);
+    }
+  }, [productId]);
 
   // Form steps for progress indicator
   const formSteps = [
@@ -219,6 +311,9 @@ const AdminProductsNew: React.FC = () => {
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isViewMode) {
+      return;
+    }
 
     // Validate form
     const formErrors = validateForm(formData);
@@ -284,9 +379,13 @@ const AdminProductsNew: React.FC = () => {
       setVariantStatusMessage(null);
       setIsSubmitting(false);
     }
-  }, [attributes, fetchProductVariants, formData, images]);
+  }, [attributes, fetchProductVariants, formData, images, isViewMode]);
 
   const handleCancel = () => {
+    if (isViewMode) {
+      onBack?.();
+      return;
+    }
     setFormData(INITIAL_FORM_DATA);
     setImages([]);
     setAttributes([]);
@@ -345,8 +444,9 @@ const AdminProductsNew: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
+    if (isViewMode) return;
     loadBrands(0, false);
-  }, [loadBrands]);
+  }, [isViewMode, loadBrands]);
 
   const handleBrandLoadMore = useCallback(() => {
     if (brandLoading || !brandHasMore) return;
@@ -466,8 +566,9 @@ const AdminProductsNew: React.FC = () => {
   );
 
   React.useEffect(() => {
+    if (isViewMode) return;
     loadCategories(0, false);
-  }, [loadCategories]);
+  }, [isViewMode, loadCategories]);
 
   const handleCategoryLoadMore = useCallback(() => {
     if (categoryLoading || !categoryHasMore) return;
@@ -517,6 +618,7 @@ const AdminProductsNew: React.FC = () => {
   );
 
   const handleAddAttribute = () => {
+    if (isViewMode) return;
     setShowAttributes(true);
     setIsAttributeFormVisible(true);
     resetAttributeDraft();
@@ -526,6 +628,7 @@ const AdminProductsNew: React.FC = () => {
     attrIndex: number,
     valueIndex: number
   ) => {
+    if (isViewMode) return;
     setAttributes((prev) => {
       const updated = [...prev];
       const newValues = updated[attrIndex].values.filter((_, i) => i !== valueIndex);
@@ -555,6 +658,7 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleDeleteAttribute = (index: number) => {
+    if (isViewMode) return;
     const isEditingDeletedAttribute = editingAttributeIndex === index;
 
     setAttributes((prev) => {
@@ -574,11 +678,13 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleRemoveNewAttributeValue = (index: number) => {
+    if (isViewMode) return;
     setNewAttributeValues((prev) => prev.filter((_, i) => i !== index));
     setAttributeError("");
   };
 
   const handleEditAttribute = (index: number) => {
+    if (isViewMode) return;
     const targetAttribute = attributes[index];
     if (!targetAttribute) return;
 
@@ -592,11 +698,13 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleCancelEditingAttribute = () => {
+    if (isViewMode) return;
     resetAttributeDraft();
     setIsAttributeFormVisible(false);
   };
 
   const handleSubmitNewAttribute = useCallback(() => {
+    if (isViewMode) return;
     const trimmedName = newAttributeName.trim();
     if (!trimmedName) {
       setAttributeError("Tên thuộc tính không được để trống.");
@@ -632,9 +740,10 @@ const AdminProductsNew: React.FC = () => {
 
     resetAttributeDraft();
     setIsAttributeFormVisible(false);
-  }, [attributeNameExists, attributes.length, editingAttributeIndex, newAttributeName, newAttributeValues, resetAttributeDraft]);
+  }, [attributeNameExists, attributes.length, editingAttributeIndex, isViewMode, newAttributeName, newAttributeValues, resetAttributeDraft]);
 
   const handleNewAttributeValueKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (isViewMode) return;
     if (e.key !== "Enter") return;
 
     if (e.nativeEvent.isComposing) {
@@ -667,8 +776,10 @@ const AdminProductsNew: React.FC = () => {
 
   const canAddMoreAttributes = attributes.length < MAX_ATTRIBUTES;
   const shouldShowAttributeForm =
-    editingAttributeIndex !== null || (isAttributeFormVisible && canAddMoreAttributes);
+    !isViewMode &&
+    (editingAttributeIndex !== null || (isAttributeFormVisible && canAddMoreAttributes));
   const canSubmitAttribute =
+    !isViewMode &&
     newAttributeName.trim() !== "" &&
     newAttributeValues.length > 0 &&
     !attributeNameExists(newAttributeName, editingAttributeIndex) &&
@@ -680,8 +791,15 @@ const AdminProductsNew: React.FC = () => {
     }
   }, [attributes.length]);
 
+  useEffect(() => {
+    if (isViewMode) {
+      setCurrentStep(formSteps.length - 1);
+    }
+  }, [isViewMode]);
+
   // Memoized version calculation
   const handleVersionToggle = (versionId: string) => {
+    if (isViewMode) return;
     setSelectedVersions((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(versionId)) {
@@ -694,6 +812,7 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleSelectAll = (checked: boolean) => {
+    if (isViewMode) return;
     if (checked) {
       setSelectedVersions(new Set(versions.map((v) => v.id)));
     } else {
@@ -702,6 +821,7 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleEditBarcode = () => {
+    if (isViewMode) return;
     // Initialize barcode values for selected versions
     const initialValues: Record<string, string> = {};
     selectedVersions.forEach((versionId) => {
@@ -715,6 +835,7 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleBarcodeChange = (versionId: string, value: string) => {
+    if (isViewMode) return;
     setBarcodeValues((prev) => ({
       ...prev,
       [versionId]: value,
@@ -734,6 +855,7 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleEditPrice = () => {
+    if (isViewMode) return;
     // Initialize price values for selected versions
     const initialValues: Record<string, string> = {};
     selectedVersions.forEach((versionId) => {
@@ -748,6 +870,7 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handlePriceChange = (versionId: string, value: string) => {
+    if (isViewMode) return;
     setPriceValues((prev) => ({
       ...prev,
       [versionId]: value,
@@ -755,6 +878,7 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleApplyAllPrice = () => {
+    if (isViewMode) return;
     if (applyAllPrice) {
       const updatedValues: Record<string, string> = {};
       selectedVersions.forEach((versionId) => {
@@ -779,6 +903,7 @@ const AdminProductsNew: React.FC = () => {
   };
 
   const handleVersionRowClick = (versionId: string) => {
+    if (isViewMode) return;
     const version = versions.find((v) => v.id === versionId);
     if (version) {
       setEditingVersion({
@@ -887,10 +1012,15 @@ const AdminProductsNew: React.FC = () => {
     <PageContainer>
       {/* Header */}
       <div className="flex flex-col gap-4 mb-2">
-        <div className="flex items-center">
+        <div className="flex items-center justify-between">
           <h1 className="text-[28px] font-bold text-[#272424] font-montserrat leading-[120%]">
-            Thêm sản phẩm mới
+            {headingTitle}
           </h1>
+          {isViewMode && onBack && (
+            <Button variant="secondary" onClick={onBack}>
+              Quay lại
+            </Button>
+          )}
         </div>
 
         {/* Progress Indicator */}
@@ -909,6 +1039,7 @@ const AdminProductsNew: React.FC = () => {
             onImagesChange={setImages}
             maxImages={9}
             maxSizeInMB={2}
+            readOnly={isViewMode}
           />
 
           {/* Basic Information Section */}
@@ -939,6 +1070,8 @@ const AdminProductsNew: React.FC = () => {
                     containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${errors.productName ? 'error-border' :
                       !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
                       }`}
+                    readOnly={isViewMode}
+                    disabled={isViewMode}
                   />
                 </FormField>
               </div>
@@ -963,7 +1096,8 @@ const AdminProductsNew: React.FC = () => {
                         handleCategorySelect(value as number | undefined)
                       }
                       onClear={() => handleCategorySelect(undefined)}
-                      allowClear
+                      allowClear={!isViewMode}
+                      disabled={isViewMode}
                       suffixIcon={
                         <ChevronDown className="w-4 h-4 text-[#322f30]" />
                       }
@@ -978,31 +1112,35 @@ const AdminProductsNew: React.FC = () => {
                           "Không có danh mục"
                         )
                       }
-                      dropdownRender={(menu) => (
-                        <>
-                          {menu}
-                          <div className="px-3 py-2 border-t border-gray-100">
-                            {categoryHasMore ? (
-                              <button
-                                type="button"
-                                onClick={handleCategoryLoadMore}
-                                disabled={categoryLoading}
-                                className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
-                              >
-                                {categoryLoading ? (
-                                  <Spin size="small" />
-                                ) : (
-                                  "Tải thêm danh mục..."
-                                )}
-                              </button>
-                            ) : (
-                              <span className="text-xs text-gray-400">
-                                Đã tải tất cả danh mục
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      )}
+                      dropdownRender={
+                        isViewMode
+                          ? undefined
+                          : (menu) => (
+                              <>
+                                {menu}
+                                <div className="px-3 py-2 border-t border-gray-100">
+                                  {categoryHasMore ? (
+                                    <button
+                                      type="button"
+                                      onClick={handleCategoryLoadMore}
+                                      disabled={categoryLoading}
+                                      className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
+                                    >
+                                      {categoryLoading ? (
+                                        <Spin size="small" />
+                                      ) : (
+                                        "Tải thêm danh mục..."
+                                      )}
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">
+                                      Đã tải tất cả danh mục
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            )
+                      }
                       options={categoryOptions}
                       popupClassName="category-select-dropdown"
                     />
@@ -1022,6 +1160,7 @@ const AdminProductsNew: React.FC = () => {
                         className={`bg-white border-2 ${
                           errors.brand ? "border-[#ff4d4f]" : "border-[#e04d30]"
                         } flex items-center justify-between px-4 rounded-[12px] w-full h-[40px]`}
+                        disabled={isViewMode}
                       >
                         <span
                           className={`text-[14px] font-semibold ${
@@ -1033,89 +1172,91 @@ const AdminProductsNew: React.FC = () => {
                         <ChevronDown className="w-5 h-5 text-[#322f30]" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      className="min-w-[240px]"
-                    >
-                      <div className="max-h-64 overflow-y-auto">
-                        {brandOptions.length === 0 && (
-                          <div className="px-4 py-2 text-sm text-gray-500">
-                            {brandLoading ? "Đang tải thương hiệu..." : "Chưa có thương hiệu"}
-                          </div>
-                        )}
-                        {brandOptions.map((brand) => (
-                          <DropdownMenuItem
-                            key={brand.id}
-                            className="flex items-center justify-between gap-3 text-[14px] font-semibold text-[#272424]"
-                            onClick={() => handleBrandSelect(brand)}
-                          >
-                            <span>{brand.name}</span>
+                    {!isViewMode && (
+                      <DropdownMenuContent
+                        align="start"
+                        className="min-w-[240px]"
+                      >
+                        <div className="max-h-64 overflow-y-auto">
+                          {brandOptions.length === 0 && (
+                            <div className="px-4 py-2 text-sm text-gray-500">
+                              {brandLoading ? "Đang tải thương hiệu..." : "Chưa có thương hiệu"}
+                            </div>
+                          )}
+                          {brandOptions.map((brand) => (
+                            <DropdownMenuItem
+                              key={brand.id}
+                              className="flex items-center justify-between gap-3 text-[14px] font-semibold text-[#272424]"
+                              onClick={() => handleBrandSelect(brand)}
+                            >
+                              <span>{brand.name}</span>
+                              <button
+                                type="button"
+                                className="text-[#f44336] hover:text-[#d32f2f]"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setBrandToDelete(brand);
+                                }}
+                                title={`Xóa ${brand.name}`}
+                              >
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M3 6H5H21"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <div className="px-4 py-2">
+                          {brandHasMore ? (
                             <button
                               type="button"
-                              className="text-[#f44336] hover:text-[#d32f2f]"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                setBrandToDelete(brand);
+                                handleBrandLoadMore();
                               }}
-                              title={`Xóa ${brand.name}`}
+                              disabled={brandLoading}
+                              className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
                             >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                              >
-                                <path
-                                  d="M3 6H5H21"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                                <path
-                                  d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
+                              {brandLoading ? <Spin size="small" /> : "Tải thêm thương hiệu..."}
                             </button>
-                          </DropdownMenuItem>
-                        ))}
-                      </div>
-                      <DropdownMenuSeparator />
-                      <div className="px-4 py-2">
-                        {brandHasMore ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleBrandLoadMore();
-                            }}
-                            disabled={brandLoading}
-                            className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
-                          >
-                            {brandLoading ? <Spin size="small" /> : "Tải thêm thương hiệu..."}
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-400">
-                            Đã tải tất cả thương hiệu
-                          </span>
-                        )}
-                      </div>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setShowBrandModal(true)}
-                        className="text-[#E04D30] font-semibold flex items-center gap-2"
-                      >
-                        <Icon name="plus" size={16} color="#E04D30" />
-                        Thêm thương hiệu mới
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Đã tải tất cả thương hiệu
+                            </span>
+                          )}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setShowBrandModal(true)}
+                          className="text-[#E04D30] font-semibold flex items-center gap-2"
+                        >
+                          <Icon name="plus" size={16} color="#E04D30" />
+                          Thêm thương hiệu mới
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    )}
                   </DropdownMenu>
                 </FormField>
               </div>
@@ -1133,6 +1274,8 @@ const AdminProductsNew: React.FC = () => {
                   onChange={(e) =>
                     handleInputChange("description", e.target.value)
                   }
+                readOnly={isViewMode}
+                disabled={isViewMode}
                 />
               </FormField>
             </div>
@@ -1153,15 +1296,17 @@ const AdminProductsNew: React.FC = () => {
                       Thuộc tính
                     </h3>
                   </div>
-                  <Button
-                    variant="secondary"
-                    className="w-fit flex items-center gap-2 text-[14px]"
-                    type="button"
-                    onClick={handleAddAttribute}
-                  >
-                    <Icon name="plus" size={16} color="#e04d30" />
-                    Thêm thuộc tính
-                  </Button>
+                  {!isViewMode && (
+                    <Button
+                      variant="secondary"
+                      className="w-fit flex items-center gap-2 text-[14px]"
+                      type="button"
+                      onClick={handleAddAttribute}
+                    >
+                      <Icon name="plus" size={16} color="#e04d30" />
+                      Thêm thuộc tính
+                    </Button>
+                  )}
                 </div>
 
                 {/* Cost Price and Selling Price */}
@@ -1177,6 +1322,8 @@ const AdminProductsNew: React.FC = () => {
                         handleInputChange("costPrice", e.target.value)
                       }
                       containerClassName="h-[36px] px-4"
+                      readOnly={isViewMode}
+                      disabled={isViewMode}
                     />
                   </div>
 
@@ -1191,6 +1338,8 @@ const AdminProductsNew: React.FC = () => {
                         handleInputChange("sellingPrice", e.target.value)
                       }
                       containerClassName="h-[36px] px-4"
+                      readOnly={isViewMode}
+                      disabled={isViewMode}
                     />
                   </div>
                 </div>
@@ -1208,6 +1357,8 @@ const AdminProductsNew: React.FC = () => {
                         handleInputChange("inventory", e.target.value)
                       }
                       containerClassName="h-[36px] px-4"
+                      readOnly={isViewMode}
+                      disabled={isViewMode}
                     />
                   </div>
 
@@ -1222,6 +1373,8 @@ const AdminProductsNew: React.FC = () => {
                         handleInputChange("available", e.target.value)
                       }
                       containerClassName="h-[36px] px-4"
+                      readOnly={isViewMode}
+                      disabled={isViewMode}
                     />
                   </div>
                 </div>
@@ -1273,74 +1426,78 @@ const AdminProductsNew: React.FC = () => {
                                 <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
                                   {value}
                                 </span>
-                                <button
-                                  type="button"
-                                  className="text-[#737373] hover:text-[#1a71f6]"
-                                  onClick={() =>
-                                    handleRemoveExistingAttributeValue(index, valueIndex)
-                                  }
-                                >
-                                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                    <path
-                                      d="M9 3L3 9M3 3L9 9"
-                                      stroke="currentColor"
-                                      strokeWidth="1.5"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                </button>
+                                {!isViewMode && (
+                                  <button
+                                    type="button"
+                                    className="text-[#737373] hover:text-[#1a71f6]"
+                                    onClick={() =>
+                                      handleRemoveExistingAttributeValue(index, valueIndex)
+                                    }
+                                  >
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                      <path
+                                        d="M9 3L3 9M3 3L9 9"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </button>
+                                )}
                               </div>
                             ))}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              className="text-[#1a71f6] hover:text-[#0f5ad8]"
-                              onClick={() => handleEditAttribute(index)}
-                              title="Chỉnh sửa thuộc tính này"
-                            >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <path
-                                  d="M12 20h9"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                                <path
-                                  d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
-                            <button
-                              type="button"
-                              className="text-[#f44336] hover:text-[#d32f2f]"
-                              onClick={() => handleDeleteAttribute(index)}
-                              title="Xóa thuộc tính này"
-                            >
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path
-                                  d="M3 6H5H21"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                                <path
-                                  d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </button>
-                          </div>
+                          {!isViewMode && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                className="text-[#1a71f6] hover:text-[#0f5ad8]"
+                                onClick={() => handleEditAttribute(index)}
+                                title="Chỉnh sửa thuộc tính này"
+                              >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                  <path
+                                    d="M12 20h9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                className="text-[#f44336] hover:text-[#d32f2f]"
+                                onClick={() => handleDeleteAttribute(index)}
+                                title="Xóa thuộc tính này"
+                              >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                  <path
+                                    d="M3 6H5H21"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -1458,22 +1615,24 @@ const AdminProductsNew: React.FC = () => {
                   )}
                 </div>
               ) : canAddMoreAttributes ? (
-                <button
-                  type="button"
-                  onClick={handleAddAttribute}
-                  className="flex items-center gap-1 text-[14px] font-bold text-[#1a71f6]"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 5V19M5 12H19"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Thêm thuộc tính khác
-                </button>
+                !isViewMode ? (
+                  <button
+                    type="button"
+                    onClick={handleAddAttribute}
+                    className="flex items-center gap-1 text-[14px] font-bold text-[#1a71f6]"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M12 5V19M5 12H19"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Thêm thuộc tính khác
+                  </button>
+                ) : null
               ) : (
                 <p className="text-sm text-gray-500 border-t border-dashed border-[#e7e7e7] pt-4">
                   Bạn đã thêm tối đa {MAX_ATTRIBUTES} thuộc tính.
@@ -1541,6 +1700,7 @@ const AdminProductsNew: React.FC = () => {
                           selectedVersions.size === versions.length
                         }
                         onChange={handleSelectAll}
+                      disabled={isViewMode}
                       />
                     </div>
                     <p className="text-[14px] font-bold text-[#272424] font-montserrat">
@@ -1549,7 +1709,7 @@ const AdminProductsNew: React.FC = () => {
                         : `${variantPagination.total.toLocaleString("vi-VN")} phiên bản`}
                     </p>
                   </div>
-                  {selectedCount > 0 && (
+                  {!isViewMode && selectedCount > 0 && (
                     <div className="flex-1 flex flex-col gap-2 items-end justify-center px-3 py-[14px]">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1594,6 +1754,7 @@ const AdminProductsNew: React.FC = () => {
                           <CustomCheckbox
                             checked={selectedVersions.has(version.id)}
                             onChange={() => handleVersionToggle(version.id)}
+                          disabled={isViewMode}
                           />
                         </div>
                         <div className="w-[44px] h-[44px] rounded-[12px] bg-[#f5f5f5] overflow-hidden flex items-center justify-center">
@@ -1641,57 +1802,61 @@ const AdminProductsNew: React.FC = () => {
                           <p className="text-xs text-gray-500">Có thể bán</p>
                         </div>
                         <div className="flex items-center justify-end gap-3">
-                          <button
-                            type="button"
-                            className="text-[#1a71f6] hover:text-[#0f5ad8]"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleVersionRowClick(version.id);
-                            }}
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                              <path
-                                d="M12 20h9"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            type="button"
-                            className="text-[#f44336] hover:text-[#d32f2f]"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // TODO: Hook up delete logic when API is available
-                              console.log("Delete variant", version.id);
-                            }}
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                              <path
-                                d="M3 6H5H21"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                              <path
-                                d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
+                          {!isViewMode && (
+                            <>
+                              <button
+                                type="button"
+                                className="text-[#1a71f6] hover:text-[#0f5ad8]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVersionRowClick(version.id);
+                                }}
+                              >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                  <path
+                                    d="M12 20h9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                className="text-[#f44336] hover:text-[#d32f2f]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // TODO: Hook up delete logic when API is available
+                                  console.log("Delete variant", version.id);
+                                }}
+                              >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                  <path
+                                    d="M3 6H5H21"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1742,6 +1907,8 @@ const AdminProductsNew: React.FC = () => {
                   value={formData.weight}
                   onChange={(e) => handleInputChange("weight", e.target.value)}
                     className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat placeholder:text-[#b0b0b0]"
+                    readOnly={isViewMode}
+                    disabled={isViewMode}
                   />
                   <div className="flex items-center gap-2.5 ml-2">
                     <div className="w-px h-6 bg-[#b0b0b0]"></div>
@@ -1772,6 +1939,8 @@ const AdminProductsNew: React.FC = () => {
                         value={formData.width}
                         onChange={(e) => handleInputChange("width", e.target.value)}
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                        readOnly={isViewMode}
+                        disabled={isViewMode}
                       />
                       <div className="flex items-center gap-2.5 ml-2">
                         <div className="w-px h-6 bg-[#b0b0b0]"></div>
@@ -1794,6 +1963,8 @@ const AdminProductsNew: React.FC = () => {
                         value={formData.length}
                         onChange={(e) => handleInputChange("length", e.target.value)}
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                        readOnly={isViewMode}
+                        disabled={isViewMode}
                       />
                       <div className="flex items-center gap-2.5 ml-2">
                         <div className="w-px h-6 bg-[#b0b0b0]"></div>
@@ -1816,6 +1987,8 @@ const AdminProductsNew: React.FC = () => {
                         value={formData.height}
                         onChange={(e) => handleInputChange("height", e.target.value)}
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                        readOnly={isViewMode}
+                        disabled={isViewMode}
                       />
                       <div className="flex items-center gap-2.5 ml-2">
                         <div className="w-px h-6 bg-[#b0b0b0]"></div>
@@ -1840,62 +2013,72 @@ const AdminProductsNew: React.FC = () => {
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-            <div className="text-sm text-gray-500">
-              {Object.keys(errors).length > 0 ? (
-                <span className="text-red-500 animate-shake">
-                  ⚠️ Vui lòng kiểm tra lại thông tin
-                </span>
-              ) : formData.productName && formData.brand && formData.description ? (
-                <span className="text-green-600 animate-fadeIn">
-                  ✅ Thông tin cơ bản đã đầy đủ
-                </span>
-              ) : (
-                <span>Điền thông tin để tiếp tục</span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                onClick={handleCancel}
-                disabled={isSubmitting}
-                className="btn-secondary-enhanced"
-              >
-                Huỷ
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary-enhanced px-8"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <LoadingSpinner size="sm" />
-                    Đang lưu...
-                  </div>
+          {!isViewMode && (
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <div className="text-sm text-gray-500">
+                {Object.keys(errors).length > 0 ? (
+                  <span className="text-red-500 animate-shake">
+                    ⚠️ Vui lòng kiểm tra lại thông tin
+                  </span>
+                ) : formData.productName && formData.brand && formData.description ? (
+                  <span className="text-green-600 animate-fadeIn">
+                    ✅ Thông tin cơ bản đã đầy đủ
+                  </span>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span>Thêm sản phẩm</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M5 12h14m-7-7l7 7-7 7"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
+                  <span>Điền thông tin để tiếp tục</span>
                 )}
-              </Button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  className="btn-secondary-enhanced"
+                >
+                  Huỷ
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-primary-enhanced px-8"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" />
+                      Đang lưu...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span>Thêm sản phẩm</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M5 12h14m-7-7l7 7-7 7"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </form>
       </ContentCard>
 
+      {isViewMode && (
+        <div className="flex items-center justify-end mt-4 gap-3">
+          <Button variant="secondary" onClick={onBack ?? (() => window.history.back())}>
+            Quay lại danh sách
+          </Button>
+        </div>
+      )}
+
       {/* Add Brand Modal */}
-      {showBrandModal && (
+      {showBrandModal && !isViewMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="fixed inset-0 bg-black/30 backdrop-blur-sm"
@@ -2021,7 +2204,7 @@ const AdminProductsNew: React.FC = () => {
       )}
 
       {/* Barcode Edit Modal */}
-      {showBarcodeModal && (
+      {showBarcodeModal && !isViewMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop with blur and dark overlay */}
           <div
@@ -2104,7 +2287,7 @@ const AdminProductsNew: React.FC = () => {
       )}
 
       {/* Price Edit Modal */}
-      {showPriceModal && (
+      {showPriceModal && !isViewMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop with blur and dark overlay */}
           <div
@@ -2225,7 +2408,7 @@ const AdminProductsNew: React.FC = () => {
       )}
 
       {/* Edit Version Modal */}
-      {showEditVersionModal && editingVersion && (
+      {showEditVersionModal && editingVersion && !isViewMode && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop with blur and dark overlay */}
           <div

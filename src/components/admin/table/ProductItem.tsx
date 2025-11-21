@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, Eye } from "lucide-react";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import type { Product } from "../../../types/types";
 
@@ -8,6 +8,7 @@ interface ProductItemProps {
     isSelected: boolean;
     onSelect: (productId: string) => void;
     onUpdate: (productId: string) => void;
+    onView?: (productId: string) => void;
 }
 
 const ProductItem: React.FC<ProductItemProps> = ({
@@ -15,6 +16,7 @@ const ProductItem: React.FC<ProductItemProps> = ({
     isSelected,
     onSelect,
     onUpdate,
+    onView,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const hasVariants = product.variants && product.variants.length > 0;
@@ -135,6 +137,15 @@ const ProductItem: React.FC<ProductItemProps> = ({
 
                     {/* Actions */}
                     <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
+                        {onView && (
+                            <button
+                                onClick={() => onView(product.id)}
+                                className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
+                                title="Xem chi tiết"
+                            >
+                                <Eye className="w-4 h-4 text-[#12A454] hover:text-[#0B7036]" />
+                            </button>
+                        )}
                         <button
                             onClick={() => onUpdate(product.id)}
                             className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"

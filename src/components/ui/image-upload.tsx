@@ -15,6 +15,7 @@ interface ImageUploadProps {
   label?: string;
   note?: string;
   required?: boolean;
+  readOnly?: boolean;
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -25,10 +26,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   label = "Hình ảnh sản phẩm",
   note = "Kéo thả hoặc thêm ảnh từ URL, tải ảnh lên từ thiết bị (Dung lượng ảnh tối đa 2MB)",
   required = false,
+  readOnly = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return;
     const files = event.target.files;
     if (!files) return;
 
@@ -75,10 +78,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   };
 
   const handleRemoveImage = (id: string) => {
+    if (readOnly) return;
     onImagesChange(images.filter((img) => img.id !== id));
   };
 
   const handleImageClick = () => {
+    if (readOnly) return;
     fileInputRef.current?.click();
   };
 
@@ -115,18 +120,20 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 className="w-full h-full object-cover"
               />
               {/* Remove button */}
-              <button
-                type="button"
-                onClick={() => handleRemoveImage(image.id)}
-                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-              >
-                <Icon name="close" size={16} color="white" />
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(image.id)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <Icon name="close" size={16} color="white" />
+                </button>
+              )}
             </div>
           ))}
 
           {/* Add image button - only show if less than max images */}
-          {images.length < maxImages && (
+          {images.length < maxImages && !readOnly && (
             <div
               onClick={handleImageClick}
               className="bg-white border-2 border-dashed border-[#e04d30] rounded-[8px] w-[78px] h-[78px] flex flex-col items-center justify-center gap-1 p-2 cursor-pointer hover:opacity-80 transition-opacity"
@@ -154,6 +161,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             multiple
             onChange={handleImageUpload}
             className="hidden"
+            disabled={readOnly}
           />
         </div>
       </div>

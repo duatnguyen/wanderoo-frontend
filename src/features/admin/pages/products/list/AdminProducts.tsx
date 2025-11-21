@@ -318,6 +318,10 @@ const AdminProducts: React.FC = () => {
     navigate(`/admin/products/${productId}/edit`);
   };
 
+  const handleView = (productId: string) => {
+    navigate(`/admin/products/${productId}/view`);
+  };
+
   const handleBulkHide = async () => {
     const ids = buildSelectedIdPayload();
     if (ids.length === 0) return;
@@ -475,6 +479,7 @@ const AdminProducts: React.FC = () => {
                   isSelected={selectedProducts.has(product.id)}
                   onSelect={handleProductSelect}
                   onUpdate={handleUpdate}
+                onView={handleView}
                 />
               ))}
             {!isLoading && paginatedProducts.length === 0 && !errorMessage && (

@@ -1,5 +1,5 @@
 // src/types/products.ts - Product and category types
-import type { PageResponse } from './common';
+import type { PageResponse } from "./common";
 
 export interface ProductResponse {
   id: number;
@@ -189,4 +189,28 @@ export interface ProductVariantListResponse {
   pageSize?: number;
   totalPages?: number;
   totalElements?: number;
+}
+
+export interface ProductDetailAttributeValueResponse {
+  id: number;
+  value: string;
+}
+
+export interface ProductDetailAttributeResponse {
+  name: string;
+  values: ProductDetailAttributeValueResponse[];
+}
+
+export interface ProductDetailsResponse {
+  id: number;
+  images?: string[];
+  name: string;
+  categoryResponse?: { id: number; name: string } | null;
+  brandResponse?: { id: number; name: string } | null;
+  description?: string;
+  attributes?: ProductDetailAttributeResponse[];
+  packagedWeight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
 }
