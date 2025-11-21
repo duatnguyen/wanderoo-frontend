@@ -1,136 +1,253 @@
-import React, { useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { isAxiosError } from "axios";
 import { Icon } from "@/components/icons";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
-import ToggleSwitch from "@/components/ui/toggle-switch";
 import { SearchBar } from "@/components/ui/search-bar";
 import { Button } from "@/components/ui/button";
+import {
+  getCategoryChildListByParent,
+  getCategoryParentList,
+  updateCategoryChild,
+} from "@/api/endpoints/attributeApi";
+import {
+  deleteProductPrivate,
+  getProductsByCategoryPrivate,
+} from "@/api/endpoints/productApi";
+import type {
+  CategoryChildResponse,
+  CategoryParentResponse,
+  CategoryStatus,
+  ProductResponse,
+} from "@/types";
 
-interface Product {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-}
-
-interface Subcategory {
-  id: string;
-  name: string;
-  image: string;
-  productCount: number;
-  isVisible: boolean;
-  parentCategoryName: string;
-}
-
-const CATEGORY_NAMES: Record<string, string> = {
-  "1": "Trang phục",
-  "2": "Ba lô & Túi",
-  "3": "Giày & Dép",
-  "4": "Lều & Ngủ",
-  "5": "Dụng cụ nấu ăn & ăn uống",
+type UpdateCategoryVariables = {
+  payload: {
+    id: number;
+    name: string;
+    imageUrl?: string;
+  };
+  status: CategoryStatus;
+  successMessage?: string;
 };
+
+const DEFAULT_PAGE_SIZE = 200;
+const PRODUCT_PAGE_SIZE = 10;
 
 const AdminProductsSubcategoryDetail: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { categoryId, subcategoryId } =
     useParams<{ categoryId: string; subcategoryId: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
-  // Mock subcategory data - in real app, fetch based on IDs
-  const [subcategory, setSubcategory] = useState<Subcategory>({
-    id: subcategoryId || "1",
-    name: "Áo thun",
-    image: "",
-    productCount: 12,
-    isVisible: true,
-    parentCategoryName:
-      CATEGORY_NAMES[categoryId || ""] || "Danh mục chưa xác định",
+  const parentCategoryId = Number(categoryId);
+  const childCategoryId = Number(subcategoryId);
+  const isIdsValid =
+    Number.isFinite(parentCategoryId) && Number.isFinite(childCategoryId);
+
+  const locationState = location.state as
+    | {
+        parentCategory?: CategoryParentResponse;
+        childCategory?: CategoryChildResponse;
+      }
+    | undefined;
+
+  const parentFromState = locationState?.parentCategory;
+  const childFromState = locationState?.childCategory;
+
+  const {
+    data: parentFromQuery,
+    isLoading: isParentLoading,
+  } = useQuery({
+    queryKey: ["category-parent", parentCategoryId],
+    queryFn: () =>
+      getCategoryParentList({ page: 1, size: DEFAULT_PAGE_SIZE }),
+    select: (resp) =>
+      resp.categories.find((parent) => parent.id === parentCategoryId),
+    enabled: !parentFromState && Number.isFinite(parentCategoryId),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
   });
+
+  const {
+    data: childFromQuery,
+    isLoading: isChildLoading,
+    isFetching: isChildFetching,
+    isError: isChildError,
+    error: childError,
+  } = useQuery({
+    queryKey: ["category-child-detail", parentCategoryId],
+    queryFn: () =>
+      getCategoryChildListByParent(parentCategoryId, {
+        page: 0,
+        size: DEFAULT_PAGE_SIZE,
+      }),
+    select: (resp) =>
+      resp.categoryChildResponseList.find(
+        (child) => child.id === childCategoryId
+      ),
+    enabled: Number.isFinite(parentCategoryId),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const parentCategory = parentFromState ?? parentFromQuery ?? null;
+  const [subcategory, setSubcategory] = useState<CategoryChildResponse | null>(
+    childFromState ?? null
+  );
+
+  useEffect(() => {
+    if (childFromQuery) {
+      setSubcategory(childFromQuery);
+    }
+  }, [childFromQuery]);
+
+  const parentCategoryName = useMemo(() => {
+    if (parentCategory?.name) {
+      return parentCategory.name;
+    }
+    if (parentCategoryId && Number.isFinite(parentCategoryId)) {
+      return `Danh mục #${parentCategoryId}`;
+    }
+    return "Danh mục";
+  }, [parentCategory, parentCategoryId]);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Mock products data
-  const [products] = useState<Product[]>([
-    {
-      id: "P001",
-      name: "Áo thun dài tay nam Gothiar Active",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P002",
-      name: "Áo thun ngắn tay Gothiar Active",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P003",
-      name: "Áo thun dài tay nữ Gothiar Active",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P004",
-      name: "Áo thun ngắn tay nữ Gothiar Active",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P005",
-      name: "Áo thun ngắn tay nam Gothiar Classic",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P006",
-      name: "Áo thun co giãn thoáng khí Rockbros LKW008",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P007",
-      name: "Áo T-shirt leo núi adidas TERREX hoạ tiết Nam - JI9166",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P008",
-      name: "Áo thun CLIMBING CHERUB",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P009",
-      name: "Áo phông nam VNXK MHW Way2Cool™",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P010",
-      name: "Áo thun ngắn tay nam Gothiar AT Dry",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P011",
-      name: "Áo thun ngắn tay nữ Gothiar Classic",
-      image: "",
-      price: 5,
-    },
-    {
-      id: "P012",
-      name: "Áo thun ngắn tay nam Gothiar Classic",
-      image: "",
-      price: 5,
-    },
-  ]);
-
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+
+  useEffect(() => {
+    if (subcategory && !isEditingName) {
+      setEditingName(subcategory.name ?? "");
+    }
+  }, [subcategory, isEditingName]);
+
+  const childQueryKey = useMemo(
+    () => ["category-child-detail", parentCategoryId],
+    [parentCategoryId]
+  );
+
+  const getErrorMessage = (err: unknown) => {
+    if (isAxiosError(err)) {
+      return (
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Đã xảy ra lỗi"
+      );
+    }
+    if (err instanceof Error) {
+      return err.message;
+    }
+    return "Đã xảy ra lỗi, vui lòng thử lại.";
+  };
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ payload, status }: UpdateCategoryVariables) =>
+      updateCategoryChild(payload, status),
+    onSuccess: (_res, variables) => {
+      toast.success(
+        variables.successMessage ?? "Cập nhật danh mục con thành công"
+      );
+      queryClient.invalidateQueries({ queryKey: childQueryKey });
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const normalizedSearch = searchQuery.trim();
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await Promise.all(ids.map((id) => deleteProductPrivate(id)));
+    },
+    onSuccess: (_res, ids) => {
+      const message =
+        ids.length === 1
+          ? "Đã xoá 1 sản phẩm"
+          : `Đã xoá ${ids.length} sản phẩm`;
+      toast.success(message);
+      setSelectedProducts((prev) =>
+        prev.filter((id) => !ids.includes(id))
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["category-products", childCategoryId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["category-child-detail", parentCategoryId],
+      });
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
+  const isProductMutating = deleteProductMutation.isPending;
+
+  const {
+    data: productPage,
+    isLoading: isProductLoading,
+    isFetching: isProductFetching,
+    isError: isProductError,
+    error: productError,
+  } = useQuery({
+    queryKey: [
+      "category-products",
+      childCategoryId,
+      currentPage,
+      normalizedSearch,
+    ],
+    queryFn: () =>
+      getProductsByCategoryPrivate(childCategoryId, {
+        page: Math.max(currentPage - 1, 0),
+        size: PRODUCT_PAGE_SIZE,
+        keyword: normalizedSearch || undefined,
+      }),
+    enabled: Number.isFinite(childCategoryId),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+
+  const products: ProductResponse[] = productPage?.productResponseList ?? [];
+  const totalProducts =
+    productPage?.totalElements ?? subcategory?.productCount ?? 0;
+  const totalProductPages = Math.max(1, productPage?.totalPages ?? 1);
+
+  useEffect(() => {
+    if (currentPage > totalProductPages) {
+      setCurrentPage(totalProductPages);
+    }
+  }, [currentPage, totalProductPages]);
+
+  useEffect(() => {
+    setSelectedProducts((prev) => {
+      const validIds = prev.filter((id) =>
+        products.some((product) => product.id === id)
+      );
+      const isSameLength = validIds.length === prev.length;
+      const isSameOrder = isSameLength
+        ? validIds.every((id, index) => id === prev[index])
+        : false;
+      return isSameOrder ? prev : validIds;
+    });
+  }, [products]);
+
+  const displayRange = useMemo(() => {
+    if (!products.length) {
+      return { start: 0, end: 0 };
+    }
+    const start = (currentPage - 1) * PRODUCT_PAGE_SIZE + 1;
+    const end = start + products.length - 1;
+    return { start, end };
+  }, [currentPage, products.length]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -140,34 +257,47 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
     }
   };
 
-  const handleSelectProduct = (productId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedProducts((prev) => [...prev, productId]);
-    } else {
-      setSelectedProducts((prev) => prev.filter((id) => id !== productId));
-    }
-  };
-
-  const handleToggleVisibility = () => {
-    setSubcategory((prev) => ({ ...prev, isVisible: !prev.isVisible }));
+  const handleSelectProduct = (productId: number, checked: boolean) => {
+    setSelectedProducts((prev) => {
+      if (checked) {
+        return prev.includes(productId) ? prev : [...prev, productId];
+      }
+      return prev.filter((id) => id !== productId);
+    });
   };
 
   const handleEditName = () => {
+    if (!subcategory) return;
     setIsEditingName(true);
     setEditingName(subcategory.name);
   };
 
-  const handleSaveName = () => {
-    if (editingName.trim()) {
-      setSubcategory((prev) => ({ ...prev, name: editingName.trim() }));
+  const handleSaveName = async () => {
+    if (!subcategory) return;
+    const trimmed = editingName.trim();
+    if (!trimmed) {
+      toast.error("Tên danh mục không được để trống");
+      return;
     }
-    setIsEditingName(false);
-    setEditingName("");
+    try {
+      await updateCategoryMutation.mutateAsync({
+        payload: {
+          id: subcategory.id,
+          name: trimmed,
+          imageUrl: subcategory.imageUrl ?? "",
+        },
+        status: subcategory.status,
+        successMessage: "Đã cập nhật tên danh mục con",
+      });
+      setIsEditingName(false);
+    } catch (error) {
+      // handled
+    }
   };
 
   const handleCancelEdit = () => {
     setIsEditingName(false);
-    setEditingName("");
+    setEditingName(subcategory?.name ?? "");
   };
 
   const handleImageClick = () => {
@@ -176,7 +306,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !subcategory) return;
 
     if (file.size > 2 * 1024 * 1024) {
       alert(`${file.name} vượt quá dung lượng 2MB`);
@@ -189,10 +319,22 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const result = e.target?.result;
       if (result && typeof result === "string") {
-        setSubcategory((prev) => ({ ...prev, image: result }));
+        try {
+          await updateCategoryMutation.mutateAsync({
+            payload: {
+              id: subcategory.id,
+              name: subcategory.name,
+              imageUrl: result,
+            },
+            status: subcategory.status,
+            successMessage: "Đã cập nhật hình ảnh danh mục con",
+          });
+        } catch (error) {
+          // handled
+        }
       }
     };
     reader.readAsDataURL(file);
@@ -200,19 +342,26 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
     event.target.value = "";
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    console.log("Delete product:", productId);
+  const handleDeleteProduct = async (productId: number) => {
+    if (isProductMutating) return;
+    const confirmed = window.confirm("Bạn có chắc muốn xoá sản phẩm này?");
+    if (!confirmed) return;
+    await deleteProductMutation.mutateAsync([productId]);
   };
 
-  const handleDeleteSelected = () => {
-    if (selectedProducts.length > 0) {
-      console.log("Deleting products:", selectedProducts);
-      setSelectedProducts([]);
-    }
+  const handleDeleteSelected = async () => {
+    if (selectedProducts.length === 0 || isProductMutating) return;
+    const confirmed = window.confirm(
+      `Bạn có chắc muốn xoá ${selectedProducts.length} sản phẩm đã chọn?`
+    );
+    if (!confirmed) return;
+    await deleteProductMutation.mutateAsync(selectedProducts);
+    setSelectedProducts([]);
   };
 
-  const handleAddProduct = () => {
-    console.log("Add product to subcategory");
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1);
   };
 
   const handlePrevPage = () => {
@@ -222,8 +371,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
   };
 
   const handleNextPage = () => {
-    const totalPages = Math.ceil(products.length / itemsPerPage);
-    if (currentPage < totalPages) {
+    if (currentPage < totalProductPages) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -258,7 +406,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
             </button>
             <div className="flex gap-[4px] items-center justify-center">
               <h1 className="font-bold text-[24px] text-[#272424] leading-[normal]">
-                {subcategory.parentCategoryName}
+                {parentCategoryName}
               </h1>
             </div>
           </div>
@@ -270,12 +418,14 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
         {/* Image Upload */}
         <div
           onClick={handleImageClick}
-          className={`bg-[#ffeeea] border-2 border-dashed border-[#e04d30] rounded-[8px] w-[100px] h-[100px] flex flex-col items-center justify-center gap-[8px] cursor-pointer hover:bg-[#ffe4dd] transition-colors flex-shrink-0 ${subcategory.image ? "" : "p-[20px]"}`}
+          className={`bg-[#ffeeea] border-2 border-dashed border-[#e04d30] rounded-[8px] w-[100px] h-[100px] flex flex-col items-center justify-center gap-[8px] cursor-pointer hover:bg-[#ffe4dd] transition-colors flex-shrink-0 ${
+            subcategory?.imageUrl ? "" : "p-[20px]"
+          }`}
         >
-          {subcategory.image ? (
+          {subcategory?.imageUrl ? (
             <img
-              src={subcategory.image}
-              alt={subcategory.name}
+              src={subcategory.imageUrl}
+              alt={subcategory?.name}
               className="w-full h-full object-cover rounded-[8px]"
             />
           ) : (
@@ -340,7 +490,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
               ) : (
                 <>
                   <h2 className="font-bold text-[20px] text-[#272424] leading-[normal]">
-                    {subcategory.name}
+                    {subcategory?.name ?? `Danh mục #${childCategoryId}`}
                   </h2>
                   <button
                     onClick={handleEditName}
@@ -367,46 +517,29 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
             </div>
           </div>
           <p className="font-medium text-[14px] text-[#272424] leading-[1.4]">
-            Sản phẩm: {subcategory.productCount}
+            Sản phẩm: {totalProducts}
           </p>
         </div>
 
-        {/* Toggle Switch Section */}
-        <div className="flex gap-[10px] items-center justify-end flex-1">
-          <p className="font-medium text-[14px] text-[#272424] leading-[1.4]">
-            Danh mục sẽ hiển thị trong trang Shop
-          </p>
-          <ToggleSwitch
-            checked={subcategory.isVisible}
-            onChange={handleToggleVisibility}
-          />
-        </div>
       </div>
 
       {/* Products List Section */}
-      <div className="bg-white border-2 border-[#e7e7e7] rounded-[24px] p-[24px] flex flex-col gap-[16px] items-start w-full">
+        <div className="bg-white border-2 border-[#e7e7e7] rounded-[24px] p-[24px] flex flex-col gap-[16px] items-start w-full relative">
         <h2 className="font-bold text-[20px] text-[#272424] leading-[normal]">
           Danh sách sản phẩm
         </h2>
 
-        {/* Search and Add Button */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:justify-between w-full">
+        {/* Search */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:justify-start w-full">
           <SearchBar
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             placeholder="Tìm kiếm"
             className="w-full sm:w-[500px] h-[40px]"
           />
-          <Button
-            onClick={handleAddProduct}
-            className="w-full sm:w-auto h-[36px] px-4 flex items-center justify-center gap-2"
-          >
-            <span className="text-[18px] leading-none font-light">+</span>
-            Thêm sản phẩm
-          </Button>
         </div>
 
-        {/* Products Table */}
+          {/* Products Table */}
         <div className="bg-white border border-[#e7e7e7] rounded-[16px] w-full overflow-hidden">
           {/* Table Header */}
           <div className="flex items-center w-full">
@@ -417,6 +550,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
                   selectedProducts.length === products.length
                 }
                 onChange={handleSelectAll}
+                disabled={isProductMutating}
               />
             </div>
             <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[10px] items-center overflow-clip px-[12px] py-[15px] w-[400px]">
@@ -429,6 +563,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
                     variant="secondary"
                     onClick={handleDeleteSelected}
                     className="h-[36px] ml-2"
+                    disabled={isProductMutating}
                   >
                     Xóa
                   </Button>
@@ -438,15 +573,6 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
                   Tên sản phẩm
                 </p>
               )}
-            </div>
-            <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-center px-[14px] py-[15px] flex-1">
-              <p
-                className={`font-semibold text-[14px] text-[#272424] leading-[1.4] ${
-                  selectedProducts.length > 0 ? "invisible" : ""
-                }`}
-              >
-                Giá
-              </p>
             </div>
             <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-end px-[24px] py-[15px] flex-1 rounded-tr-[12px]">
               <p
@@ -471,13 +597,14 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
                   onChange={(checked) =>
                     handleSelectProduct(product.id, checked)
                   }
+                  disabled={isProductMutating}
                 />
               </div>
               <div className="flex gap-[8px] items-center overflow-clip px-[12px] py-[14px] w-[400px]">
                 <div className="border-[0.5px] border-[#d1d1d1] rounded-[8px] w-[60px] h-[60px] flex-shrink-0">
-                  {product.image ? (
+                  {product.imageUrl ? (
                     <img
-                      src={product.image}
+                      src={product.imageUrl}
                       alt={product.name}
                       className="w-full h-full object-cover rounded-[8px]"
                     />
@@ -491,28 +618,61 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex flex-col gap-[8px] items-center justify-center p-[12px] flex-1">
-                <p className="font-medium text-[14px] text-[#272424] leading-[1.4]">
-                  {product.price}
-                </p>
-              </div>
               <div className="flex flex-col items-end justify-center px-[18px] py-[12px] flex-1 pr-[24px]">
                 <button
                   onClick={() => handleDeleteProduct(product.id)}
                   className="font-bold text-[14px] text-[#1a71f6] leading-[normal] hover:opacity-70 transition-opacity"
+                  disabled={isProductMutating}
                 >
                   Xóa
                 </button>
               </div>
             </div>
           ))}
+
+          {products.length === 0 &&
+            !(isProductLoading || isProductFetching) &&
+            !isProductError && (
+              <div className="flex flex-col items-center justify-center py-10 text-[#737373]">
+                <p className="font-semibold">Chưa có sản phẩm nào.</p>
+                <p className="text-sm">Hãy thêm sản phẩm vào danh mục này.</p>
+              </div>
+            )}
+          {(isChildLoading ||
+            isChildFetching ||
+            isParentLoading ||
+            isProductLoading ||
+            isProductFetching) && (
+            <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center gap-2 rounded-[12px]">
+              <Loader2 className="w-6 h-6 text-[#e04d30] animate-spin" />
+              <p className="text-sm font-semibold text-[#e04d30]">
+                Đang tải dữ liệu danh mục con...
+              </p>
+            </div>
+          )}
+
+          {(isChildError || isProductError) && (
+            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-2 px-4 text-center rounded-[12px]">
+              <p className="font-semibold text-red-600">
+                Không thể tải danh mục con
+              </p>
+              <p className="text-sm text-[#737373]">
+                {getErrorMessage(childError || productError)}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
         <div className="bg-white border border-[#e7e7e7] flex h-[48px] items-center justify-between px-[30px] py-[10px] rounded-[12px] w-full">
           <div className="flex gap-[3px] items-start">
             <p className="font-normal text-[12px] text-[#272424] leading-[1.5]">
-              Đang hiển thị 1 - 12 trong tổng 20 trang
+              Đang hiển thị{" "}
+              {displayRange.start === 0 && displayRange.end === 0
+                ? "0 - 0"
+                : `${displayRange.start} - ${displayRange.end}`}{" "}
+              trong tổng {totalProducts} sản phẩm | Trang {currentPage}/
+              {totalProductPages}
             </p>
           </div>
           <div className="flex gap-[16px] items-start">
@@ -537,7 +697,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
               </div>
               <div
                 className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
-                  currentPage >= Math.ceil(products.length / itemsPerPage)
+                  currentPage >= totalProductPages
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}

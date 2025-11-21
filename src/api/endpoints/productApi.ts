@@ -81,6 +81,30 @@ export const getProductVariantsPrivate = async (productId: number, params?: {
   return response.data.data;
 };
 
+export const getProductsByCategoryPrivate = async (
+  categoryId: number,
+  params?: {
+    keyword?: string;
+    page?: number;
+    size?: number;
+  }
+): Promise<ProductPageResponse> => {
+  const response = await api.get<ApiResponse<ProductPageResponse>>(
+    `/auth/v1/private/product/category/${categoryId}`,
+    { params }
+  );
+  return response.data.data;
+};
+
+export const deleteProductPrivate = async (
+  productId: number
+): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(
+    `/auth/v1/private/product/${productId}`
+  );
+  return response.data;
+};
+
 export const getVariantDetailPrivate = async (variantId: number): Promise<VariantResponse> => {
   const response = await api.get<ApiResponse<VariantResponse>>(`/auth/v1/private/product/variant/${variantId}`);
   return response.data.data;
