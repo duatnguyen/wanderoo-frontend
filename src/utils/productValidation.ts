@@ -1,4 +1,8 @@
-import type { ValidationRules, FormErrors, ProductFormData } from '@/types/product';
+import type {
+  ValidationRules,
+  FormErrors,
+  ProductFormData,
+} from "@/types/product";
 
 export const productValidationRules: ValidationRules = {
   productName: [
@@ -12,9 +16,10 @@ export const productValidationRules: ValidationRules = {
   brand: [
     { required: true, message: "Thương hiệu là bắt buộc" }
   ],
+  brand: [{ required: true, message: "Thương hiệu là bắt buộc" }],
   description: [
     { required: true, message: "Mô tả sản phẩm là bắt buộc" },
-    { minLength: 10, message: "Mô tả phải có ít nhất 10 ký tự" }
+    { minLength: 10, message: "Mô tả phải có ít nhất 10 ký tự" },
   ],
   weight: [
     { required: true, message: "Cân nặng là bắt buộc" },
@@ -36,34 +41,37 @@ export const productValidationRules: ValidationRules = {
 
 export const validateField = (field: string, value: string): string => {
   const rules = productValidationRules[field];
-  if (!rules) return '';
+  if (!rules) return "";
 
   for (const rule of rules) {
     if (rule.required && !value.trim()) {
       return rule.message;
     }
-    
+
     if (rule.minLength && value.length < rule.minLength) {
       return rule.message;
     }
-    
+
     if (rule.maxLength && value.length > rule.maxLength) {
       return rule.message;
     }
-    
+
     if (rule.pattern && !rule.pattern.test(value)) {
       return rule.message;
     }
   }
-  
-  return '';
+
+  return "";
 };
 
 export const validateForm = (formData: ProductFormData): FormErrors => {
   const errors: FormErrors = {};
-  
-  Object.keys(productValidationRules).forEach(field => {
-    const error = validateField(field, formData[field as keyof ProductFormData]);
+
+  Object.keys(productValidationRules).forEach((field) => {
+    const error = validateField(
+      field,
+      formData[field as keyof ProductFormData]
+    );
     if (error) {
       errors[field] = error;
     }

@@ -79,7 +79,9 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
         <div className="text-center">
           {voucher.type === "Voucher khách hàng mới" ? (
             <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-              Voucher khách<br/>hàng mới
+              Voucher khách
+              <br />
+              hàng mới
             </p>
           ) : (
             <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
@@ -91,7 +93,7 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
     },
     {
       key: "products",
-title: "SP áp dụng",
+      title: "SP áp dụng",
       minWidth: "120px",
       className: "text-center",
       render: (_, voucher: Voucher) => (
@@ -174,7 +176,7 @@ title: "SP áp dụng",
       render: (_, voucher: Voucher) => (
         <div className="text-center font-semibold text-[13px] text-[#1a71f6] leading-[1.4]">
           {onEdit && (
-            <p 
+            <p
               className="mb-0 hover:opacity-70 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
@@ -185,7 +187,7 @@ title: "SP áp dụng",
             </p>
           )}
           {onViewOrders && (
-            <p 
+            <p
               className="mb-0 hover:opacity-70 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
@@ -197,7 +199,7 @@ title: "SP áp dụng",
           )}
           {onEnd && (
             <p
-className="hover:opacity-70 cursor-pointer"
+              className="hover:opacity-70 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 onEnd(voucher);
@@ -213,7 +215,10 @@ className="hover:opacity-70 cursor-pointer"
 
   return (
     <div className="table-responsive xl:overflow-x-visible table-scroll-horizontal">
-      <div className="table-container" style={{ borderRadius: '24px', borderColor: '#e7e7e7' }}>
+      <div
+        className="table-container"
+        style={{ borderRadius: "24px", borderColor: "#e7e7e7" }}
+      >
         <DataTable
           columns={columns}
           data={vouchers}

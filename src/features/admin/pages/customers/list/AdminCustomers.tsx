@@ -15,16 +15,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  PageContainer,
-  ContentCard,
-  PageHeader,
-} from "@/components/common";
+import { PageContainer, ContentCard, PageHeader } from "@/components/common";
 import { ChipStatus } from "@/components/ui/chip-status";
-import { 
-  getCustomers, 
-  enableCustomerAccounts, 
-  disableCustomerAccounts
+import {
+  getCustomers,
+  enableCustomerAccounts,
+  disableCustomerAccounts,
 } from "@/api/endpoints/userApi";
 import { toast } from "sonner";
 import type { CustomerPageResponse } from "@/types";
@@ -75,16 +71,17 @@ const AdminCustomers: React.FC = () => {
   // Filter customers by status on frontend (backend doesn't support status filter)
   const filteredCustomers = useMemo(() => {
     // Use all customers data when filtering, otherwise use paginated data
-    const sourceData = statusFilter !== "all" ? allCustomersData : customersData;
+    const sourceData =
+      statusFilter !== "all" ? allCustomersData : customersData;
     const allCustomers = sourceData?.content || [];
-    
+
     console.log("Customers from API:", allCustomers);
     console.log("Status filter:", statusFilter);
-    
+
     if (statusFilter === "all") {
       return allCustomers;
     }
-    
+
     const filtered = allCustomers.filter((c) => {
       const customerStatus = c.status?.toUpperCase();
       if (statusFilter === "active") {
@@ -94,7 +91,7 @@ const AdminCustomers: React.FC = () => {
       }
       return true;
     });
-    
+
     console.log("Filtered customers:", filtered);
     return filtered;
   }, [customersData?.content, allCustomersData?.content, statusFilter]);
@@ -182,7 +179,9 @@ const AdminCustomers: React.FC = () => {
         <PageHeader title="Danh sách khách hàng" />
         <ContentCard>
           <div className="flex items-center justify-center py-8">
-            <p className="text-[#272424] text-[16px]">Đang tải danh sách khách hàng...</p>
+            <p className="text-[#272424] text-[16px]">
+              Đang tải danh sách khách hàng...
+            </p>
           </div>
         </ContentCard>
       </PageContainer>
@@ -196,7 +195,9 @@ const AdminCustomers: React.FC = () => {
         <PageHeader title="Danh sách khách hàng" />
         <ContentCard>
           <div className="flex items-center justify-center py-8">
-            <p className="text-[#272424] text-[16px]">Không thể tải danh sách khách hàng</p>
+            <p className="text-[#272424] text-[16px]">
+              Không thể tải danh sách khách hàng
+            </p>
           </div>
         </ContentCard>
       </PageContainer>
@@ -250,22 +251,28 @@ const AdminCustomers: React.FC = () => {
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => {
-                setStatusFilter("all");
-                setCurrentPage(1);
-              }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setStatusFilter("all");
+                  setCurrentPage(1);
+                }}
+              >
                 Tất cả trạng thái
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                setStatusFilter("active");
-                setCurrentPage(1);
-              }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setStatusFilter("active");
+                  setCurrentPage(1);
+                }}
+              >
                 Kích hoạt
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {
-                setStatusFilter("disabled");
-                setCurrentPage(1);
-              }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  setStatusFilter("disabled");
+                  setCurrentPage(1);
+                }}
+              >
                 Ngừng kích hoạt
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -299,7 +306,9 @@ const AdminCustomers: React.FC = () => {
                     <Button
                       className="h-[32px] px-[16px] rounded-[10px] bg-[#e04d30] text-white hover:bg-[#d54933] transition-colors duration-150 text-[12px]"
                       onClick={handleActivateSelected}
-                      disabled={enableMutation.isPending || disableMutation.isPending}
+                      disabled={
+                        enableMutation.isPending || disableMutation.isPending
+                      }
                     >
                       Kích hoạt
                     </Button>
@@ -307,7 +316,9 @@ const AdminCustomers: React.FC = () => {
                       variant="ghost"
                       className="h-[32px] px-[16px] rounded-[10px] border-2 border-[#e04d30] text-[#e04d30] hover:bg-[#ffe9e5] hover:text-[#c73722] transition-colors duration-150 text-[12px]"
                       onClick={handleDeactivateSelected}
-                      disabled={enableMutation.isPending || disableMutation.isPending}
+                      disabled={
+                        enableMutation.isPending || disableMutation.isPending
+                      }
                     >
                       Ngừng kích hoạt
                     </Button>
@@ -353,19 +364,23 @@ const AdminCustomers: React.FC = () => {
           {/* Table Body */}
           {customers.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <p className="text-[#737373] text-[14px]">Không có khách hàng nào</p>
+              <p className="text-[#737373] text-[14px]">
+                Không có khách hàng nào
+              </p>
             </div>
           ) : (
             customers.map((c: CustomerResponse, index) => (
               <div
                 key={c.id}
-                className={`w-full min-h-[70px] ${index === customers.length - 1
-                  ? "border-transparent"
-                  : "border-b border-[#e7e7e7]"
-                  } ${selectedCustomers.has(c.id)
+                className={`w-full min-h-[70px] ${
+                  index === customers.length - 1
+                    ? "border-transparent"
+                    : "border-b border-[#e7e7e7]"
+                } ${
+                  selectedCustomers.has(c.id)
                     ? "bg-blue-50"
                     : "hover:bg-gray-50 cursor-pointer"
-                  }`}
+                }`}
               >
                 <div className="grid grid-cols-[50px_1fr_200px_140px_120px_160px_120px] gap-0 items-center h-full px-[12px] py-[8px]">
                   {/* Checkbox col */}
@@ -382,7 +397,10 @@ const AdminCustomers: React.FC = () => {
                     <div className="w-[45px] h-[45px] relative overflow-hidden rounded-lg border-2 border-[#d1d1d1] flex-shrink-0">
                       <Avatar className="w-full h-full">
                         {(c as any).image_url ? (
-                          <AvatarImage src={(c as any).image_url} alt={c.name} />
+                          <AvatarImage
+                            src={(c as any).image_url}
+                            alt={c.name}
+                          />
                         ) : (
                           <AvatarFallback className="text-xs">
                             {c.name?.charAt(0) || "N"}
@@ -423,14 +441,18 @@ const AdminCustomers: React.FC = () => {
                   {/* Registration date col */}
                   <div className="flex items-center px-[4px]">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
-                      {c.createdAt ? new Date(c.createdAt).toLocaleDateString("vi-VN") : "---"}
+                      {c.createdAt
+                        ? new Date(c.createdAt).toLocaleDateString("vi-VN")
+                        : "---"}
                     </span>
                   </div>
 
                   {/* Total spent col */}
                   <div className="flex flex-col gap-[2px] items-start justify-center px-[4px]">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
-                      {c.totalOrderAmount ? `${parseFloat(c.totalOrderAmount).toLocaleString('vi-VN')} đ` : "0 đ"}
+                      {c.totalOrderAmount
+                        ? `${parseFloat(c.totalOrderAmount).toLocaleString("vi-VN")} đ`
+                        : "0 đ"}
                     </span>
                     <span className="font-medium text-[#737373] text-[11px] leading-[1.3]">
                       {c.totalOrders || "0"} đơn hàng
@@ -440,8 +462,16 @@ const AdminCustomers: React.FC = () => {
                   {/* Status col */}
                   <div className="flex items-center justify-center px-[4px]">
                     <ChipStatus
-                      status={c.status?.toUpperCase() === "ACTIVE" ? "active" : "disabled"}
-                      labelOverride={c.status?.toUpperCase() === "ACTIVE" ? "Kích hoạt" : "Ngừng kích hoạt"}
+                      status={
+                        c.status?.toUpperCase() === "ACTIVE"
+                          ? "active"
+                          : "disabled"
+                      }
+                      labelOverride={
+                        c.status?.toUpperCase() === "ACTIVE"
+                          ? "Kích hoạt"
+                          : "Ngừng kích hoạt"
+                      }
                       size="small"
                     />
                   </div>

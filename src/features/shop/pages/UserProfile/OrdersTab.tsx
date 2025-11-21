@@ -89,7 +89,9 @@ const OrdersTab: React.FC = () => {
               isExpanded={expandedOrders.has(order.id)}
               onToggleExpand={() => handleToggleExpand(order.id)}
               statusLabelOverride={
-                statusOverride?.orderId === order.id ? statusOverride.label : undefined
+                statusOverride?.orderId === order.id
+                  ? statusOverride.label
+                  : undefined
               }
             />
           ))

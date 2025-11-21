@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { POSOrderTabs, type OrderTab } from "./POSOrderTabs";
 import { searchProducts } from "@/api/endpoints/saleApi";
 import { usePOSContext } from "@/context/POSContext";
-import type {SaleProductResponse} from "@/types/api.ts";
+import type { SaleProductResponse } from "@/types/api.ts";
 
 export type { OrderTab };
 
@@ -53,9 +53,13 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 }) => {
   const isSalesPage = searchValue !== undefined && orders !== undefined;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [productResults, setProductResults] = useState<SaleProductResponse[]>([]);
+  const [productResults, setProductResults] = useState<SaleProductResponse[]>(
+    []
+  );
   const [isSearchingProducts, setIsSearchingProducts] = useState(false);
-  const [productSearchError, setProductSearchError] = useState<string | null>(null);
+  const [productSearchError, setProductSearchError] = useState<string | null>(
+    null
+  );
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const { productSelectHandler } = usePOSContext();
 
@@ -127,7 +131,8 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
-  const effectiveProductSelect = onProductSelect ?? productSelectHandler ?? null;
+  const effectiveProductSelect =
+    onProductSelect ?? productSelectHandler ?? null;
 
   const renderProductDropdown = () => {
     if (!isDropdownOpen || !isSalesPage) {
@@ -154,7 +159,9 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           )}
 
           {!isSearchingProducts && productSearchError && (
-            <p className="px-4 py-3 text-xs text-[#E04D30]">{productSearchError}</p>
+            <p className="px-4 py-3 text-xs text-[#E04D30]">
+              {productSearchError}
+            </p>
           )}
 
           {!isSearchingProducts &&

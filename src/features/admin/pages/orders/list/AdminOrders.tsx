@@ -14,7 +14,10 @@ import {
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
-import { getAdminCustomerOrders, getAdminCustomerOrdersByStatus } from "@/api/endpoints/orderApi";
+import {
+  getAdminCustomerOrders,
+  getAdminCustomerOrdersByStatus,
+} from "@/api/endpoints/orderApi";
 import type { AdminOrderResponse } from "@/types";
 import { toast } from "sonner";
 
@@ -41,7 +44,7 @@ const AdminOrders: React.FC = () => {
       };
 
       let response;
-      if (status && status !== 'ALL') {
+      if (status && status !== "ALL") {
         // Use the new status-specific endpoint
         response = await getAdminCustomerOrdersByStatus(status, params);
       } else {
@@ -52,13 +55,14 @@ const AdminOrders: React.FC = () => {
       // Debug: Log first order to check structure
       if (response.data.orders && response.data.orders.length > 0) {
         const firstOrder = response.data.orders[0];
-        console.log('First order structure:', {
+        console.log("First order structure:", {
           id: firstOrder.id,
           hasOrderDetails: !!firstOrder.orderDetails,
           orderDetailsLength: firstOrder.orderDetails?.length || 0,
           hasItems: !!firstOrder.items,
           itemsLength: firstOrder.items?.length || 0,
-          firstOrderDetail: firstOrder.orderDetails?.[0] || firstOrder.items?.[0]
+          firstOrderDetail:
+            firstOrder.orderDetails?.[0] || firstOrder.items?.[0],
         });
       }
 
@@ -66,9 +70,9 @@ const AdminOrders: React.FC = () => {
       setTotalPages(response.data.totalPages);
       setTotalElements(response.data.totalElements);
     } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError('Không thể tải danh sách đơn hàng. Vui lòng thử lại.');
-      toast.error('Không thể tải danh sách đơn hàng');
+      console.error("Error fetching orders:", err);
+      setError("Không thể tải danh sách đơn hàng. Vui lòng thử lại.");
+      toast.error("Không thể tải danh sách đơn hàng");
     } finally {
       setLoading(false);
     }
@@ -76,7 +80,7 @@ const AdminOrders: React.FC = () => {
 
   // Initial load and when filters change
   useEffect(() => {
-    const status = activeTab === 'ALL' ? undefined : activeTab;
+    const status = activeTab === "ALL" ? undefined : activeTab;
     fetchOrders(currentPage, status);
   }, [activeTab, currentPage]);
 
@@ -95,14 +99,17 @@ const AdminOrders: React.FC = () => {
   }, [totalElements]);
 
   // Create order tabs with counts
-  const orderTabsWithCounts: TabItemWithBadge[] = useMemo(() => [
-    { id: "ALL", label: "TẤT CẢ", count: orderCounts.ALL },
-    { id: "PENDING", label: "CHỜ XÁC NHẬN", count: orderCounts.PENDING },
-    { id: "CONFIRMED", label: "ĐÃ XÁC NHẬN", count: orderCounts.CONFIRMED },
-    { id: "SHIPPING", label: "ĐANG GIAO", count: orderCounts.SHIPPING },
-    { id: "COMPLETE", label: "ĐÃ HOÀN THÀNH", count: orderCounts.COMPLETE },
-    { id: "CANCELED", label: "ĐÃ HỦY", count: orderCounts.CANCELED },
-  ], [orderCounts]);
+  const orderTabsWithCounts: TabItemWithBadge[] = useMemo(
+    () => [
+      { id: "ALL", label: "TẤT CẢ", count: orderCounts.ALL },
+      { id: "PENDING", label: "CHỜ XÁC NHẬN", count: orderCounts.PENDING },
+      { id: "CONFIRMED", label: "ĐÃ XÁC NHẬN", count: orderCounts.CONFIRMED },
+      { id: "SHIPPING", label: "ĐANG GIAO", count: orderCounts.SHIPPING },
+      { id: "COMPLETE", label: "ĐÃ HOÀN THÀNH", count: orderCounts.COMPLETE },
+      { id: "CANCELED", label: "ĐÃ HỦY", count: orderCounts.CANCELED },
+    ],
+    [orderCounts]
+  );
 
   // Map payment type to chip status
   const getPaymentTypeStatus = (paymentType: string): ChipStatusKey => {
@@ -114,23 +121,34 @@ const AdminOrders: React.FC = () => {
   // Map order status to Vietnamese
   const getOrderStatusLabel = (status: string): string => {
     switch (status) {
-      case "PENDING": return "Chờ xác nhận";
-      case "CONFIRMED": return "Đã xác nhận";
-      case "SHIPPING": return "Đang giao";
-      case "COMPLETE": return "Đã hoàn thành";
-      case "CANCELED": return "Đã hủy";
-      case "REFUND": return "Hoàn tiền";
-      default: return "N/A";
+      case "PENDING":
+        return "Chờ xác nhận";
+      case "CONFIRMED":
+        return "Đã xác nhận";
+      case "SHIPPING":
+        return "Đang giao";
+      case "COMPLETE":
+        return "Đã hoàn thành";
+      case "CANCELED":
+        return "Đã hủy";
+      case "REFUND":
+        return "Hoàn tiền";
+      default:
+        return "N/A";
     }
   };
 
   // Map payment status to Vietnamese
   const getPaymentStatusLabel = (paymentStatus: string): string => {
     switch (paymentStatus) {
-      case "PENDING": return "Chưa thanh toán";
-      case "PAID": return "Đã thanh toán";
-      case "FAILED": return "Thanh toán thất bại";
-      default: return "N/A";
+      case "PENDING":
+        return "Chưa thanh toán";
+      case "PAID":
+        return "Đã thanh toán";
+      case "FAILED":
+        return "Thanh toán thất bại";
+      default:
+        return "N/A";
     }
   };
 
@@ -173,8 +191,11 @@ const AdminOrders: React.FC = () => {
       const matchesSearch =
         searchTerm === "" ||
         String(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (order.code && order.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        String(order.userInfo?.id).toLowerCase().includes(searchTerm.toLowerCase());
+        (order.code &&
+          order.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        String(order.userInfo?.id)
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
 
       return matchesSearch;
     });
@@ -187,35 +208,48 @@ const AdminOrders: React.FC = () => {
     return (filteredOrders || []).map((order) => ({
       id: String(order.id),
       customer: {
-        name: order.userInfo?.name || 'N/A',
-        username: order.userInfo?.username || 'N/A',
-        image: order.userInfo?.image || '',
-        orderCode: order.code
+        name: order.userInfo?.name || "N/A",
+        username: order.userInfo?.username || "N/A",
+        image: order.userInfo?.image || "",
+        orderCode: order.code,
       },
-      products: ((order.orderDetails && order.orderDetails.length > 0) 
-        ? order.orderDetails 
-        : (order.items && order.items.length > 0) ? order.items : []
+      products: (order.orderDetails && order.orderDetails.length > 0
+        ? order.orderDetails
+        : order.items && order.items.length > 0
+          ? order.items
+          : []
       ).map((item: any, index: number) => {
         // Get product name (clean, without variant info)
-        const productName = item.snapshotProductName || item.name || 'Sản phẩm không tên';
-        
+        const productName =
+          item.snapshotProductName || item.name || "Sản phẩm không tên";
+
         // Format variant attributes for display
-        let variantAttributes: Array<{groupName: string; value: string; groupLevel: number}> = [];
-        
-        if (item.snapshotVariantAttributes && Array.isArray(item.snapshotVariantAttributes) && item.snapshotVariantAttributes.length > 0) {
+        let variantAttributes: Array<{
+          groupName: string;
+          value: string;
+          groupLevel: number;
+        }> = [];
+
+        if (
+          item.snapshotVariantAttributes &&
+          Array.isArray(item.snapshotVariantAttributes) &&
+          item.snapshotVariantAttributes.length > 0
+        ) {
           variantAttributes = item.snapshotVariantAttributes
-            .filter((attr: any) => attr && (attr.name || attr.groupName) && attr.value) // Filter out invalid attributes
+            .filter(
+              (attr: any) => attr && (attr.name || attr.groupName) && attr.value
+            ) // Filter out invalid attributes
             .map((attr: any) => ({
-              groupName: attr.name || attr.groupName || 'N/A',
-              value: attr.value || 'N/A',
-              groupLevel: attr.groupLevel || 0
+              groupName: attr.name || attr.groupName || "N/A",
+              value: attr.value || "N/A",
+              groupLevel: attr.groupLevel || 0,
             }));
-          
+
           // Debug log for first item
           if (index === 0) {
-            console.log('Variant attributes for first product:', {
+            console.log("Variant attributes for first product:", {
               raw: item.snapshotVariantAttributes,
-              processed: variantAttributes
+              processed: variantAttributes,
             });
           }
         }
@@ -223,9 +257,10 @@ const AdminOrders: React.FC = () => {
         // Format price with proper currency formatting
         // Support both snapshotProductPrice (from orderDetails) and price (from items)
         const unitPrice = item.snapshotProductPrice || item.price || 0;
-        const formattedPrice = unitPrice > 0 
-          ? `${Number(unitPrice).toLocaleString('vi-VN')}₫` 
-          : '0₫';
+        const formattedPrice =
+          unitPrice > 0
+            ? `${Number(unitPrice).toLocaleString("vi-VN")}₫`
+            : "0₫";
 
         return {
           id: item.id || index,
@@ -233,16 +268,28 @@ const AdminOrders: React.FC = () => {
           price: formattedPrice,
           unitPrice: Number(unitPrice), // Store numeric price for calculations
           quantity: item.quantity || 0,
-          image: item.image || '', // Image if available
-          sku: item.snapshotProductSku || item.sku || '',
-          variantAttributes: variantAttributes
+          image: item.image || "", // Image if available
+          sku: item.snapshotProductSku || item.sku || "",
+          variantAttributes: variantAttributes,
         };
       }),
-      paymentType: order.method === 'CASH' ? 'Tiền mặt' : order.method === 'BANKING' ? 'Chuyển khoản' : 'N/A',
+      paymentType:
+        order.method === "CASH"
+          ? "Tiền mặt"
+          : order.method === "BANKING"
+            ? "Chuyển khoản"
+            : "N/A",
       status: getOrderStatusLabel(order.status || ""),
       paymentStatus: getPaymentStatusLabel(order.paymentStatus || ""),
       category: order.source || "Website",
-      date: order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') + ' ' + new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : "N/A",
+      date: order.createdAt
+        ? new Date(order.createdAt).toLocaleDateString("vi-VN") +
+          " " +
+          new Date(order.createdAt).toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "N/A",
       tabStatus: order.status || "PENDING",
       totalAmount: order.totalOrderPrice || 0,
       shippingFee: order.shippingFee || 0,
@@ -313,7 +360,7 @@ const AdminOrders: React.FC = () => {
     <PageContainer>
       {/* Page Header with Order Count */}
       <PageHeader
-        title={`Danh sách đơn hàng${totalElements > 0 ? ` (${totalElements.toLocaleString('vi-VN')} đơn)` : ''}`}
+        title={`Danh sách đơn hàng${totalElements > 0 ? ` (${totalElements.toLocaleString("vi-VN")} đơn)` : ""}`}
       />
 
       {/* Tab Menu with Badge Counts */}
@@ -340,14 +387,31 @@ const AdminOrders: React.FC = () => {
         {error && !loading && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <div className="text-red-600 mb-4">
-              <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              <svg
+                className="w-12 h-12 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-red-800 mb-2">Không thể tải dữ liệu</h3>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">
+              Không thể tải dữ liệu
+            </h3>
             <p className="text-red-600 mb-4">{error}</p>
             <button
-              onClick={() => fetchOrders(currentPage, activeTab === 'ALL' ? undefined : activeTab)}
+              onClick={() =>
+                fetchOrders(
+                  currentPage,
+                  activeTab === "ALL" ? undefined : activeTab
+                )
+              }
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
             >
               Thử lại

@@ -35,18 +35,22 @@ const InventoryLookup: React.FC = () => {
     }
   }, [sortBy]);
 
-  const { data, isLoading, isFetching, isError, error } = useQuery<SimpleInventoryPageResponse>({
-    queryKey: ["inventory", { keyword: debouncedSearch, sort: serverSortParam }],
-    queryFn: () =>
-      getInventory({
-        keyword: debouncedSearch || undefined,
-        sort: serverSortParam,
-        page: 0,
-        size: PAGE_SIZE,
-      }),
-    staleTime: 60 * 1000,
-    placeholderData: keepPreviousData,
-  });
+  const { data, isLoading, isFetching, isError, error } =
+    useQuery<SimpleInventoryPageResponse>({
+      queryKey: [
+        "inventory",
+        { keyword: debouncedSearch, sort: serverSortParam },
+      ],
+      queryFn: () =>
+        getInventory({
+          keyword: debouncedSearch || undefined,
+          sort: serverSortParam,
+          page: 0,
+          size: PAGE_SIZE,
+        }),
+      staleTime: 60 * 1000,
+      placeholderData: keepPreviousData,
+    });
 
   const rawProducts = data?.content ?? [];
 
@@ -56,7 +60,8 @@ const InventoryLookup: React.FC = () => {
         id: item.id != null ? item.id.toString() : `temp-${index}`,
         name: item.productName,
         image: item.imageUrl ?? undefined,
-        barcode: item.barcode && item.barcode.trim().length > 0 ? item.barcode : "—",
+        barcode:
+          item.barcode && item.barcode.trim().length > 0 ? item.barcode : "—",
         variant: item.attributes ?? undefined,
         available: item.posSoldQuantity ?? 0,
         price: item.sellingPrice ?? 0,
@@ -110,7 +115,9 @@ const InventoryLookup: React.FC = () => {
             <div className="flex flex-col items-center gap-2 text-red-600">
               <AlertCircle className="w-6 h-6" />
               <p className="font-semibold">Không thể tải dữ liệu kho</p>
-              <p className="text-sm text-gray-600">{(error as Error)?.message ?? "Vui lòng thử lại sau."}</p>
+              <p className="text-sm text-gray-600">
+                {(error as Error)?.message ?? "Vui lòng thử lại sau."}
+              </p>
             </div>
           </div>
         )}

@@ -119,7 +119,10 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
       <div className="flex-1 overflow-y-auto mb-4">
         <div className="divide-y divide-[#e7e7e7]">
           {order.products.map((product) => (
-            <div key={product.id} className="flex items-center hover:bg-gray-50 h-[100px]">
+            <div
+              key={product.id}
+              className="flex items-center hover:bg-gray-50 h-[100px]"
+            >
               <div className="flex-1 px-6">
                 <div className="flex items-center gap-3">
                   {product.image && (
@@ -171,7 +174,9 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
           className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition-colors"
           onClick={handleToggleExpand}
         >
-          <h3 className="text-sm font-bold text-[#272424]">Tổng kết đơn hàng</h3>
+          <h3 className="text-sm font-bold text-[#272424]">
+            Tổng kết đơn hàng
+          </h3>
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-[#e04d30]">
               {formatCurrency(order.finalAmount)}

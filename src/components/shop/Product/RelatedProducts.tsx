@@ -44,9 +44,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({ products }) => {
               originalPrice={relatedProduct.originalPrice}
               rating={relatedProduct.rating}
               discountPercent={relatedProduct.discountPercent}
-              onClick={() =>
-                navigate(`/shop/products/${relatedProduct.id}`)
-              }
+              onClick={() => navigate(`/shop/products/${relatedProduct.id}`)}
             />
           ))}
         </div>
@@ -56,4 +54,3 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({ products }) => {
 };
 
 export default RelatedProducts;
-

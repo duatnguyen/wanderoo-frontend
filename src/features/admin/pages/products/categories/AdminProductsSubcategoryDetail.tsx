@@ -33,8 +33,10 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 const AdminProductsSubcategoryDetail: React.FC = () => {
   const navigate = useNavigate();
-  const { categoryId, subcategoryId } =
-    useParams<{ categoryId: string; subcategoryId: string }>();
+  const { categoryId, subcategoryId } = useParams<{
+    categoryId: string;
+    subcategoryId: string;
+  }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mock subcategory data - in real app, fetch based on IDs
@@ -563,4 +565,3 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
 };
 
 export default AdminProductsSubcategoryDetail;
-

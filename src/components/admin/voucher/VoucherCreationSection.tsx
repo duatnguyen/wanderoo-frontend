@@ -32,7 +32,8 @@ export const VoucherCreationSection: React.FC<VoucherCreationSectionProps> = ({
           </h2>
         </div>
         <p className="font-medium text-[13px] text-[#e04d30] leading-[1.4] -mt-[2px] whitespace-nowrap">
-          Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để thu hút người mua.
+          Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để
+          thu hút người mua.
         </p>
       </div>
 

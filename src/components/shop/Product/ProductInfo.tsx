@@ -63,8 +63,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         extendedProduct.originalPriceRange.min
       )} - ${formatCurrencyVND(extendedProduct.originalPriceRange.max)}`
     : product.originalPrice
-    ? formatCurrencyVND(product.originalPrice)
-    : null;
+      ? formatCurrencyVND(product.originalPrice)
+      : null;
 
   const discountPercent = product.discountPercent;
 
@@ -94,7 +94,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           </span>
         </div>
         <div className="flex gap-3">
-          <span className="text-[14px] font-medium text-[#3a3a3a] shrink-0 pt-2">Size:</span>
+          <span className="text-[14px] font-medium text-[#3a3a3a] shrink-0 pt-2">
+            Size:
+          </span>
           <div className="flex flex-wrap gap-2 items-start">
             {variantOptions.map((option) => (
               <button
@@ -133,7 +135,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
-        <span className="text-[14px] font-medium text-[#3a3a3a]">Số lượng:</span>
+        <span className="text-[14px] font-medium text-[#3a3a3a]">
+          Số lượng:
+        </span>
         <div className="flex items-center border border-[#d9d9d9] rounded-md overflow-hidden bg-white">
           <button
             onClick={() => onQuantityChange(-1)}
@@ -193,4 +197,3 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
 };
 
 export default ProductInfo;
-

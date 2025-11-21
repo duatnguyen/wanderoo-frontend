@@ -107,9 +107,7 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
                   <h4 className="text-[15px] font-semibold text-gray-900">
                     {section.title}
                   </h4>
-                  <p className="text-gray-500">
-                    {section.subtitle}
-                  </p>
+                  <p className="text-gray-500">{section.subtitle}</p>
                 </div>
                 <div className="space-y-3">
                   {(expandedSections[section.id]
@@ -192,9 +190,7 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
                       className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
                     >
                       <span>
-                        {expandedSections[section.id]
-                          ? "Thu gọn"
-                          : "Xem thêm"}
+                        {expandedSections[section.id] ? "Thu gọn" : "Xem thêm"}
                       </span>
                       <span
                         className={`inline-block transition-transform ${
@@ -207,7 +203,9 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
                   </div>
                 )}
               </div>
-              {index < sections.length - 1 && <hr className="border-gray-200" />}
+              {index < sections.length - 1 && (
+                <hr className="border-gray-200" />
+              )}
             </React.Fragment>
           ))}
         </div>

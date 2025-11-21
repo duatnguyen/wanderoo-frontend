@@ -65,4 +65,3 @@ const RecommendedProducts: React.FC<RecommendedProductsProps> = ({
 };
 
 export default RecommendedProducts;
-

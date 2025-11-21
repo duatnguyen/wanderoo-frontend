@@ -40,26 +40,32 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
   }, []);
 
   // Memoize sort options để tránh tạo lại array
-  const sortOptions = useMemo(() => [
-    "Mặc định",
-    "Tên A-Z",
-    "Tên Z-A",
-    "Giá tăng dần",
-    "Giá giảm dần",
-    "Tồn kho tăng dần",
-    "Tồn kho giảm dần"
-  ], []);
+  const sortOptions = useMemo(
+    () => [
+      "Mặc định",
+      "Tên A-Z",
+      "Tên Z-A",
+      "Giá tăng dần",
+      "Giá giảm dần",
+      "Tồn kho tăng dần",
+      "Tồn kho giảm dần",
+    ],
+    []
+  );
 
   // Memoize sort mapping để tránh tạo lại object
-  const sortMap = useMemo(() => ({
-    "Mặc định": "default",
-    "Tên A-Z": "name-asc",
-    "Tên Z-A": "name-desc",
-    "Giá tăng dần": "price-asc",
-    "Giá giảm dần": "price-desc",
-    "Tồn kho tăng dần": "available-asc",
-    "Tồn kho giảm dần": "available-desc"
-  }), []);
+  const sortMap = useMemo(
+    () => ({
+      "Mặc định": "default",
+      "Tên A-Z": "name-asc",
+      "Tên Z-A": "name-desc",
+      "Giá tăng dần": "price-asc",
+      "Giá giảm dần": "price-desc",
+      "Tồn kho tăng dần": "available-asc",
+      "Tồn kho giảm dần": "available-desc",
+    }),
+    []
+  );
 
   // Memoize current sort display value
   const currentSortValue = useMemo(() => {
@@ -101,7 +107,9 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
           <SimpleDropdown
             value={currentSortValue}
             onValueChange={(value) => {
-              onSortChange?.(sortMap[value as keyof typeof sortMap] || "default");
+              onSortChange?.(
+                sortMap[value as keyof typeof sortMap] || "default"
+              );
             }}
             options={sortOptions}
             placeholder="Sắp xếp theo"
@@ -115,8 +123,12 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
         {products.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-16">
             <Package className="w-16 h-16 text-[#e7e7e7] mb-4" />
-            <p className="text-[#737373] text-lg font-medium mb-2">Không có sản phẩm nào</p>
-            <p className="text-[#a0a0a0] text-sm">Hãy thêm sản phẩm vào kho hàng</p>
+            <p className="text-[#737373] text-lg font-medium mb-2">
+              Không có sản phẩm nào
+            </p>
+            <p className="text-[#a0a0a0] text-sm">
+              Hãy thêm sản phẩm vào kho hàng
+            </p>
           </div>
         ) : (
           <>
@@ -124,16 +136,24 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
             <div className="bg-[#f8f9fa] border-b-2 border-[#e04d30] flex-shrink-0">
               <div className="flex items-center h-12 px-4">
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-bold text-[#272424]">Sản phẩm</span>
+                  <span className="text-sm font-bold text-[#272424]">
+                    Sản phẩm
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-sm font-bold text-[#272424]">Barcode</span>
+                  <span className="text-sm font-bold text-[#272424]">
+                    Barcode
+                  </span>
                 </div>
                 <div className="w-32 text-center">
-                  <span className="text-sm font-bold text-[#272424]">Có thể bán</span>
+                  <span className="text-sm font-bold text-[#272424]">
+                    Có thể bán
+                  </span>
                 </div>
                 <div className="w-32 text-right">
-                  <span className="text-sm font-bold text-[#272424]">Đơn giá</span>
+                  <span className="text-sm font-bold text-[#272424]">
+                    Đơn giá
+                  </span>
                 </div>
               </div>
             </div>
@@ -183,24 +203,26 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
 
                     {/* Barcode */}
                     <div className="flex-1 min-w-0">
-                      <span className=" font-bold text-sm text-[#272424]">{product.barcode}</span>
+                      <span className=" font-bold text-sm text-[#272424]">
+                        {product.barcode}
+                      </span>
                     </div>
 
                     {/* Stock Count */}
                     <div className="w-32 text-center">
-                      <div className={cn(
-                        "inline-flex items-center px-3 py-1 rounded-full text-sm font-bold",
-                        product.available > 50
-                          ? "bg-green-100 text-green-800"
-                          : product.available > 10
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                      )}>
+                      <div
+                        className={cn(
+                          "inline-flex items-center px-3 py-1 rounded-full text-sm font-bold",
+                          product.available > 50
+                            ? "bg-green-100 text-green-800"
+                            : product.available > 10
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        )}
+                      >
                         {product.available.toLocaleString("vi-VN")}
                       </div>
                     </div>
-
-
 
                     {/* Price */}
                     <div className="w-32 text-right">

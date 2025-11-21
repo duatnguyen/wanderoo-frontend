@@ -62,7 +62,6 @@ export const POSOrderTabs: React.FC<POSOrderTabsProps> = ({
           );
         })}
       </div>
-
     </div>
   );
 };

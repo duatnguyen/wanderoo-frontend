@@ -220,7 +220,7 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
                 Thành tiền
               </div>
             </div>
-            
+
             {/* Mobile Header */}
             <div className="lg:hidden px-[14px] py-3">
               <div className="text-[#272424] text-[16px] font-[600] font-montserrat">
@@ -244,7 +244,10 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
                       src="https://placehold.co/60x60"
                       alt={item.name}
                     />
-                    <div className="text-black text-[14px] font-[500] font-montserrat leading-[14px] truncate" title={item.name}>
+                    <div
+                      className="text-black text-[14px] font-[500] font-montserrat leading-[14px] truncate"
+                      title={item.name}
+                    >
                       {item.name}
                     </div>
                   </div>
@@ -268,7 +271,10 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
                       alt={item.name}
                     />
                     <div className="flex-1 space-y-2">
-                      <div className="text-black text-[14px] font-[500] font-montserrat leading-[16px]" title={item.name}>
+                      <div
+                        className="text-black text-[14px] font-[500] font-montserrat leading-[16px]"
+                        title={item.name}
+                      >
                         {item.name}
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-[12px]">
@@ -278,12 +284,18 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Đơn giá:</span>
-                          <span className="font-medium">{formatCurrency(item.price)}</span>
+                          <span className="font-medium">
+                            {formatCurrency(item.price)}
+                          </span>
                         </div>
                       </div>
                       <div className="flex justify-between items-center pt-1 border-t border-gray-100">
-                        <span className="text-[13px] font-[600] text-gray-700">Thành tiền:</span>
-                        <span className="text-[14px] font-[600] text-[#272424]">{formatCurrency(item.total)}</span>
+                        <span className="text-[13px] font-[600] text-gray-700">
+                          Thành tiền:
+                        </span>
+                        <span className="text-[14px] font-[600] text-[#272424]">
+                          {formatCurrency(item.total)}
+                        </span>
                       </div>
                     </div>
                   </div>

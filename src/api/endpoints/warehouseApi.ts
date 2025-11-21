@@ -27,20 +27,22 @@ export const getProviderList = async (
   params.append("page", page.toString());
   params.append("size", size.toString());
 
-  const response = await apiClient.get<ApiResponse<ProviderPageResponse>>(
+  const response = await apiClient.get<ProviderPageResponse>(
     `/auth/v1/private/provider?${params.toString()}`
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const deleteProvider = async (id: number): Promise<void> => {
-  await apiClient.delete('/auth/v1/private/provider', {
+  await apiClient.delete("/auth/v1/private/provider", {
     params: { id },
   });
 };
 
-export const deleteAllProviders = async (request: SelectAllRequest): Promise<void> => {
-  await apiClient.delete('/auth/v1/private/provider/all', {
+export const deleteAllProviders = async (
+  request: SelectAllRequest
+): Promise<void> => {
+  await apiClient.delete("/auth/v1/private/provider/all", {
     data: request,
   });
 };
@@ -53,21 +55,21 @@ export const activateAllProviders = async (request: SelectAllRequest): Promise<v
 
 export const createProvider = async (
   request: ProviderCreateRequest
-): Promise<number> => {
-  const response = await apiClient.post<ApiResponse<number>>(
-    '/auth/v1/private/provider/add',
+): Promise<ProviderResponse> => {
+  const response = await apiClient.post<ProviderResponse>(
+    "/auth/v1/private/provider/add",
     request
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const getProviderDetail = async (
   providerId: number
-): Promise<ProviderDetailResponse> => {
-  const response = await apiClient.get<ApiResponse<ProviderDetailResponse>>(
+): Promise<ProviderResponse> => {
+  const response = await apiClient.get<ProviderResponse>(
     `/auth/v1/private/provider/${providerId}`
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const getProviderStats = async (
@@ -75,26 +77,26 @@ export const getProviderStats = async (
   fromDate?: string,
   toDate?: string,
   sort?: string,
-  page: number = 1,
+  page: number = 0,
   size: number = 20
 ): Promise<ProviderStatResponse> => {
   const params = new URLSearchParams();
-  if (fromDate) params.append('fromDate', fromDate);
-  if (toDate) params.append('toDate', toDate);
-  if (sort) params.append('sort', sort);
-  params.append('page', page.toString());
-  params.append('size', size.toString());
+  if (fromDate) params.append("fromDate", fromDate);
+  if (toDate) params.append("toDate", toDate);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
 
-  const response = await apiClient.get<ApiResponse<ProviderStatResponse>>(
+  const response = await apiClient.get<ProviderStatResponse>(
     `/auth/v1/private/provider/stat/${providerId}?${params.toString()}`
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const updateProvider = async (
   request: ProviderUpdateRequest
 ): Promise<void> => {
-  await apiClient.put('/auth/v1/private/provider', request);
+  await apiClient.put("/auth/v1/private/provider", request);
 };
 
 // Invoice APIs
@@ -105,15 +107,15 @@ export const getImportInvoices = async (
   size: number = 20
 ): Promise<InvoicePageResponse> => {
   const params = new URLSearchParams();
-  if (keyword) params.append('keyword', keyword);
-  if (sort) params.append('sort', sort);
-  params.append('page', page.toString());
-  params.append('size', size.toString());
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
 
-  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
+  const response = await apiClient.get<InvoicePageResponse>(
     `/auth/v1/private/invoice/import?${params.toString()}`
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const getImportInvoicesPending = async (
@@ -123,15 +125,15 @@ export const getImportInvoicesPending = async (
   size: number = 20
 ): Promise<InvoicePageResponse> => {
   const params = new URLSearchParams();
-  if (keyword) params.append('keyword', keyword);
-  if (sort) params.append('sort', sort);
-  params.append('page', page.toString());
-  params.append('size', size.toString());
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
 
-  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
+  const response = await apiClient.get<InvoicePageResponse>(
     `/auth/v1/private/invoice/import/pending?${params.toString()}`
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const getImportInvoicesDone = async (
@@ -141,15 +143,15 @@ export const getImportInvoicesDone = async (
   size: number = 20
 ): Promise<InvoicePageResponse> => {
   const params = new URLSearchParams();
-  if (keyword) params.append('keyword', keyword);
-  if (sort) params.append('sort', sort);
-  params.append('page', page.toString());
-  params.append('size', size.toString());
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
 
-  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
+  const response = await apiClient.get<InvoicePageResponse>(
     `/auth/v1/private/invoice/import/done?${params.toString()}`
   );
-  return response.data.data;
+  return response.data;
 };
 
 export const getExportInvoices = async (
@@ -159,10 +161,10 @@ export const getExportInvoices = async (
   size: number = 20
 ): Promise<InvoicePageResponse> => {
   const params = new URLSearchParams();
-  if (keyword) params.append('keyword', keyword);
-  if (sort) params.append('sort', sort);
-  params.append('page', page.toString());
-  params.append('size', size.toString());
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
 
   const response = await apiClient.get<InvoicePageResponse>(
     `/auth/v1/private/invoice/export?${params.toString()}`
@@ -177,10 +179,10 @@ export const getExportInvoicesPending = async (
   size: number = 20
 ): Promise<InvoicePageResponse> => {
   const params = new URLSearchParams();
-  if (keyword) params.append('keyword', keyword);
-  if (sort) params.append('sort', sort);
-  params.append('page', page.toString());
-  params.append('size', size.toString());
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
 
   const response = await apiClient.get<InvoicePageResponse>(
     `/auth/v1/private/invoice/export/pending?${params.toString()}`
@@ -195,16 +197,17 @@ export const getExportInvoicesDone = async (
   size: number = 20
 ): Promise<InvoicePageResponse> => {
   const params = new URLSearchParams();
-  if (keyword) params.append('keyword', keyword);
-  if (sort) params.append('sort', sort);
-  params.append('page', page.toString());
-  params.append('size', size.toString());
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
 
   const response = await apiClient.get<InvoicePageResponse>(
     `/auth/v1/private/invoice/export/done?${params.toString()}`
   );
   return response.data;
 };
+
 
 export const createImportInvoice = async (
   request: InvoiceCheckOutRequest

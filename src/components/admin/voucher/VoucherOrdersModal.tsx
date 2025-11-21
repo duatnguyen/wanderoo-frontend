@@ -153,7 +153,10 @@ const VoucherOrdersModal: React.FC<VoucherOrdersModalProps> = ({
                   value={minOrderAmount}
                 />
                 <InfoRow label="Mã voucher" value={voucher.code} />
-                <InfoRow label="Chế độ hiển thị Voucher" value={displayModeText} />
+                <InfoRow
+                  label="Chế độ hiển thị Voucher"
+                  value={displayModeText}
+                />
                 <InfoRow
                   label="Đã dùng"
                   value={
@@ -165,7 +168,10 @@ const VoucherOrdersModal: React.FC<VoucherOrdersModalProps> = ({
               </div>
 
               <div className="space-y-4">
-                <InfoRow label="Tên chương trình giảm giá" value={voucher.name} />
+                <InfoRow
+                  label="Tên chương trình giảm giá"
+                  value={voucher.name}
+                />
                 <InfoRow label="Giảm giá" value={discountValue} />
                 <InfoRow label="Loại mã" value={voucher.type} />
                 <InfoRow
@@ -192,7 +198,10 @@ const VoucherOrdersModal: React.FC<VoucherOrdersModalProps> = ({
                     </span>
                   }
                 />
-                <InfoRow label="Sản phẩm được áp dụng" value={voucher.products} />
+                <InfoRow
+                  label="Sản phẩm được áp dụng"
+                  value={voucher.products}
+                />
                 <InfoRow
                   label="Đã lưu"
                   value={
@@ -375,4 +384,3 @@ const VoucherOrdersModal: React.FC<VoucherOrdersModalProps> = ({
 };
 
 export default VoucherOrdersModal;
-

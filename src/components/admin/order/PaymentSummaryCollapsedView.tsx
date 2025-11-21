@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronDown, Wallet } from 'lucide-react';
+import React from "react";
+import { ChevronDown, Wallet } from "lucide-react";
 
 interface PaymentSummaryCollapsedViewProps {
   isExpanded: boolean;
@@ -8,12 +8,9 @@ interface PaymentSummaryCollapsedViewProps {
   formatCurrency: (amount: number) => string;
 }
 
-const PaymentSummaryCollapsedView: React.FC<PaymentSummaryCollapsedViewProps> = ({
-  isExpanded,
-  onToggle,
-  totalAmount,
-  formatCurrency,
-}) => {
+const PaymentSummaryCollapsedView: React.FC<
+  PaymentSummaryCollapsedViewProps
+> = ({ isExpanded, onToggle, totalAmount, formatCurrency }) => {
   return (
     <div
       className="flex items-center justify-between px-[20px] py-[16px] cursor-pointer hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 transition-all duration-300 rounded-t-[6px] group"

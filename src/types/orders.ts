@@ -1,5 +1,5 @@
 // src/types/orders.ts - Order, cart and review types
-import type { PageResponse } from './common';
+import type { PageResponse } from "./common";
 
 export interface UserInfo {
   id: number;
@@ -20,7 +20,7 @@ export interface OrderResponse {
   updatedAt: string;
 }
 
-export interface OrderPageResponse extends PageResponse<OrderResponse> { }
+export interface OrderPageResponse extends PageResponse<OrderResponse> {}
 
 export interface OrderDetailResponse extends OrderResponse {
   items: OrderItemResponse[];
@@ -35,7 +35,6 @@ export interface OrderItemResponse {
   name?: string; // Product name
   image?: string; // Product image
 }
-
 
 export interface OrderDetailItemResponse {
   id: number;
@@ -89,7 +88,8 @@ export interface CustomerOrderResponse extends OrderResponse {
   shopWardName?: string | null;
 }
 
-export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> { }
+export interface CustomerOrderPageResponse
+  extends PageResponse<CustomerOrderResponse> {}
 
 export interface CartResponse {
   id: number;
@@ -115,7 +115,7 @@ export interface ReviewResponse {
   createdAt: string;
 }
 
-export interface ReviewPageResponse extends PageResponse<ReviewResponse> { }
+export interface ReviewPageResponse extends PageResponse<ReviewResponse> {}
 
 export interface OrderHistoryResponse {
   id: number;
@@ -126,9 +126,11 @@ export interface OrderHistoryResponse {
   details: string;
 }
 
-export interface OrderHistoryPageResponse extends PageResponse<OrderHistoryResponse> { }
+export interface OrderHistoryPageResponse
+  extends PageResponse<OrderHistoryResponse> {}
 
-export interface OrderDetailPageResponse extends PageResponse<OrderDetailResponse> { }
+export interface OrderDetailPageResponse
+  extends PageResponse<OrderDetailResponse> {}
 
 // Request types
 export interface CustomerOrderCreateRequest {
@@ -186,7 +188,7 @@ export interface OrderStatusUpdateRequest {
 export interface CustomerOrderUpdateRequest {
   status?: string;
   paymentStatus?: string;
-  shippingAddress?: import('./auth').AddressCreationRequest;
+  shippingAddress?: import("./auth").AddressCreationRequest;
 }
 
 export interface CartItemRequest {

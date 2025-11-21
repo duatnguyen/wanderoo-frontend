@@ -292,12 +292,18 @@ const AdminWarehouseReturnsImport = () => {
                           {getRefundStatusChip(returnItem.refundStatus)}
                         </div>
                         <div className="text-center">
-                          <span className="font-medium text-[#272424] text-[12px] truncate block" title={returnItem.supplier}>
+                          <span
+                            className="font-medium text-[#272424] text-[12px] truncate block"
+                            title={returnItem.supplier}
+                          >
                             {returnItem.supplier}
                           </span>
                         </div>
                         <div className="text-center">
-                          <span className="font-medium text-[#272424] text-[12px] truncate block" title={returnItem.createdBy}>
+                          <span
+                            className="font-medium text-[#272424] text-[12px] truncate block"
+                            title={returnItem.createdBy}
+                          >
                             {returnItem.createdBy}
                           </span>
                         </div>
@@ -307,7 +313,10 @@ const AdminWarehouseReturnsImport = () => {
                           </span>
                         </div>
                         <div className="text-center">
-                          <span className="font-medium text-[#272424] text-[12px]" title={formatCurrency(returnItem.totalValue)}>
+                          <span
+                            className="font-medium text-[#272424] text-[12px]"
+                            title={formatCurrency(returnItem.totalValue)}
+                          >
                             {(returnItem.totalValue / 1000000).toFixed(0)}M
                           </span>
                         </div>
@@ -333,22 +342,30 @@ const AdminWarehouseReturnsImport = () => {
                         <div className="space-y-1">
                           <div className="flex justify-between text-[12px]">
                             <span className="text-gray-600">Mã đơn nhập:</span>
-                            <span className="font-semibold text-[#1a71f6]">{returnItem.importCode}</span>
+                            <span className="font-semibold text-[#1a71f6]">
+                              {returnItem.importCode}
+                            </span>
                           </div>
                           <div className="flex justify-between text-[12px]">
                             <span className="text-gray-600">Nhà cung cấp:</span>
-                            <span className="font-medium text-right max-w-[60%] truncate" title={returnItem.supplier}>
+                            <span
+                              className="font-medium text-right max-w-[60%] truncate"
+                              title={returnItem.supplier}
+                            >
                               {returnItem.supplier}
                             </span>
                           </div>
                           <div className="flex justify-between text-[12px]">
                             <span className="text-gray-600">Người tạo:</span>
-                            <span className="font-medium">{returnItem.createdBy}</span>
+                            <span className="font-medium">
+                              {returnItem.createdBy}
+                            </span>
                           </div>
                           <div className="flex justify-between text-[11px]">
                             <span className="text-gray-600">SL / Giá trị:</span>
                             <span className="font-medium">
-                              {returnItem.returnQuantity} / {(returnItem.totalValue / 1000000).toFixed(0)}M
+                              {returnItem.returnQuantity} /{" "}
+                              {(returnItem.totalValue / 1000000).toFixed(0)}M
                             </span>
                           </div>
                         </div>

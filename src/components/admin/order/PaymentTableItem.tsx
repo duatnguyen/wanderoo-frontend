@@ -1,5 +1,5 @@
-import React from 'react';
-import type { OrderDetailItemResponse } from '@/types/orders';
+import React from "react";
+import type { OrderDetailItemResponse } from "@/types/orders";
 
 interface PaymentTableItemProps {
   item: OrderDetailItemResponse;
@@ -7,14 +7,16 @@ interface PaymentTableItemProps {
   formatCurrency: (value: number) => string;
 }
 
-const PaymentTableItem: React.FC<PaymentTableItemProps> = ({ item, index, formatCurrency }) => {
+const PaymentTableItem: React.FC<PaymentTableItemProps> = ({
+  item,
+  index,
+  formatCurrency,
+}) => {
   // Calculate total price
   const totalPrice = item.snapshotProductPrice * item.quantity;
 
   return (
-    <div
-      className="flex items-center relative shrink-0 w-full min-w-[700px] border-b border-[#e7e7e7] hover:bg-gray-50 transition-colors duration-150"
-    >
+    <div className="flex items-center relative shrink-0 w-full min-w-[700px] border-b border-[#e7e7e7] hover:bg-gray-50 transition-colors duration-150">
       <div className="border-r border-[#e7e7e7] box-border flex items-center justify-center py-[8px] px-[8px] relative shrink-0 w-[60px] min-w-[60px]">
         <span className="font-montserrat font-medium text-[12px] text-[#272424]">
           {index + 1}
@@ -30,9 +32,10 @@ const PaymentTableItem: React.FC<PaymentTableItemProps> = ({ item, index, format
         </div>
         <div className="flex flex-col gap-[2px] items-start min-w-0 flex-1">
           <p className="font-montserrat font-medium leading-[1.4] text-[#272424] text-[12px] truncate">
-            {item.snapshotProductName || 'Sản phẩm không tên'}
+            {item.snapshotProductName || "Sản phẩm không tên"}
           </p>
-          {item.snapshotVariantAttributes && item.snapshotVariantAttributes.length > 0 ? (
+          {item.snapshotVariantAttributes &&
+          item.snapshotVariantAttributes.length > 0 ? (
             <div className="flex flex-wrap gap-x-1 gap-y-0.5 mt-0.5">
               {item.snapshotVariantAttributes
                 .sort((a, b) => (a.groupLevel || 0) - (b.groupLevel || 0))
@@ -43,8 +46,12 @@ const PaymentTableItem: React.FC<PaymentTableItemProps> = ({ item, index, format
                     title={`${attr.name}: ${attr.value}`}
                   >
                     <span className="font-montserrat font-medium text-[9px] leading-[1.2] whitespace-nowrap">
-                      <span className="text-[#666] font-semibold">{attr.name}:</span>
-                      <span className="text-[#1a71f6] ml-0.5">{attr.value}</span>
+                      <span className="text-[#666] font-semibold">
+                        {attr.name}:
+                      </span>
+                      <span className="text-[#1a71f6] ml-0.5">
+                        {attr.value}
+                      </span>
                     </span>
                   </span>
                 ))}

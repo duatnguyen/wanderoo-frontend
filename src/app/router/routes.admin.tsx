@@ -75,11 +75,21 @@ const AdminCreateVoucherPrivate = lazy(
 
 // POS Pages
 const POSSales = lazy(() => import("../../features/pos/pages/sales/POSSales"));
-const POSOrderManagement = lazy(() => import("../../features/pos/pages/orders/OrderManagement"));
-const POSReturnOrderManagement = lazy(() => import("../../features/pos/pages/returns/ReturnOrderManagement"));
-const POSCreateReturnOrder = lazy(() => import("../../features/pos/pages/returns/CreateReturnOrder"));
-const POSInventoryLookup = lazy(() => import("../../features/pos/pages/inventory/InventoryLookup"));
-const POSCashBook = lazy(() => import("../../features/pos/pages/cashbook/CashBook"));
+const POSOrderManagement = lazy(
+  () => import("../../features/pos/pages/orders/OrderManagement")
+);
+const POSReturnOrderManagement = lazy(
+  () => import("../../features/pos/pages/returns/ReturnOrderManagement")
+);
+const POSCreateReturnOrder = lazy(
+  () => import("../../features/pos/pages/returns/CreateReturnOrder")
+);
+const POSInventoryLookup = lazy(
+  () => import("../../features/pos/pages/inventory/InventoryLookup")
+);
+const POSCashBook = lazy(
+  () => import("../../features/pos/pages/cashbook/CashBook")
+);
 
 const AdminWarehouseReturnsImport = lazy(
   () =>
@@ -127,6 +137,12 @@ const AdminWarehouseSupplier = lazy(
 );
 const AdminOrderOtherStatus = lazy(
   () => import("../../features/admin/pages/orders/list/AdminOrderOtherStatus")
+);
+const AdminOrderOtherStatusDetail = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/orders/detail/AdminOrderOtherStatusDetail"
+    )
 );
 const AdminProductsCategories = lazy(
   () =>
@@ -216,6 +232,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminOrderOtherStatus />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "orders/otherstatus/:orderId",
+    element: (
+      <LazyWrapper>
+        <AdminOrderOtherStatusDetail />
       </LazyWrapper>
     ),
   },
