@@ -22,6 +22,12 @@ import {
 } from "./orderOtherStatusData";
 
 type ReturnStatusTab = "ALL" | ReturnStatus;
+type CancelStatusTab = "ALL" | "PROCESSING" | "PROCESSED";
+type FailedStatusTab =
+  | "ALL"
+  | "RETURNING_TO_SELLER"
+  | "RETURNED_TO_SELLER"
+  | "RETURN_FAILED";
 type MainTabValue = "ALL" | "RETURN" | "CANCEL" | "FAILED";
 
 const MAIN_TABS: TabItem[] = [
@@ -39,15 +45,30 @@ const RETURN_STATUS_TABS: Array<{ id: ReturnStatusTab; label: string }> = [
   { id: "INVALID", label: "Yêu cầu bị hủy/không hợp lệ" },
 ];
 
+const CANCEL_STATUS_TABS: Array<{ id: CancelStatusTab; label: string }> = [
+  { id: "ALL", label: "Tất cả" },
+  { id: "PROCESSING", label: "Đang xử lý" },
+  { id: "PROCESSED", label: "Đã xử lý" },
+];
+
+const FAILED_STATUS_TABS: Array<{ id: FailedStatusTab; label: string }> = [
+  { id: "ALL", label: "Tất cả" },
+  { id: "RETURNING_TO_SELLER", label: "Đang trả hàng cho người bán" },
+  { id: "RETURNED_TO_SELLER", label: "Đã trả hàng cho người bán" },
+  { id: "RETURN_FAILED", label: "Trả hàng k thành công" },
+];
+
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   style: "currency",
   currency: "VND",
 });
 
 const formatCurrency = (value: number) =>
-  currencyFormatter.format(value).replace(" ₫", "₫");
+  currencyFormatter.format(value).replace(" ₫", "₫");
 
 type ReturnStatusCounter = Record<ReturnStatus | "ALL", number>;
+type CancelStatusCounter = Record<CancelStatusTab, number>;
+type FailedStatusCounter = Record<FailedStatusTab, number>;
 
 const createEmptyReturnCounts = (): ReturnStatusCounter => ({
   ALL: 0,
@@ -57,19 +78,47 @@ const createEmptyReturnCounts = (): ReturnStatusCounter => ({
   INVALID: 0,
 });
 
+const createEmptyCancelCounts = (): CancelStatusCounter => ({
+  ALL: 0,
+  PROCESSING: 0,
+  PROCESSED: 0,
+});
+
+const createEmptyFailedCounts = (): FailedStatusCounter => ({
+  ALL: 0,
+  RETURNING_TO_SELLER: 0,
+  RETURNED_TO_SELLER: 0,
+  RETURN_FAILED: 0,
+});
+
 const AdminOrderOtherStatus = () => {
   document.title = "Đơn trạng thái khác | Wanderoo";
   const navigate = useNavigate();
   const [activeMainTab, setActiveMainTab] = useState<MainTabValue>("RETURN");
   const [activeStatusTab, setActiveStatusTab] =
     useState<ReturnStatusTab>("ALL");
+  const [activeCancelStatusTab, setActiveCancelStatusTab] =
+    useState<CancelStatusTab>("ALL");
+  const [activeFailedStatusTab, setActiveFailedStatusTab] =
+    useState<FailedStatusTab>("ALL");
 
   useEffect(() => {
-    if (activeMainTab === "RETURN" || activeStatusTab === "ALL") {
-      return;
+    if (activeMainTab !== "RETURN" && activeStatusTab !== "ALL") {
+      setActiveStatusTab("ALL");
     }
-    setActiveStatusTab("ALL");
   }, [activeMainTab, activeStatusTab]);
+
+  useEffect(() => {
+    if (activeMainTab !== "CANCEL" && activeCancelStatusTab !== "ALL") {
+      setActiveCancelStatusTab("ALL");
+    }
+  }, [activeMainTab, activeCancelStatusTab]);
+
+  useEffect(() => {
+    if (activeMainTab !== "FAILED" && activeFailedStatusTab !== "ALL") {
+      setActiveFailedStatusTab("ALL");
+    }
+  }, [activeMainTab, activeFailedStatusTab]);
 
   const returnStatusCounts = useMemo(() => {
     return otherStatusOrders.reduce((acc, order) => {
@@ -79,6 +128,66 @@ const AdminOrderOtherStatus = () => {
       }
       return acc;
     }, createEmptyReturnCounts());
+  }, []);
+
+  const cancelStatusCounts = useMemo(() => {
+    return otherStatusOrders.reduce((acc, order) => {
+      if (order.category === "CANCEL") {
+        acc.ALL += 1;
+        // Determine if order is processed or processing
+        // Processed: refund completed or order fully cancelled
+        // Processing: refund pending or order cancellation in progress
+        const isProcessed =
+          order.forwardShipping?.chip === "completed" ||
+          order.statusDescription?.toLowerCase().includes("đã") ||
+          (order.refundAmount > 0 &&
+            order.statusDescription?.toLowerCase().includes("hoàn"));
+        if (isProcessed) {
+          acc.PROCESSED += 1;
+        } else {
+          acc.PROCESSING += 1;
+        }
+      }
+      return acc;
+    }, createEmptyCancelCounts());
+  }, []);
+
+  const failedStatusCounts = useMemo(() => {
+    return otherStatusOrders.reduce((acc, order) => {
+      if (order.category === "FAILED") {
+        acc.ALL += 1;
+        // Categorize failed orders based on return shipping status
+        const returnShipping = order.returnShipping;
+        if (returnShipping) {
+          if (
+            returnShipping.chip === "return" ||
+            returnShipping.label?.toLowerCase().includes("đang trả") ||
+            returnShipping.label?.toLowerCase().includes("đang trả hàng")
+          ) {
+            acc.RETURNING_TO_SELLER += 1;
+          } else if (
+            returnShipping.chip === "completed" ||
+            returnShipping.label?.toLowerCase().includes("đã trả") ||
+            returnShipping.label?.toLowerCase().includes("đã nhận")
+          ) {
+            acc.RETURNED_TO_SELLER += 1;
+          } else if (
+            returnShipping.chip === "cancelled" ||
+            returnShipping.label?.toLowerCase().includes("không thành công") ||
+            returnShipping.label?.toLowerCase().includes("thất bại")
+          ) {
+            acc.RETURN_FAILED += 1;
+          } else {
+            // Default to returning if status is unclear
+            acc.RETURNING_TO_SELLER += 1;
+          }
+        } else {
+          // If no return shipping info, default to returning
+          acc.RETURNING_TO_SELLER += 1;
+        }
+      }
+      return acc;
+    }, createEmptyFailedCounts());
   }, []);
 
   const filteredOrders = useMemo(() => {
@@ -91,8 +200,60 @@ const AdminOrderOtherStatus = () => {
       return base.filter((order) => order.statusKey === activeStatusTab);
     }
 
+    if (activeMainTab === "CANCEL" && activeCancelStatusTab !== "ALL") {
+      return base.filter((order) => {
+        const isProcessed =
+          order.forwardShipping?.chip === "completed" ||
+          order.statusDescription?.toLowerCase().includes("đã") ||
+          (order.refundAmount > 0 &&
+            order.statusDescription?.toLowerCase().includes("hoàn"));
+
+        if (activeCancelStatusTab === "PROCESSED") {
+          return isProcessed;
+        } else if (activeCancelStatusTab === "PROCESSING") {
+          return !isProcessed;
+        }
+        return true;
+      });
+    }
+
+    if (activeMainTab === "FAILED" && activeFailedStatusTab !== "ALL") {
+      return base.filter((order) => {
+        const returnShipping = order.returnShipping;
+        if (!returnShipping) {
+          return activeFailedStatusTab === "RETURNING_TO_SELLER";
+        }
+
+        if (activeFailedStatusTab === "RETURNING_TO_SELLER") {
+          return (
+            returnShipping.chip === "return" ||
+            returnShipping.label?.toLowerCase().includes("đang trả") ||
+            returnShipping.label?.toLowerCase().includes("đang trả hàng")
+          );
+        } else if (activeFailedStatusTab === "RETURNED_TO_SELLER") {
+          return (
+            returnShipping.chip === "completed" ||
+            returnShipping.label?.toLowerCase().includes("đã trả") ||
+            returnShipping.label?.toLowerCase().includes("đã nhận")
+          );
+        } else if (activeFailedStatusTab === "RETURN_FAILED") {
+          return (
+            returnShipping.chip === "cancelled" ||
+            returnShipping.label?.toLowerCase().includes("không thành công") ||
+            returnShipping.label?.toLowerCase().includes("thất bại")
+          );
+        }
+        return true;
+      });
+    }
+
     return base;
-  }, [activeMainTab, activeStatusTab]);
+  }, [
+    activeMainTab,
+    activeStatusTab,
+    activeCancelStatusTab,
+    activeFailedStatusTab,
+  ]);
 
   const handleViewDetail = (order: OtherStatusOrder) => {
     navigate(`/admin/orders/otherstatus/${order.id}`, {
@@ -332,7 +493,9 @@ const AdminOrderOtherStatus = () => {
           <TabMenu
             tabs={MAIN_TABS}
             activeTab={activeMainTab}
-            onTabChange={(tabId) => setActiveMainTab(tabId as MainTabValue)}
+            onTabChange={(tabId) => {
+              setActiveMainTab(tabId as MainTabValue);
+            }}
             variant="underline"
             className="border-none"
           />
@@ -348,6 +511,74 @@ const AdminOrderOtherStatus = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveStatusTab(tab.id)}
+                      className={`flex items-center gap-2 border-b-2 pb-1 text-[13px] font-semibold transition-colors ${
+                        isActive
+                          ? "border-[#e04d30] text-[#e04d30]"
+                          : "border-transparent text-[#737373] hover:text-[#e04d30]"
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] ${
+                          isActive
+                            ? "bg-[#ffe3dd] text-[#e04d30]"
+                            : "bg-[#f1f1f1] text-[#737373]"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeMainTab === "CANCEL" && (
+            <div className="rounded-[14px] border border-[#f2f2f2] bg-[#fbfbfb] px-4 py-3">
+              <div className="flex flex-wrap gap-4">
+                {CANCEL_STATUS_TABS.map((tab) => {
+                  const isActive = activeCancelStatusTab === tab.id;
+                  const count = cancelStatusCounts[tab.id];
+
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveCancelStatusTab(tab.id)}
+                      className={`flex items-center gap-2 border-b-2 pb-1 text-[13px] font-semibold transition-colors ${
+                        isActive
+                          ? "border-[#e04d30] text-[#e04d30]"
+                          : "border-transparent text-[#737373] hover:text-[#e04d30]"
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] ${
+                          isActive
+                            ? "bg-[#ffe3dd] text-[#e04d30]"
+                            : "bg-[#f1f1f1] text-[#737373]"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeMainTab === "FAILED" && (
+            <div className="rounded-[14px] border border-[#f2f2f2] bg-[#fbfbfb] px-4 py-3">
+              <div className="flex flex-wrap gap-4">
+                {FAILED_STATUS_TABS.map((tab) => {
+                  const isActive = activeFailedStatusTab === tab.id;
+                  const count = failedStatusCounts[tab.id];
+
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveFailedStatusTab(tab.id)}
                       className={`flex items-center gap-2 border-b-2 pb-1 text-[13px] font-semibold transition-colors ${
                         isActive
                           ? "border-[#e04d30] text-[#e04d30]"
