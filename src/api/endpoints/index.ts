@@ -5,15 +5,13 @@ export {
   register,
   refreshToken,
   logout,
-  getCurrentUser,
   authLogin,
   authRegister,
-  authMe,
 } from './authApi';
 
 // User API exports
 export {
-  getUserProfile,
+  getUserInfo,
   updateUserProfile,
   changePassword,
   getUserAddresses,

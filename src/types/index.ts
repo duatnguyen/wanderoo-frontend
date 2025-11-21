@@ -1,11 +1,11 @@
 // src/types/index.ts - Export all types
-export * from './common';
-export * from './auth';
-export * from './products';
-export * from './orders';
-export type { POSCustomerResponse as CustomerResponse } from './shipping';
-export * from './shipping';
-export * from './warehouse';
+export * from "./common";
+export * from "./auth";
+export * from "./products";
+export * from "./orders";
+export type { POSCustomerResponse as CustomerResponse } from "./shipping";
+export * from "./shipping";
+export * from "./warehouse";
 export type {
   OrderDetailCreateRequest,
   OrderDetailUpdateRequest,
@@ -26,6 +26,13 @@ export type {
   GeneratePrintTokenResponse,
   PrintOrderResponse,
   SwitchStatusResponse,
+  DiscountPublicResponse,
+  VoucherHistoryResponse,
+  VoucherStatus,
+  DiscountTypeValue,
+  DiscountCategoryValue,
+  ClaimVoucherRequest,
   BrandCreateRequest,
   BrandPageResponse,
-} from './api';
+} from "./api";
+

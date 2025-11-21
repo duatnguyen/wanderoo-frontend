@@ -4,7 +4,7 @@ import type {
   ApiResponse,
   SaleProductListResponse,
   CustomerSearchListResponse,
-  DiscountPageResponse,
+  DiscountResponse,
   DraftOrderResponse,
   DraftOrderDetailResponse,
   CheckoutResponse,
@@ -14,7 +14,7 @@ import type {
   UpdateNoteRequest,
   CheckoutRequest,
   RemoveItemFromDraftOrderRequest,
-} from '../../types';
+} from '@/types/api';
 
 // Sale POS APIs
 export const searchProducts = async (keyword?: string): Promise<SaleProductListResponse> => {
@@ -31,9 +31,9 @@ export const searchCustomers = async (keyword?: string): Promise<CustomerSearchL
   return response.data.data ?? [];
 };
 
-export const getAvailableDiscounts = async (): Promise<DiscountPageResponse> => {
-  const response = await api.get<ApiResponse<DiscountPageResponse>>('/auth/v1/private/sale/pos/discounts/available');
-  return response.data.data;
+export const getAvailableDiscounts = async (): Promise<DiscountResponse[]> => {
+  const response = await api.get<ApiResponse<DiscountResponse[]>>('/auth/v1/private/sale/pos/discounts/available');
+  return response.data.data ?? [];
 };
 
 export const getDraftOrderDetail = async (orderId: number): Promise<DraftOrderDetailResponse> => {

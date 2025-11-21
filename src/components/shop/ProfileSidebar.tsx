@@ -7,7 +7,7 @@ import {
   TicketIcon,
   EditPencilIcon,
 } from "./ProfileIcons";
-import { useAuthCtx } from "../../app/providers/AuthProvider";
+import { useAuth } from "../../context/AuthContext";
 
 type MenuItem = {
   id: string;
@@ -24,13 +24,12 @@ interface ProfileSidebarProps {
 const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { state } = useAuthCtx();
-  const { user } = state;
+  const { user } = useAuth();
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
 
   // Get user data with fallback - same as Header
   const userData = {
-    fullName: user?.name || "Thanh",
+    fullName: user?.name || user?.username || "Thanh",
     avatar: user?.avatar || "https://randomuser.me/api/portraits/men/32.jpg",
   };
 
@@ -65,7 +64,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
   const isMenuActive = (item: MenuItem): boolean => {
     // If item has children, only check if any child is active
     if (item.children && item.children.length > 0) {
-      return item.children.some(child => 
+      return item.children.some(child =>
         location.pathname === child.path || location.pathname.startsWith(child.path + "/")
       );
     }
@@ -113,21 +112,21 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
     menuItems.forEach(item => {
       if (item.children) {
         // Check if any child is active
-        const hasActiveChild = item.children.some(child => 
+        const hasActiveChild = item.children.some(child =>
           location.pathname === child.path || location.pathname.startsWith(child.path + "/")
         );
-        
+
         if (hasActiveChild) {
           // Expand this menu if a child is active
-        setExpandedMenu(item.id);
-      }
+          setExpandedMenu(item.id);
+        }
       }
     });
-    
+
     // Close "Tài khoản của tôi" if none of its children are active
     const accountItem = menuItems.find(item => item.id === "account");
     if (accountItem && accountItem.children) {
-      const hasActiveAccountChild = accountItem.children.some(child => 
+      const hasActiveAccountChild = accountItem.children.some(child =>
         location.pathname === child.path || location.pathname.startsWith(child.path + "/")
       );
       if (!hasActiveAccountChild) {
@@ -189,11 +188,10 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleMenuItemClick(item)}
-                    className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                      isActive
-                        ? "text-[#E04D30]"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
+                    className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${isActive
+                      ? "text-[#E04D30]"
+                      : "text-gray-700 hover:bg-gray-100"
+                      }`}
                   >
                     {item.icon && (
                       <span className="flex-shrink-0">{item.icon}</span>
@@ -203,11 +201,10 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                   {hasChildren && item.id !== "account" && (
                     <button
                       onClick={(e) => handleToggleDropdown(item.id, e)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        isActive
-                          ? "text-[#E04D30] hover:bg-gray-100"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
+                      className={`p-2 rounded-lg transition-colors ${isActive
+                        ? "text-[#E04D30] hover:bg-gray-100"
+                        : "text-gray-600 hover:bg-gray-100"
+                        }`}
                       aria-label="Toggle submenu"
                     >
                       {isExpanded ? (
@@ -228,11 +225,10 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                         <button
                           key={child.id}
                           onClick={() => handleChildClick(child.path)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                            childIsActive
-                              ? "text-[#E04D30]"
-                              : "text-gray-600 hover:bg-gray-100"
-                          }`}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${childIsActive
+                            ? "text-[#E04D30]"
+                            : "text-gray-600 hover:bg-gray-100"
+                            }`}
                         >
                           <span>{child.label}</span>
                         </button>

@@ -64,11 +64,21 @@ const AdminCreateVoucher: React.FC = () => {
     maxUsagePerCustomer: "",
     displaySetting: "website",
   });
+  const [minDateTime] = useState(() => formatDateTimeForInput(new Date().toISOString()));
+  const numericFields: Array<keyof VoucherFormData> = [
+    "discountValue",
+    "maxDiscountValue",
+    "minOrderAmount",
+    "maxUsage",
+    "maxUsagePerCustomer",
+  ];
+  const sanitizeNumericInput = (value: string) => value.replace(/[^0-9]/g, "");
 
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
+    const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: processedValue,
     }));
   };
 
@@ -186,6 +196,7 @@ const AdminCreateVoucher: React.FC = () => {
                       onChange={(e) =>
                         handleInputChange("startDate", e.target.value)
                       }
+                      min={minDateTime}
                       containerClassName="h-[36px] w-[873px]"
                       className={!formData.startDate ? "opacity-50" : ""}
                     />
@@ -203,6 +214,9 @@ const AdminCreateVoucher: React.FC = () => {
                       value={formatDateTimeForInput(formData.endDate)}
                       onChange={(e) =>
                         handleInputChange("endDate", e.target.value)
+                      }
+                      min={
+                        formatDateTimeForInput(formData.startDate) || minDateTime
                       }
                       containerClassName="h-[36px] w-[873px]"
                       className={!formData.endDate ? "opacity-50" : ""}

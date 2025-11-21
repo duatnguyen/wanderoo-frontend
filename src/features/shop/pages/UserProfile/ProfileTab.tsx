@@ -1,198 +1,473 @@
-import React, { useState } from "react";
-import Button from "../../../../components/shop/Button";
-import { EditPencilIcon } from "../../../../components/shop/ProfileIcons";
+import React, { useState, useCallback } from "react";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
+import CustomRadio from "../../../../components/ui/custom-radio";
+import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import { Calendar } from "../../../../components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../../components/ui/popover";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../../../../components/ui/select";
+import { updateUserProfile } from "../../../../api/endpoints/userApi";
+import { useAuth } from "../../../../context/AuthContext";
+import type { UserUpdateRequest } from "../../../../types/auth";
+
+type EditableField = "fullName" | "email" | "phone";
+
+const fieldConfig: Record<
+    EditableField,
+    {
+        label: string;
+        type: "text" | "email" | "tel";
+        accessor: (user: ReturnType<typeof useAuth>["user"]) => string;
+        payloadKey: keyof UserUpdateRequest;
+    }
+> = {
+    fullName: {
+        label: "Họ và tên",
+        type: "text",
+        accessor: (user) => user?.name || "",
+        payloadKey: "name",
+    },
+    email: {
+        label: "Email",
+        type: "email",
+        accessor: (user) => user?.email || "",
+        payloadKey: "email",
+    },
+    phone: {
+        label: "Số điện thoại",
+        type: "tel",
+        accessor: (user) => user?.phone || "",
+        payloadKey: "phone",
+    },
+};
 
 const ProfileTab: React.FC = () => {
-  const [userData, setUserData] = useState({
-    fullName: "Thanh",
-    email: "th***********@gmail.com",
-    phone: "08********",
-    gender: "male",
-    dateOfBirth: "**/**/2003",
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-  });
+    const { user, refreshProfile, isLoading } = useAuth();
+    const [editingField, setEditingField] = useState<EditableField | null>(null);
+    const [pendingValue, setPendingValue] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [isEditingGender, setIsEditingGender] = useState(false);
+    const [pendingGender, setPendingGender] = useState<"MALE" | "FEMALE">("MALE");
+    const [isEditingDateOfBirth, setIsEditingDateOfBirth] = useState(false);
+    const [pendingDateOfBirth, setPendingDateOfBirth] = useState<Date | undefined>(undefined);
+    const [month, setMonth] = useState<Date>(new Date());
+    const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const [isEditing, setIsEditing] = useState(false);
+    const handleCalendarChange = (
+        value: string | number,
+        event: any
+    ) => {
+        const newEvent = {
+            target: {
+                value: String(value),
+            },
+        } as any;
+        event(newEvent);
+    };
 
-  const handleInputChange = (field: string, value: string) => {
-    setUserData((prev) => ({ ...prev, [field]: value }));
-  };
+    const buildProfilePayload = useCallback(
+        (override: Partial<UserUpdateRequest> = {}): UserUpdateRequest => {
+            return {
+                id: user?.id ?? 0,
+                name: override.name ?? user?.name ?? "",
+                phone: override.phone ?? user?.phone ?? "",
+                email: override.email ?? user?.email ?? "",
+                birthday: override.birthday ?? user?.dateOfBirth ?? undefined,
+                gender: override.gender ?? (user?.gender as "MALE" | "FEMALE" | undefined),
+                image_url: override.image_url ?? user?.avatar ?? null,
+            };
+        },
+        [user]
+    );
 
-  const handleSave = () => {
-    setIsEditing(false);
-    console.log("Saving user data:", userData);
-  };
+    const beginEditingField = (field: EditableField) => {
+        const currentValue = fieldConfig[field].accessor(user) || "";
+        setPendingValue(currentValue);
+        setEditingField(field);
+    };
 
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-      {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
-          Hồ sơ của tôi
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600">
-          Quản lý thông tin hồ sơ để bảo mật tài khoản
-        </p>
-      </div>
+    const cancelFieldEdit = () => {
+        setEditingField(null);
+        setPendingValue("");
+        setErrorMessage(null);
+        setSuccessMessage(null);
+    };
 
-      {/* User Summary */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-gray-200">
-        <img
-          src={userData.avatar}
-          alt="Avatar"
-          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
-        />
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
-            {userData.fullName}
-          </h3>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors text-sm"
-          >
-            <EditPencilIcon />
-            <span className="font-medium">Sửa hồ sơ</span>
-          </button>
-        </div>
-      </div>
+    const saveField = async () => {
+        if (!editingField) return;
+        const payloadKey = fieldConfig[editingField].payloadKey;
+        const overrides: Partial<UserUpdateRequest> = {};
+        if (payloadKey === "name") {
+            overrides.name = pendingValue;
+        } else if (payloadKey === "email") {
+            overrides.email = pendingValue;
+        } else if (payloadKey === "phone") {
+            overrides.phone = pendingValue;
+        }
+        const payload = buildProfilePayload(overrides);
 
-      {/* Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Form Fields */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
-          {/* Full Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Họ và tên
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={userData.fullName}
-                onChange={(e) => handleInputChange("fullName", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-              />
-            ) : (
-              <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base">
-                {userData.fullName}
-              </div>
+        setIsSaving(true);
+        setErrorMessage(null);
+        try {
+            await updateUserProfile(payload);
+            await refreshProfile();
+            setSuccessMessage("Thông tin đã được cập nhật thành công!");
+            setEditingField(null);
+            setPendingValue("");
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (error) {
+            console.error("Failed to update profile", error);
+            setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const displayValue = (value?: string | null, placeholder = "Chưa có thông tin") => {
+        if (!value || value.trim() === "" || value === "**/**/****") {
+            return placeholder;
+        }
+        return value;
+    };
+
+    if (isLoading || !user) {
+        return (
+            <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="flex items-center justify-center">
+                    <LoadingSpinner size="md" className="mr-3" />
+                    <span className="text-gray-600">Đang tải thông tin hồ sơ...</span>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white rounded-lg border border-gray-200 sm:p-5">
+
+            {/* Header */}
+            <div className="mb-6">
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Thông tin tài khoản</h2>
+                <p className="text-sm text-gray-600">Cập nhật thông tin cá nhân và liên hệ của bạn</p>
+            </div>
+
+            {/* Messages */}
+            {successMessage && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm">
+                    {successMessage}
+                </div>
             )}
-          </div>
+            {errorMessage && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                    {errorMessage}
+                </div>
+            )}
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              <div className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base break-all">
-                {userData.email}
-              </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">
-                Thay đổi
-              </button>
-            </div>
-          </div>
+            {/* Profile Fields */}
+            <div className="space-y-4">
+                {/* Username Field */}
+                <div className="pb-3 border-b border-gray-100">
+                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Tên tài khoản</dt>
+                    <dd className="text-sm text-gray-900 font-medium">@
+                        {displayValue(user.username, "Không xác định")}
+                    </dd>
+                </div>
 
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Số điện thoại
-            </label>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              <div className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base">
-                {userData.phone}
-              </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">
-                Thay đổi
-              </button>
-            </div>
-          </div>
+                {/* Editable Fields */}
+                {(Object.keys(fieldConfig) as EditableField[]).map((field) => {
+                    const config = fieldConfig[field];
+                    const currentValue = config.accessor(user);
+                    const isFieldEditing = editingField === field;
 
-          {/* Gender */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giới tính
-            </label>
-            <div className="flex items-center gap-4 sm:gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="male"
-                  checked={userData.gender === "male"}
-                  onChange={(e) => handleInputChange("gender", e.target.value)}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm sm:text-base text-gray-700">Nam</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="female"
-                  checked={userData.gender === "female"}
-                  onChange={(e) => handleInputChange("gender", e.target.value)}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm sm:text-base text-gray-700">NỮ</span>
-              </label>
-            </div>
-          </div>
+                    return (
+                        <div key={field} className={`pb-3 border-b border-gray-100 ${isFieldEditing ? 'bg-gray-50 -mx-2 px-2 py-3 rounded-md' : ''}`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                    {config.label}
+                                </dt>
+                                {!isFieldEditing && (
+                                    <button
+                                        onClick={() => beginEditingField(field)}
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                                    >
+                                        Chỉnh sửa
+                                    </button>
+                                )}
+                            </div>
+                            <dd>
+                                {isFieldEditing ? (
+                                    <div className="space-y-3">
+                                        <Input
+                                            type={config.type}
+                                            value={pendingValue}
+                                            onChange={(e) => setPendingValue(e.target.value)}
+                                            className="w-full"
+                                            autoFocus
+                                        />
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={cancelFieldEdit}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none"
+                                            >
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                onClick={() => void saveField()}
+                                                disabled={isSaving || pendingValue === currentValue}
+                                                className="flex-1 sm:flex-none"
+                                            >
+                                                {isSaving ? "Đang lưu..." : "Lưu"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-900 font-medium">
+                                        {displayValue(currentValue)}
+                                    </p>
+                                )}
+                            </dd>
+                        </div>
+                    );
+                })}
 
-          {/* Date of Birth */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ngày sinh
-            </label>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              <div className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base">
-                {userData.dateOfBirth}
-              </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">
-                Thay đổi
-              </button>
-            </div>
-          </div>
+                {/* Gender Field */}
+                <div className={`pb-3 border-b border-gray-100 ${isEditingGender ? 'bg-gray-50 -mx-2 px-2 py-3 rounded-md' : ''}`}>
+                    <div className="flex items-center justify-between mb-1">
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            Giới tính
+                        </dt>
+                        {!isEditingGender && (
+                            <button
+                                onClick={() => {
+                                    const currentGender = user?.gender || "MALE";
+                                    setPendingGender(currentGender as "MALE" | "FEMALE");
+                                    setIsEditingGender(true);
+                                }}
+                                className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                                Chỉnh sửa
+                            </button>
+                        )}
+                    </div>
+                    <dd>
+                        {isEditingGender ? (
+                            <div className="space-y-3">
+                                <div className="space-y-2">
+                                    <CustomRadio
+                                        name="gender"
+                                        value="MALE"
+                                        checked={pendingGender === "MALE"}
+                                        onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
+                                        label="Nam"
+                                    />
+                                    <CustomRadio
+                                        name="gender"
+                                        value="FEMALE"
+                                        checked={pendingGender === "FEMALE"}
+                                        onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
+                                        label="Nữ"
+                                    />
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setIsEditingGender(false);
+                                            setPendingGender("MALE");
+                                            setErrorMessage(null);
+                                            setSuccessMessage(null);
+                                        }}
+                                        disabled={isSaving}
+                                        className="flex-1 sm:flex-none"
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={async () => {
+                                            setIsSaving(true);
+                                            setErrorMessage(null);
+                                            try {
+                                                const payload = buildProfilePayload({ gender: pendingGender });
+                                                await updateUserProfile(payload);
+                                                await refreshProfile();
+                                                setSuccessMessage("Thông tin đã được cập nhật thành công!");
+                                                setIsEditingGender(false);
+                                                setTimeout(() => setSuccessMessage(null), 3000);
+                                            } catch (error) {
+                                                console.error("Failed to update gender", error);
+                                                setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
+                                            } finally {
+                                                setIsSaving(false);
+                                            }
+                                        }}
+                                        disabled={isSaving}
+                                        className="flex-1 sm:flex-none"
+                                    >
+                                        {isSaving ? "Đang lưu..." : "Lưu"}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-900 font-medium">
+                                {user.gender?.toUpperCase() === "FEMALE" ? "Nữ" : "Nam"}
+                            </p>
+                        )}
+                    </dd>
+                </div>
 
-          {/* Save Button */}
-          {isEditing && (
-            <div className="pt-2 sm:pt-4">
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={handleSave}
-                className="w-full sm:w-auto px-6 sm:px-8"
-              >
-                Lưu
-              </Button>
+                {/* Date of Birth Field */}
+                <div className={`pb-3 ${isEditingDateOfBirth ? 'bg-gray-50 -mx-2 px-2 py-3 rounded-md' : ''}`}>
+                    <div className="flex items-center justify-between mb-1">
+                        <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            Ngày sinh
+                        </dt>
+                        {!isEditingDateOfBirth && (
+                            <button
+                                onClick={() => {
+                                    const currentDateOfBirth = user?.dateOfBirth || "";
+                                    setPendingDateOfBirth(currentDateOfBirth ? new Date(currentDateOfBirth) : undefined);
+                                    setIsEditingDateOfBirth(true);
+                                }}
+                                className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                                Chỉnh sửa
+                            </button>
+                        )}
+                    </div>
+                    <dd>
+                        {isEditingDateOfBirth ? (
+                            <div className="space-y-3">
+                                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            className="w-full justify-start text-left font-normal"
+                                            variant="outline"
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {pendingDateOfBirth ? format(pendingDateOfBirth, "PPP") : <span>Chọn ngày sinh</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent align="start" className="w-auto p-0">
+                                        <Calendar
+                                            captionLayout="dropdown"
+                                            components={{
+                                                DropdownNav: (props) => (
+                                                    <div className="flex w-full items-center gap-2">
+                                                        {props.children}
+                                                    </div>
+                                                ),
+                                                Dropdown: (props) => (
+                                                    <Select
+                                                        onValueChange={(value) => {
+                                                            if (props.onChange) {
+                                                                handleCalendarChange(value, props.onChange);
+                                                            }
+                                                        }}
+                                                        value={String(props.value)}
+                                                    >
+                                                        <SelectTrigger className="first:flex-1 last:shrink-0">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {props.options?.map((option) => (
+                                                                <SelectItem
+                                                                    disabled={option.disabled}
+                                                                    key={option.value}
+                                                                    value={String(option.value)}
+                                                                >
+                                                                    {option.label}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                ),
+                                            }}
+                                            hideNavigation
+                                            mode="single"
+                                            month={month}
+                                            onMonthChange={setMonth}
+                                            onSelect={(date) => {
+                                                setPendingDateOfBirth(date);
+                                                setCalendarOpen(false);
+                                            }}
+                                            selected={pendingDateOfBirth}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setIsEditingDateOfBirth(false);
+                                            setPendingDateOfBirth(undefined);
+                                            setErrorMessage(null);
+                                            setSuccessMessage(null);
+                                        }}
+                                        disabled={isSaving}
+                                        className="flex-1 sm:flex-none"
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={async () => {
+                                            setIsSaving(true);
+                                            setErrorMessage(null);
+                                            try {
+                                                const dateString = pendingDateOfBirth
+                                                    ? pendingDateOfBirth.toISOString().split('T')[0]
+                                                    : null;
+                                                const payload = buildProfilePayload({ birthday: dateString });
+                                                await updateUserProfile(payload);
+                                                await refreshProfile();
+                                                setSuccessMessage("Thông tin đã được cập nhật thành công!");
+                                                setIsEditingDateOfBirth(false);
+                                                setTimeout(() => setSuccessMessage(null), 3000);
+                                            } catch (error) {
+                                                console.error("Failed to update birthday", error);
+                                                setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
+                                            } finally {
+                                                setIsSaving(false);
+                                            }
+                                        }}
+                                        disabled={isSaving}
+                                        className="flex-1 sm:flex-none"
+                                    >
+                                        {isSaving ? "Đang lưu..." : "Lưu"}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-900 font-medium">
+                                {displayValue(user.dateOfBirth)}
+                            </p>
+                        )}
+                    </dd>
+                </div>
             </div>
-          )}
         </div>
-
-        {/* Right Column - Profile Picture Upload */}
-        <div className="lg:col-span-1 order-1 lg:order-2">
-          <div className="flex flex-col items-center lg:items-start">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mb-3 sm:mb-4 rounded-lg overflow-hidden border-2 border-gray-200">
-              <img
-                src={userData.avatar}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => console.log("Choose photo")}
-              className="w-full sm:w-auto"
-            >
-              Chọn ảnh
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ProfileTab;
+

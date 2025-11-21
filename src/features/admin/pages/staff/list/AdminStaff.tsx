@@ -14,9 +14,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useQuery } from "@tanstack/react-query";
-import { getEmployees } from "@/api/endpoints/userApi";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getEmployees, enableEmployeeAccounts, disableEmployeeAccounts } from "@/api/endpoints/userApi";
+import { toast } from "sonner";
 import type { EmployeePageResponse, EmployeeResponse } from "@/types";
+import type { SelectAllRequest } from "@/types/auth";
 
 type StoreOwner = {
   name: string;
@@ -93,6 +95,38 @@ const AdminStaff: React.FC = () => {
       previousData,
   });
 
+  // Mutation for enabling employee accounts
+  const { mutateAsync: enableEmployees, isPending: isEnabling } = useMutation({
+    mutationFn: async (request: SelectAllRequest) => {
+      await enableEmployeeAccounts(request);
+    },
+    onSuccess: () => {
+      toast.success("Kích hoạt tài khoản nhân viên thành công");
+      refetch();
+      setSelectedStaff(new Set());
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || "Không thể kích hoạt tài khoản nhân viên";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Mutation for disabling employee accounts
+  const { mutateAsync: disableEmployees, isPending: isDisabling } = useMutation({
+    mutationFn: async (request: SelectAllRequest) => {
+      await disableEmployeeAccounts(request);
+    },
+    onSuccess: () => {
+      toast.success("Ngừng kích hoạt tài khoản nhân viên thành công");
+      refetch();
+      setSelectedStaff(new Set());
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || "Không thể ngừng kích hoạt tài khoản nhân viên";
+      toast.error(errorMessage);
+    },
+  });
+
   const staff: EmployeeResponse[] = data?.content ?? [];
 
   const filtered = useMemo(() => {
@@ -142,18 +176,36 @@ const AdminStaff: React.FC = () => {
     setSelectedStaff(newSelected);
   };
 
-  const handleActivateSelected = () => {
-    // TODO: Implement activation logic
-    console.log("Activating selected staff:", Array.from(selectedStaff));
-    // Reset selection after action
-    setSelectedStaff(new Set());
+  const handleActivateSelected = async () => {
+    if (selectedStaff.size === 0) {
+      toast.error("Vui lòng chọn ít nhất một tài khoản nhân viên");
+      return;
+    }
+
+    const ids = Array.from(selectedStaff).map((id) => Number(id));
+    const request: SelectAllRequest = { getAll: ids };
+    
+    try {
+      await enableEmployees(request);
+    } catch (error) {
+      // Error is handled in mutation onError
+    }
   };
 
-  const handleDeactivateSelected = () => {
-    // TODO: Implement deactivation logic
-    console.log("Deactivating selected staff:", Array.from(selectedStaff));
-    // Reset selection after action
-    setSelectedStaff(new Set());
+  const handleDeactivateSelected = async () => {
+    if (selectedStaff.size === 0) {
+      toast.error("Vui lòng chọn ít nhất một tài khoản nhân viên");
+      return;
+    }
+
+    const ids = Array.from(selectedStaff).map((id) => Number(id));
+    const request: SelectAllRequest = { getAll: ids };
+    
+    try {
+      await disableEmployees(request);
+    } catch (error) {
+      // Error is handled in mutation onError
+    }
   };
 
   return (
@@ -275,15 +327,17 @@ const AdminStaff: React.FC = () => {
                       <Button
                         className="h-[36px] rounded-[10px] text-[14px]"
                         onClick={handleActivateSelected}
+                        disabled={isEnabling || isDisabling}
                       >
-                        Kích hoạt
+                        {isEnabling ? "Đang xử lý..." : "Kích hoạt"}
                       </Button>
                       <Button
                         variant="secondary"
                         className="h-[36px] rounded-[10px] text-[14px]"
                         onClick={handleDeactivateSelected}
+                        disabled={isEnabling || isDisabling}
                       >
-                        Ngừng kích hoạt
+                        {isDisabling ? "Đang xử lý..." : "Ngừng kích hoạt"}
                       </Button>
                     </div>
                   </div>

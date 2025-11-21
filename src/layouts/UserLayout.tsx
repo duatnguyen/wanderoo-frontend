@@ -3,21 +3,20 @@ import { Outlet } from "react-router-dom";
 import { CartProvider, useCart } from "../context/CartContext";
 import Header from "../components/shop/Header";
 import Footer from "../components/shop/Footer";
-import { useAuthCtx } from "../app/providers/AuthProvider";
+import { useAuth } from "../context/AuthContext";
 
 const UserLayoutContent: React.FC = () => {
   const { getCartCount } = useCart();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { state } = useAuthCtx();
-  const { user } = state;
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Header
         cartCount={getCartCount()}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        userName={user?.name || "Thanh"}
-        avatarUrl={user?.avatar}
+        userName={user?.name || user?.username || "Thanh"}
+        avatarUrl={user?.avatar || undefined}
       />
 
       <main className="flex-1">

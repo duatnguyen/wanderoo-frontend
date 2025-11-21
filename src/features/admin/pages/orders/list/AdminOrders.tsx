@@ -49,14 +49,17 @@ const AdminOrders: React.FC = () => {
         response = await getAdminCustomerOrders(params);
       }
 
-      // Debug logging to see the API response structure
-      console.log('API Response:', response);
-      console.log('Orders data:', response.data.orders);
-      if (response.data.orders.length > 0) {
-        console.log('First order items:', response.data.orders[0].items);
-        if (response.data.orders[0].items?.length > 0) {
-          console.log('First item variant attributes:', response.data.orders[0].items[0].snapshotVariantAttributes);
-        }
+      // Debug: Log first order to check structure
+      if (response.data.orders && response.data.orders.length > 0) {
+        const firstOrder = response.data.orders[0];
+        console.log('First order structure:', {
+          id: firstOrder.id,
+          hasOrderDetails: !!firstOrder.orderDetails,
+          orderDetailsLength: firstOrder.orderDetails?.length || 0,
+          hasItems: !!firstOrder.items,
+          itemsLength: firstOrder.items?.length || 0,
+          firstOrderDetail: firstOrder.orderDetails?.[0] || firstOrder.items?.[0]
+        });
       }
 
       setOrders(response.data.orders);
@@ -189,36 +192,52 @@ const AdminOrders: React.FC = () => {
         image: order.userInfo?.image || '',
         orderCode: order.code
       },
-      products: order.items?.map((item, index) => {
-        // Format product name with variant attributes if available
-        let displayName = item.snapshotProductName || 'N/A';
-
-        // If we have variant attributes, show them in a more readable format
-        if (item.snapshotVariantAttributes && item.snapshotVariantAttributes.length > 0) {
-          const variantText = item.snapshotVariantAttributes
-            .sort((a, b) => a.groupLevel - b.groupLevel)
-            .map(attr => attr.value)
-            .join(' / ');
-
-          // If the product name doesn't already contain variant info, add it
-          if (!displayName.includes('/')) {
-            displayName = `${displayName} / ${variantText}`;
+      products: ((order.orderDetails && order.orderDetails.length > 0) 
+        ? order.orderDetails 
+        : (order.items && order.items.length > 0) ? order.items : []
+      ).map((item: any, index: number) => {
+        // Get product name (clean, without variant info)
+        const productName = item.snapshotProductName || item.name || 'Sản phẩm không tên';
+        
+        // Format variant attributes for display
+        let variantAttributes: Array<{groupName: string; value: string; groupLevel: number}> = [];
+        
+        if (item.snapshotVariantAttributes && Array.isArray(item.snapshotVariantAttributes) && item.snapshotVariantAttributes.length > 0) {
+          variantAttributes = item.snapshotVariantAttributes
+            .filter((attr: any) => attr && (attr.name || attr.groupName) && attr.value) // Filter out invalid attributes
+            .map((attr: any) => ({
+              groupName: attr.name || attr.groupName || 'N/A',
+              value: attr.value || 'N/A',
+              groupLevel: attr.groupLevel || 0
+            }));
+          
+          // Debug log for first item
+          if (index === 0) {
+            console.log('Variant attributes for first product:', {
+              raw: item.snapshotVariantAttributes,
+              processed: variantAttributes
+            });
           }
         }
 
+        // Format price with proper currency formatting
+        // Support both snapshotProductPrice (from orderDetails) and price (from items)
+        const unitPrice = item.snapshotProductPrice || item.price || 0;
+        const formattedPrice = unitPrice > 0 
+          ? `${Number(unitPrice).toLocaleString('vi-VN')}₫` 
+          : '0₫';
+
         return {
           id: item.id || index,
-          name: displayName,
-          price: `${item.snapshotProductPrice?.toLocaleString('vi-VN')}₫` || 'N/A',
-          quantity: item.quantity,
-          image: '', // No image data available from API
-          variantAttributes: item.snapshotVariantAttributes?.map(attr => ({
-            groupName: attr.name,
-            value: attr.value,
-            groupLevel: attr.groupLevel
-          })) || []
+          name: productName, // Clean product name without variant info
+          price: formattedPrice,
+          unitPrice: Number(unitPrice), // Store numeric price for calculations
+          quantity: item.quantity || 0,
+          image: item.image || '', // Image if available
+          sku: item.snapshotProductSku || item.sku || '',
+          variantAttributes: variantAttributes
         };
-      }) || [],
+      }),
       paymentType: order.method === 'CASH' ? 'Tiền mặt' : order.method === 'BANKING' ? 'Chuyển khoản' : 'N/A',
       status: getOrderStatusLabel(order.status || ""),
       paymentStatus: getPaymentStatusLabel(order.paymentStatus || ""),
@@ -227,7 +246,7 @@ const AdminOrders: React.FC = () => {
       tabStatus: order.status || "PENDING",
       totalAmount: order.totalOrderPrice || 0,
       shippingFee: order.shippingFee || 0,
-      itemsCount: order.items?.length || 0,
+      itemsCount: (order.orderDetails || order.items || []).length,
     }));
   }, [filteredOrders]);
 
@@ -253,12 +272,6 @@ const AdminOrders: React.FC = () => {
       className: "justify-start",
     },
     {
-      title: "Tổng tiền",
-      width: "w-[130px]",
-      minWidth: "min-w-[120px]",
-      className: "justify-start",
-    },
-    {
       title: "Nguồn",
       width: "w-[90px]",
       minWidth: "min-w-[80px]",
@@ -278,8 +291,14 @@ const AdminOrders: React.FC = () => {
     },
     {
       title: "TT Thanh toán",
-      width: "w-[145px]",
-      minWidth: "min-w-[140px]",
+      width: "w-[135px]",
+      minWidth: "min-w-[130px]",
+      className: "justify-start",
+    },
+    {
+      title: "Tổng tiền",
+      width: "w-[150px]",
+      minWidth: "min-w-[120px]",
       className: "justify-start",
     },
     {

@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
-  MapPin,
   Truck,
   Wallet,
   Package,
@@ -15,14 +14,14 @@ import { PageContainer, ContentCard } from "@/components/common";
 import { getAdminCustomerOrderDetail, confirmOrderAndCreateShipping, cancelAdminOrder } from "@/api/endpoints/orderApi";
 import type { CustomerOrderResponse } from "@/types/orders";
 
-import PaymentTableHeader from './PaymentTableHeader';
-import PaymentTableItem from './PaymentTableItem';
-import PaymentSummaryWebsite from './PaymentSummaryWebsite';
-import PaymentInformationWebsite from './PaymentInformationWebsite';
-import DeliveryConfirmationPopupWebsite from './DeliveryConfirmationPopupWebsite';
-import CancelOrderConfirmationPopupWebsite from './CancelOrderConfirmationPopupWebsite';
-import ActionButtonsWebsite from './ActionButtonsWebsite';
-import WebsiteOrderInfo from './WebsiteOrderInfo';
+import PaymentTableHeader from '../../../../../components/admin/order/PaymentTableHeader';
+import PaymentTableItem from '../../../../../components/admin/order/PaymentTableItem';
+import PaymentSummaryWebsite from '../../../../../components/admin/order/PaymentSummaryWebsite';
+import PaymentInformationWebsite from '../../../../../components/admin/order/PaymentInformationWebsite';
+import DeliveryConfirmationPopupWebsite from '../../../../../components/admin/order/DeliveryConfirmationPopupWebsite';
+import CancelOrderConfirmationPopupWebsite from '../../../../../components/admin/order/CancelOrderConfirmationPopupWebsite';
+import ActionButtonsWebsite from '../../../../../components/admin/order/ActionButtonsWebsite';
+import WebsiteOrderInfo from '../../../../../components/admin/order/WebsiteOrderInfo';
 
 const AdminOrderDetailWebsite: React.FC = () => {
   const navigate = useNavigate();
@@ -88,7 +87,12 @@ const AdminOrderDetailWebsite: React.FC = () => {
     setShowDeliveryPopup(true);
   };
 
-  const handleDeliveryConfirm = async (data: { pickShift: number[]; requiredNote: string }) => {
+  const handleDeliveryConfirm = async (data: {
+    pickShift: number[];
+    requiredNote: string;
+    paymentTypeId: number;
+    serviceTypeId: number;
+  }) => {
     if (!orderId) return;
 
     try {
@@ -234,20 +238,20 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
         {/* Status Cards */}
         <ContentCard>
-          <div className="flex flex-col lg:flex-row gap-[16px] w-full">
+          <div className="flex flex-col lg:flex-row gap-[12px] w-full">
             {/* Order Status Card */}
             <div className="flex-1 min-w-0">
               <div
-                className={`${statusCardStyle.bg} border-2 border-opacity-20 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200`}
+                className={`${statusCardStyle.bg} border-2 border-opacity-20 box-border flex gap-[10px] items-center p-[12px] relative rounded-[10px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200`}
               >
-                <div className="flex items-center justify-center w-[40px] h-[40px] bg-white bg-opacity-80 rounded-full">
+                <div className="flex items-center justify-center w-[36px] h-[36px] bg-white bg-opacity-80 rounded-full shrink-0">
                   {orderData.status === "SHIPPING" ? (
-                    <Truck className="w-5 h-5 text-[#004085]" />
+                    <Truck className="w-[18px] h-[18px] text-[#004085]" />
                   ) : orderData.status === "COMPLETE" ? (
-                    <Package className="w-5 h-5 text-[#04910c]" />
+                    <Package className="w-[18px] h-[18px] text-[#04910c]" />
                   ) : orderData.status === "PENDING" ? (
                     <svg
-                      className="w-5 h-5 text-[#737373]"
+                      className="w-[18px] h-[18px] text-[#737373]"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -259,7 +263,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
                     </svg>
                   ) : orderData.status === "CONFIRMED" ? (
                     <svg
-                      className="w-5 h-5 text-[#28A745]"
+                      className="w-[18px] h-[18px] text-[#28A745]"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -271,7 +275,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
                     </svg>
                   ) : (
                     <svg
-                      className="w-5 h-5 text-[#eb2b0b]"
+                      className="w-[18px] h-[18px] text-[#eb2b0b]"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -283,12 +287,12 @@ const AdminOrderDetailWebsite: React.FC = () => {
                     </svg>
                   )}
                 </div>
-                <div className="flex flex-col gap-[4px] flex-1 min-w-0">
-                  <p className="font-montserrat font-medium text-[14px] text-black text-opacity-70 leading-[1.4]">
+                <div className="flex flex-col gap-[2px] flex-1 min-w-0">
+                  <p className="font-montserrat font-medium text-[13px] text-black text-opacity-70 leading-[1.3]">
                     Trạng thái đơn hàng
                   </p>
                   <p
-                    className={`font-montserrat font-bold ${statusCardStyle.text} text-[18px] leading-[1.2] truncate`}
+                    className={`font-montserrat font-bold ${statusCardStyle.text} text-[16px] leading-[1.2] truncate`}
                   >
                     {getStatusDisplayName(orderData.status)}
                   </p>
@@ -298,10 +302,10 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
             {/* Order Source Card */}
             <div className="flex-1 min-w-0">
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-200 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
-                <div className="flex items-center justify-center w-[40px] h-[40px] bg-white rounded-full shadow-sm">
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-2 border-gray-200 box-border flex gap-[10px] items-center p-[12px] relative rounded-[10px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="flex items-center justify-center w-[36px] h-[36px] bg-white rounded-full shadow-sm shrink-0">
                   <svg
-                    className="w-5 h-5 text-[#272424]"
+                    className="w-[18px] h-[18px] text-[#272424]"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -313,11 +317,11 @@ const AdminOrderDetailWebsite: React.FC = () => {
                     <path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V9a1 1 0 00-1-1h-1V7z" />
                   </svg>
                 </div>
-                <div className="flex flex-col gap-[4px] flex-1 min-w-0">
-                  <p className="font-montserrat font-medium text-[14px] text-gray-600 leading-[1.4]">
+                <div className="flex flex-col gap-[2px] flex-1 min-w-0">
+                  <p className="font-montserrat font-medium text-[13px] text-gray-600 leading-[1.3]">
                     Nguồn đơn hàng
                   </p>
-                  <p className="font-montserrat font-bold text-[#272424] text-[18px] leading-[1.2] truncate">
+                  <p className="font-montserrat font-bold text-[#272424] text-[16px] leading-[1.2] truncate">
                     Website
                   </p>
                 </div>
@@ -326,10 +330,10 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
             {/* Order ID Card */}
             <div className="flex-1 min-w-0">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
-                <div className="flex items-center justify-center w-[40px] h-[40px] bg-white rounded-full shadow-sm">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 box-border flex gap-[10px] items-center p-[12px] relative rounded-[10px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="flex items-center justify-center w-[36px] h-[36px] bg-white rounded-full shadow-sm shrink-0">
                   <svg
-                    className="w-5 h-5 text-blue-600"
+                    className="w-[18px] h-[18px] text-blue-600"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -340,11 +344,11 @@ const AdminOrderDetailWebsite: React.FC = () => {
                     />
                   </svg>
                 </div>
-                <div className="flex flex-col gap-[4px] flex-1 min-w-0">
-                  <p className="font-montserrat font-medium text-[14px] text-blue-700 leading-[1.4]">
+                <div className="flex flex-col gap-[2px] flex-1 min-w-0">
+                  <p className="font-montserrat font-medium text-[13px] text-blue-700 leading-[1.3]">
                     Mã đơn hàng
                   </p>
-                  <p className="font-montserrat font-bold text-blue-800 text-[18px] leading-[1.2] truncate font-mono">
+                  <p className="font-montserrat font-bold text-blue-800 text-[16px] leading-[1.2] truncate font-mono">
                     #{orderData.code}
                   </p>
                 </div>
@@ -383,7 +387,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
           {/* Payment Table */}
           <div
-            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[20px] sm:p-[28px] relative rounded-[8px] w-full ${orderData!.status === "CANCELED" ? "opacity-50" : ""
+            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start sm:p-[20px] relative rounded-[8px] w-full ${orderData!.status === "CANCELED" ? "opacity-50" : ""
               }`}
           >
             <div className="w-full">
@@ -396,7 +400,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
               <div className="w-full overflow-x-auto">
                 <div className="flex flex-col items-start relative rounded-[8px] w-full min-w-[700px] border border-[#e7e7e7] overflow-hidden bg-white">
                   <PaymentTableHeader />
-                  {orderData.items?.map((item, index) => (
+                  {(orderData.orderDetails || []).map((item, index) => (
                     <PaymentTableItem key={item.id} item={item} index={index} formatCurrency={formatCurrency} />
                   ))}
                   {/* Summary Row - Website */}

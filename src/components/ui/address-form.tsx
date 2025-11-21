@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
 import CaretDown from "@/components/ui/caret-down";
@@ -8,13 +8,27 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useQuery } from "@tanstack/react-query";
+import {
+  getProvinces,
+  getDistrictsByPath,
+  getWardsByPath,
+} from "@/api/endpoints/shippingApi";
+import type {
+  ProvinceResponse,
+  DistrictResponse,
+  WardResponse,
+} from "@/types";
 
 interface AddressFormData {
   fullName: string;
   phone: string;
   province: string;
+  provinceId?: number;
   district: string;
+  districtId?: number;
   ward: string;
+  wardCode?: string;
   detailAddress: string;
   isDefault: boolean;
 }
@@ -36,8 +50,11 @@ const AddressForm: React.FC<AddressFormProps> = ({
     fullName: initialData.fullName || "",
     phone: initialData.phone || "",
     province: initialData.province || "",
+    provinceId: initialData.provinceId,
     district: initialData.district || "",
+    districtId: initialData.districtId,
     ward: initialData.ward || "",
+    wardCode: initialData.wardCode,
     detailAddress: initialData.detailAddress || "",
     isDefault: initialData.isDefault || false,
   });
@@ -49,14 +66,223 @@ const AddressForm: React.FC<AddressFormProps> = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleProvinceSelect = (province: ProvinceResponse) => {
+    setFormData((prev) => ({
+      ...prev,
+      province: province.provinceName,
+      provinceId: province.provinceId,
+      district: "",
+      districtId: undefined,
+      ward: "",
+      wardCode: undefined,
+    }));
+  };
+
+  const handleDistrictSelect = (district: DistrictResponse) => {
+    setFormData((prev) => ({
+      ...prev,
+      district: district.districtName,
+      districtId: district.districtId,
+      ward: "",
+      wardCode: undefined,
+    }));
+  };
+
+  const handleWardSelect = (ward: WardResponse) => {
+    setFormData((prev) => ({
+      ...prev,
+      ward: ward.wardName,
+      wardCode: ward.wardCode,
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
   };
 
-  const provinces = ["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng"];
-  const districts = ["Quận Hoàn Kiếm", "Quận Ba Đình", "Quận Đống Đa"];
-  const wards = ["Phường Phúc Xá", "Phường Trúc Bạch", "Phường Vĩnh Phú"];
+  const shouldHideLocationName = (name: string) => {
+    const normalized = name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return normalized.includes("test") || normalized === "ha noi 02";
+  };
+
+  const {
+    data: provincesData,
+    isLoading: isLoadingProvinces,
+    isError: isProvinceError,
+  } = useQuery({
+    queryKey: ["shipping-provinces"],
+    queryFn: getProvinces,
+  });
+
+  // Filter out test data (case-insensitive) and specific invalid entries
+  const provinces = useMemo(() => {
+    if (!provincesData) return [];
+    return provincesData
+      .filter((province) => !shouldHideLocationName(province.provinceName))
+      .sort((a, b) =>
+        a.provinceName.localeCompare(b.provinceName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [provincesData]);
+
+  const {
+    data: districtsData,
+    isLoading: isLoadingDistricts,
+    isError: isDistrictError,
+  } = useQuery({
+    queryKey: ["shipping-districts", formData.provinceId],
+    queryFn: async () => {
+      if (!formData.provinceId) return [];
+      return getDistrictsByPath(formData.provinceId);
+    },
+    enabled: Boolean(formData.provinceId),
+  });
+
+  // Filter out test data (case-insensitive) and specific invalid entries
+  const districts = useMemo(() => {
+    if (!districtsData) return [];
+    return districtsData
+      .filter((district) => !shouldHideLocationName(district.districtName))
+      .sort((a, b) =>
+        a.districtName.localeCompare(b.districtName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [districtsData]);
+
+  const {
+    data: wardsData,
+    isLoading: isLoadingWards,
+    isError: isWardError,
+  } = useQuery({
+    queryKey: ["shipping-wards", formData.districtId],
+    queryFn: async () => {
+      if (!formData.districtId) return [];
+      return getWardsByPath(formData.districtId);
+    },
+    enabled: Boolean(formData.districtId),
+  });
+
+  // Filter out test data (case-insensitive) and specific invalid entries
+  const wards = useMemo(() => {
+    if (!wardsData) return [];
+    return wardsData
+      .filter((ward) => !shouldHideLocationName(ward.wardName))
+      .sort((a, b) =>
+        a.wardName.localeCompare(b.wardName, "vi", {
+          sensitivity: "base",
+        })
+      );
+  }, [wardsData]);
+
+  useEffect(() => {
+    if (!formData.province && initialData.province) {
+      setFormData((prev) => ({ ...prev, province: initialData.province || "" }));
+    }
+  }, [initialData.province, formData.province]);
+
+  useEffect(() => {
+    if (
+      provinces.length > 0 &&
+      formData.province &&
+      !formData.provinceId
+    ) {
+      const matchedProvince = provinces.find(
+        (province) => province.provinceName === formData.province
+      );
+      if (matchedProvince) {
+        setFormData((prev) => ({
+          ...prev,
+          provinceId: matchedProvince.provinceId,
+        }));
+      }
+    }
+  }, [provinces, formData.province, formData.provinceId]);
+
+  useEffect(() => {
+    if (
+      districts.length > 0 &&
+      formData.district &&
+      !formData.districtId
+    ) {
+      const matchedDistrict = districts.find(
+        (district) => district.districtName === formData.district
+      );
+      if (matchedDistrict) {
+        setFormData((prev) => ({
+          ...prev,
+          districtId: matchedDistrict.districtId,
+        }));
+      }
+    }
+  }, [districts, formData.district, formData.districtId]);
+
+  useEffect(() => {
+    if (wards.length > 0 && formData.ward && !formData.wardCode) {
+      const matchedWard = wards.find(
+        (ward) => ward.wardName === formData.ward
+      );
+      if (matchedWard) {
+        setFormData((prev) => ({
+          ...prev,
+          wardCode: matchedWard.wardCode,
+        }));
+      }
+    }
+  }, [wards, formData.ward, formData.wardCode]);
+
+  const provinceLabel = useMemo(() => {
+    if (isLoadingProvinces) return "Đang tải tỉnh/thành";
+    if (isProvinceError) return "Không thể tải tỉnh/thành";
+    return formData.province || "Chọn tỉnh/thành phố";
+  }, [formData.province, isLoadingProvinces, isProvinceError]);
+
+  const districtLabel = useMemo(() => {
+    if (!formData.provinceId) return "Chọn tỉnh trước";
+    if (isLoadingDistricts) return "Đang tải quận/huyện";
+    if (isDistrictError) return "Không thể tải quận/huyện";
+    return formData.district || "Chọn quận/huyện";
+  }, [
+    formData.district,
+    formData.provinceId,
+    isLoadingDistricts,
+    isDistrictError,
+  ]);
+
+  const wardLabel = useMemo(() => {
+    if (!formData.districtId) return "Chọn quận/huyện trước";
+    if (isLoadingWards) return "Đang tải phường/xã";
+    if (isWardError) return "Không thể tải phường/xã";
+    return formData.ward || "Chọn phường/xã";
+  }, [formData.ward, formData.districtId, isLoadingWards, isWardError]);
+
+  const renderMenuContent = <T extends { [key: string]: any }>(
+    list: T[] | null | undefined,
+    onSelect: (item: T) => void,
+    labelKey: keyof T
+  ) => {
+    if (!list || !Array.isArray(list) || list.length === 0) {
+      return (
+        <div className="px-3 py-2 text-[13px] text-[#888888]">
+          Không có dữ liệu
+        </div>
+      );
+    }
+
+    return list.map((item) => (
+      <DropdownMenuItem
+        key={String(item[labelKey])}
+        onClick={() => onSelect(item)}
+      >
+        {item[labelKey]}
+      </DropdownMenuItem>
+    ));
+  };
 
   return (
     <div className="bg-white border-[#e04d30] border-2 flex flex-col items-start rounded-[24px] w-full">
@@ -106,24 +332,29 @@ const AddressForm: React.FC<AddressFormProps> = ({
           </label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
+              <div
+                className={`bg-white border-[1.6px] ${
+                  isProvinceError ? "border-[#ff4d4f]" : "border-[#e04d30]"
+                } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer`}
+              >
                 <span
-                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.province ? "text-black" : "text-[#888888]"}`}
+                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${
+                    formData.province ? "text-black" : "text-[#888888]"
+                  }`}
                 >
-                  {formData.province || "Chọn tỉnh thành phố"}
+                  {provinceLabel}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {provinces.map((province) => (
-                <DropdownMenuItem
-                  key={province}
-                  onClick={() => handleInputChange("province", province)}
-                >
-                  {province}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent className="max-h-[240px] overflow-auto">
+              {isLoadingProvinces
+                ? (
+                    <div className="px-3 py-2 text-[13px] text-[#888888]">
+                      Đang tải...
+                    </div>
+                  )
+                : renderMenuContent(provinces, handleProvinceSelect, "provinceName")}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -135,24 +366,39 @@ const AddressForm: React.FC<AddressFormProps> = ({
           </label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
+              <div
+                className={`bg-white border-[1.6px] ${
+                  isDistrictError ? "border-[#ff4d4f]" : "border-[#e04d30]"
+                } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
+                  !formData.provinceId ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+              >
                 <span
-                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.district ? "text-black" : "text-[#888888]"}`}
+                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${
+                    formData.district ? "text-black" : "text-[#888888]"
+                  }`}
                 >
-                  {formData.district || "Chọn Quận/Huyện"}
+                  {districtLabel}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {districts.map((district) => (
-                <DropdownMenuItem
-                  key={district}
-                  onClick={() => handleInputChange("district", district)}
-                >
-                  {district}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent className="max-h-[240px] overflow-auto">
+              {!formData.provinceId ? (
+                <div className="px-3 py-2 text-[13px] text-[#888888]">
+                  Vui lòng chọn tỉnh/thành trước
+                </div>
+              ) : isLoadingDistricts ? (
+                <div className="px-3 py-2 text-[13px] text-[#888888]">
+                  Đang tải...
+                </div>
+              ) : (
+                renderMenuContent(
+                  districts,
+                  handleDistrictSelect,
+                  "districtName"
+                )
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -164,24 +410,35 @@ const AddressForm: React.FC<AddressFormProps> = ({
           </label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="bg-white border-[1.6px] border-[#e04d30] flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer">
+              <div
+                className={`bg-white border-[1.6px] ${
+                  isWardError ? "border-[#ff4d4f]" : "border-[#e04d30]"
+                } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
+                  !formData.districtId ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+              >
                 <span
-                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${formData.ward ? "text-black" : "text-[#888888]"}`}
+                  className={`text-[14px] font-semibold leading-[1.4] flex-1 ${
+                    formData.ward ? "text-black" : "text-[#888888]"
+                  }`}
                 >
-                  {formData.ward || "Chọn Phường/Xã"}
+                  {wardLabel}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {wards.map((ward) => (
-                <DropdownMenuItem
-                  key={ward}
-                  onClick={() => handleInputChange("ward", ward)}
-                >
-                  {ward}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent className="max-h-[240px] overflow-auto">
+              {!formData.districtId ? (
+                <div className="px-3 py-2 text-[13px] text-[#888888]">
+                  Vui lòng chọn quận/huyện trước
+                </div>
+              ) : isLoadingWards ? (
+                <div className="px-3 py-2 text-[13px] text-[#888888]">
+                  Đang tải...
+                </div>
+              ) : (
+                renderMenuContent(wards, handleWardSelect, "wardName")
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

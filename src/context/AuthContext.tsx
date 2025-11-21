@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef } from "react";
-import { authLogin, authRegister } from "../api/endpoints/authApi";
+import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from "react";
+import { authLogin, authRegister, refreshToken as authRefreshToken } from "../api/endpoints/authApi";
+import { getUserInfo } from "../api/endpoints/userApi";
 import { isTokenExpired, getTimeUntilExpiry, getUserFromToken } from "../utils/jwt";
 import type {
   AuthContextType,
@@ -17,7 +18,8 @@ type AuthAction =
   | { type: "REGISTER_START" }
   | { type: "REGISTER_SUCCESS"; payload: { user: User; token: string; refreshToken: string } }
   | { type: "REGISTER_FAILURE" }
-  | { type: "AUTH_CHECK_COMPLETE" };
+  | { type: "AUTH_CHECK_COMPLETE" }
+  | { type: "PROFILE_UPDATE"; payload: User };
 
 const initialState: AuthState = {
   user: null,
@@ -69,10 +71,18 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         isLoading: false,
       };
 
+    case "PROFILE_UPDATE":
+      return {
+        ...state,
+        user: state.user ? { ...state.user, ...action.payload } : action.payload,
+      };
+
     default:
       return state;
   }
 };
+
+const USER_STORAGE_KEY = "wanderoo_user";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -81,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const logoutTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const userRef = useRef<User | null>(null);
 
   // Setup automatic logout timer
   const setupLogoutTimer = (token: string) => {
@@ -97,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Get time until expiry and set timer
     const timeUntilExpiry = getTimeUntilExpiry(token);
-    
+
     logoutTimerRef.current = setTimeout(() => {
       logout();
     }, timeUntilExpiry);
@@ -107,7 +118,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const savedToken = localStorage.getItem("accessToken");
     const savedRefreshToken = localStorage.getItem("refreshToken");
-    
+    // Ensure we never persist decoded user info in localStorage
+    localStorage.removeItem(USER_STORAGE_KEY);
+
     if (savedToken) {
       // Check if token is expired
       if (isTokenExpired(savedToken)) {
@@ -135,6 +148,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         phone: '',
         role: tokenUser.role as any,
         status: 'ACTIVE',
+        avatar: null,
+        gender: null,
+        dateOfBirth: null,
       };
 
       dispatch({
@@ -161,13 +177,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
+  useEffect(() => {
+    userRef.current = state.user;
+  }, [state.user]);
+
   const login = async (credentials: LoginCredentials) => {
     dispatch({ type: "LOGIN_START" });
 
     try {
       // Call real API
       const response = await authLogin(credentials);
-      
+
       // Check if token is valid
       if (isTokenExpired(response.accessToken)) {
         throw new Error('Received expired token');
@@ -188,24 +208,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         phone: '',
         role: tokenUser.role as any,
         status: 'ACTIVE',
+        avatar: null,
+        gender: null,
+        dateOfBirth: null,
       };
 
       // Store only tokens, no user data
       localStorage.setItem("accessToken", response.accessToken);
       localStorage.setItem("refreshToken", response.refreshToken || "");
+      // Explicitly avoid storing decoded user info in localStorage
+      localStorage.removeItem(USER_STORAGE_KEY);
 
-      dispatch({ 
-        type: "LOGIN_SUCCESS", 
-        payload: { 
-          user, 
-          token: response.accessToken, 
-          refreshToken: response.refreshToken || "" 
-        } 
+      dispatch({
+        type: "LOGIN_SUCCESS",
+        payload: {
+          user,
+          token: response.accessToken,
+          refreshToken: response.refreshToken || ""
+        }
       });
 
       // Setup automatic logout based on token expiry
       setupLogoutTimer(response.accessToken);
-      
+
     } catch (error) {
       dispatch({ type: "LOGIN_FAILURE" });
       throw error;
@@ -218,12 +243,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       // Call real API
       const response = await authRegister(userData);
-      
+
       // Check if token is valid
       if (isTokenExpired(response.accessToken)) {
         throw new Error('Received expired token');
       }
-      
+
       // Get user info from token
       const tokenUser = getUserFromToken(response.accessToken);
       if (!tokenUser) {
@@ -239,19 +264,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         phone: userData.phone,
         role: tokenUser.role as any,
         status: 'ACTIVE',
+        avatar: null,
+        gender: userData.gender ?? null,
+        dateOfBirth: userData.birthday ?? null,
       };
 
       // Store only tokens
       localStorage.setItem("accessToken", response.accessToken);
       localStorage.setItem("refreshToken", response.refreshToken || "");
+      localStorage.removeItem(USER_STORAGE_KEY);
 
-      dispatch({ 
-        type: "REGISTER_SUCCESS", 
-        payload: { 
-          user, 
-          token: response.accessToken, 
-          refreshToken: response.refreshToken || "" 
-        } 
+      dispatch({
+        type: "REGISTER_SUCCESS",
+        payload: {
+          user,
+          token: response.accessToken,
+          refreshToken: response.refreshToken || ""
+        }
       });
     } catch (error) {
       dispatch({ type: "REGISTER_FAILURE" });
@@ -268,12 +297,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem(USER_STORAGE_KEY);
     dispatch({ type: "LOGOUT" });
   };
 
   const refreshAuth = async () => {
-    // TODO: Implement token refresh logic
+    const storedRefreshToken = state.refreshToken || localStorage.getItem("refreshToken");
+
+    if (!storedRefreshToken) {
+      logout();
+      throw new Error("No refresh token available");
+    }
+
+    if (isTokenExpired(storedRefreshToken)) {
+      logout();
+      throw new Error("Refresh token expired");
+    }
+
+    try {
+      const response = await authRefreshToken(storedRefreshToken);
+
+      if (isTokenExpired(response.accessToken)) {
+        throw new Error("Received expired access token");
+      }
+
+      const tokenUser = getUserFromToken(response.accessToken);
+      if (!tokenUser) {
+        throw new Error("Could not decode user from refreshed token");
+      }
+
+      const refreshedUser: User = {
+        id: parseInt(tokenUser.id) || state.user?.id || 0,
+        username: tokenUser.username,
+        email: state.user?.email || "",
+        name: state.user?.name || "",
+        phone: state.user?.phone || "",
+        role: tokenUser.role as any,
+        status: state.user?.status || "ACTIVE",
+        avatar: state.user?.avatar ?? null,
+        gender: state.user?.gender ?? null,
+        dateOfBirth: state.user?.dateOfBirth ?? null,
+      };
+
+      localStorage.setItem("accessToken", response.accessToken);
+      localStorage.setItem("refreshToken", response.refreshToken || storedRefreshToken);
+      localStorage.removeItem(USER_STORAGE_KEY);
+
+      dispatch({
+        type: "LOGIN_SUCCESS",
+        payload: {
+          user: refreshedUser,
+          token: response.accessToken,
+          refreshToken: response.refreshToken || storedRefreshToken,
+        },
+      });
+
+      setupLogoutTimer(response.accessToken);
+    } catch (error) {
+      logout();
+      throw error;
+    }
   };
+
+  const refreshProfile = useCallback(async () => {
+    if (!localStorage.getItem("accessToken")) {
+      return;
+    }
+    try {
+      const profile = await getUserInfo();
+      const normalizedUser: User = {
+        id: profile.id ?? state.user?.id ?? 0,
+        username: profile.username ?? state.user?.username ?? "",
+        email: profile.email ?? state.user?.email ?? "",
+        name: profile.name ?? state.user?.name ?? "",
+        phone: profile.phone ?? state.user?.phone ?? "",
+        role: state.user?.role ?? "CUSTOMER",
+        status: state.user?.status ?? "ACTIVE",
+        avatar: (profile as any).image_url ?? state.user?.avatar ?? null,
+        gender: (profile as any).gender ?? state.user?.gender ?? null,
+        dateOfBirth: (profile as any).birthday ?? state.user?.dateOfBirth ?? null,
+      };
+      dispatch({ type: "PROFILE_UPDATE", payload: normalizedUser });
+    } catch (error) {
+      console.error("Failed to sync profile", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (state.isAuthenticated) {
+      void refreshProfile();
+    }
+  }, [state.isAuthenticated, refreshProfile]);
 
   const value: AuthContextType = {
     ...state,
@@ -281,6 +395,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     register,
     logout,
     refreshAuth,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

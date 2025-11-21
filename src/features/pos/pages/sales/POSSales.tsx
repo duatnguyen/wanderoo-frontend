@@ -5,7 +5,10 @@ import {
 } from "../../../../components/pos/POSProductList";
 import { POSOrderSummary } from "../../../../components/pos/POSOrderSummary";
 import { POSFooter } from "../../../../components/pos/POSFooter";
-import { usePOSContext } from "../../../../context/POSContext";
+import {
+  usePOSContext,
+  type POSProductSelectHandler,
+} from "../../../../context/POSContext";
 import {
   addItemToOrder,
   assignCustomerToOrder,
@@ -21,7 +24,7 @@ import {
 import type {
   CustomerSearchResponse,
   DraftOrderDetailResponse,
-} from "@/types";
+} from "@/types/api";
 import { Loader2 } from "lucide-react";
 
 const POSPage: React.FC = () => {
@@ -168,8 +171,10 @@ const POSPage: React.FC = () => {
     setNoteValue(value);
   };
 
+  type ProductSelection = Parameters<POSProductSelectHandler>[0];
+
   const handleProductSelect = useCallback(
-    async (product: { id: string }) => {
+    async (product: ProductSelection) => {
       if (!draftOrderId) return;
       const productDetailId = Number(product.id);
       if (Number.isNaN(productDetailId)) return;
@@ -197,7 +202,7 @@ const POSPage: React.FC = () => {
       setProductSelectHandler(null);
       return;
     }
-    const handler = (product: { id: string }) => {
+    const handler: POSProductSelectHandler = (product) => {
       void handleProductSelect(product);
     };
     setProductSelectHandler(handler);

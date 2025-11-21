@@ -3,14 +3,15 @@ import type { RouteObject } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import { lazy } from "react";
 import { LazyWrapper } from "../../components/common/LazyWrapper";
+import ProtectedRoute from "../../components/common/ProtectedRoute";
 
 // Lazy load user/shop pages
 const UserHome = lazy(
   () => import("../../features/shop/pages/UserProfile/UserHome")
 );
 const ProfileLayout = lazy(() => import("../../layouts/ProfileLayout"));
-const BasicInformationTab = lazy(
-  () => import("../../features/shop/pages/UserProfile/BasicInformationTab")
+const ProfileTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/ProfileTab")
 );
 const AddressTab = lazy(
   () => import("../../features/shop/pages/UserProfile/AddressTab")
@@ -84,17 +85,21 @@ export const userRoutes: RouteObject[] = [
   {
     path: "return-refund",
     element: (
-      <LazyWrapper>
-        <ReturnRefundRequest />
-      </LazyWrapper>
+      <ProtectedRoute>
+        <LazyWrapper>
+          <ReturnRefundRequest />
+        </LazyWrapper>
+      </ProtectedRoute>
     ),
   },
   {
     path: "return-refund/select-products",
     element: (
-      <LazyWrapper>
-        <ReturnRefundProductSelection />
-      </LazyWrapper>
+      <ProtectedRoute>
+        <LazyWrapper>
+          <ReturnRefundProductSelection />
+        </LazyWrapper>
+      </ProtectedRoute>
     ),
   },
   {
@@ -140,9 +145,11 @@ export const userRoutes: RouteObject[] = [
   {
     path: "profile",
     element: (
-      <LazyWrapper>
-        <ProfileLayout />
-      </LazyWrapper>
+      <ProtectedRoute>
+        <LazyWrapper>
+          <ProfileLayout />
+        </LazyWrapper>
+      </ProtectedRoute>
     ),
     children: [
       {
@@ -153,7 +160,7 @@ export const userRoutes: RouteObject[] = [
         path: "basicinformation",
         element: (
           <LazyWrapper>
-            <BasicInformationTab />
+            <ProfileTab />
           </LazyWrapper>
         ),
       },
