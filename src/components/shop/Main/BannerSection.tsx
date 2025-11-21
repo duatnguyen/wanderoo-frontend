@@ -14,4 +14,3 @@ const BannerSection: React.FC = () => {
 };
 
 export default BannerSection;
-

@@ -1,10 +1,6 @@
 // src/pages/admin/AdminReports.tsx
 import React from "react";
-import {
-  PageContainer,
-  ContentCard,
-  PageHeader,
-} from "@/components/common";
+import { PageContainer, ContentCard, PageHeader } from "@/components/common";
 
 const AdminReports: React.FC = () => {
   return (

@@ -1,5 +1,5 @@
 // src/api/endpoints/userApi.ts - User management API calls
-import api from '../apiClient';
+import api from "../apiClient";
 import type {
   ApiResponse,
   UserResponse,
@@ -17,8 +17,8 @@ import type {
   CustomerCreationRequest,
   CustomerUpdateRequest,
   SelectAllRequest,
-} from '../../types';
-import type { CustomerResponse } from '../../types/api';
+} from "../../types";
+import type { CustomerResponse } from "../../types/api";
 
 export type AllowedRole =
   | "ADMIN"
@@ -28,48 +28,88 @@ export type AllowedRole =
 
 // Private User Management APIs
 export const getUserProfile = async (): Promise<UserResponse> => {
-  const response = await api.get<ApiResponse<UserResponse>>('/auth/v1/private/users/profile');
+  const response = await api.get<ApiResponse<UserResponse>>(
+    "/auth/v1/private/users/profile"
+  );
   return response.data.data;
 };
 
-export const updateUserProfile = async (userData: UserUpdateRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/profile', userData);
+export const updateUserProfile = async (
+  userData: UserUpdateRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/users/profile",
+    userData
+  );
   return response.data;
 };
 
-export const changePassword = async (passwordData: ChangePasswordRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/change-password', passwordData);
+export const changePassword = async (
+  passwordData: ChangePasswordRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/users/change-password",
+    passwordData
+  );
   return response.data;
 };
 
 // Address APIs
-export const getUserAddresses = async (params?: { page?: number; size?: number }): Promise<AddressPageResponse> => {
-  const response = await api.get<AddressPageResponse>('/auth/v1/private/users/addresses', { params });
+export const getUserAddresses = async (params?: {
+  page?: number;
+  size?: number;
+}): Promise<AddressPageResponse> => {
+  const response = await api.get<AddressPageResponse>(
+    "/auth/v1/private/users/addresses",
+    { params }
+  );
   return response.data;
 };
 
-export const setDefaultAddress = async (addressId: number): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/addresses/${addressId}/default`);
+export const setDefaultAddress = async (
+  addressId: number
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    `/auth/v1/private/users/addresses/${addressId}/default`
+  );
   return response.data;
 };
 
-export const addAddress = async (addressData: AddressCreationRequest): Promise<ApiResponse<number>> => {
-  const response = await api.post<ApiResponse<number>>('/auth/v1/private/users/addresses', addressData);
+export const addAddress = async (
+  addressData: AddressCreationRequest
+): Promise<ApiResponse<number>> => {
+  const response = await api.post<ApiResponse<number>>(
+    "/auth/v1/private/users/addresses",
+    addressData
+  );
   return response.data;
 };
 
-export const getAddressById = async (addressId: number): Promise<AddressDetailResponse> => {
-  const response = await api.get<ApiResponse<AddressDetailResponse>>(`/auth/v1/private/users/addresses/${addressId}`);
+export const getAddressById = async (
+  addressId: number
+): Promise<AddressDetailResponse> => {
+  const response = await api.get<ApiResponse<AddressDetailResponse>>(
+    `/auth/v1/private/users/addresses/${addressId}`
+  );
   return response.data.data;
 };
 
-export const updateAddress = async (addressData: AddressUpdateRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/addresses/${addressData.id}`, addressData);
+export const updateAddress = async (
+  addressData: AddressUpdateRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    `/auth/v1/private/users/addresses/${addressData.id}`,
+    addressData
+  );
   return response.data;
 };
 
-export const deleteAddress = async (addressId: number): Promise<ApiResponse<null>> => {
-  const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/users/addresses/${addressId}`);
+export const deleteAddress = async (
+  addressId: number
+): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(
+    `/auth/v1/private/users/addresses/${addressId}`
+  );
   return response.data;
 };
 
@@ -94,23 +134,17 @@ export const getEmployees = async (params?: {
   };
 
   const response = await api.get<ApiResponse<EmployeePageApiResponse>>(
-    '/auth/v1/private/users/employees',
-    { params: queryParams },
+    "/auth/v1/private/users/employees",
+    { params: queryParams }
   );
   const payload = response.data.data ?? {};
-  const content =
-    payload.content ??
-    payload.employees ??
-    [];
+  const content = payload.content ?? payload.employees ?? [];
 
-  const totalElements =
-    payload.totalElements ??
-    content.length;
+  const totalElements = payload.totalElements ?? content.length;
 
   const pageSizeValue = payload.pageSize ?? size;
   const totalPages =
-    payload.totalPages ??
-    Math.ceil(totalElements / (pageSizeValue || 1));
+    payload.totalPages ?? Math.ceil(totalElements / (pageSizeValue || 1));
 
   return {
     pageNumber: payload.pageNumber ?? page,
@@ -121,62 +155,95 @@ export const getEmployees = async (params?: {
   };
 };
 
-export const getEmployeeById = async (id: number): Promise<EmployeeResponse> => {
-  const response = await api.get<ApiResponse<EmployeeResponse>>(`/auth/v1/private/users/employees/${id}`);
+export const getEmployeeById = async (
+  id: number
+): Promise<EmployeeResponse> => {
+  const response = await api.get<ApiResponse<EmployeeResponse>>(
+    `/auth/v1/private/users/employees/${id}`
+  );
   return response.data.data;
 };
 
 export const createEmployee = async (
   employeeData: EmployeeCreationRequest,
-  userType?: AllowedRole,
+  userType?: AllowedRole
 ): Promise<ApiResponse<number>> => {
   const endpoint = userType
-    ? '/auth/v1/private/account/employee/add'
-    : '/auth/v1/private/users/employees';
+    ? "/auth/v1/private/account/employee/add"
+    : "/auth/v1/private/users/employees";
   const response = await api.post<ApiResponse<number>>(endpoint, employeeData, {
     params: userType ? { userType } : undefined,
   });
   return response.data;
 };
 
-export const updateEmployee = async (id: number, employeeData: EmployeeUpdateRequest): Promise<ApiResponse<null>> => {
+export const updateEmployee = async (
+  id: number,
+  employeeData: EmployeeUpdateRequest
+): Promise<ApiResponse<null>> => {
   console.log("updateEmployee API call:", { id, employeeData });
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/employees/${id}`, employeeData);
+  const response = await api.put<ApiResponse<null>>(
+    `/auth/v1/private/users/employees/${id}`,
+    employeeData
+  );
   console.log("updateEmployee API response:", response.data);
   return response.data;
 };
 
 export const updateEmployeeAccount = async (
   employeeData: EmployeeUpdateRequest,
-  userType?: AllowedRole,
+  userType?: AllowedRole
 ): Promise<ApiResponse<null>> => {
   console.log("updateEmployeeAccount API call:", { employeeData, userType });
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/employee/upd', employeeData, {
-    params: userType ? { userType } : undefined,
-  });
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/account/employee/upd",
+    employeeData,
+    {
+      params: userType ? { userType } : undefined,
+    }
+  );
   console.log("updateEmployeeAccount API response:", response.data);
   return response.data;
 };
 
-export const deleteEmployee = async (id: number): Promise<ApiResponse<null>> => {
-  const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/users/employees/${id}`);
+export const deleteEmployee = async (
+  id: number
+): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(
+    `/auth/v1/private/users/employees/${id}`
+  );
   return response.data;
 };
 
-export const disableEmployeeAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/employee/disable', selectData);
+export const disableEmployeeAccounts = async (
+  selectData: SelectAllRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/account/employee/disable",
+    selectData
+  );
   return response.data;
 };
 
-export const enableEmployeeAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/employee/enable', selectData);
+export const enableEmployeeAccounts = async (
+  selectData: SelectAllRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/account/employee/enable",
+    selectData
+  );
   return response.data;
 };
 
-export const disableAllEmployeeAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/account/employee/disable/all', {
-    data: selectData,
-  });
+export const disableAllEmployeeAccounts = async (
+  selectData: SelectAllRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(
+    "/auth/v1/private/account/employee/disable/all",
+    {
+      data: selectData,
+    }
+  );
   return response.data;
 };
 
@@ -201,30 +268,24 @@ export const getCustomers = async (params?: {
   };
 
   const response = await api.get<ApiResponse<CustomerPageApiResponse>>(
-    '/auth/v1/private/users/customers',
-    { params: queryParams },
+    "/auth/v1/private/users/customers",
+    { params: queryParams }
   );
-  
+
   console.log("getCustomers API response:", response.data);
-  
+
   const payload = response.data.data ?? {};
   console.log("getCustomers payload:", payload);
-  
-  const content =
-    payload.content ??
-    payload.customers ??
-    [];
+
+  const content = payload.content ?? payload.customers ?? [];
 
   console.log("getCustomers content:", content);
 
-  const totalElements =
-    payload.totalElements ??
-    content.length;
+  const totalElements = payload.totalElements ?? content.length;
 
   const pageSizeValue = payload.pageSize ?? size;
   const totalPages =
-    payload.totalPages ??
-    Math.ceil(totalElements / (pageSizeValue || 1));
+    payload.totalPages ?? Math.ceil(totalElements / (pageSizeValue || 1));
 
   return {
     pageNumber: payload.pageNumber ?? page,
@@ -235,63 +296,113 @@ export const getCustomers = async (params?: {
   };
 };
 
-export const getCustomerById = async (id: number): Promise<CustomerResponse> => {
-  const response = await api.get<ApiResponse<CustomerResponse>>(`/auth/v1/private/users/customers/${id}`);
+export const getCustomerById = async (
+  id: number
+): Promise<CustomerResponse> => {
+  const response = await api.get<ApiResponse<CustomerResponse>>(
+    `/auth/v1/private/users/customers/${id}`
+  );
   return response.data.data;
 };
 
-export const createCustomer = async (customerData: CustomerCreationRequest): Promise<ApiResponse<number>> => {
+export const createCustomer = async (
+  customerData: CustomerCreationRequest
+): Promise<ApiResponse<number>> => {
   console.log("createCustomer API call:", customerData);
-  const response = await api.post<ApiResponse<number>>('/auth/v1/private/users/customers', customerData);
+  const response = await api.post<ApiResponse<number>>(
+    "/auth/v1/private/users/customers",
+    customerData
+  );
   console.log("createCustomer API response:", response.data);
   return response.data;
 };
 
-export const updateCustomer = async (id: number, customerData: CustomerUpdateRequest): Promise<ApiResponse<null>> => {
+export const updateCustomer = async (
+  id: number,
+  customerData: CustomerUpdateRequest
+): Promise<ApiResponse<null>> => {
   console.log("updateCustomer API call:", { id, customerData });
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/customers/${id}`, customerData);
+  const response = await api.put<ApiResponse<null>>(
+    `/auth/v1/private/users/customers/${id}`,
+    customerData
+  );
   console.log("updateCustomer API response:", response.data);
   return response.data;
 };
 
-export const deleteCustomer = async (id: number): Promise<ApiResponse<null>> => {
-  const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/users/customers/${id}`);
+export const deleteCustomer = async (
+  id: number
+): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(
+    `/auth/v1/private/users/customers/${id}`
+  );
   return response.data;
 };
 
-export const disableCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/customer/disable', selectData);
+export const disableCustomerAccounts = async (
+  selectData: SelectAllRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/account/customer/disable",
+    selectData
+  );
   return response.data;
 };
 
-export const enableCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/customer/enable', selectData);
+export const enableCustomerAccounts = async (
+  selectData: SelectAllRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/account/customer/enable",
+    selectData
+  );
   return response.data;
 };
 
-export const disableAllCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/account/customer/disable/all', {
-    data: selectData,
-  });
+export const disableAllCustomerAccounts = async (
+  selectData: SelectAllRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>(
+    "/auth/v1/private/account/customer/disable/all",
+    {
+      data: selectData,
+    }
+  );
   return response.data;
 };
 
 // Customer Address Management APIs
-export const getCustomerAddresses = async (customerId: number): Promise<AddressPageResponse> => {
-  const response = await api.get<ApiResponse<AddressPageResponse>>(`/auth/v1/private/users/customers/${customerId}/addresses`);
+export const getCustomerAddresses = async (
+  customerId: number
+): Promise<AddressPageResponse> => {
+  const response = await api.get<ApiResponse<AddressPageResponse>>(
+    `/auth/v1/private/users/customers/${customerId}/addresses`
+  );
   return response.data.data;
 };
 
-export const updateCustomerAddress = async (customerId: number, addressData: AddressUpdateRequest): Promise<ApiResponse<null>> => {
+export const updateCustomerAddress = async (
+  customerId: number,
+  addressData: AddressUpdateRequest
+): Promise<ApiResponse<null>> => {
   console.log("updateCustomerAddress API call:", { customerId, addressData });
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/customers/${customerId}/addresses`, addressData);
+  const response = await api.put<ApiResponse<null>>(
+    `/auth/v1/private/users/customers/${customerId}/addresses`,
+    addressData
+  );
   console.log("updateCustomerAddress API response:", response.data);
   return response.data;
 };
 
-export const createCustomerAddress = async (customerId: number, addressData: AddressCreationRequest): Promise<ApiResponse<number>> => {
+export const createCustomerAddress = async (
+  customerId: number,
+  addressData: AddressCreationRequest
+): Promise<ApiResponse<number>> => {
   console.log("createCustomerAddress API call:", { customerId, addressData });
-  const response = await api.post<ApiResponse<number>>(`/auth/v1/private/users/customers/${customerId}/addresses`, addressData);
+  const response = await api.post<ApiResponse<number>>(
+    `/auth/v1/private/users/customers/${customerId}/addresses`,
+    addressData
+  );
   console.log("createCustomerAddress API response:", response.data);
   return response.data;
 };
@@ -299,36 +410,56 @@ export const createCustomerAddress = async (customerId: number, addressData: Add
 // Admin Address APIs
 export const getAdminAddresses = async (): Promise<AddressPageResponse> => {
   console.log("getAdminAddresses API call");
-  const response = await api.get<ApiResponse<AddressPageResponse>>('/auth/v1/private/users/admin/address');
+  const response = await api.get<ApiResponse<AddressPageResponse>>(
+    "/auth/v1/private/users/admin/address"
+  );
   console.log("getAdminAddresses API response:", response.data);
   // Backend returns AddressPageResponse with addresses array
   return response.data.data;
 };
 
-export const createAdminAddress = async (addressData: AddressCreationRequest): Promise<ApiResponse<number>> => {
+export const createAdminAddress = async (
+  addressData: AddressCreationRequest
+): Promise<ApiResponse<number>> => {
   console.log("createAdminAddress API call:", addressData);
-  const response = await api.post<ApiResponse<number>>('/auth/v1/private/users/admin/address', addressData);
+  const response = await api.post<ApiResponse<number>>(
+    "/auth/v1/private/users/admin/address",
+    addressData
+  );
   console.log("createAdminAddress API response:", response.data);
   return response.data;
 };
 
-export const updateAdminAddress = async (addressData: AddressUpdateRequest): Promise<ApiResponse<null>> => {
+export const updateAdminAddress = async (
+  addressData: AddressUpdateRequest
+): Promise<ApiResponse<null>> => {
   console.log("updateAdminAddress API call:", addressData);
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/users/admin/address', addressData);
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/users/admin/address",
+    addressData
+  );
   console.log("updateAdminAddress API response:", response.data);
   return response.data;
 };
 
-export const deleteAdminAddress = async (addressId: number): Promise<ApiResponse<null>> => {
+export const deleteAdminAddress = async (
+  addressId: number
+): Promise<ApiResponse<null>> => {
   console.log("deleteAdminAddress API call:", addressId);
-  const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/users/admin/address/${addressId}`);
+  const response = await api.delete<ApiResponse<null>>(
+    `/auth/v1/private/users/admin/address/${addressId}`
+  );
   console.log("deleteAdminAddress API response:", response.data);
   return response.data;
 };
 
-export const setDefaultAdminAddress = async (addressId: number): Promise<ApiResponse<null>> => {
+export const setDefaultAdminAddress = async (
+  addressId: number
+): Promise<ApiResponse<null>> => {
   console.log("setDefaultAdminAddress API call:", addressId);
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/users/admin/address/default?addressId=${addressId}`);
+  const response = await api.put<ApiResponse<null>>(
+    `/auth/v1/private/users/admin/address/default?addressId=${addressId}`
+  );
   console.log("setDefaultAdminAddress API response:", response.data);
   return response.data;
 };

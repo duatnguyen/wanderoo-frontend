@@ -292,8 +292,7 @@ export const otherStatusOrders: OtherStatusOrder[] = [
     category: "CANCEL",
     statusKey: "INVALID",
     statusLabel: "Yêu cầu bị hủy",
-    statusDescription:
-      "Đơn đã hủy theo yêu cầu khách, chờ hoàn tiền tự động.",
+    statusDescription: "Đơn đã hủy theo yêu cầu khách, chờ hoàn tiền tự động.",
     reason: "Khách thay đổi kế hoạch mua sắm, muốn hủy toàn bộ đơn.",
     optionDescription: "Có 1 phương án áp dụng:",
     options: ["Hoàn tiền về phương thức thanh toán ban đầu"],
@@ -569,8 +568,10 @@ export const otherStatusOrders: OtherStatusOrder[] = [
     },
     lastUpdated: "20/11/2025 16:45",
     addresses: {
-      receivingAddress: "Cửa hàng Wanderoo Hub - 123 Nguyễn Thị Thập, Quận 7, TP. HCM",
-      customerReturnAddress: "Cửa hàng Wanderoo Hub - 123 Nguyễn Thị Thập, Quận 7, TP. HCM",
+      receivingAddress:
+        "Cửa hàng Wanderoo Hub - 123 Nguyễn Thị Thập, Quận 7, TP. HCM",
+      customerReturnAddress:
+        "Cửa hàng Wanderoo Hub - 123 Nguyễn Thị Thập, Quận 7, TP. HCM",
       shopWarehouseAddress:
         "Trung tâm hoàn hàng Wanderoo - 48 Tân Kỳ Tân Quý, Quận Tân Phú, TP. HCM",
     },
@@ -759,7 +760,8 @@ export const otherStatusOrders: OtherStatusOrder[] = [
     lastUpdated: "22/11/2025 10:00",
     addresses: {
       receivingAddress: "321 Điện Biên Phủ, Phường 25, Bình Thạnh, TP. HCM",
-      customerReturnAddress: "Kho Wanderoo - 555 Điện Biên Phủ, Quận 3, TP. HCM",
+      customerReturnAddress:
+        "Kho Wanderoo - 555 Điện Biên Phủ, Quận 3, TP. HCM",
       shopWarehouseAddress:
         "Trung tâm hoàn hàng Wanderoo - 48 Tân Kỳ Tân Quý, Quận Tân Phú, TP. HCM",
     },
@@ -781,7 +783,8 @@ export const otherStatusOrders: OtherStatusOrder[] = [
     category: "CANCEL",
     statusKey: "INVALID",
     statusLabel: "Đã hủy",
-    statusDescription: "Đơn hàng đã được hủy tại quầy, không có phát sinh hoàn tiền.",
+    statusDescription:
+      "Đơn hàng đã được hủy tại quầy, không có phát sinh hoàn tiền.",
     reason: "Khách hàng thay đổi ý định mua hàng.",
     optionDescription: "Đơn hàng đã hủy:",
     options: ["Không có hoàn tiền do chưa thanh toán"],
@@ -809,8 +812,10 @@ export const otherStatusOrders: OtherStatusOrder[] = [
     },
     lastUpdated: "21/11/2025 13:15",
     addresses: {
-      receivingAddress: "Cửa hàng Wanderoo Hub - 22 Nguyễn Huệ, Quận 1, TP. HCM",
-      customerReturnAddress: "Cửa hàng Wanderoo Hub - 22 Nguyễn Huệ, Quận 1, TP. HCM",
+      receivingAddress:
+        "Cửa hàng Wanderoo Hub - 22 Nguyễn Huệ, Quận 1, TP. HCM",
+      customerReturnAddress:
+        "Cửa hàng Wanderoo Hub - 22 Nguyễn Huệ, Quận 1, TP. HCM",
       shopWarehouseAddress:
         "Trung tâm hoàn hàng Wanderoo - 48 Tân Kỳ Tân Quý, Quận Tân Phú, TP. HCM",
     },
@@ -870,10 +875,7 @@ export const otherStatusOrders: OtherStatusOrder[] = [
       label: "Đang hoàn hàng",
       chip: "return",
       note: "Đối tác đang đưa hàng trở lại kho Wanderoo",
-      timeline: [
-        "Đã nhận hàng từ điểm giao",
-        "Đang vận chuyển về kho",
-      ],
+      timeline: ["Đã nhận hàng từ điểm giao", "Đang vận chuyển về kho"],
     },
     lastUpdated: "22/11/2025 08:45",
     addresses: {
@@ -1008,4 +1010,3 @@ export const otherStatusOrders: OtherStatusOrder[] = [
     ],
   },
 ];
-

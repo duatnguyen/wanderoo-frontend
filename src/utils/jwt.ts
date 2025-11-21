@@ -13,25 +13,25 @@ export interface DecodedToken {
 export const decodeToken = (token: string): DecodedToken | null => {
   try {
     // JWT has 3 parts separated by dots
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) {
-      console.error('Invalid JWT format');
+      console.error("Invalid JWT format");
       return null;
     }
 
     // Decode the payload (second part)
     const payload = parts[1];
-    
+
     // Add padding if needed for base64 decoding
-    const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
-    
+    const paddedPayload = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+
     // Decode base64
     const decodedPayload = atob(paddedPayload);
-    
+
     // Parse JSON
     return JSON.parse(decodedPayload) as DecodedToken;
   } catch (error) {
-    console.error('Error decoding JWT token:', error);
+    console.error("Error decoding JWT token:", error);
     return null;
   }
 };
@@ -46,7 +46,7 @@ export const isTokenExpired = (token: string): boolean => {
   // Convert exp (seconds) to milliseconds and compare with current time
   const currentTime = Date.now();
   const expirationTime = decoded.exp * 1000;
-  
+
   return currentTime >= expirationTime;
 };
 
@@ -59,7 +59,7 @@ export const getTimeUntilExpiry = (token: string): number => {
 
   const currentTime = Date.now();
   const expirationTime = decoded.exp * 1000;
-  
+
   return Math.max(0, expirationTime - currentTime);
 };
 
@@ -73,6 +73,6 @@ export const getUserFromToken = (token: string) => {
   return {
     id: decoded.sub,
     username: decoded.username,
-    role: decoded.role[0]?.replace(/[\[\]]/g, '') || 'USER', // Remove brackets from role
+    role: decoded.role[0]?.replace(/[\[\]]/g, "") || "USER", // Remove brackets from role
   };
 };

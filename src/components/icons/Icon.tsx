@@ -132,7 +132,14 @@ const Icon: React.FC<IconProps> = ({
         );
 
       case "shop-logo":
-        return <img src={ShopLogo} alt="Shop Logo" style={{ width: size, height: size }} className={className} />;
+        return (
+          <img
+            src={ShopLogo}
+            alt="Shop Logo"
+            style={{ width: size, height: size }}
+            className={className}
+          />
+        );
 
       default:
         return null;

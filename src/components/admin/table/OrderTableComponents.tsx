@@ -24,13 +24,15 @@ export const OrderTableHeader = ({
         {columns.map((column, index) => (
           <div
             key={column.title}
-            className={`bg-[#f6f6f6] flex items-center ${index === 0
-              ? "rounded-l-[6px]"
-              : index === columns.length - 1
-                ? "rounded-r-[6px]"
-                : ""
-              } ${index === 0 ? "px-[16px]" : "px-[8px]"} py-[14px] ${column.width} ${column.minWidth || ""} ${column.className || "justify-center"
-              }`}
+            className={`bg-[#f6f6f6] flex items-center ${
+              index === 0
+                ? "rounded-l-[6px]"
+                : index === columns.length - 1
+                  ? "rounded-r-[6px]"
+                  : ""
+            } ${index === 0 ? "px-[16px]" : "px-[8px]"} py-[14px] ${column.width} ${column.minWidth || ""} ${
+              column.className || "justify-center"
+            }`}
           >
             <p
               className={`font-montserrat font-semibold text-[#272424] text-[12px] leading-[1.2] whitespace-pre-line ${column.className?.includes("justify-start") ? "text-left" : "text-center"}`}
@@ -97,7 +99,9 @@ export const OrderTableRow = ({
   getPaymentStatus,
 }: OrderRowProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const visibleProducts = isExpanded ? order.products : order.products.slice(0, 1);
+  const visibleProducts = isExpanded
+    ? order.products
+    : order.products.slice(0, 1);
 
   return (
     <div className="w-full">
@@ -165,10 +169,10 @@ export const OrderTableRow = ({
         {/* Tổng tiền Column - w-[140px] */}
         <div className="flex items-center justify-start px-[16px] py-[12px] w-[140px] min-w-[120px]">
           <p className="font-montserrat font-semibold text-[#e04d30] text-[12px] leading-[1.3]">
-            {order.totalAmount.toLocaleString('vi-VN')}₫
+            {order.totalAmount.toLocaleString("vi-VN")}₫
             {order.shippingFee > 0 && (
               <span className="font-normal text-[#888] text-[10px] ml-1">
-                (+{order.shippingFee.toLocaleString('vi-VN')})
+                (+{order.shippingFee.toLocaleString("vi-VN")})
               </span>
             )}
           </p>
@@ -190,7 +194,10 @@ export const OrderTableRow = ({
       <div className="border-b border-x border-[#e7e7e7] rounded-b-[6px] w-full">
         {/* Products List */}
         {visibleProducts.map((product, index) => (
-          <div key={product.id} className={`flex items-center px-[16px] py-[12px] ${index > 0 ? 'border-t border-gray-200' : ''}`}>
+          <div
+            key={product.id}
+            className={`flex items-center px-[16px] py-[12px] ${index > 0 ? "border-t border-gray-200" : ""}`}
+          >
             {/* Product Image and Info */}
             <div className="flex items-start gap-3 flex-1">
               <div className="border border-[#d1d1d1] w-[48px] h-[48px] object-cover bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
@@ -214,7 +221,8 @@ export const OrderTableRow = ({
                 <p className="font-montserrat font-semibold text-[#272424] text-[13px] leading-[1.4] line-clamp-2">
                   {product.name}
                 </p>
-                {product.variantAttributes && product.variantAttributes.length > 0 ? (
+                {product.variantAttributes &&
+                product.variantAttributes.length > 0 ? (
                   <div className="flex flex-wrap gap-x-1.5 gap-y-1 mt-0.5">
                     {product.variantAttributes
                       .sort((a, b) => (a.groupLevel || 0) - (b.groupLevel || 0))
@@ -225,8 +233,12 @@ export const OrderTableRow = ({
                           title={`${attr.groupName}: ${attr.value}`}
                         >
                           <span className="font-montserrat font-medium text-[10px] leading-[1.2] whitespace-nowrap">
-                            <span className="text-[#666] font-semibold">{attr.groupName}:</span>
-                            <span className="text-[#1a71f6] ml-1">{attr.value}</span>
+                            <span className="text-[#666] font-semibold">
+                              {attr.groupName}:
+                            </span>
+                            <span className="text-[#1a71f6] ml-1">
+                              {attr.value}
+                            </span>
                           </span>
                         </span>
                       ))}
@@ -263,7 +275,11 @@ export const OrderTableRow = ({
                 </p>
                 {product.unitPrice && product.quantity > 0 && (
                   <p className="font-montserrat font-medium text-[#666] text-[10px] leading-[1.3] mt-0.5">
-                    Tổng: {((product.unitPrice || 0) * product.quantity).toLocaleString('vi-VN')}₫
+                    Tổng:{" "}
+                    {(
+                      (product.unitPrice || 0) * product.quantity
+                    ).toLocaleString("vi-VN")}
+                    ₫
                   </p>
                 )}
               </div>
@@ -280,15 +296,35 @@ export const OrderTableRow = ({
             >
               {isExpanded ? (
                 <>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 15l7-7 7 7"
+                    />
                   </svg>
                   Thu gọn
                 </>
               ) : (
                 <>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                   Xem thêm {order.products.length - 1} sản phẩm
                 </>

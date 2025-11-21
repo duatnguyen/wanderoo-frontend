@@ -72,11 +72,18 @@ const AdminProducts: React.FC = () => {
   }, [products]);
 
   // Create tabs with badge counts
-  const tabsWithCounts: TabItemWithBadge[] = useMemo(() => [
-    { id: "all", label: "Tất cả", count: productCounts.all },
-    { id: "active", label: "Đang hoạt động", count: productCounts.active },
-    { id: "inactive", label: "Chưa được đăng", count: productCounts.inactive },
-  ], [productCounts]);
+  const tabsWithCounts: TabItemWithBadge[] = useMemo(
+    () => [
+      { id: "all", label: "Tất cả", count: productCounts.all },
+      { id: "active", label: "Đang hoạt động", count: productCounts.active },
+      {
+        id: "inactive",
+        label: "Chưa được đăng",
+        count: productCounts.inactive,
+      },
+    ],
+    [productCounts]
+  );
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -91,7 +98,7 @@ const AdminProducts: React.FC = () => {
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       // Select all filtered product IDs (only visible products)
-      const visibleIds = filteredProducts.map(p => p.id);
+      const visibleIds = filteredProducts.map((p) => p.id);
       setSelectedProducts(new Set(visibleIds));
       setSelectAll(true);
       setIsIndeterminate(false);
@@ -139,18 +146,23 @@ const AdminProducts: React.FC = () => {
     if (selectedProducts.size === 0) return;
 
     const productNames = Array.from(selectedProducts)
-      .map(id => adminMockProducts.find(p => p.id === id)?.name)
+      .map((id) => adminMockProducts.find((p) => p.id === id)?.name)
       .filter(Boolean)
       .slice(0, 3) // Show first 3 names
-      .join(', ');
+      .join(", ");
 
     const moreCount = selectedProducts.size - 3;
-    const displayText = selectedProducts.size <= 3
-      ? productNames
-      : `${productNames}${moreCount > 0 ? ` và ${moreCount} sản phẩm khác` : ''}`;
+    const displayText =
+      selectedProducts.size <= 3
+        ? productNames
+        : `${productNames}${moreCount > 0 ? ` và ${moreCount} sản phẩm khác` : ""}`;
 
-    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedProducts.size} sản phẩm?\n\n${displayText}`)) {
-      console.log('Deleting products:', Array.from(selectedProducts));
+    if (
+      window.confirm(
+        `Bạn có chắc chắn muốn xóa ${selectedProducts.size} sản phẩm?\n\n${displayText}`
+      )
+    ) {
+      console.log("Deleting products:", Array.from(selectedProducts));
       // TODO: Implement actual deletion
       handleClearSelection();
       alert(`Đã xóa ${selectedProducts.size} sản phẩm thành công!`);
@@ -160,7 +172,7 @@ const AdminProducts: React.FC = () => {
   const handleBulkHide = () => {
     if (selectedProducts.size === 0) return;
 
-    console.log('Hiding products:', Array.from(selectedProducts));
+    console.log("Hiding products:", Array.from(selectedProducts));
     // TODO: Implement actual hiding
     handleClearSelection();
     alert(`Đã ẩn ${selectedProducts.size} sản phẩm thành công!`);
@@ -169,7 +181,7 @@ const AdminProducts: React.FC = () => {
   const handleBulkExport = () => {
     if (selectedProducts.size === 0) return;
 
-    console.log('Exporting products:', Array.from(selectedProducts));
+    console.log("Exporting products:", Array.from(selectedProducts));
     // TODO: Implement actual export
     alert(`Đang xuất dữ liệu ${selectedProducts.size} sản phẩm...`);
   };
@@ -187,7 +199,8 @@ const AdminProducts: React.FC = () => {
           return product;
         }
 
-        const updatedStatus = product.status === "active" ? "inactive" : "active";
+        const updatedStatus =
+          product.status === "active" ? "inactive" : "active";
         nextStatus = updatedStatus;
         return {
           ...product,
@@ -206,33 +219,34 @@ const AdminProducts: React.FC = () => {
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Ctrl+A or Cmd+A to select all
-      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+      if ((event.ctrlKey || event.metaKey) && event.key === "a") {
         event.preventDefault();
         handleSelectAll(true);
       }
 
       // Escape to clear selection
-      if (event.key === 'Escape' && selectedProducts.size > 0) {
+      if (event.key === "Escape" && selectedProducts.size > 0) {
         handleClearSelection();
       }
 
       // Delete key to delete selected products
-      if (event.key === 'Delete' && selectedProducts.size > 0) {
+      if (event.key === "Delete" && selectedProducts.size > 0) {
         event.preventDefault();
         handleBulkDelete();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [selectedProducts.size]);
 
   // Filter products based on search and tab
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesSearch = product.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchValue.toLowerCase()) ||
         product.sku.toLowerCase().includes(searchValue.toLowerCase());
 
       // Filter by tab status
@@ -253,7 +267,10 @@ const AdminProducts: React.FC = () => {
   // Calculate pagination
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   return (
     <PageContainer>
@@ -288,17 +305,25 @@ const AdminProducts: React.FC = () => {
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <div className="hidden lg:flex items-center gap-4 bg-gray-50 px-3 py-2 rounded-lg">
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Ctrl</kbd>
+                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">
+                  Ctrl
+                </kbd>
                 <span>+</span>
-                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">A</kbd>
+                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">
+                  A
+                </kbd>
                 <span className="text-xs">Chọn tất cả</span>
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Esc</kbd>
+                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">
+                  Esc
+                </kbd>
                 <span className="text-xs">Bỏ chọn</span>
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Del</kbd>
+                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">
+                  Del
+                </kbd>
                 <span className="text-xs">Xóa</span>
               </span>
             </div>
@@ -320,8 +345,11 @@ const AdminProducts: React.FC = () => {
             onBulkHide={handleBulkHide}
             onBulkExport={handleBulkExport}
             showSelectionActions={selectedProducts.size > 0}
-          />          {/* Table Body */}
-          <div className={`w-full transition-all duration-200 ${selectedProducts.size > 0 ? 'ring-2 ring-blue-200 ring-opacity-50 rounded-b-[16px]' : 'rounded-b-[16px]'} overflow-hidden`}>
+          />{" "}
+          {/* Table Body */}
+          <div
+            className={`w-full transition-all duration-200 ${selectedProducts.size > 0 ? "ring-2 ring-blue-200 ring-opacity-50 rounded-b-[16px]" : "rounded-b-[16px]"} overflow-hidden`}
+          >
             {paginatedProducts.map((product) => (
               <ProductItem
                 key={product.id}
@@ -334,16 +362,27 @@ const AdminProducts: React.FC = () => {
               />
             ))}
           </div>
-
           {/* No products message */}
           {paginatedProducts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <svg className="w-12 h-12 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              <svg
+                className="w-12 h-12 mb-4 text-gray-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                />
               </svg>
               <p className="text-lg font-medium">Không tìm thấy sản phẩm</p>
               <p className="text-sm mt-1">
-                {searchValue ? `Không có sản phẩm nào khớp với "${searchValue}"` : 'Danh sách sản phẩm trống'}
+                {searchValue
+                  ? `Không có sản phẩm nào khớp với "${searchValue}"`
+                  : "Danh sách sản phẩm trống"}
               </p>
             </div>
           )}
@@ -356,15 +395,15 @@ const AdminProducts: React.FC = () => {
         />
       </ContentCard>
 
-
-
       {/* Floating Selection Actions for Mobile */}
       {selectedProducts.size > 0 && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 lg:hidden">
           <div className="bg-white border border-gray-200 rounded-full shadow-lg px-6 py-3 flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-bold">{selectedProducts.size}</span>
+                <span className="text-white text-xs font-bold">
+                  {selectedProducts.size}
+                </span>
               </div>
               <span className="text-sm font-medium text-gray-700">đã chọn</span>
             </div>
@@ -375,8 +414,18 @@ const AdminProducts: React.FC = () => {
                 className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
                 title="Xuất Excel"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
               </button>
 
@@ -385,8 +434,18 @@ const AdminProducts: React.FC = () => {
                 className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full transition-colors"
                 title="Ẩn sản phẩm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                  />
                 </svg>
               </button>
 
@@ -395,8 +454,18 @@ const AdminProducts: React.FC = () => {
                 className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
                 title="Xóa sản phẩm"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
 
@@ -405,8 +474,18 @@ const AdminProducts: React.FC = () => {
                 className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
                 title="Bỏ chọn tất cả"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>

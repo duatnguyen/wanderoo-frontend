@@ -8,10 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  PageContainer,
-  ContentCard,
-} from "@/components/common";
+import { PageContainer, ContentCard } from "@/components/common";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import FormField from "@/components/ui/FormField";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -26,7 +23,7 @@ import type {
   ProductVersion,
   EditingVersion,
   ProductImage,
-  FormErrors
+  FormErrors,
 } from "@/types/product";
 import { validateForm, validateField } from "@/utils/productValidation";
 import "@/styles/animations.css";
@@ -119,25 +116,33 @@ const AdminProductsNew: React.FC = () => {
 
   const [showAttributes, setShowAttributes] = useState(false);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
-  const [currentAttributes, setCurrentAttributes] = useState<CurrentAttribute[]>([
-    { name: "", value: "" },
-  ]);
+  const [currentAttributes, setCurrentAttributes] = useState<
+    CurrentAttribute[]
+  >([{ name: "", value: "" }]);
   const [images, setImages] = useState<ProductImage[]>([]);
   const [versions, setVersions] = useState<ProductVersion[]>([]);
-  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(new Set());
+  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(
+    new Set()
+  );
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
-  const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>({});
+  const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>(
+    {}
+  );
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [priceValues, setPriceValues] = useState<Record<string, string>>({});
   const [applyAllPrice, setApplyAllPrice] = useState("");
   const [showEditVersionModal, setShowEditVersionModal] = useState(false);
-  const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(null);
+  const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(
+    null
+  );
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const editVersionFileInputRef = useRef<HTMLInputElement>(null);
-  const [isComposingMap, setIsComposingMap] = useState<Record<number, boolean>>({});
+  const [isComposingMap, setIsComposingMap] = useState<Record<number, boolean>>(
+    {}
+  );
   const [brandOptions, setBrandOptions] = useState<string[]>([
     "Nike",
     "Adidas",
@@ -152,67 +157,75 @@ const AdminProductsNew: React.FC = () => {
     "Thông tin cơ bản",
     "Thuộc tính & Phiên bản",
     "Thông tin vận chuyển",
-    "Hoàn thành"
+    "Hoàn thành",
   ];
 
-  const handleInputChange = useCallback((field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({
+  const handleInputChange = useCallback(
+    (field: string, value: string) => {
+      setFormData((prev) => ({
         ...prev,
-        [field]: "",
+        [field]: value,
       }));
-    }
 
-    // Real-time validation for specific fields
-    const fieldError = validateField(field, value);
-    if (fieldError) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: fieldError,
-      }));
-    }
-  }, [errors]);
+      // Clear error when user starts typing
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "",
+        }));
+      }
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+      // Real-time validation for specific fields
+      const fieldError = validateField(field, value);
+      if (fieldError) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: fieldError,
+        }));
+      }
+    },
+    [errors]
+  );
 
-    // Validate form
-    const formErrors = validateForm(formData);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    // Check if images are required and missing
-    if (images.length === 0) {
-      formErrors.images = "Vui lòng tải lên ít nhất một hình ảnh sản phẩm";
-    }
+      // Validate form
+      const formErrors = validateForm(formData);
 
-    setErrors(formErrors);
+      // Check if images are required and missing
+      if (images.length === 0) {
+        formErrors.images = "Vui lòng tải lên ít nhất một hình ảnh sản phẩm";
+      }
 
-    if (Object.keys(formErrors).length > 0) {
-      console.log("Form has errors:", formErrors);
-      return;
-    }
+      setErrors(formErrors);
 
-    setIsSubmitting(true);
+      if (Object.keys(formErrors).length > 0) {
+        console.log("Form has errors:", formErrors);
+        return;
+      }
 
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log("Form submitted successfully:", formData);
+      setIsSubmitting(true);
 
-      // Reset form or navigate to products list
-      // navigate('/admin/products');
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      setErrors({ submit: "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại." });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [formData, images]);
+      try {
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        console.log("Form submitted successfully:", formData);
+
+        // Reset form or navigate to products list
+        // navigate('/admin/products');
+      } catch (error) {
+        console.error("Error submitting form:", error);
+        setErrors({
+          submit: "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại.",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [formData, images]
+  );
 
   const handleCancel = () => {
     console.log("Form cancelled");
@@ -284,10 +297,10 @@ const AdminProductsNew: React.FC = () => {
           const existingValues = updated[existingAttrIndex].values;
           // Prevent duplicates (case-sensitive to keep exactly what user typed)
           if (!existingValues.includes(newValue)) {
-          updated[existingAttrIndex] = {
-            ...updated[existingAttrIndex],
+            updated[existingAttrIndex] = {
+              ...updated[existingAttrIndex],
               values: [...existingValues, newValue],
-          };
+            };
           }
           return updated;
         });
@@ -363,10 +376,10 @@ const AdminProductsNew: React.FC = () => {
       const updated = prev.filter((_, i) => i !== index);
       // If no rows left, revert UI to sales information section
       if (updated.length === 0) {
-    setShowAttributes(false);
-    setAttributes([]);
-    setVersions([]);
-    setSelectedVersions(new Set());
+        setShowAttributes(false);
+        setAttributes([]);
+        setVersions([]);
+        setSelectedVersions(new Set());
       }
       return updated;
     });
@@ -578,11 +591,11 @@ const AdminProductsNew: React.FC = () => {
         prev.map((v) =>
           v.id === editingVersion.id
             ? {
-              ...v,
-              price: editingVersion.sellingPrice,
-              inventory: editingVersion.inventory,
-              available: editingVersion.available,
-            }
+                ...v,
+                price: editingVersion.sellingPrice,
+                inventory: editingVersion.inventory,
+                available: editingVersion.available,
+              }
             : v
         )
       );
@@ -609,7 +622,6 @@ const AdminProductsNew: React.FC = () => {
   }, [formData, showAttributes, attributes]);
 
   return (
-
     <PageContainer>
       {/* Header */}
       <div className="flex flex-col gap-4 mb-2">
@@ -628,7 +640,10 @@ const AdminProductsNew: React.FC = () => {
       </div>
 
       <ContentCard>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-[22px] w-full">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-[22px] w-full"
+        >
           {/* Image Upload Section */}
           <ImageUpload
             images={images}
@@ -653,7 +668,9 @@ const AdminProductsNew: React.FC = () => {
                   label="Tên sản phẩm"
                   required
                   error={errors.productName}
-                  success={!errors.productName && formData.productName.length > 2}
+                  success={
+                    !errors.productName && formData.productName.length > 2
+                  }
                   hint="Tên sản phẩm nên ngắn gọn và dễ hiểu"
                   className="flex-1"
                 >
@@ -663,9 +680,13 @@ const AdminProductsNew: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("productName", e.target.value)
                     }
-                    containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${errors.productName ? 'error-border' :
-                      !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
-                      }`}
+                    containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${
+                      errors.productName
+                        ? "error-border"
+                        : !errors.productName && formData.productName.length > 2
+                          ? "success-border"
+                          : ""
+                    }`}
                   />
                 </FormField>
 
@@ -678,7 +699,9 @@ const AdminProductsNew: React.FC = () => {
                   <FormInput
                     placeholder="Nhập mã vạch"
                     value={formData.barcode}
-                    onChange={(e) => handleInputChange("barcode", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("barcode", e.target.value)
+                    }
                     containerClassName="h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring"
                   />
                 </FormField>
@@ -700,17 +723,27 @@ const AdminProductsNew: React.FC = () => {
                         <ChevronDown className="w-6 h-6 text-[#322f30]" />
                       </button>
                     </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[var(--radix-dropdown-menu-trigger-width)]"
-                  >
-                      <DropdownMenuItem onClick={() => handleInputChange("category", "Thể thao")}>
+                    <DropdownMenuContent
+                      align="start"
+                      className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-[var(--radix-dropdown-menu-trigger-width)]"
+                    >
+                      <DropdownMenuItem
+                        onClick={() =>
+                          handleInputChange("category", "Thể thao")
+                        }
+                      >
                         Thể thao
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleInputChange("category", "Thời trang")}>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          handleInputChange("category", "Thời trang")
+                        }
+                      >
                         Thời trang
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleInputChange("category", "Điện tử")}>
+                      <DropdownMenuItem
+                        onClick={() => handleInputChange("category", "Điện tử")}
+                      >
                         Điện tử
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -911,100 +944,125 @@ const AdminProductsNew: React.FC = () => {
               {currentAttributes.map((item, index) => (
                 <div className="flex gap-4 items-start -mt-3" key={index}>
                   <div className="w-[28%] min-w-[200px] flex flex-col gap-0">
-                  <FormInput
-                    placeholder="Nhập tên thuộc tính"
+                    <FormInput
+                      placeholder="Nhập tên thuộc tính"
                       value={item.name}
-                      onChange={(e) => handleAttributeNameChange(index, e.target.value)}
-                    containerClassName="h-[36px] px-4"
-                  />
-                </div>
+                      onChange={(e) =>
+                        handleAttributeNameChange(index, e.target.value)
+                      }
+                      containerClassName="h-[36px] px-4"
+                    />
+                  </div>
 
                   <div className="flex-1 flex flex-col gap-0">
-                  <div className="flex gap-[9px] items-center">
+                    <div className="flex gap-[9px] items-center">
                       {/* Chip input: show existing values for this attribute name */}
                       <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-2 py-[6px] flex flex-wrap items-center gap-2 w-full min-h-[36px]">
                         {(() => {
-                          const attrIndex = attributes.findIndex((a) => a.name === item.name);
-                          const attr = attrIndex >= 0 ? attributes[attrIndex] : null;
-                          return attr ? attr.values.map((value, valueIndex) => (
-                            <div
-                              key={`${value}-${valueIndex}`}
-                              className="bg-[#eef3ff] rounded-[16px] px-3 py-1 flex items-center gap-2 border border-[#d1dbff]"
-                            >
-                              <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
-                                {value}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveAttributeValue(attrIndex, valueIndex)}
-                                className="flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                  <path
-                                    d="M9 3L3 9M3 3L9 9"
-                                    stroke="#737373"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-                          )) : null;
+                          const attrIndex = attributes.findIndex(
+                            (a) => a.name === item.name
+                          );
+                          const attr =
+                            attrIndex >= 0 ? attributes[attrIndex] : null;
+                          return attr
+                            ? attr.values.map((value, valueIndex) => (
+                                <div
+                                  key={`${value}-${valueIndex}`}
+                                  className="bg-[#eef3ff] rounded-[16px] px-3 py-1 flex items-center gap-2 border border-[#d1dbff]"
+                                >
+                                  <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                                    {value}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleRemoveAttributeValue(
+                                        attrIndex,
+                                        valueIndex
+                                      )
+                                    }
+                                    className="flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
+                                  >
+                                    <svg
+                                      width="12"
+                                      height="12"
+                                      viewBox="0 0 12 12"
+                                      fill="none"
+                                    >
+                                      <path
+                                        d="M9 3L3 9M3 3L9 9"
+                                        stroke="#737373"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ))
+                            : null;
                         })()}
                         <input
                           type="text"
                           placeholder="Nhập ký tự và ấn enter"
                           value={item.value}
-                          onChange={(e) => handleAttributeValueChange(index, e.target.value)}
+                          onChange={(e) =>
+                            handleAttributeValueChange(index, e.target.value)
+                          }
                           onCompositionStart={() =>
-                            setIsComposingMap((prev) => ({ ...prev, [index]: true }))
+                            setIsComposingMap((prev) => ({
+                              ...prev,
+                              [index]: true,
+                            }))
                           }
                           onCompositionEnd={() =>
-                            setIsComposingMap((prev) => ({ ...prev, [index]: false }))
+                            setIsComposingMap((prev) => ({
+                              ...prev,
+                              [index]: false,
+                            }))
                           }
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !isComposingMap[index]) {
-                          e.preventDefault();
+                              e.preventDefault();
                               handleAddAttributeValue(index);
-                        }
-                      }}
+                            }
+                          }}
                           className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat min-w-[80px]"
-                    />
+                        />
                       </div>
-                    <button
-                      type="button"
+                      <button
+                        type="button"
                         onClick={() => handleRemoveCurrentAttributeRow(index)}
                         className="p-2 -m-2 flex items-center justify-center shrink-0 cursor-pointer rounded transition-all text-[#737373] hover:text-[#1a71f6]"
-                      style={{ minWidth: "32px", minHeight: "32px" }}
+                        style={{ minWidth: "32px", minHeight: "32px" }}
                         aria-label="Xoá dòng này"
-                    >
-                      <svg
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        style={{ pointerEvents: "none" }}
                       >
-                        <path
-                          d="M3 6H5H21"
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          style={{ pointerEvents: "none" }}
+                        >
+                          <path
+                            d="M3 6H5H21"
                             stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
                             stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
               ))}
 
               {/* Add Another Attribute Button */}
@@ -1090,10 +1148,11 @@ const AdminProductsNew: React.FC = () => {
                 {versions.map((version, index) => (
                   <div
                     key={version.id}
-                    className={`flex items-start cursor-pointer hover:bg-gray-50 transition-colors ${index < versions.length - 1
-                      ? "border-b border-[#e7e7e7]"
-                      : ""
-                      }`}
+                    className={`flex items-start cursor-pointer hover:bg-gray-50 transition-colors ${
+                      index < versions.length - 1
+                        ? "border-b border-[#e7e7e7]"
+                        : ""
+                    }`}
                     onClick={() => handleVersionRowClick(version.id)}
                   >
                     <div className="w-[400px] flex gap-2 items-center px-3 py-[14px]">
@@ -1143,9 +1202,11 @@ const AdminProductsNew: React.FC = () => {
                   <input
                     type="text"
                     inputMode="numeric"
-                  placeholder="Nhập vào"
-                  value={formData.weight}
-                  onChange={(e) => handleInputChange("weight", e.target.value)}
+                    placeholder="Nhập vào"
+                    value={formData.weight}
+                    onChange={(e) =>
+                      handleInputChange("weight", e.target.value)
+                    }
                     className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat placeholder:text-[#b0b0b0]"
                   />
                   <div className="flex items-center gap-2.5 ml-2">
@@ -1160,8 +1221,8 @@ const AdminProductsNew: React.FC = () => {
               {/* Package Dimensions */}
               <div className="flex flex-col gap-2">
                 <p className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                  Kích thước đóng gói (Phí vận chuyển thực tế sẽ thay đổi nếu bạn
-                  nhập sai kích thước)
+                  Kích thước đóng gói (Phí vận chuyển thực tế sẽ thay đổi nếu
+                  bạn nhập sai kích thước)
                 </p>
 
                 <div className="flex gap-4">
@@ -1175,7 +1236,9 @@ const AdminProductsNew: React.FC = () => {
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.width}
-                        onChange={(e) => handleInputChange("width", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("width", e.target.value)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                       />
                       <div className="flex items-center gap-2.5 ml-2">
@@ -1197,7 +1260,9 @@ const AdminProductsNew: React.FC = () => {
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.length}
-                        onChange={(e) => handleInputChange("length", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("length", e.target.value)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                       />
                       <div className="flex items-center gap-2.5 ml-2">
@@ -1219,7 +1284,9 @@ const AdminProductsNew: React.FC = () => {
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.height}
-                        onChange={(e) => handleInputChange("height", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("height", e.target.value)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                       />
                       <div className="flex items-center gap-2.5 ml-2">
@@ -1260,7 +1327,9 @@ const AdminProductsNew: React.FC = () => {
                 <span className="text-red-500 animate-shake">
                   ⚠️ Vui lòng kiểm tra lại thông tin
                 </span>
-              ) : formData.productName && formData.brand && formData.description ? (
+              ) : formData.productName &&
+                formData.brand &&
+                formData.description ? (
                 <span className="text-green-600 animate-fadeIn">
                   ✅ Thông tin cơ bản đã đầy đủ
                 </span>
@@ -1417,8 +1486,9 @@ const AdminProductsNew: React.FC = () => {
                 return (
                   <div
                     key={versionId}
-                    className={`flex items-center justify-between px-6 py-6 ${index > 0 ? "border-t border-[#d1d1d1]" : ""
-                      }`}
+                    className={`flex items-center justify-between px-6 py-6 ${
+                      index > 0 ? "border-t border-[#d1d1d1]" : ""
+                    }`}
                   >
                     <div className="flex items-center">
                       <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
@@ -1529,8 +1599,9 @@ const AdminProductsNew: React.FC = () => {
                 return (
                   <div
                     key={versionId}
-                    className={`flex items-center justify-between px-6 py-6 ${index > 0 ? "border-t border-[#d1d1d1]" : ""
-                      }`}
+                    className={`flex items-center justify-between px-6 py-6 ${
+                      index > 0 ? "border-t border-[#d1d1d1]" : ""
+                    }`}
                   >
                     <div className="flex items-center">
                       <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
@@ -1702,7 +1773,9 @@ const AdminProductsNew: React.FC = () => {
 
                 {/* Right Column - Image Upload */}
                 <div className="flex flex-col gap-6 items-center px-4 py-6">
-                  <div className={`bg-[#ffeeea] border border-[#e04d30] border-dashed flex flex-col gap-2 items-center justify-center rounded-[8px] w-[120px] h-[120px] ${editingVersion.image ? '' : 'p-5'}`}>
+                  <div
+                    className={`bg-[#ffeeea] border border-[#e04d30] border-dashed flex flex-col gap-2 items-center justify-center rounded-[8px] w-[120px] h-[120px] ${editingVersion.image ? "" : "p-5"}`}
+                  >
                     {editingVersion.image ? (
                       <img
                         src={editingVersion.image}

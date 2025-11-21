@@ -18,19 +18,15 @@ import {
   updateItemQuantity,
   updateOrderNote,
 } from "@/api/endpoints/saleApi";
-import type {
-  CustomerSearchResponse,
-  DraftOrderDetailResponse,
-} from "@/types";
+import type { CustomerSearchResponse, DraftOrderDetailResponse } from "@/types";
 import { Loader2 } from "lucide-react";
 
 const POSPage: React.FC = () => {
   const { setOrders, setCurrentOrderId, setProductSelectHandler } =
     usePOSContext();
   const [draftOrderId, setDraftOrderId] = useState<number | null>(null);
-  const [orderDetail, setOrderDetail] = useState<DraftOrderDetailResponse | null>(
-    null
-  );
+  const [orderDetail, setOrderDetail] =
+    useState<DraftOrderDetailResponse | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [noteValue, setNoteValue] = useState("");
   const [noteSyncedValue, setNoteSyncedValue] = useState("");
@@ -217,7 +213,9 @@ const POSPage: React.FC = () => {
       } catch (err) {
         console.error("Không thể gán khách hàng", err);
         setError("Không thể gán khách hàng. Vui lòng thử lại.");
-        throw (err instanceof Error ? err : new Error("Không thể gán khách hàng"));
+        throw err instanceof Error
+          ? err
+          : new Error("Không thể gán khách hàng");
       } finally {
         setIsRefreshing(false);
       }
@@ -244,7 +242,10 @@ const POSPage: React.FC = () => {
   }, [draftOrderId, loadDraftOrderDetail]);
 
   const handleCheckout = useCallback(
-    async (data: { paymentMethod: "cash" | "transfer"; amountPaid: number }) => {
+    async (data: {
+      paymentMethod: "cash" | "transfer";
+      amountPaid: number;
+    }) => {
       if (!draftOrderId) {
         throw new Error("Không tìm thấy hóa đơn để thanh toán");
       }
@@ -260,7 +261,7 @@ const POSPage: React.FC = () => {
             ? err.message
             : "Không thể thanh toán đơn hàng. Vui lòng thử lại.";
         setError(message);
-        throw (err instanceof Error ? err : new Error(message));
+        throw err instanceof Error ? err : new Error(message);
       } finally {
         setIsRefreshing(false);
       }

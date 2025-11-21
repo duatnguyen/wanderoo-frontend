@@ -39,9 +39,7 @@ const ReturnRefundDetail = lazy(
 );
 const ReturnRefundMethodSelection = lazy(
   () =>
-    import(
-      "../../features/shop/pages/UserProfile/ReturnRefundMethodSelection"
-    )
+    import("../../features/shop/pages/UserProfile/ReturnRefundMethodSelection")
 );
 const VouchersTab = lazy(
   () => import("../../features/shop/pages/UserProfile/VouchersTab")

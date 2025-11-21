@@ -74,11 +74,14 @@ const createDefaultFormData = (): VoucherFormData => ({
 const AdminCreateVoucherShopWide: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { mode, voucher } = (location.state as EditLocationState | undefined) || {};
+  const { mode, voucher } =
+    (location.state as EditLocationState | undefined) || {};
   const editData = voucher?.editData;
   const isEditMode = mode === "edit" && !!editData;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
+  const [formData, setFormData] = useState<VoucherFormData>(
+    createDefaultFormData
+  );
 
   useEffect(() => {
     if (isEditMode && editData) {
@@ -102,7 +105,9 @@ const AdminCreateVoucherShopWide: React.FC = () => {
     }
   }, [isEditMode, editData]);
 
-  const pageTitle = isEditMode ? "Chỉnh sửa mã giảm giá" : "Tạo mã giảm giá mới";
+  const pageTitle = isEditMode
+    ? "Chỉnh sửa mã giảm giá"
+    : "Tạo mã giảm giá mới";
 
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
     setFormData((prev) => ({
@@ -176,7 +181,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
                   Tên chương trình giảm giá
                 </label>
-                  <div className="flex-1 flex-shrink-0">
+                <div className="flex-1 flex-shrink-0">
                   <FormInput
                     placeholder="Nhập tên chương trình giảm giá"
                     value={formData.voucherName}

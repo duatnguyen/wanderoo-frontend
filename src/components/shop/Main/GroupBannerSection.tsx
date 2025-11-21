@@ -36,4 +36,3 @@ const GroupBannerSection: React.FC = () => {
 };
 
 export default GroupBannerSection;
-

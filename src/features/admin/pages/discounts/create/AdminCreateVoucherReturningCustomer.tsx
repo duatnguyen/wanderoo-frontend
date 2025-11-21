@@ -87,11 +87,14 @@ const createDefaultFormData = (): VoucherFormData => ({
 const AdminCreateVoucherReturningCustomer: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { mode, voucher } = (location.state as EditLocationState | undefined) || {};
+  const { mode, voucher } =
+    (location.state as EditLocationState | undefined) || {};
   const editData = voucher?.editData;
   const isEditMode = mode === "edit" && !!editData;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
+  const [formData, setFormData] = useState<VoucherFormData>(
+    createDefaultFormData
+  );
 
   useEffect(() => {
     if (isEditMode && editData) {
@@ -117,7 +120,9 @@ const AdminCreateVoucherReturningCustomer: React.FC = () => {
     }
   }, [isEditMode, editData]);
 
-  const pageTitle = isEditMode ? "Chỉnh sửa mã giảm giá" : "Tạo mã giảm giá mới";
+  const pageTitle = isEditMode
+    ? "Chỉnh sửa mã giảm giá"
+    : "Tạo mã giảm giá mới";
 
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
     setFormData((prev) => ({

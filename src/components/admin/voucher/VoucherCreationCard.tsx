@@ -30,8 +30,8 @@ export const VoucherCreationCard: React.FC<VoucherCreationCardProps> = ({
         {description}
       </p>
       <div className="flex justify-end w-full mt-auto">
-        <Button 
-          className="h-[28px] px-[16px] text-[14px] rounded-[8px]" 
+        <Button
+          className="h-[28px] px-[16px] text-[14px] rounded-[8px]"
           onClick={onClick}
         >
           Tạo

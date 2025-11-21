@@ -15,9 +15,7 @@ const TodaySuggestionsSection: React.FC<TodaySuggestionsSectionProps> = ({
     <section className="w-full pt-8 pb-4">
       <div className="max-w-[1200px] mx-auto px-4">
         <div className="mb-3 flex items-center justify-center">
-          <h2 className="text-2xl font-bold text-gray-900">
-            Gợi ý hôm nay
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900">Gợi ý hôm nay</h2>
         </div>
 
         <div className="grid grid-cols-6 gap-4">

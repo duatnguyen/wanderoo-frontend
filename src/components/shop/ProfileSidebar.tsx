@@ -41,10 +41,22 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
       path: "/user/profile",
       icon: <PersonIcon />,
       children: [
-        { id: "basicinformation", label: "Hồ sơ", path: "/user/profile/basicinformation" },
+        {
+          id: "basicinformation",
+          label: "Hồ sơ",
+          path: "/user/profile/basicinformation",
+        },
         { id: "address", label: "Địa chỉ", path: "/user/profile/address" },
-        { id: "password", label: "Đổi mật khẩu", path: "/user/profile/password" },
-        { id: "privacy", label: "Thiết lập riêng tư", path: "/user/profile/privacy" },
+        {
+          id: "password",
+          label: "Đổi mật khẩu",
+          path: "/user/profile/password",
+        },
+        {
+          id: "privacy",
+          label: "Thiết lập riêng tư",
+          path: "/user/profile/privacy",
+        },
       ],
     },
     {
@@ -65,17 +77,25 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
   const isMenuActive = (item: MenuItem): boolean => {
     // If item has children, only check if any child is active
     if (item.children && item.children.length > 0) {
-      return item.children.some(child => 
-        location.pathname === child.path || location.pathname.startsWith(child.path + "/")
+      return item.children.some(
+        (child) =>
+          location.pathname === child.path ||
+          location.pathname.startsWith(child.path + "/")
       );
     }
     // For items without children, check exact path match
-    return location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+    return (
+      location.pathname === item.path ||
+      location.pathname.startsWith(item.path + "/")
+    );
   };
 
   // Check if a child menu item is active
   const isChildActive = (childPath: string): boolean => {
-    return location.pathname === childPath || location.pathname.startsWith(childPath + "/");
+    return (
+      location.pathname === childPath ||
+      location.pathname.startsWith(childPath + "/")
+    );
   };
 
   const handleMenuItemClick = (item: MenuItem) => {
@@ -110,28 +130,32 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
 
   // Auto-expand menu if one of its children is active
   React.useEffect(() => {
-    menuItems.forEach(item => {
+    menuItems.forEach((item) => {
       if (item.children) {
         // Check if any child is active
-        const hasActiveChild = item.children.some(child => 
-          location.pathname === child.path || location.pathname.startsWith(child.path + "/")
+        const hasActiveChild = item.children.some(
+          (child) =>
+            location.pathname === child.path ||
+            location.pathname.startsWith(child.path + "/")
         );
-        
+
         if (hasActiveChild) {
           // Expand this menu if a child is active
-        setExpandedMenu(item.id);
-      }
+          setExpandedMenu(item.id);
+        }
       }
     });
-    
+
     // Close "Tài khoản của tôi" if none of its children are active
-    const accountItem = menuItems.find(item => item.id === "account");
+    const accountItem = menuItems.find((item) => item.id === "account");
     if (accountItem && accountItem.children) {
-      const hasActiveAccountChild = accountItem.children.some(child => 
-        location.pathname === child.path || location.pathname.startsWith(child.path + "/")
+      const hasActiveAccountChild = accountItem.children.some(
+        (child) =>
+          location.pathname === child.path ||
+          location.pathname.startsWith(child.path + "/")
       );
       if (!hasActiveAccountChild) {
-        setExpandedMenu(prev => prev === "account" ? null : prev);
+        setExpandedMenu((prev) => (prev === "account" ? null : prev));
       }
     }
   }, [location.pathname]);

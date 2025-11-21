@@ -327,10 +327,10 @@ const VouchersTab: React.FC = () => {
     const text = statusLabel
       ? statusLabel
       : status === "available"
-      ? "Có thể dùng ngay"
-      : status === "pending"
-      ? "Sẽ dùng được sau"
-      : "Hết hạn";
+        ? "Có thể dùng ngay"
+        : status === "pending"
+          ? "Sẽ dùng được sau"
+          : "Hết hạn";
     switch (status) {
       case "available":
         return (
@@ -566,8 +566,8 @@ const VoucherListSection: React.FC<VoucherListSectionProps> = ({
                   {voucher.validAfter
                     ? `Hiệu lực sau: ${voucher.validAfter}`
                     : voucher.expiryDate
-                    ? `HSD: ${voucher.expiryDate}`
-                    : ""}
+                      ? `HSD: ${voucher.expiryDate}`
+                      : ""}
                 </div>
               </div>
 
@@ -720,12 +720,14 @@ const VoucherHistorySection: React.FC<VoucherHistorySectionProps> = ({
                     {voucher.statusLabel
                       ? voucher.statusLabel
                       : voucher.status === "expired"
-                      ? "Hết hiệu lực"
-                      : "Đã sử dụng"}
+                        ? "Hết hiệu lực"
+                        : "Đã sử dụng"}
                   </span>
                 </div>
                 <span className="text-[14px] text-gray-500 whitespace-nowrap">
-                  {voucher.expiryDate ? `HSD: ${voucher.expiryDate}` : "Không rõ HSD"}
+                  {voucher.expiryDate
+                    ? `HSD: ${voucher.expiryDate}`
+                    : "Không rõ HSD"}
                 </span>
               </div>
 

@@ -8,12 +8,9 @@ interface CancelOrderConfirmationPopupWebsiteProps {
   orderData: any;
 }
 
-const CancelOrderConfirmationPopupWebsite: React.FC<CancelOrderConfirmationPopupWebsiteProps> = ({
-  isOpen,
-  onClose,
-  onConfirm,
-  orderData,
-}) => {
+const CancelOrderConfirmationPopupWebsite: React.FC<
+  CancelOrderConfirmationPopupWebsiteProps
+> = ({ isOpen, onClose, onConfirm, orderData }) => {
   const [selectedReason, setSelectedReason] = useState<string>("");
   const [customReason, setCustomReason] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,10 +200,11 @@ const CancelOrderConfirmationPopupWebsite: React.FC<CancelOrderConfirmationPopup
               {cancelReasons.map((reason, index) => (
                 <label
                   key={index}
-                  className={`flex items-center p-4 rounded-[12px] border-2 cursor-pointer transition-all duration-200 ${selectedReason === reason
-                    ? "border-[#dc3545] bg-red-50"
-                    : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-                    } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`flex items-center p-4 rounded-[12px] border-2 cursor-pointer transition-all duration-200 ${
+                    selectedReason === reason
+                      ? "border-[#dc3545] bg-red-50"
+                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <input
                     type="radio"
@@ -218,10 +216,11 @@ const CancelOrderConfirmationPopupWebsite: React.FC<CancelOrderConfirmationPopup
                     className="w-4 h-4 text-[#dc3545] border-gray-300 focus:ring-[#dc3545] focus:ring-2"
                   />
                   <span
-                    className={`ml-3 font-montserrat font-medium text-[14px] ${selectedReason === reason
-                      ? "text-[#dc3545]"
-                      : "text-gray-700"
-                      }`}
+                    className={`ml-3 font-montserrat font-medium text-[14px] ${
+                      selectedReason === reason
+                        ? "text-[#dc3545]"
+                        : "text-gray-700"
+                    }`}
                   >
                     {reason}
                   </span>

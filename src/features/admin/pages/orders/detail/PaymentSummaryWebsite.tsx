@@ -8,12 +8,9 @@ interface PaymentSummaryCollapsedViewProps {
   formatCurrency: (amount: number) => string;
 }
 
-const PaymentSummaryCollapsedView: React.FC<PaymentSummaryCollapsedViewProps> = ({
-  isExpanded,
-  onToggle,
-  totalAmount,
-  formatCurrency,
-}) => {
+const PaymentSummaryCollapsedView: React.FC<
+  PaymentSummaryCollapsedViewProps
+> = ({ isExpanded, onToggle, totalAmount, formatCurrency }) => {
   return (
     <button
       onClick={onToggle}
@@ -83,22 +80,25 @@ const PaymentSummaryWebsite: React.FC<PaymentSummaryWebsiteProps> = ({
             {summaryData.map((item, index) => (
               <div
                 key={index}
-                className={`flex items-center justify-between py-[4px] ${item.isTotal ? "border-t border-[#e7e7e7] pt-[8px]" : ""
-                  }`}
+                className={`flex items-center justify-between py-[4px] ${
+                  item.isTotal ? "border-t border-[#e7e7e7] pt-[8px]" : ""
+                }`}
               >
                 <p
-                  className={`font-montserrat ${item.isTotal
-                    ? "font-semibold text-[14px] text-[#272424]"
-                    : "font-medium text-[13px] text-[#737373]"
-                    }`}
+                  className={`font-montserrat ${
+                    item.isTotal
+                      ? "font-semibold text-[14px] text-[#272424]"
+                      : "font-medium text-[13px] text-[#737373]"
+                  }`}
                 >
                   {item.label}
                 </p>
                 <p
-                  className={`font-montserrat ${item.isTotal
-                    ? "font-bold text-[16px] text-[#28a745]"
-                    : "font-medium text-[13px] text-[#272424]"
-                    }`}
+                  className={`font-montserrat ${
+                    item.isTotal
+                      ? "font-bold text-[16px] text-[#28a745]"
+                      : "font-medium text-[13px] text-[#272424]"
+                  }`}
                 >
                   {formatCurrency(item.amount)}
                 </p>

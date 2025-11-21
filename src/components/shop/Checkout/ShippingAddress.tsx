@@ -57,4 +57,3 @@ const ShippingAddress: React.FC<ShippingAddressProps> = ({
 };
 
 export default ShippingAddress;
-

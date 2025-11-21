@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         id: parseInt(userFromToken.id) || 0,
         username: userFromToken.username,
         role: userFromToken.role as Role,
-      }
+      },
     });
   };
 

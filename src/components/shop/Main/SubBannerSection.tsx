@@ -16,4 +16,3 @@ const SubBannerSection: React.FC = () => {
 };
 
 export default SubBannerSection;
-

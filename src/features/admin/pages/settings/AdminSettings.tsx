@@ -7,12 +7,12 @@ const AdminSettings: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
-  
+
   // Password visibility states
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // Shop settings states
   const [isEditingShop, setIsEditingShop] = useState(false);
   const [shopName, setShopName] = useState("Wanderoo");
@@ -67,7 +67,9 @@ const AdminSettings: React.FC = () => {
                     Email
                   </label>
                   <div className="flex-1 flex items-center gap-3">
-                    <span className="text-gray-900">Quan*********@gmail.com</span>
+                    <span className="text-gray-900">
+                      Quan*********@gmail.com
+                    </span>
                     <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                       Thay đổi
                     </button>
@@ -185,7 +187,8 @@ const AdminSettings: React.FC = () => {
                 {/* Mật khẩu tài khoản đang đăng nhập */}
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">
-                    Mật khẩu tài khoản đang đăng nhập<span className="text-red-500">*</span>
+                    Mật khẩu tài khoản đang đăng nhập
+                    <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -195,7 +198,9 @@ const AdminSettings: React.FC = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      onClick={() =>
+                        setShowCurrentPassword(!showCurrentPassword)
+                      }
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
                       {showCurrentPassword ? (
@@ -339,7 +344,9 @@ const AdminSettings: React.FC = () => {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
                       {showConfirmPassword ? (
@@ -403,9 +410,7 @@ const AdminSettings: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-0.5">
                 Thông tin cơ bản
               </h2>
-              <p className="text-gray-500 text-sm">
-                Quản lý thông tin shop
-              </p>
+              <p className="text-gray-500 text-sm">Quản lý thông tin shop</p>
             </div>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
               <div className="space-y-6 ml-8">
@@ -452,9 +457,7 @@ const AdminSettings: React.FC = () => {
                       <div className="flex-1">
                         <ul className="text-sm text-gray-600 space-y-1 list-disc ml-4">
                           <li>Dung lượng file tối đa: 2.0MB</li>
-                          <li>
-                            Định dạng file được hỗ trợ: JPG, JPEG, PNG
-                          </li>
+                          <li>Định dạng file được hỗ trợ: JPG, JPEG, PNG</li>
                         </ul>
                       </div>
                     </div>
@@ -487,10 +490,8 @@ const AdminSettings: React.FC = () => {
           <div className="mb-4">
             <h2 className="text-2xl font-bold text-gray-900 mb-0.5">
               Thông tin cơ bản
-          </h2>
-            <p className="text-gray-500 text-sm">
-              Quản lý thông tin shop
-            </p>
+            </h2>
+            <p className="text-gray-500 text-sm">Quản lý thông tin shop</p>
           </div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
             <div className="flex flex-col lg:flex-row gap-8 ml-8 items-start">

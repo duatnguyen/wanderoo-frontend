@@ -74,16 +74,21 @@ const createDefaultFormData = (): VoucherFormData => ({
 const AdminCreateVoucherProduct: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { mode, voucher } = (location.state as EditLocationState | undefined) || {};
+  const { mode, voucher } =
+    (location.state as EditLocationState | undefined) || {};
   const editData = voucher?.editData;
   const isEditMode = mode === "edit" && !!editData;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [confirmedProducts, setConfirmedProducts] = useState<VoucherProduct[]>([]);
+  const [confirmedProducts, setConfirmedProducts] = useState<VoucherProduct[]>(
+    []
+  );
   const [appliedProductsPage, setAppliedProductsPage] = useState(1);
-  const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
+  const [formData, setFormData] = useState<VoucherFormData>(
+    createDefaultFormData
+  );
 
   useEffect(() => {
     if (isEditMode && editData) {
@@ -116,7 +121,9 @@ const AdminCreateVoucherProduct: React.FC = () => {
     }
   }, [isEditMode, editData]);
 
-  const pageTitle = isEditMode ? "Chỉnh sửa mã giảm giá" : "Tạo mã giảm giá mới";
+  const pageTitle = isEditMode
+    ? "Chỉnh sửa mã giảm giá"
+    : "Tạo mã giảm giá mới";
 
   // Mock product data
   const products: VoucherProduct[] = [

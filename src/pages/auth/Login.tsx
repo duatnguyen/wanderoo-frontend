@@ -31,14 +31,14 @@ const Login: React.FC = () => {
 
       // Thông báo thành công
       setSuccess("Đăng nhập thành công! Đang chuyển hướng...");
-      
+
       // Decode token để kiểm tra role
       const token = localStorage.getItem("accessToken");
       if (token) {
         try {
           const userFromToken = getUserFromToken(token);
           console.log("User role from token:", userFromToken?.role);
-          
+
           // Delay navigation và chuyển hướng theo role
           setTimeout(() => {
             if (userFromToken?.role === "ADMIN") {
@@ -97,7 +97,7 @@ const Login: React.FC = () => {
                 {error}
               </div>
             ) : null}
-            
+
             {success ? (
               <div className="rounded-xl border border-green-200 bg-green-50 text-green-700 p-3 text-sm">
                 {success}

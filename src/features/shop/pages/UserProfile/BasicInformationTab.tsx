@@ -392,7 +392,12 @@ const BasicInformationTab: React.FC = () => {
               className="w-full h-full object-cover"
             />
           </div>
-          <Button variant="outline" size="md" onClick={handleChooseAvatar} className="self-center">
+          <Button
+            variant="outline"
+            size="md"
+            onClick={handleChooseAvatar}
+            className="self-center"
+          >
             Chọn ảnh
           </Button>
           <input

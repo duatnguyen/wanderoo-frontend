@@ -63,8 +63,9 @@ const AdminProductsCategoryDetail: React.FC = () => {
   const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
 
-  const [subcategories, setSubcategories] =
-    useState<Subcategory[]>(DEFAULT_SUBCATEGORIES);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>(
+    DEFAULT_SUBCATEGORIES
+  );
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(
     []
   );
@@ -504,4 +505,3 @@ const AdminProductsCategoryDetail: React.FC = () => {
 };
 
 export default AdminProductsCategoryDetail;
-

@@ -38,9 +38,14 @@ const AdminAddCustomer = () => {
     onSuccess: async (response) => {
       const customerId = response.data;
       console.log("Customer created with ID:", customerId);
-      
+
       // Create address if provided
-      if (formData.province && formData.district && formData.ward && formData.location) {
+      if (
+        formData.province &&
+        formData.district &&
+        formData.ward &&
+        formData.location
+      ) {
         try {
           const addressData: AddressCreationRequest = {
             name: formData.addressName.trim() || formData.name.trim(),
@@ -57,10 +62,12 @@ const AdminAddCustomer = () => {
         } catch (error) {
           console.error("Error creating address:", error);
           // Don't fail the whole operation if address creation fails
-          toast.warning("Khách hàng đã được tạo nhưng không thể tạo địa chỉ giao hàng");
+          toast.warning(
+            "Khách hàng đã được tạo nhưng không thể tạo địa chỉ giao hàng"
+          );
         }
       }
-      
+
       toast.success("Thêm khách hàng thành công");
       navigate("/admin/customers");
     },
@@ -85,13 +92,21 @@ const AdminAddCustomer = () => {
     }
 
     // Validate email format if provided
-    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+    if (
+      formData.email.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())
+    ) {
       toast.error("Email không hợp lệ");
       return;
     }
 
     // Convert gender to backend format
-    const gender = formData.gender === "Nam" ? "MALE" : formData.gender === "Nữ" ? "FEMALE" : undefined;
+    const gender =
+      formData.gender === "Nam"
+        ? "MALE"
+        : formData.gender === "Nữ"
+          ? "FEMALE"
+          : undefined;
 
     const customerData: CustomerCreationRequest = {
       name: formData.name.trim(),
@@ -100,7 +115,9 @@ const AdminAddCustomer = () => {
       username: formData.username.trim() || undefined, // Optional - backend will auto-generate
       password: formData.password.trim() || undefined, // Optional - backend will auto-generate
       gender: gender as any,
-      birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : undefined,
+      birthday: formData.birthdate
+        ? new Date(formData.birthdate).toISOString()
+        : undefined,
       // Note: Address is managed separately via Address entity, not in customer creation
     };
 
@@ -319,10 +336,10 @@ const AdminAddCustomer = () => {
               <DistrictDropdown
                 value={formData.district}
                 onValueChange={(value) => {
-                  setFormData({ 
-                    ...formData, 
+                  setFormData({
+                    ...formData,
                     district: value,
-                    districtId: formData.districtId || 1
+                    districtId: formData.districtId || 1,
                   });
                 }}
                 placeholder="Chọn quận/huyện"
@@ -336,10 +353,10 @@ const AdminAddCustomer = () => {
               <WardDropdown
                 value={formData.ward}
                 onValueChange={(value) => {
-                  setFormData({ 
-                    ...formData, 
+                  setFormData({
+                    ...formData,
                     ward: value,
-                    wardCode: formData.wardCode || "WARD001"
+                    wardCode: formData.wardCode || "WARD001",
                   });
                 }}
                 placeholder="Chọn phường/xã"

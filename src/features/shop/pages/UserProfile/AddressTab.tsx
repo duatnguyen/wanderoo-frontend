@@ -119,7 +119,9 @@ const AddressTab: React.FC = () => {
         isDefault: addr.id === id,
       }));
       // Move the default address to the top
-      updated.sort((a, b) => (a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1));
+      updated.sort((a, b) =>
+        a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1
+      );
       return updated;
     });
   };
@@ -172,7 +174,9 @@ const AddressTab: React.FC = () => {
               : addr
         );
         // If this becomes default, ensure it appears first
-        mapped.sort((a, b) => (a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1));
+        mapped.sort((a, b) =>
+          a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1
+        );
         return mapped;
       });
     } else if (isAddingNew) {
@@ -193,7 +197,9 @@ const AddressTab: React.FC = () => {
           ? prev.map((addr) => ({ ...addr, isDefault: false }))
           : prev;
         // If new address is default, place it at the top; otherwise append
-        return formData.isDefault ? [newAddress, ...updated] : [...updated, newAddress];
+        return formData.isDefault
+          ? [newAddress, ...updated]
+          : [...updated, newAddress];
       });
     }
     handleCloseModal();

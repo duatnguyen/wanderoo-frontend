@@ -74,9 +74,13 @@ const LandingPage: React.FC = () => {
   // Today's suggestions - 18 products (3 rows x 6 columns)
   // Take products starting from index 12, or from beginning if not enough
   const remainingProducts = productsData.slice(12);
-  const todaySuggestions = remainingProducts.length >= 18 
-    ? remainingProducts.slice(0, 18)
-    : [...remainingProducts, ...productsData.slice(0, 18 - remainingProducts.length)];
+  const todaySuggestions =
+    remainingProducts.length >= 18
+      ? remainingProducts.slice(0, 18)
+      : [
+          ...remainingProducts,
+          ...productsData.slice(0, 18 - remainingProducts.length),
+        ];
 
   return (
     <div className="min-h-screen bg-white justify-center flex flex-col">

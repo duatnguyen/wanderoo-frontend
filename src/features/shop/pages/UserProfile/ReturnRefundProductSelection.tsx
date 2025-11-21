@@ -39,9 +39,9 @@ const ReturnRefundProductSelection: React.FC = () => {
       option?: "received-with-issue" | "not-received";
     }) || {};
 
-  const [requestType, setRequestType] = useState<"received-with-issue" | "not-received">(
-    option || "received-with-issue"
-  );
+  const [requestType, setRequestType] = useState<
+    "received-with-issue" | "not-received"
+  >(option || "received-with-issue");
   const isNotReceived = requestType === "not-received";
 
   // Default data if not passed via state
@@ -180,10 +180,12 @@ const ReturnRefundProductSelection: React.FC = () => {
                 }`}
               >
                 <div className="text-base sm:text-lg font-semibold text-gray-800">
-                  Tôi đã nhận hàng nhưng hàng có vấn đề (bể vỡ, sai mẫu, hàng lỗi, khác mô tả...) - Miễn ship hoàn về
+                  Tôi đã nhận hàng nhưng hàng có vấn đề (bể vỡ, sai mẫu, hàng
+                  lỗi, khác mô tả...) - Miễn ship hoàn về
                 </div>
                 <div className="text-sm text-[#E04D30] mt-2">
-                  Lưu ý: Trường hợp yêu cầu trả hàng hoàn tiền của bạn được chấp nhận, voucher có thể không được hoàn lại
+                  Lưu ý: Trường hợp yêu cầu trả hàng hoàn tiền của bạn được chấp
+                  nhận, voucher có thể không được hoàn lại
                 </div>
               </button>
 
@@ -200,7 +202,8 @@ const ReturnRefundProductSelection: React.FC = () => {
                   Tôi chưa nhận hàng/thùng hàng rỗng
                 </div>
                 <div className="text-sm text-[#E04D30] mt-2">
-                  Lưu ý: Trường hợp yêu cầu trả hàng hoàn tiền của bạn được chấp nhận, voucher có thể không được hoàn lại
+                  Lưu ý: Trường hợp yêu cầu trả hàng hoàn tiền của bạn được chấp
+                  nhận, voucher có thể không được hoàn lại
                 </div>
               </button>
             </div>

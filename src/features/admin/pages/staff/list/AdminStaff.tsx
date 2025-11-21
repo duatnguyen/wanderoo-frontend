@@ -42,8 +42,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 const getRoleLabel = (staff: EmployeeResponse) => {
   const rawType =
-    (typeof staff.type === "string" ? staff.type : undefined) ??
-    staff.role;
+    (typeof staff.type === "string" ? staff.type : undefined) ?? staff.role;
   const normalizedType = rawType?.toUpperCase();
   if (normalizedType && ROLE_LABELS[normalizedType]) {
     return ROLE_LABELS[normalizedType];
@@ -75,23 +74,18 @@ const AdminStaff: React.FC = () => {
     setCurrentPage(1);
   }, [debouncedSearch]);
 
-  const {
-    data,
-    isLoading,
-    isError,
-    isFetching,
-    refetch,
-  } = useQuery<EmployeePageResponse>({
-    queryKey: ["admin-staff", currentPage, debouncedSearch],
-    queryFn: () =>
-      getEmployees({
-        page: currentPage,
-        size: pageSize,
-        search: debouncedSearch || undefined,
-      }),
-    placeholderData: (previousData: EmployeePageResponse | undefined) =>
-      previousData,
-  });
+  const { data, isLoading, isError, isFetching, refetch } =
+    useQuery<EmployeePageResponse>({
+      queryKey: ["admin-staff", currentPage, debouncedSearch],
+      queryFn: () =>
+        getEmployees({
+          page: currentPage,
+          size: pageSize,
+          search: debouncedSearch || undefined,
+        }),
+      placeholderData: (previousData: EmployeePageResponse | undefined) =>
+        previousData,
+    });
 
   const staff: EmployeeResponse[] = data?.content ?? [];
 
@@ -259,9 +253,7 @@ const AdminStaff: React.FC = () => {
                 <CustomCheckbox
                   checked={
                     paginatedStaff.length > 0 &&
-                    paginatedStaff.every((s) =>
-                      selectedStaff.has(String(s.id))
-                    )
+                    paginatedStaff.every((s) => selectedStaff.has(String(s.id)))
                   }
                   onChange={(checked) => handleSelectAll(checked)}
                   className="w-[30px] h-[30px]"
@@ -322,7 +314,11 @@ const AdminStaff: React.FC = () => {
               <span className="text-sm font-medium text-red-500">
                 Không thể tải danh sách nhân viên.
               </span>
-              <Button variant="secondary" className="mt-4" onClick={() => refetch()}>
+              <Button
+                variant="secondary"
+                className="mt-4"
+                onClick={() => refetch()}
+              >
                 Thử lại
               </Button>
             </div>
@@ -331,7 +327,11 @@ const AdminStaff: React.FC = () => {
               <span className="text-sm text-gray-600">
                 Không có nhân viên nào phù hợp.
               </span>
-              <Button variant="secondary" className="mt-4" onClick={() => refetch()}>
+              <Button
+                variant="secondary"
+                className="mt-4"
+                onClick={() => refetch()}
+              >
                 Tải lại
               </Button>
             </div>
@@ -363,16 +363,32 @@ const AdminStaff: React.FC = () => {
                       </div>
                       <div className="w-[56px] h-[56px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
                         <Avatar className="w-full h-full">
-                          {((s as unknown as { image_url?: string; avatar?: string })
-                            ?.image_url ||
-                            (s as unknown as { image_url?: string; avatar?: string })
-                              ?.avatar) ? (
+                          {(
+                            s as unknown as {
+                              image_url?: string;
+                              avatar?: string;
+                            }
+                          )?.image_url ||
+                          (
+                            s as unknown as {
+                              image_url?: string;
+                              avatar?: string;
+                            }
+                          )?.avatar ? (
                             <AvatarImage
                               src={
-                                (s as unknown as { image_url?: string; avatar?: string })
-                                  ?.image_url ??
-                                (s as unknown as { image_url?: string; avatar?: string })
-                                  ?.avatar
+                                (
+                                  s as unknown as {
+                                    image_url?: string;
+                                    avatar?: string;
+                                  }
+                                )?.image_url ??
+                                (
+                                  s as unknown as {
+                                    image_url?: string;
+                                    avatar?: string;
+                                  }
+                                )?.avatar
                               }
                               alt={s.name}
                             />

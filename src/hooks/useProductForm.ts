@@ -1,35 +1,38 @@
-import { useState, useCallback } from 'react';
-import type { ProductFormData, FormErrors } from '@/types/product';
-import { validateForm, validateField } from '@/utils/productValidation';
+import { useState, useCallback } from "react";
+import type { ProductFormData, FormErrors } from "@/types/product";
+import { validateForm, validateField } from "@/utils/productValidation";
 
 export const useProductForm = (initialData: ProductFormData) => {
   const [formData, setFormData] = useState<ProductFormData>(initialData);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = useCallback((field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({
+  const handleInputChange = useCallback(
+    (field: string, value: string) => {
+      setFormData((prev) => ({
         ...prev,
-        [field]: "",
+        [field]: value,
       }));
-    }
-    
-    // Real-time validation for specific fields
-    const fieldError = validateField(field, value);
-    if (fieldError) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: fieldError,
-      }));
-    }
-  }, [errors]);
+
+      // Clear error when user starts typing
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "",
+        }));
+      }
+
+      // Real-time validation for specific fields
+      const fieldError = validateField(field, value);
+      if (fieldError) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: fieldError,
+        }));
+      }
+    },
+    [errors]
+  );
 
   const validateFormData = useCallback(() => {
     const formErrors = validateForm(formData);

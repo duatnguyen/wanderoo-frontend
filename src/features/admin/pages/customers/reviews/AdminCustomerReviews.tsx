@@ -5,11 +5,7 @@ import type { Dayjs } from "dayjs";
 import { DatePicker as AntdDatePicker } from "antd";
 import { Button } from "@/components/ui/button";
 import ReviewResponseModal from "@/components/ui/review-response-modal";
-import {
-  PageContainer,
-  ContentCard,
-  PageHeader,
-} from "@/components/common";
+import { PageContainer, ContentCard, PageHeader } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
 interface Review {
   id: string;
@@ -325,9 +321,7 @@ const AdminCustomerReviews = () => {
                       </div>
                       <div className="flex flex-col gap-[8px] items-start relative flex-1 flex-shrink-0 min-w-0">
                         <div className="font-medium leading-[1.4] relative text-[14px] text-black font-['Montserrat'] w-full">
-                          <p className="mb-0 text-left">
-                            {review.productName}
-                          </p>
+                          <p className="mb-0 text-left">{review.productName}</p>
                         </div>
                       </div>
                     </div>
@@ -381,10 +375,9 @@ const AdminCustomerReviews = () => {
                   {/* Action Button */}
                   <div className="flex items-center justify-center p-[16px] relative w-[160px] min-w-[160px]">
                     <Button
-                      className={`w-auto px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] ${review.shopReply
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                        }`}
+                      className={`w-auto px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] ${
+                        review.shopReply ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                       onClick={() => handleReplyClick(review)}
                       disabled={!!review.shopReply}
                     >
@@ -416,8 +409,6 @@ const AdminCustomerReviews = () => {
         customerName={selectedReview?.customerName || ""}
         initialResponse={selectedReview?.shopReply || ""}
       />
-
-
     </PageContainer>
   );
 };

@@ -1,6 +1,16 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useRef,
+} from "react";
 import { authLogin, authRegister } from "../api/endpoints/authApi";
-import { isTokenExpired, getTimeUntilExpiry, getUserFromToken } from "../utils/jwt";
+import {
+  isTokenExpired,
+  getTimeUntilExpiry,
+  getUserFromToken,
+} from "../utils/jwt";
 import type {
   AuthContextType,
   AuthState,
@@ -11,11 +21,17 @@ import type {
 
 type AuthAction =
   | { type: "LOGIN_START" }
-  | { type: "LOGIN_SUCCESS"; payload: { user: User; token: string; refreshToken: string } }
+  | {
+      type: "LOGIN_SUCCESS";
+      payload: { user: User; token: string; refreshToken: string };
+    }
   | { type: "LOGIN_FAILURE" }
   | { type: "LOGOUT" }
   | { type: "REGISTER_START" }
-  | { type: "REGISTER_SUCCESS"; payload: { user: User; token: string; refreshToken: string } }
+  | {
+      type: "REGISTER_SUCCESS";
+      payload: { user: User; token: string; refreshToken: string };
+    }
   | { type: "REGISTER_FAILURE" }
   | { type: "AUTH_CHECK_COMPLETE" };
 
@@ -99,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Get time until expiry and set timer
     const timeUntilExpiry = getTimeUntilExpiry(token);
-    
+
     logoutTimerRef.current = setTimeout(() => {
       logout();
     }, timeUntilExpiry);
@@ -111,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const savedRefreshToken = localStorage.getItem("refreshToken");
     // Ensure we never persist decoded user info in localStorage
     localStorage.removeItem(USER_STORAGE_KEY);
-    
+
     if (savedToken) {
       // Check if token is expired
       if (isTokenExpired(savedToken)) {
@@ -134,11 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const user: User = {
         id: parseInt(tokenUser.id) || 0,
         username: tokenUser.username,
-        email: '',
-        name: '',
-        phone: '',
+        email: "",
+        name: "",
+        phone: "",
         role: tokenUser.role as any,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       };
 
       dispatch({
@@ -146,8 +162,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         payload: {
           user,
           token: savedToken,
-          refreshToken: savedRefreshToken || ""
-        }
+          refreshToken: savedRefreshToken || "",
+        },
       });
 
       // Setup automatic logout
@@ -156,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // No saved token, auth check complete
       dispatch({ type: "AUTH_CHECK_COMPLETE" });
     }
-  }, []);  // Cleanup timer on unmount
+  }, []); // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (logoutTimerRef.current) {
@@ -171,27 +187,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       // Call real API
       const response = await authLogin(credentials);
-      
+
       // Check if token is valid
       if (isTokenExpired(response.accessToken)) {
-        throw new Error('Received expired token');
+        throw new Error("Received expired token");
       }
 
       // Get user info from token
       const tokenUser = getUserFromToken(response.accessToken);
       if (!tokenUser) {
-        throw new Error('Could not decode user from token');
+        throw new Error("Could not decode user from token");
       }
 
       // Create user object from token data
       const user: User = {
         id: parseInt(tokenUser.id) || 0,
         username: tokenUser.username,
-        email: '',
-        name: '',
-        phone: '',
+        email: "",
+        name: "",
+        phone: "",
         role: tokenUser.role as any,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       };
 
       // Store only tokens, no user data
@@ -200,18 +216,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Explicitly avoid storing decoded user info in localStorage
       localStorage.removeItem(USER_STORAGE_KEY);
 
-      dispatch({ 
-        type: "LOGIN_SUCCESS", 
-        payload: { 
-          user, 
-          token: response.accessToken, 
-          refreshToken: response.refreshToken || "" 
-        } 
+      dispatch({
+        type: "LOGIN_SUCCESS",
+        payload: {
+          user,
+          token: response.accessToken,
+          refreshToken: response.refreshToken || "",
+        },
       });
 
       // Setup automatic logout based on token expiry
       setupLogoutTimer(response.accessToken);
-      
     } catch (error) {
       dispatch({ type: "LOGIN_FAILURE" });
       throw error;
@@ -224,16 +239,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       // Call real API
       const response = await authRegister(userData);
-      
+
       // Check if token is valid
       if (isTokenExpired(response.accessToken)) {
-        throw new Error('Received expired token');
+        throw new Error("Received expired token");
       }
-      
+
       // Get user info from token
       const tokenUser = getUserFromToken(response.accessToken);
       if (!tokenUser) {
-        throw new Error('Could not decode user from token');
+        throw new Error("Could not decode user from token");
       }
 
       // Create user object from token data
@@ -244,7 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         name: userData.name,
         phone: userData.phone,
         role: tokenUser.role as any,
-        status: 'ACTIVE',
+        status: "ACTIVE",
       };
 
       // Store only tokens
@@ -252,13 +267,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.setItem("refreshToken", response.refreshToken || "");
       localStorage.removeItem(USER_STORAGE_KEY);
 
-      dispatch({ 
-        type: "REGISTER_SUCCESS", 
-        payload: { 
-          user, 
-          token: response.accessToken, 
-          refreshToken: response.refreshToken || "" 
-        } 
+      dispatch({
+        type: "REGISTER_SUCCESS",
+        payload: {
+          user,
+          token: response.accessToken,
+          refreshToken: response.refreshToken || "",
+        },
       });
     } catch (error) {
       dispatch({ type: "REGISTER_FAILURE" });

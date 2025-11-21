@@ -1,5 +1,5 @@
 // src/types/warehouse.ts - Warehouse and inventory types
-import type { PageResponse } from './common';
+import type { PageResponse } from "./common";
 
 export interface SimpleInventoryItemResponse {
   id: number;
@@ -11,7 +11,8 @@ export interface SimpleInventoryItemResponse {
   sellingPrice?: number | null;
 }
 
-export interface SimpleInventoryPageResponse extends PageResponse<SimpleInventoryItemResponse> {}
+export interface SimpleInventoryPageResponse
+  extends PageResponse<SimpleInventoryItemResponse> {}
 
 export interface ProviderResponse {
   id: number;

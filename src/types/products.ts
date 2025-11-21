@@ -1,5 +1,5 @@
 // src/types/products.ts - Product and category types
-import type { PageResponse } from './common';
+import type { PageResponse } from "./common";
 
 export interface ProductResponse {
   id: number;
@@ -38,9 +38,11 @@ export interface CategoryChildResponse {
   status: string;
 }
 
-export interface CategoryParentPageResponse extends PageResponse<CategoryParentResponse> {}
+export interface CategoryParentPageResponse
+  extends PageResponse<CategoryParentResponse> {}
 
-export interface CategoryChildPageResponse extends PageResponse<CategoryChildResponse> {}
+export interface CategoryChildPageResponse
+  extends PageResponse<CategoryChildResponse> {}
 
 // Request types
 export interface ProductCreateRequest {
@@ -83,7 +85,8 @@ export interface CategoryChildCreateRequest {
   parentId: number;
 }
 
-export interface CategoryParentUpdateRequest extends CategoryParentCreateRequest {
+export interface CategoryParentUpdateRequest
+  extends CategoryParentCreateRequest {
   id: number;
 }
 

@@ -9,7 +9,7 @@ export {
   authLogin,
   authRegister,
   authMe,
-} from './authApi';
+} from "./authApi";
 
 // User API exports
 export {
@@ -22,7 +22,7 @@ export {
   getAddressById,
   updateAddress,
   deleteAddress,
-} from './userApi';
+} from "./userApi";
 
 // Cart API exports
 export {
@@ -31,7 +31,7 @@ export {
   updateCartItem,
   removeCartItem,
   clearCart,
-} from './cartApi';
+} from "./cartApi";
 
 // Discount API exports
 export {
@@ -42,12 +42,10 @@ export {
   updateDiscount,
   deleteDiscount,
   deleteAllDiscounts,
-} from './discountApi';
+} from "./discountApi";
 
 // Inventory API exports
-export {
-  getInventory,
-} from './inventoryApi';
+export { getInventory } from "./inventoryApi";
 
 // Attribute API exports
 export {
@@ -61,7 +59,7 @@ export {
   enableAllCategories,
   disableAllCategories,
   getBrandList,
-} from './attributeApi';
+} from "./attributeApi";
 
 // Product API exports
 export {
@@ -91,7 +89,7 @@ export {
   disableProductsPrivate,
   enableProductsPrivate,
   updateSellingQuantityPrivate,
-} from './productApi';
+} from "./productApi";
 
 // Order API exports
 export {
@@ -112,7 +110,7 @@ export {
   updateOrderDetail,
   getOrderHistoriesByOrderId,
   getOrderHistoryByOrderAndHistoryId,
-} from './orderApi';
+} from "./orderApi";
 
 // Review API exports
 export {
@@ -121,7 +119,7 @@ export {
   createReview,
   updateReview,
   deleteReview,
-} from './reviewApi';
+} from "./reviewApi";
 
 // Sale POS API exports
 export {
@@ -140,7 +138,7 @@ export {
   checkoutOrder,
   removeItemFromDraftOrder,
   deleteDraftOrder,
-} from './saleApi';
+} from "./saleApi";
 
 // Shipping API exports
 export {
@@ -175,7 +173,7 @@ export {
   printSingleOrder,
   switchStatusToStoring,
   handleShippingWebhook,
-} from './shippingApi';
+} from "./shippingApi";
 
 // Warehouse API exports
 export {
@@ -194,7 +192,7 @@ export {
   getExportInvoices,
   getExportInvoicesPending,
   getExportInvoicesDone,
-} from './warehouseApi';
+} from "./warehouseApi";
 
 // POS APIs
 export {
@@ -206,4 +204,4 @@ export {
   getPosReturnOrderDetail,
   cancelPosReturnOrder,
   completePosReturnOrder,
-} from './posApi';
+} from "./posApi";

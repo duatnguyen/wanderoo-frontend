@@ -14,7 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import CaretDown from "@/components/ui/caret-down";
-import { getEmployeeById, updateEmployee, updateEmployeeAccount, type AllowedRole } from "@/api/endpoints/userApi";
+import {
+  getEmployeeById,
+  updateEmployee,
+  updateEmployeeAccount,
+  type AllowedRole,
+} from "@/api/endpoints/userApi";
 import type { EmployeeResponse } from "@/types";
 import { toast } from "sonner";
 
@@ -76,7 +81,7 @@ const AdminStaffDetail: React.FC = () => {
       const birthdayStr = staff.birthday
         ? new Date(staff.birthday).toISOString().split("T")[0]
         : "";
-      
+
       setEditFormData({
         fullName: staff.name || "",
         phone: staff.phone || "",
@@ -104,7 +109,7 @@ const AdminStaffDetail: React.FC = () => {
       userType?: AllowedRole;
     }) => {
       console.log("Mutation called with data:", data);
-      
+
       // Format birthday to ISO string if provided
       const formattedBirthday = data.birthday
         ? new Date(data.birthday).toISOString()
@@ -131,14 +136,17 @@ const AdminStaffDetail: React.FC = () => {
       if (formattedBirthday) {
         updateData.birthday = formattedBirthday;
       }
-      
+
       console.log("Final updateData:", JSON.stringify(updateData, null, 2));
       console.log("userType:", data.userType);
 
       // Always use updateEmployeeAccount if we have userType (for role support)
       // Otherwise use regular updateEmployee
       if (data.userType) {
-        console.log("Calling updateEmployeeAccount with userType:", data.userType);
+        console.log(
+          "Calling updateEmployeeAccount with userType:",
+          data.userType
+        );
         try {
           const result = await updateEmployeeAccount(updateData, data.userType);
           console.log("updateEmployeeAccount result:", result);
@@ -162,23 +170,25 @@ const AdminStaffDetail: React.FC = () => {
     onSuccess: async (response, variables) => {
       console.log("Update successful, response:", response);
       console.log("Update variables:", variables);
-      
+
       toast.success("Cập nhật thông tin nhân viên thành công");
-      
+
       // Close modal first
       setIsEditing(false);
-      
+
       // Small delay to ensure backend has processed the update
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Invalidate queries to mark them as stale
-      queryClient.invalidateQueries({ queryKey: ["admin-staff-detail", staffId] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin-staff-detail", staffId],
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
-      
+
       // Force refetch the current employee data
       const { data: updatedStaff } = await refetchStaff();
       console.log("Refetched staff data:", updatedStaff);
-      
+
       // Also update the query cache directly if we have the updated data
       if (updatedStaff) {
         queryClient.setQueryData(["admin-staff-detail", staffId], updatedStaff);
@@ -198,7 +208,9 @@ const AdminStaffDetail: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center px-[50px] py-[32px] w-full">
-        <p className="text-[#272424] text-[16px]">Đang tải thông tin nhân viên...</p>
+        <p className="text-[#272424] text-[16px]">
+          Đang tải thông tin nhân viên...
+        </p>
       </div>
     );
   }
@@ -208,7 +220,9 @@ const AdminStaffDetail: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center px-[50px] py-[32px] w-full">
         <p className="text-[#272424] text-[16px]">
-          {isError ? "Không thể tải thông tin nhân viên" : "Không tìm thấy nhân viên"}
+          {isError
+            ? "Không thể tải thông tin nhân viên"
+            : "Không tìm thấy nhân viên"}
         </p>
         <button
           onClick={() => navigate("/admin/staff")}
@@ -246,7 +260,7 @@ const AdminStaffDetail: React.FC = () => {
 
   const handleSave = () => {
     console.log("handleSave called", { staff, editFormData });
-    
+
     if (!staff) {
       console.error("No staff data");
       return;
@@ -283,7 +297,9 @@ const AdminStaffDetail: React.FC = () => {
       password: passwordToSend || "", // Keep empty string for now, will be filtered in mutation
       gender: editFormData.gender.toUpperCase() as "MALE" | "FEMALE",
       birthday: editFormData.dateOfBirth || undefined,
-      userType: selectedUserType || staff.type?.toUpperCase() as AllowedRole | undefined, // Always include userType if available
+      userType:
+        selectedUserType ||
+        (staff.type?.toUpperCase() as AllowedRole | undefined), // Always include userType if available
     };
 
     console.log("Calling mutation with data:", mutationData);
@@ -327,7 +343,10 @@ const AdminStaffDetail: React.FC = () => {
                 <div className="w-[60px] h-[60px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
                   <Avatar className="w-full h-full">
                     {staff.image_url ? (
-                      <AvatarImage src={staff.image_url} alt={staff.name || ""} />
+                      <AvatarImage
+                        src={staff.image_url}
+                        alt={staff.name || ""}
+                      />
                     ) : (
                       <AvatarFallback className="text-lg">
                         {(staff.name || "N").charAt(0).toUpperCase()}

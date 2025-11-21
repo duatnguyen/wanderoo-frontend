@@ -11,14 +11,21 @@ import CustomRadio from "@/components/ui/custom-radio";
 import CityDropdown from "@/components/ui/city-dropdown";
 import DistrictDropdown from "@/components/ui/district-dropdown";
 import WardDropdown from "@/components/ui/ward-dropdown";
+import { PageContainer, ContentCard } from "@/components/common";
 import {
-  PageContainer,
-  ContentCard,
-} from "@/components/common";
-import { getCustomerById, updateCustomer, getCustomerAddresses, updateCustomerAddress, createCustomerAddress } from "@/api/endpoints/userApi";
+  getCustomerById,
+  updateCustomer,
+  getCustomerAddresses,
+  updateCustomerAddress,
+  createCustomerAddress,
+} from "@/api/endpoints/userApi";
 import { toast } from "sonner";
 import type { CustomerResponse, CustomerUpdateRequest } from "@/types/api";
-import type { AddressResponse, AddressUpdateRequest, AddressCreationRequest } from "@/types";
+import type {
+  AddressResponse,
+  AddressUpdateRequest,
+  AddressCreationRequest,
+} from "@/types";
 
 const AdminCustomerDetail = () => {
   const { customerId } = useParams();
@@ -45,7 +52,9 @@ const AdminCustomerDetail = () => {
     wardCode: "",
     districtId: null as number | null,
   });
-  const [defaultAddress, setDefaultAddress] = useState<AddressResponse | null>(null);
+  const [defaultAddress, setDefaultAddress] = useState<AddressResponse | null>(
+    null
+  );
 
   // Fetch customer data from API
   const {
@@ -60,10 +69,7 @@ const AdminCustomerDetail = () => {
   });
 
   // Fetch customer addresses
-  const {
-    data: addressesData,
-    refetch: refetchAddresses,
-  } = useQuery({
+  const { data: addressesData, refetch: refetchAddresses } = useQuery({
     queryKey: ["admin-customer-addresses", customerId],
     queryFn: () => getCustomerAddresses(Number(customerId)),
     enabled: !!customerId,
@@ -116,7 +122,8 @@ const AdminCustomerDetail = () => {
 
   // Create address mutation
   const createAddressMutation = useMutation({
-    mutationFn: (data: AddressCreationRequest) => createCustomerAddress(Number(customerId), data),
+    mutationFn: (data: AddressCreationRequest) =>
+      createCustomerAddress(Number(customerId), data),
     onSuccess: async () => {
       toast.success("Tạo địa chỉ giao hàng thành công");
       await refetchAddresses();
@@ -140,7 +147,8 @@ const AdminCustomerDetail = () => {
         birthdate: customer.birthday
           ? new Date(customer.birthday).toISOString().split("T")[0]
           : "",
-        gender: (customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ") || "Nữ",
+        gender:
+          (customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ") || "Nữ",
         email: customer.email || "",
       });
     }
@@ -150,8 +158,10 @@ const AdminCustomerDetail = () => {
   useEffect(() => {
     if (addressesData?.addresses && addressesData.addresses.length > 0) {
       // Find default address or use first address
-      const defaultAddr = addressesData.addresses.find(addr => addr.isDefault === "Địa chỉ mặc định") 
-        || addressesData.addresses[0];
+      const defaultAddr =
+        addressesData.addresses.find(
+          (addr) => addr.isDefault === "Địa chỉ mặc định"
+        ) || addressesData.addresses[0];
       setDefaultAddress(defaultAddr);
     } else {
       setDefaultAddress(null);
@@ -163,7 +173,9 @@ const AdminCustomerDetail = () => {
     return (
       <PageContainer>
         <div className="flex items-center justify-center py-8">
-          <p className="text-[#272424] text-[16px]">Đang tải thông tin khách hàng...</p>
+          <p className="text-[#272424] text-[16px]">
+            Đang tải thông tin khách hàng...
+          </p>
         </div>
       </PageContainer>
     );
@@ -175,7 +187,9 @@ const AdminCustomerDetail = () => {
       <PageContainer>
         <div className="flex items-center justify-center py-8">
           <p className="text-[#272424] text-[16px]">
-            {isError ? "Không thể tải thông tin khách hàng" : "Không tìm thấy khách hàng"}
+            {isError
+              ? "Không thể tải thông tin khách hàng"
+              : "Không tìm thấy khách hàng"}
           </p>
         </div>
       </PageContainer>
@@ -213,7 +227,11 @@ const AdminCustomerDetail = () => {
       username: customer.username, // Keep existing username
       password: "", // Password not required for update - backend will skip encoding if empty
       gender: formData.gender === "Nam" ? "MALE" : "FEMALE", // Convert to backend format
-      birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : customer.birthday ? new Date(customer.birthday).toISOString() : undefined,
+      birthday: formData.birthdate
+        ? new Date(formData.birthdate).toISOString()
+        : customer.birthday
+          ? new Date(customer.birthday).toISOString()
+          : undefined,
       // Note: address field is for contact address, not delivery address
       // Delivery address is managed separately via Address entity
     };
@@ -370,14 +388,20 @@ const AdminCustomerDetail = () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-[4px]">
-                    <div className={`w-[6px] h-[6px] rounded-full ${customer.status?.toUpperCase() === "ACTIVE" ? "bg-[#28a745]" : "bg-[#dc3545]"}`}></div>
-                    <span className={`font-medium text-[12px] leading-[1.4] ${customer.status?.toUpperCase() === "ACTIVE" ? "text-[#28a745]" : "text-[#dc3545]"}`}>
-                      {customer.status?.toUpperCase() === "ACTIVE" ? "Hoạt động" : "Ngừng hoạt động"}
+                    <div
+                      className={`w-[6px] h-[6px] rounded-full ${customer.status?.toUpperCase() === "ACTIVE" ? "bg-[#28a745]" : "bg-[#dc3545]"}`}
+                    ></div>
+                    <span
+                      className={`font-medium text-[12px] leading-[1.4] ${customer.status?.toUpperCase() === "ACTIVE" ? "text-[#28a745]" : "text-[#dc3545]"}`}
+                    >
+                      {customer.status?.toUpperCase() === "ACTIVE"
+                        ? "Hoạt động"
+                        : "Ngừng hoạt động"}
                     </span>
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex gap-[32px] items-center">
                 <div className="flex flex-col items-center gap-[4px]">
                   <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
@@ -471,7 +495,6 @@ const AdminCustomerDetail = () => {
             />
           </div>
 
-
           {/* Right Column */}
           <div className="flex flex-col gap-[8px] flex-[1]">
             {/* Contact Info */}
@@ -527,7 +550,11 @@ const AdminCustomerDetail = () => {
                     Giới tính
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {customer.gender ? (customer.gender.toLowerCase() === "male" ? "Nam" : "Nữ") : "---"}
+                    {customer.gender
+                      ? customer.gender.toLowerCase() === "male"
+                        ? "Nam"
+                        : "Nữ"
+                      : "---"}
                   </p>
                 </div>
                 <div className="flex flex-col gap-[4px]">
@@ -596,8 +623,10 @@ const AdminCustomerDetail = () => {
                   Địa chỉ chi tiết
                 </p>
                 <p className="font-semibold text-[#272424] text-[15px] leading-[1.5] break-words">
-                  {defaultAddress 
-                    ? `${defaultAddress.location || ""}, ${defaultAddress.ward || ""}, ${defaultAddress.district || ""}, ${defaultAddress.province || ""}`.replace(/^,\s*|,\s*$/g, '').trim() || "Chưa có địa chỉ"
+                  {defaultAddress
+                    ? `${defaultAddress.location || ""}, ${defaultAddress.ward || ""}, ${defaultAddress.district || ""}, ${defaultAddress.province || ""}`
+                        .replace(/^,\s*|,\s*$/g, "")
+                        .trim() || "Chưa có địa chỉ"
                     : "Chưa có địa chỉ"}
                 </p>
               </div>
@@ -716,12 +745,14 @@ const AdminCustomerDetail = () => {
                 >
                   Hủy bỏ
                 </Button>
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   onClick={handleSave}
                   disabled={updateCustomerMutation.isPending}
                 >
-                  {updateCustomerMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+                  {updateCustomerMutation.isPending
+                    ? "Đang lưu..."
+                    : "Lưu thay đổi"}
                 </Button>
               </div>
             </div>
@@ -803,12 +834,12 @@ const AdminCustomerDetail = () => {
                 <DistrictDropdown
                   value={addressData.district}
                   onValueChange={(value) => {
-                    setAddressData({ 
-                      ...addressData, 
+                    setAddressData({
+                      ...addressData,
                       district: value,
                       // Note: districtId will need to be set manually or via API
                       // For now, we'll use a placeholder value
-                      districtId: addressData.districtId || 1
+                      districtId: addressData.districtId || 1,
                     });
                   }}
                   placeholder="Chọn quận/huyện"
@@ -823,12 +854,12 @@ const AdminCustomerDetail = () => {
                 <WardDropdown
                   value={addressData.ward}
                   onValueChange={(value) => {
-                    setAddressData({ 
-                      ...addressData, 
+                    setAddressData({
+                      ...addressData,
                       ward: value,
                       // Note: wardCode will need to be set manually or via API
                       // For now, we'll use a placeholder value
-                      wardCode: addressData.wardCode || "WARD001"
+                      wardCode: addressData.wardCode || "WARD001",
                     });
                   }}
                   placeholder="Chọn phường/xã"
@@ -860,12 +891,18 @@ const AdminCustomerDetail = () => {
                 >
                   Hủy bỏ
                 </Button>
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   onClick={handleAddressSave}
-                  disabled={updateAddressMutation.isPending || createAddressMutation.isPending}
+                  disabled={
+                    updateAddressMutation.isPending ||
+                    createAddressMutation.isPending
+                  }
                 >
-                  {updateAddressMutation.isPending || createAddressMutation.isPending ? "Đang lưu..." : "Lưu địa chỉ"}
+                  {updateAddressMutation.isPending ||
+                  createAddressMutation.isPending
+                    ? "Đang lưu..."
+                    : "Lưu địa chỉ"}
                 </Button>
               </div>
             </div>

@@ -5,10 +5,7 @@ import TabMenuAccount, { type TabItem } from "@/components/ui/tab-menu-account";
 import AddressForm from "@/components/ui/address-form";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/icons/Icon";
-import {
-  PageContainer,
-  ContentCard,
-} from "@/components/common";
+import { PageContainer, ContentCard } from "@/components/common";
 import {
   getAdminAddresses,
   createAdminAddress,
@@ -68,15 +65,22 @@ const AdminShipping: React.FC = () => {
   });
 
   // Convert API response to local Address format and sort: default address first
-  const addresses: Address[] = (addressesData?.addresses?.map((addr: AddressResponse) => ({
-    id: addr.id,
-    name: addr.name || "",
-    phone: addr.phone || "",
-    address: `${addr.location || ""}, ${addr.ward || ""}, ${addr.district || ""}, ${addr.province || ""}`.replace(/^,\s*|,\s*$/g, ""),
-    isDefault: typeof addr.isDefault === "string" 
-      ? addr.isDefault === "Địa chỉ mặc định" || addr.isDefault === "true"
-      : addr.isDefault === true,
-  })) || []).sort((a, b) => {
+  const addresses: Address[] = (
+    addressesData?.addresses?.map((addr: AddressResponse) => ({
+      id: addr.id,
+      name: addr.name || "",
+      phone: addr.phone || "",
+      address:
+        `${addr.location || ""}, ${addr.ward || ""}, ${addr.district || ""}, ${addr.province || ""}`.replace(
+          /^,\s*|,\s*$/g,
+          ""
+        ),
+      isDefault:
+        typeof addr.isDefault === "string"
+          ? addr.isDefault === "Địa chỉ mặc định" || addr.isDefault === "true"
+          : addr.isDefault === true,
+    })) || []
+  ).sort((a, b) => {
     // Sort: default address first
     if (a.isDefault && !b.isDefault) return -1;
     if (!a.isDefault && b.isDefault) return 1;
@@ -102,16 +106,23 @@ const AdminShipping: React.FC = () => {
       await queryClient.cancelQueries({ queryKey: ["admin-addresses"] });
 
       // Snapshot the previous value
-      const previousAddresses = queryClient.getQueryData<AddressPageResponse>(["admin-addresses"]);
+      const previousAddresses = queryClient.getQueryData<AddressPageResponse>([
+        "admin-addresses",
+      ]);
 
       // Optimistically update to the new value
       if (previousAddresses) {
         queryClient.setQueryData<AddressPageResponse>(["admin-addresses"], {
           ...previousAddresses,
-          addresses: previousAddresses.addresses.map((addr: AddressResponse) => ({
-            ...addr,
-            isDefault: addr.id === addressId ? "Địa chỉ mặc định" : "Địa chỉ không mặc định",
-          })),
+          addresses: previousAddresses.addresses.map(
+            (addr: AddressResponse) => ({
+              ...addr,
+              isDefault:
+                addr.id === addressId
+                  ? "Địa chỉ mặc định"
+                  : "Địa chỉ không mặc định",
+            })
+          ),
         });
       }
 
@@ -126,7 +137,10 @@ const AdminShipping: React.FC = () => {
     onError: (error: any, _addressId: number, context: any) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousAddresses) {
-        queryClient.setQueryData(["admin-addresses"], context.previousAddresses);
+        queryClient.setQueryData(
+          ["admin-addresses"],
+          context.previousAddresses
+        );
       }
       const errorMessage =
         error?.response?.data?.message ||
@@ -154,7 +168,8 @@ const AdminShipping: React.FC = () => {
 
   // Create address mutation
   const createMutation = useMutation({
-    mutationFn: (addressData: AddressCreationRequest) => createAdminAddress(addressData),
+    mutationFn: (addressData: AddressCreationRequest) =>
+      createAdminAddress(addressData),
     onSuccess: () => {
       toast.success("Đã thêm địa chỉ mới");
       refetchAddresses();
@@ -172,7 +187,8 @@ const AdminShipping: React.FC = () => {
 
   // Update address mutation
   const updateMutation = useMutation({
-    mutationFn: (addressData: AddressUpdateRequest) => updateAdminAddress(addressData),
+    mutationFn: (addressData: AddressUpdateRequest) =>
+      updateAdminAddress(addressData),
     onSuccess: () => {
       toast.success("Đã cập nhật địa chỉ");
       refetchAddresses();
@@ -194,16 +210,24 @@ const AdminShipping: React.FC = () => {
 
   const handleUpdate = (addressId: number) => {
     // Find original address data from API response
-    const originalAddress = addressesData?.addresses?.find((addr: AddressResponse) => addr.id === addressId);
+    const originalAddress = addressesData?.addresses?.find(
+      (addr: AddressResponse) => addr.id === addressId
+    );
     if (originalAddress) {
       setEditingAddress({
         id: originalAddress.id,
         name: originalAddress.name || "",
         phone: originalAddress.phone || "",
-        address: `${originalAddress.location || ""}, ${originalAddress.ward || ""}, ${originalAddress.district || ""}, ${originalAddress.province || ""}`.replace(/^,\s*|,\s*$/g, ""),
-        isDefault: typeof originalAddress.isDefault === "string" 
-          ? originalAddress.isDefault === "Địa chỉ mặc định" || originalAddress.isDefault === "true"
-          : originalAddress.isDefault === true,
+        address:
+          `${originalAddress.location || ""}, ${originalAddress.ward || ""}, ${originalAddress.district || ""}, ${originalAddress.province || ""}`.replace(
+            /^,\s*|,\s*$/g,
+            ""
+          ),
+        isDefault:
+          typeof originalAddress.isDefault === "string"
+            ? originalAddress.isDefault === "Địa chỉ mặc định" ||
+              originalAddress.isDefault === "true"
+            : originalAddress.isDefault === true,
       });
       setShowAddressForm(true);
     }
@@ -222,7 +246,7 @@ const AdminShipping: React.FC = () => {
 
   const handleAddressFormSubmit = (formData: AddressFormData) => {
     // Parse address string to get location, ward, district, province
-    const addressParts = formData.detailAddress.split(",").map(s => s.trim());
+    const addressParts = formData.detailAddress.split(",").map((s) => s.trim());
     const location = addressParts[0] || "";
     const ward = formData.ward || "";
     const district = formData.district || "";
@@ -262,7 +286,6 @@ const AdminShipping: React.FC = () => {
     setShowAddressForm(false);
     setEditingAddress(null);
   };
-
 
   return (
     <PageContainer>
@@ -308,96 +331,103 @@ const AdminShipping: React.FC = () => {
               <div className="bg-white border border-[#d1d1d1] flex flex-col items-start rounded-[24px] w-full">
                 {isLoadingAddresses ? (
                   <div className="flex items-center justify-center w-full py-8">
-                    <p className="text-[#272424] text-[14px]">Đang tải địa chỉ...</p>
+                    <p className="text-[#272424] text-[14px]">
+                      Đang tải địa chỉ...
+                    </p>
                   </div>
                 ) : addresses.length === 0 ? (
                   <div className="flex items-center justify-center w-full py-8">
-                    <p className="text-[#272424] text-[14px]">Chưa có địa chỉ nào</p>
+                    <p className="text-[#272424] text-[14px]">
+                      Chưa có địa chỉ nào
+                    </p>
                   </div>
                 ) : (
                   addresses.map((address, index) => (
-                  <div
-                    key={address.id}
-                    className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${index < addresses.length - 1 ? "border-b border-[#d1d1d1]" : ""
+                    <div
+                      key={address.id}
+                      className={`flex flex-col gap-[12px] items-start p-[24px] w-full ${
+                        index < addresses.length - 1
+                          ? "border-b border-[#d1d1d1]"
+                          : ""
                       }`}
-                  >
-                    {/* Row 1: Name/Phone on left, actions on right */}
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex gap-[2px] items-center text-[14px]">
-                        <span className="font-semibold text-[#272424] leading-[1.4] whitespace-nowrap">
-                          {address.name}
-                        </span>
-                        <span className="font-normal text-black leading-[1.4]">
-                          |
-                        </span>
-                        <span className="font-normal text-[#272424] leading-[1.4] whitespace-nowrap">
-                          {address.phone}
-                        </span>
-                      </div>
-                      <div className="flex gap-[24px] items-center">
-                        {address.isDefault ? (
-                          <button
-                            onClick={() => handleUpdate(address.id)}
-                            className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
-                          >
-                            Cập nhật
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleDelete(address.id)}
-                              className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
-                            >
-                              Xóa
-                            </button>
+                    >
+                      {/* Row 1: Name/Phone on left, actions on right */}
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex gap-[2px] items-center text-[14px]">
+                          <span className="font-semibold text-[#272424] leading-[1.4] whitespace-nowrap">
+                            {address.name}
+                          </span>
+                          <span className="font-normal text-black leading-[1.4]">
+                            |
+                          </span>
+                          <span className="font-normal text-[#272424] leading-[1.4] whitespace-nowrap">
+                            {address.phone}
+                          </span>
+                        </div>
+                        <div className="flex gap-[24px] items-center">
+                          {address.isDefault ? (
                             <button
                               onClick={() => handleUpdate(address.id)}
                               className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
                             >
                               Cập nhật
                             </button>
-                          </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleDelete(address.id)}
+                                className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
+                              >
+                                Xóa
+                              </button>
+                              <button
+                                onClick={() => handleUpdate(address.id)}
+                                className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer"
+                              >
+                                Cập nhật
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Row 2: Address on left, default button on right */}
+                      <div className="flex items-center justify-between w-full">
+                        <span className="font-normal text-[#272424] text-[14px] leading-[1.4]">
+                          {address.address}
+                        </span>
+                        {address.isDefault ? (
+                          <button
+                            disabled
+                            className="bg-white border border-[#e04d30] flex gap-[4px] items-center px-[12px] py-[6px] rounded-[10px] opacity-40 cursor-not-allowed flex-shrink-0 whitespace-nowrap"
+                          >
+                            <span className="font-medium text-[#e04d30] text-[14px] leading-[1.4]">
+                              Thiết lập địa chỉ mặc định
+                            </span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleSetDefault(address.id)}
+                            className="bg-white border border-[#e04d30] flex gap-[4px] items-center px-[12px] py-[6px] rounded-[10px] flex-shrink-0 whitespace-nowrap"
+                          >
+                            <span className="font-medium text-[#e04d30] text-[14px] leading-[1.4]">
+                              Thiết lập địa chỉ mặc định
+                            </span>
+                          </button>
                         )}
                       </div>
-                    </div>
 
-                    {/* Row 2: Address on left, default button on right */}
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-normal text-[#272424] text-[14px] leading-[1.4]">
-                        {address.address}
-                      </span>
-                      {address.isDefault ? (
-                        <button
-                          disabled
-                          className="bg-white border border-[#e04d30] flex gap-[4px] items-center px-[12px] py-[6px] rounded-[10px] opacity-40 cursor-not-allowed flex-shrink-0 whitespace-nowrap"
-                        >
-                          <span className="font-medium text-[#e04d30] text-[14px] leading-[1.4]">
-                            Thiết lập địa chỉ mặc định
+                      {/* Default address chip */}
+                      {address.isDefault && (
+                        <div className="bg-[#b2ffb4] flex gap-[10px] items-center h-[24px] px-[8px] rounded-[12px]">
+                          <span className="font-semibold text-[#04910c] text-[12px] leading-[1.2]">
+                            Địa chỉ mặc định
                           </span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleSetDefault(address.id)}
-                          className="bg-white border border-[#e04d30] flex gap-[4px] items-center px-[12px] py-[6px] rounded-[10px] flex-shrink-0 whitespace-nowrap"
-                        >
-                          <span className="font-medium text-[#e04d30] text-[14px] leading-[1.4]">
-                            Thiết lập địa chỉ mặc định
-                          </span>
-                        </button>
+                        </div>
                       )}
+
+                      {/* No separate bottom actions */}
                     </div>
-
-                    {/* Default address chip */}
-                    {address.isDefault && (
-                      <div className="bg-[#b2ffb4] flex gap-[10px] items-center h-[24px] px-[8px] rounded-[12px]">
-                        <span className="font-semibold text-[#04910c] text-[12px] leading-[1.2]">
-                          Địa chỉ mặc định
-                        </span>
-                      </div>
-                    )}
-
-                    {/* No separate bottom actions */}
-                  </div>
                   ))
                 )}
               </div>
@@ -451,7 +481,10 @@ const AdminShipping: React.FC = () => {
                 initialData={
                   editingAddress && addressesData?.addresses
                     ? (() => {
-                        const originalAddress = addressesData.addresses.find((addr: AddressResponse) => addr.id === editingAddress.id);
+                        const originalAddress = addressesData.addresses.find(
+                          (addr: AddressResponse) =>
+                            addr.id === editingAddress.id
+                        );
                         return originalAddress
                           ? {
                               fullName: originalAddress.name || "",
@@ -460,9 +493,12 @@ const AdminShipping: React.FC = () => {
                               district: originalAddress.district || "",
                               ward: originalAddress.ward || "",
                               detailAddress: originalAddress.location || "",
-                              isDefault: typeof originalAddress.isDefault === "string" 
-                                ? originalAddress.isDefault === "Địa chỉ mặc định" || originalAddress.isDefault === "true"
-                                : originalAddress.isDefault === true,
+                              isDefault:
+                                typeof originalAddress.isDefault === "string"
+                                  ? originalAddress.isDefault ===
+                                      "Địa chỉ mặc định" ||
+                                    originalAddress.isDefault === "true"
+                                  : originalAddress.isDefault === true,
                             }
                           : undefined;
                       })()

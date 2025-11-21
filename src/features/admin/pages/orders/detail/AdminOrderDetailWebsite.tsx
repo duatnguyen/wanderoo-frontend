@@ -11,17 +11,21 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PageContainer, ContentCard } from "@/components/common";
-import { getAdminCustomerOrderDetail, confirmOrderAndCreateShipping, cancelAdminOrder } from "@/api/endpoints/orderApi";
+import {
+  getAdminCustomerOrderDetail,
+  confirmOrderAndCreateShipping,
+  cancelAdminOrder,
+} from "@/api/endpoints/orderApi";
 import type { CustomerOrderResponse } from "@/types/orders";
 
-import PaymentTableHeader from './PaymentTableHeader';
-import PaymentTableItem from './PaymentTableItem';
-import PaymentSummaryWebsite from './PaymentSummaryWebsite';
-import PaymentInformationWebsite from './PaymentInformationWebsite';
-import DeliveryConfirmationPopupWebsite from './DeliveryConfirmationPopupWebsite';
-import CancelOrderConfirmationPopupWebsite from './CancelOrderConfirmationPopupWebsite';
-import ActionButtonsWebsite from './ActionButtonsWebsite';
-import WebsiteOrderInfo from './WebsiteOrderInfo';
+import PaymentTableHeader from "./PaymentTableHeader";
+import PaymentTableItem from "./PaymentTableItem";
+import PaymentSummaryWebsite from "./PaymentSummaryWebsite";
+import PaymentInformationWebsite from "./PaymentInformationWebsite";
+import DeliveryConfirmationPopupWebsite from "./DeliveryConfirmationPopupWebsite";
+import CancelOrderConfirmationPopupWebsite from "./CancelOrderConfirmationPopupWebsite";
+import ActionButtonsWebsite from "./ActionButtonsWebsite";
+import WebsiteOrderInfo from "./WebsiteOrderInfo";
 
 const AdminOrderDetailWebsite: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +33,9 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
   const [showDeliveryPopup, setShowDeliveryPopup] = useState(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
-  const [orderData, setOrderData] = useState<CustomerOrderResponse | null>(null);
+  const [orderData, setOrderData] = useState<CustomerOrderResponse | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,8 +75,8 @@ const AdminOrderDetailWebsite: React.FC = () => {
       const response = await getAdminCustomerOrderDetail(parseInt(orderId!));
       setOrderData(response);
     } catch (err) {
-      console.error('Error loading order detail:', err);
-      setError('Không thể tải thông tin đơn hàng');
+      console.error("Error loading order detail:", err);
+      setError("Không thể tải thông tin đơn hàng");
     } finally {
       setLoading(false);
     }
@@ -80,14 +86,15 @@ const AdminOrderDetailWebsite: React.FC = () => {
     navigate(-1);
   };
 
-
-
   const handleConfirmOrder = () => {
     // Mở popup xác nhận giao hàng
     setShowDeliveryPopup(true);
   };
 
-  const handleDeliveryConfirm = async (data: { pickShift: number[]; requiredNote: string }) => {
+  const handleDeliveryConfirm = async (data: {
+    pickShift: number[];
+    requiredNote: string;
+  }) => {
     if (!orderId) return;
 
     try {
@@ -119,10 +126,6 @@ const AdminOrderDetailWebsite: React.FC = () => {
       alert("Có lỗi xảy ra khi hủy đơn hàng!");
     }
   };
-
-
-
-
 
   // Get status card styling based on order status
   const getStatusCardStyle = () => {
@@ -181,7 +184,9 @@ const AdminOrderDetailWebsite: React.FC = () => {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <XCircle className="w-8 h-8 text-red-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Lỗi tải dữ liệu</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Lỗi tải dữ liệu
+            </h3>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
               onClick={loadOrderDetail}
@@ -203,8 +208,12 @@ const AdminOrderDetailWebsite: React.FC = () => {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-gray-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy đơn hàng</h3>
-            <p className="text-gray-600">Đơn hàng này không tồn tại hoặc đã bị xóa.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Không tìm thấy đơn hàng
+            </h3>
+            <p className="text-gray-600">
+              Đơn hàng này không tồn tại hoặc đã bị xóa.
+            </p>
           </div>
         </div>
       </PageContainer>
@@ -382,8 +391,9 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
           {/* Payment Table */}
           <div
-            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start sm:p-[20px] relative rounded-[8px] w-full ${orderData!.status === "CANCELED" ? "opacity-50" : ""
-              }`}
+            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start sm:p-[20px] relative rounded-[8px] w-full ${
+              orderData!.status === "CANCELED" ? "opacity-50" : ""
+            }`}
           >
             <div className="w-full">
               <div className="box-border flex gap-[6px] items-center px-[6px] py-0 mb-4 relative shrink-0 w-full">
@@ -396,10 +406,18 @@ const AdminOrderDetailWebsite: React.FC = () => {
                 <div className="flex flex-col items-start relative rounded-[8px] w-full min-w-[700px] border border-[#e7e7e7] overflow-hidden bg-white">
                   <PaymentTableHeader />
                   {(orderData.orderDetails || []).map((item, index) => (
-                    <PaymentTableItem key={item.id} item={item} index={index} formatCurrency={formatCurrency} />
+                    <PaymentTableItem
+                      key={item.id}
+                      item={item}
+                      index={index}
+                      formatCurrency={formatCurrency}
+                    />
                   ))}
                   {/* Summary Row - Website */}
-                  <PaymentSummaryWebsite orderData={orderData!} formatCurrency={formatCurrency} />
+                  <PaymentSummaryWebsite
+                    orderData={orderData!}
+                    formatCurrency={formatCurrency}
+                  />
                 </div>
               </div>
             </div>

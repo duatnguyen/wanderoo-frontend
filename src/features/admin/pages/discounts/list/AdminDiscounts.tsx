@@ -478,18 +478,22 @@ const AdminDiscounts: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedRows, setSelectedRows] = useState<Set<string | number>>(new Set());
+  const [selectedRows, setSelectedRows] = useState<Set<string | number>>(
+    new Set()
+  );
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
   // Filter vouchers based on active tab and search term
   const filteredVouchers = mockVouchers.filter((voucher) => {
-    const matchesTab = activeTab === "all" ||
+    const matchesTab =
+      activeTab === "all" ||
       (activeTab === "ongoing" && voucher.status === "Đang diễn ra") ||
       (activeTab === "upcoming" && voucher.status === "Sắp diễn ra") ||
       (activeTab === "ended" && voucher.status === "Đã kết thúc");
 
-    const matchesSearch = voucher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch =
+      voucher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       voucher.code.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesTab && matchesSearch;
@@ -508,7 +512,7 @@ const AdminDiscounts: React.FC = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIds = new Set(filteredVouchers.map(v => v.id));
+      const allIds = new Set(filteredVouchers.map((v) => v.id));
       setSelectedRows(allIds);
     } else {
       setSelectedRows(new Set());
@@ -581,24 +585,26 @@ const AdminDiscounts: React.FC = () => {
             onSearchChange={setSearchTerm}
             searchPlaceholder="Tìm kiếm mã giảm giá"
             searchClassName="flex-1 min-w-0 max-w-md"
-            actions={selectedRows.size > 0 ? (
-              <TableActions
-                selectedCount={selectedRows.size}
-                itemName="voucher"
-                actions={[
-                  {
-                    label: "Chỉnh sửa",
-                    onClick: handleBulkEdit,
-                    variant: "secondary"
-                  },
-                  {
-                    label: "Xóa",
-                    onClick: handleBulkDelete,
-                    variant: "danger"
-                  }
-                ]}
-              />
-            ) : undefined}
+            actions={
+              selectedRows.size > 0 ? (
+                <TableActions
+                  selectedCount={selectedRows.size}
+                  itemName="voucher"
+                  actions={[
+                    {
+                      label: "Chỉnh sửa",
+                      onClick: handleBulkEdit,
+                      variant: "secondary",
+                    },
+                    {
+                      label: "Xóa",
+                      onClick: handleBulkDelete,
+                      variant: "danger",
+                    },
+                  ]}
+                />
+              ) : undefined
+            }
           />
         </div>
 
@@ -616,10 +622,14 @@ const AdminDiscounts: React.FC = () => {
       <VoucherOrdersModal
         isOpen={isOrdersModalOpen}
         voucher={selectedVoucher}
-        orders={selectedVoucher ? voucherOrdersData[selectedVoucher.id]?.orders ?? [] : []}
+        orders={
+          selectedVoucher
+            ? (voucherOrdersData[selectedVoucher.id]?.orders ?? [])
+            : []
+        }
         summary={
           selectedVoucher
-            ? voucherOrdersData[selectedVoucher.id]?.summary ?? defaultSummary
+            ? (voucherOrdersData[selectedVoucher.id]?.summary ?? defaultSummary)
             : defaultSummary
         }
         onClose={() => {

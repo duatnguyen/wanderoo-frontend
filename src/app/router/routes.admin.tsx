@@ -75,11 +75,21 @@ const AdminCreateVoucherPrivate = lazy(
 
 // POS Pages
 const POSSales = lazy(() => import("../../features/pos/pages/sales/POSSales"));
-const POSOrderManagement = lazy(() => import("../../features/pos/pages/orders/OrderManagement"));
-const POSReturnOrderManagement = lazy(() => import("../../features/pos/pages/returns/ReturnOrderManagement"));
-const POSCreateReturnOrder = lazy(() => import("../../features/pos/pages/returns/CreateReturnOrder"));
-const POSInventoryLookup = lazy(() => import("../../features/pos/pages/inventory/InventoryLookup"));
-const POSCashBook = lazy(() => import("../../features/pos/pages/cashbook/CashBook"));
+const POSOrderManagement = lazy(
+  () => import("../../features/pos/pages/orders/OrderManagement")
+);
+const POSReturnOrderManagement = lazy(
+  () => import("../../features/pos/pages/returns/ReturnOrderManagement")
+);
+const POSCreateReturnOrder = lazy(
+  () => import("../../features/pos/pages/returns/CreateReturnOrder")
+);
+const POSInventoryLookup = lazy(
+  () => import("../../features/pos/pages/inventory/InventoryLookup")
+);
+const POSCashBook = lazy(
+  () => import("../../features/pos/pages/cashbook/CashBook")
+);
 
 const AdminWarehouseReturnsImport = lazy(
   () =>
