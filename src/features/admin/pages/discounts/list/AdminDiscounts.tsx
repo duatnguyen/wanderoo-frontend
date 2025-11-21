@@ -1,10 +1,14 @@
 // src/pages/admin/AdminDiscounts.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { SearchBar } from "@/components/ui/search-bar";
 import TabMenuAccount from "@/components/ui/tab-menu-account";
 import type { TabItem } from "@/components/ui/tab-menu-account";
+import { PageHeader } from "@/components/admin/table/PageHeader";
+import { PageContainer } from "@/components/admin/table/PageLayout";
+import { TableFilters } from "@/components/admin/table/TableFilters";
+import { TableActions } from "@/components/admin/table/TableActions";
+import { DiscountTable } from "@/components/admin/table/DiscountTable";
+import { VoucherCreationSection } from "@/components/admin/voucher/VoucherCreationSection";
 import {
   CoinDiscountIcon,
   CreditCardPercentIcon,
@@ -120,18 +124,66 @@ const AdminDiscounts: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedRows, setSelectedRows] = useState<Set<string | number>>(new Set());
 
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case "Đang diễn ra":
-        return "bg-[#b2ffb4] text-[#04910c]";
-      case "Sắp diễn ra":
-        return "bg-[#cce5ff] text-[#0066cc]";
-      case "Đã kết thúc":
-        return "bg-[#f6f6f6] text-[#737373]";
-      default:
-        return "bg-[#f6f6f6] text-[#737373]";
+  // Filter vouchers based on active tab and search term
+  const filteredVouchers = mockVouchers.filter((voucher) => {
+    const matchesTab = activeTab === "all" ||
+      (activeTab === "ongoing" && voucher.status === "Đang diễn ra") ||
+      (activeTab === "upcoming" && voucher.status === "Sắp diễn ra") ||
+      (activeTab === "ended" && voucher.status === "Đã kết thúc");
+
+    const matchesSearch = voucher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      voucher.code.toLowerCase().includes(searchTerm.toLowerCase());
+
+    return matchesTab && matchesSearch;
+  });
+
+  // Selection handlers
+  const handleSelectRow = (id: string | number, checked: boolean) => {
+    const newSelected = new Set(selectedRows);
+    if (checked) {
+      newSelected.add(id);
+    } else {
+      newSelected.delete(id);
     }
+    setSelectedRows(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredVouchers.map(v => v.id));
+      setSelectedRows(allIds);
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  // Action handlers
+  const handleEdit = (voucher: Voucher) => {
+    console.log("Edit voucher:", voucher);
+    // Navigate to edit page
+  };
+
+  const handleViewOrders = (voucher: Voucher) => {
+    console.log("View orders for voucher:", voucher);
+    // Navigate to orders page
+  };
+
+  const handleEnd = (voucher: Voucher) => {
+    console.log("End voucher:", voucher);
+    // End voucher logic
+  };
+
+  const handleBulkDelete = () => {
+    console.log("Delete selected vouchers:", Array.from(selectedRows));
+    // Bulk delete logic
+    setSelectedRows(new Set());
+  };
+
+  const handleBulkEdit = () => {
+    console.log("Edit selected vouchers:", Array.from(selectedRows));
+    // Bulk edit logic
   };
 
   const handleCreateVoucher = (type: string) => {
@@ -149,295 +201,71 @@ const AdminDiscounts: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-[6px] px-1 xl:px-[50px] pt-0 pb-[12px] w-full -mt-[7px]">
+    <PageContainer>
       {/* Header */}
-      <div className="flex flex-col gap-[4px] h-[54px] items-start justify-center px-0 py-0 w-full">
-        <div className="flex gap-[20px] items-center justify-start px-0 py-0 w-full -ml-1 xl:-ml-[50px]">
-          <h1 className="font-bold text-[24px] text-[#272424] leading-[normal] text-left">
-            Danh sách mã giảm giá
-          </h1>
-        </div>
-      </div>
+      <PageHeader
+        title="Danh sách mã giảm giá"
+        className="flex items-center justify-between w-full mb-6 flex-nowrap gap-2"
+      />
 
       {/* Create Voucher Section */}
-      <div className="bg-white border border-[#d1d1d1] rounded-[24px] pt-[12px] px-[24px] pb-[24px] flex flex-col w-full -mt-[10px] overflow-x-auto">
-        {/* Create Voucher Header */}
-        <div className="flex flex-col gap-[2px] items-start justify-center px-0 py-0 w-full flex-shrink-0">
-          <div className="flex gap-[20px] items-center px-0 py-0 w-full">
-            <h2 className="font-bold text-[20px] text-[#272424] leading-[normal]">
-              Tạo voucher
-            </h2>
-          </div>
-          <p className="font-medium text-[13px] text-[#e04d30] leading-[1.4] -mt-[2px] whitespace-nowrap">
-            Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để
-            thu hút người mua.
-          </p>
-        </div>
+      <VoucherCreationSection
+        voucherTypes={voucherTypes}
+        onCreateVoucher={handleCreateVoucher}
+      />
 
-        {/* Conversion Section - subheading removed per request */}
-        <div className="w-full min-w-[1000px]">
-          <div className="flex gap-[20px] items-center justify-start">
-            {voucherTypes.conversion.map((voucher, index) => (
-              <div
-                key={index}
-                className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0"
-              >
-                <div className="flex gap-[10px] items-start">
-                  <div className="flex items-center justify-center w-[24px] h-[24px]">
-                    {voucher.icon}
-                  </div>
-                  <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                    {voucher.title}
-                  </div>
-                </div>
-                <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
-                  {voucher.description}
-                </p>
-                <div className="flex justify-end w-full mt-auto">
-                  <Button
-                    className="h-[28px] px-[16px] text-[14px] rounded-[8px]"
-                    onClick={() => handleCreateVoucher(voucher.title)}
-                  >
-                    Tạo
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Target Customer Section */}
-        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4 flex-shrink-0">
-          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
-            Tập trung vào nhóm khách hàng mục tiêu
-          </h3>
-        </div>
-        <div className="w-full min-w-[1000px]">
-          <div className="flex gap-[20px] items-center justify-start">
-            {voucherTypes.targetCustomer.map((voucher, index) => (
-              <div
-                key={index}
-                className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0"
-              >
-                <div className="flex gap-[10px] items-start">
-                  <div className="flex items-center justify-center w-[24px] h-[24px]">
-                    {voucher.icon}
-                  </div>
-                  <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                    {voucher.title}
-                  </div>
-                </div>
-                <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
-                  {voucher.description}
-                </p>
-                <div className="flex justify-end w-full mt-auto">
-                  <Button
-                    className="h-[28px] px-[16px] text-[14px] rounded-[8px]"
-                    onClick={() => handleCreateVoucher(voucher.title)}
-                  >
-                    Tạo
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Private Channel Section */}
-        <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-4 flex-shrink-0">
-          <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
-            Tập trung vào kênh hiển thị riêng tư
-          </h3>
-        </div>
-        <div className="w-full min-w-[1000px]">
-          <div className="flex gap-[20px] items-center justify-start">
-            <div className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-[500px] flex-shrink-0">
-              <div className="flex gap-[10px] items-start">
-                <div className="flex items-center justify-center w-[24px] h-[24px]">
-                  {voucherTypes.privateChannel.icon}
-                </div>
-                <div className="font-semibold text-[16px] text-[#2a2a2a] leading-[1.4]">
-                  {voucherTypes.privateChannel.title}
-                </div>
-              </div>
-              <p className="font-medium text-[13px] text-[#322f30] leading-[1.4] -mt-[4px] flex-1 overflow-hidden">
-                {voucherTypes.privateChannel.description}
-              </p>
-              <div className="flex justify-end w-full mt-auto">
-                <Button
-                  className="h-[28px] px-[16px] text-[14px] rounded-[8px]"
-                  onClick={() =>
-                    handleCreateVoucher(voucherTypes.privateChannel.title)
-                  }
-                >
-                  Tạo
-                </Button>
-              </div>
-            </div>
-            <div className="w-[500px] flex-shrink-0" />
-          </div>
-        </div>
-      </div>
-
-      {/* Tab Menu + Search (expanded width) */}
-      <div className="w-full xl:w-[calc(100%+100px)] -mx-0 xl:-mx-[50px] flex flex-col gap-2">
-        <div className="w-full overflow-x-auto xl:overflow-x-visible">
-          <TabMenuAccount
-            tabs={discountTabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            className="w-auto min-w-fit"
-          />
-        </div>
-
-        {/* Search Bar */}
-        <SearchBar
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Tìm kiếm mã giảm giá"
-          className="w-full xl:w-[500px]"
+      {/* Tab Menu */}
+      <div className="w-full overflow-x-auto xl:overflow-x-visible mb-4">
+        <TabMenuAccount
+          tabs={discountTabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          className="w-auto min-w-fit"
         />
       </div>
 
-      {/* Voucher Table */}
-      <div className="w-full overflow-x-auto xl:overflow-x-visible">
-        <div className="bg-white border border-[#e7e7e7] rounded-[24px] w-full overflow-hidden min-w-[900px]">
-          <table className="w-full border-collapse min-w-[900px]">
-            <thead>
-              <tr>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[12px] py-[15px] text-left rounded-tl-[12px]">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4] whitespace-nowrap">
-                    Tên voucher|Mã voucher
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Loại mã
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    SP áp dụng
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Giảm giá
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4] text-center">
-                    Tổng lượt sử
-                    <br /> dụng tối đa
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Đã dùng
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Hiển thị
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Thời gian lưu
-                  </p>
-                </th>
-                <th className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] px-[14px] py-[15px] text-center rounded-tr-[12px]">
-                  <p className="font-semibold text-[13px] text-[#272424] leading-[1.4]">
-                    Thao tác
-                  </p>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockVouchers.map((voucher) => (
-                <tr key={voucher.id} className="border-t border-[#d1d1d1]">
-                  <td className="px-[12px] py-[14px] align-top">
-                    <div className="flex gap-[10px] items-center">
-                      <div className="flex items-center justify-center w-[24px] h-[24px]">
-                        <CreditCardPercentIcon size={24} color="#292D32" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex flex-col gap-[4px] items-start justify-center">
-                          <div
-                            className={`flex gap-[10px] items-start px-[8px] py-[6px] rounded-[6px] ${getStatusBadgeClass(
-                              voucher.status
-                            )}`}
-                          >
-                            <p className="font-bold text-[13px] leading-[normal]">
-                              {voucher.status}
-                            </p>
-                          </div>
-                          <div className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                            <p className="mb-0">{voucher.name}</p>
-                            <p>Mã voucher: {voucher.code}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    {voucher.type === "Voucher khách hàng mới" ? (
-                      <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                        Voucher khách
-                        <br />
-                        hàng mới
-                      </p>
-                    ) : (
-                      <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                        {voucher.type}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.products}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.discount}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.maxUsage}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.used}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      {voucher.display}
-                    </p>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <div className="font-medium text-[13px] text-[#272424] leading-[1.4]">
-                      <p className="mb-0">{voucher.startDate} -</p>
-                      <p>{voucher.endDate}</p>
-                    </div>
-                  </td>
-                  <td className="px-[14px] py-[14px] text-center align-middle">
-                    <div className="font-semibold text-[13px] text-[#1a71f6] leading-[1.4] cursor-pointer">
-                      <p className="mb-0 hover:opacity-70">Chỉnh sửa</p>
-                      <p className="mb-0 hover:opacity-70">Đơn hàng</p>
-                      <p className="hover:opacity-70">Kết thúc</p>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Search and Table Card */}
+      <div className="bg-white border border-[#d1d1d1] rounded-[24px] pt-[16px] px-[16px] pb-[16px] flex flex-col w-full">
+        {/* Search and Actions */}
+        <div className="mb-3">
+          <TableFilters
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Tìm kiếm mã giảm giá"
+            searchClassName="flex-1 min-w-0 max-w-md"
+            actions={selectedRows.size > 0 ? (
+              <TableActions
+                selectedCount={selectedRows.size}
+                itemName="voucher"
+                actions={[
+                  {
+                    label: "Chỉnh sửa",
+                    onClick: handleBulkEdit,
+                    variant: "secondary"
+                  },
+                  {
+                    label: "Xóa",
+                    onClick: handleBulkDelete,
+                    variant: "danger"
+                  }
+                ]}
+              />
+            ) : undefined}
+          />
         </div>
+
+        {/* Voucher Table */}
+        <DiscountTable
+          vouchers={filteredVouchers}
+          selectedRows={selectedRows}
+          onSelectRow={handleSelectRow}
+          onSelectAll={handleSelectAll}
+          onEdit={handleEdit}
+          onViewOrders={handleViewOrders}
+          onEnd={handleEnd}
+        />
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

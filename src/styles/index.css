@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./animations.css";
 
 /* Animations */
 @keyframes fadeIn {
@@ -330,31 +331,6 @@ body {
   max-width: none;
 }
 
-/* Responsive Table Classes */
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  min-width: 0; /* Allow table to shrink */
-}
-
-.table-responsive-sm {
-  width: 100%;
-  overflow-x: auto;
-  min-width: 640px; /* sm breakpoint */
-}
-
-.table-responsive-md {
-  width: 100%;
-  overflow-x: auto;
-  min-width: 768px; /* md breakpoint */
-}
-
-.table-responsive-lg {
-  width: 100%;
-  overflow-x: auto;
-  min-width: 1024px; /* lg breakpoint */
-}
-
 /* Admin Layout Classes */
 .admin-page-container {
   width: 100%;
@@ -408,29 +384,6 @@ body {
   border-radius: 0.75rem;
   border: 1px solid #e5e7eb;
   background-color: white;
-}
-
-.table-header {
-  background-color: #f9fafb;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.table-body {
-  background-color: white;
-}
-
-.table-row {
-  border-bottom: 1px solid #f3f4f6;
-  transition: background-color 0.15s ease;
-}
-
-.table-row:hover {
-  background-color: #f9fafb;
-}
-
-.table-row:last-child {
-  border-bottom: none;
 }
 
 /* Responsive Utility Classes */

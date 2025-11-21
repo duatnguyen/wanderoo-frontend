@@ -4,9 +4,14 @@ export { default as Loading } from "./Loading";
 export { LazyWrapper } from "./LazyWrapper";
 export { TabMenu, OrderTabMenu } from "./TabMenu";
 export type { TabItem } from "./TabMenu";
-export { default as OrderTimeline } from "./OrderTimeline";
-export type { OrderTimelineProps, TimelineStep } from "./OrderTimeline";
+export { default as OrderTimeline } from "../admin/order/OrderTimeline";
+export type {
+  OrderTimelineProps,
+  TimelineStep,
+} from "../admin/order/OrderTimeline";
 export { default as TabMenuAccount } from "../ui/tab-menu-account";
+export { default as TabMenuWithBadge } from "../ui/tab-menu-with-badge";
+export type { TabItemWithBadge } from "../ui/tab-menu-with-badge";
 export { Breadcrumb, POSBreadcrumb } from "./Breadcrumb";
 
 // Table Components
@@ -55,3 +60,5 @@ export type {
   OrderTableColumn,
   OrderRowProps,
 } from "../admin/table/OrderTableComponents";
+export { OrderTable } from "../admin/order/OrderTable";
+export type { OrderTableProps } from "../admin/order/OrderTable";

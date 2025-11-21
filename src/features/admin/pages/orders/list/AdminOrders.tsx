@@ -2,17 +2,16 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  TabMenuAccount,
   PageContainer,
   ContentCard,
   PageHeader,
   TableFilters,
-  OrderTableHeader,
-  OrderTableRow,
+  OrderTable,
+  TabMenuWithBadge,
   type FilterOption,
   type OrderTableColumn,
+  type TabItemWithBadge,
 } from "@/components/common";
-import type { TabItem } from "@/components/ui/tab-menu-account";
 import { Pagination } from "@/components/ui/pagination";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
 import {
@@ -180,15 +179,7 @@ const mockOrders = [
   },
 ];
 
-// Order tabs data
-const orderTabs: TabItem[] = [
-  { id: "all", label: "Tất cả" },
-  { id: "pending", label: "Chờ xác nhận" },
-  { id: "confirmed", label: "Đã xác nhận" },
-  { id: "shipping", label: "Đang giao" },
-  { id: "completed", label: "Đã hoàn thành" },
-  { id: "returned", label: "Đã hủy" },
-];
+
 
 const AdminOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -197,6 +188,34 @@ const AdminOrders: React.FC = () => {
   const [sourceFilter, setSourceFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+
+  // Calculate order counts by status
+  const orderCounts = useMemo(() => {
+    const counts = {
+      all: orders.length,
+      pending: 0,
+      confirmed: 0,
+      shipping: 0,
+      completed: 0,
+      returned: 0,
+    };
+
+    orders.forEach(order => {
+      counts[order.tabStatus as keyof typeof counts]++;
+    });
+
+    return counts;
+  }, [orders]);
+
+  // Create order tabs with counts
+  const orderTabsWithCounts: TabItemWithBadge[] = useMemo(() => [
+    { id: "all", label: "Tất cả", count: orderCounts.all },
+    { id: "pending", label: "Chờ xác nhận", count: orderCounts.pending },
+    { id: "confirmed", label: "Đã xác nhận", count: orderCounts.confirmed },
+    { id: "shipping", label: "Đang giao", count: orderCounts.shipping },
+    { id: "completed", label: "Đã hoàn thành", count: orderCounts.completed },
+    { id: "returned", label: "Đã hủy", count: orderCounts.returned },
+  ], [orderCounts]);
 
   // Map payment type to chip status
   const getPaymentTypeStatus = (paymentType: string): ChipStatusKey => {
@@ -291,60 +310,64 @@ const AdminOrders: React.FC = () => {
   // Order table columns definition
   const orderTableColumns: OrderTableColumn[] = [
     {
-      title: "Tên sản phẩm",
-      width: "w-2/5",
-      minWidth: "min-w-80",
-      className: "",
+      title: "Sản phẩm",
+      width: "flex-1",
+      minWidth: "min-w-[260px]",
+      className: "justify-start",
     },
     {
-      title: "Tổng đơn",
-      width: "w-1/10",
-      minWidth: "min-w-24",
+      title: "Tổng tiền",
+      width: "w-[140px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
     },
     {
       title: "Nguồn",
-      width: "w-1/10",
-      minWidth: "min-w-20",
+      width: "w-[80px]",
+      minWidth: "min-w-[80px]",
+      className: "justify-start",
     },
     {
-      title: "ĐVVC",
-      width: "w-1/12",
-      minWidth: "min-w-16",
+      title: "Vận chuyển",
+      width: "w-[100px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
     },
     {
-      title: "Xử lý",
-      width: "w-1/6",
-      minWidth: "min-w-28",
+      title: "TT Đơn hàng",
+      width: "w-[140px]",
+      minWidth: "min-w-[140px]",
+      className: "justify-start",
     },
     {
-      title: "Thanh toán",
-      width: "w-1/6",
-      minWidth: "min-w-28",
+      title: "TT Thanh toán",
+      width: "w-[140px]",
+      minWidth: "min-w-[140px]",
+      className: "justify-start",
     },
     {
       title: "Thao tác",
-      width: "w-1/8",
-      minWidth: "min-w-20",
+      width: "w-[100px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
     },
   ];
 
   return (
     <PageContainer>
-      {/* Page Header */}
+      {/* Page Header with Order Count */}
       <PageHeader title="Danh sách đơn hàng" />
 
-      {/* Tab Menu */}
-      <div className="w-full shrink-0 mb-[10px] overflow-x-auto">
-        <TabMenuAccount
-          tabs={orderTabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          className="min-w-[600px]"
-        />
-      </div>
+      {/* Tab Menu with Badge Counts */}
+      <TabMenuWithBadge
+        tabs={orderTabsWithCounts}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        className="min-w-[600px]"
+      />
 
       {/* Content Card */}
-      <ContentCard className="bg-white border border-[#b0b0b0] flex flex-col gap-[16px] items-start px-[10px] md:px-[16px] lg:px-[24px] py-[16px] md:py-[24px] rounded-[8px] w-full">
+      <ContentCard >
         {/* Filters Section */}
         <TableFilters
           searchValue={searchTerm}
@@ -378,28 +401,15 @@ const AdminOrders: React.FC = () => {
           }
         />
 
-        <h1 className="font-bold text-[20px] mb-0">101 đơn hàng</h1>
         {/* Order Table */}
-        <div className="w-full gap-2 flex flex-col -mt-[4px] overflow-x-auto">
-          {/* Table Header */}
-          <OrderTableHeader columns={orderTableColumns} />
-
-          {/* Table Body */}
-          <div className="w-full min-w-[1200px]">
-            <div className="flex flex-col gap-[12px] w-full">
-              {paginatedOrders.map((order) => (
-                <OrderTableRow
-                  key={order.id}
-                  order={order}
-                  onViewDetail={handleViewOrderDetail}
-                  getPaymentTypeStatus={getPaymentTypeStatus}
-                  getProcessingStatus={getProcessingStatus}
-                  getPaymentStatus={getPaymentStatus}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <OrderTable
+          columns={orderTableColumns}
+          orders={paginatedOrders}
+          onViewDetail={handleViewOrderDetail}
+          getPaymentTypeStatus={getPaymentTypeStatus}
+          getProcessingStatus={getProcessingStatus}
+          getPaymentStatus={getPaymentStatus}
+        />
 
         {/* Pagination */}
         <Pagination

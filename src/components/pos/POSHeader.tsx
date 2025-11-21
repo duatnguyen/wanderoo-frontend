@@ -43,7 +43,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   return (
     <header
       className={cn(
-        "bg-[#18345C] flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 h-16 sm:h-20",
+        "bg-[#18345C] flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-2 py-2 sm:py-4 h-16",
         className
       )}
     >
@@ -52,7 +52,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         <img
           src={ShopLogo}
           alt="Wanderoo Logo"
-          className="h-12 sm:h-14 w-auto object-contain max-h-full"
+          className="h-150  w-auto object-contain max-h-full"
         />
         <h1 className="text-white text-lg sm:text-xl font-bold whitespace-nowrap">
           {pageTitle || "Bán hàng"}
