@@ -76,4 +76,3 @@ export interface VoucherOrderSummary {
   totalDiscountAmount: number;
   totalRevenue: number;
 }
-

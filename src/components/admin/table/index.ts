@@ -5,7 +5,12 @@ export { TableActions } from "./TableActions";
 export type { TableActionsProps } from "./TableActions";
 
 export { UserCell, StatusCell, CurrencyCell, TextCell } from "./TableCells";
-export type { UserCellProps, StatusCellProps, CurrencyCellProps, TextCellProps } from "./TableCells";
+export type {
+  UserCellProps,
+  StatusCellProps,
+  CurrencyCellProps,
+  TextCellProps,
+} from "./TableCells";
 
 export { TableFilters } from "./TableFilters";
 export type { FilterOption, TableFiltersProps } from "./TableFilters";

@@ -1,12 +1,19 @@
 // src/pages/admin/AdminOrderDetailPOS.tsx
 import React, { useState } from "react";
-import { ArrowLeft, Wallet, Package, FileText, ChevronDown, ChevronUp, Check, X, Truck } from "lucide-react";
+import {
+  ArrowLeft,
+  Wallet,
+  Package,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  Truck,
+} from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  PageContainer,
-  ContentCard,
-} from "@/components/common";
+import { PageContainer, ContentCard } from "@/components/common";
 
 // Mock data cho order detail POS
 const getMockOrderDataPOS = (status: string) => {
@@ -111,7 +118,7 @@ const PaymentSummary: React.FC = () => {
     { label: "Giảm giá", amount: 20000 },
     { label: "Khách phải trả", amount: 380000, isTotal: true },
     { label: "Tiền khách đưa", amount: 400000 },
-    { label: "Tiền thừa trả khách", amount: 20000 }
+    { label: "Tiền thừa trả khách", amount: 20000 },
   ];
 
   return (
@@ -152,19 +159,26 @@ const PaymentSummary: React.FC = () => {
             {summaryData.map((item, index) => (
               <div
                 key={index}
-                className={`flex items-center justify-between py-[4px] ${item.isTotal ? 'border-t border-[#e7e7e7] pt-[8px]' : ''
-                  }`}
+                className={`flex items-center justify-between py-[4px] ${
+                  item.isTotal ? "border-t border-[#e7e7e7] pt-[8px]" : ""
+                }`}
               >
-                <p className={`font-montserrat ${item.isTotal
-                  ? 'font-semibold text-[14px] text-[#272424]'
-                  : 'font-medium text-[13px] text-[#737373]'
-                  }`}>
+                <p
+                  className={`font-montserrat ${
+                    item.isTotal
+                      ? "font-semibold text-[14px] text-[#272424]"
+                      : "font-medium text-[13px] text-[#737373]"
+                  }`}
+                >
                   {item.label}
                 </p>
-                <p className={`font-montserrat ${item.isTotal
-                  ? 'font-bold text-[16px] text-[#28a745]'
-                  : 'font-medium text-[13px] text-[#272424]'
-                  }`}>
+                <p
+                  className={`font-montserrat ${
+                    item.isTotal
+                      ? "font-bold text-[16px] text-[#28a745]"
+                      : "font-medium text-[13px] text-[#272424]"
+                  }`}
+                >
                   {formatCurrency(item.amount)}
                 </p>
               </div>
@@ -175,7 +189,6 @@ const PaymentSummary: React.FC = () => {
     </div>
   );
 };
-
 
 const AdminOrderDetailPOS: React.FC = () => {
   const navigate = useNavigate();
@@ -205,7 +218,11 @@ const AdminOrderDetailPOS: React.FC = () => {
     console.log("Canceling order:", orderId);
 
     // Hiển thị thông báo xác nhận hủy
-    if (window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác.")) {
+    if (
+      window.confirm(
+        "Bạn có chắc chắn muốn hủy đơn hàng này? Hành động này không thể hoàn tác."
+      )
+    ) {
       const reason = prompt("Vui lòng nhập lý do hủy đơn hàng:");
       if (reason) {
         // TODO: Thêm API call để hủy đơn hàng với lý do
@@ -309,16 +326,40 @@ const AdminOrderDetailPOS: React.FC = () => {
                   ) : currentOrder.status === "Đã hoàn thành" ? (
                     <Package className="w-5 h-5 text-[#04910c]" />
                   ) : currentOrder.status === "Chờ xác nhận" ? (
-                    <svg className="w-5 h-5 text-[#737373]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-[#737373]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   ) : currentOrder.status === "Đã xác nhận" ? (
-                    <svg className="w-5 h-5 text-[#28A745]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-[#28A745]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 text-[#eb2b0b]" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-[#eb2b0b]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   )}
                 </div>
@@ -326,7 +367,9 @@ const AdminOrderDetailPOS: React.FC = () => {
                   <p className="font-montserrat font-medium text-[14px] text-black text-opacity-70 leading-[1.4]">
                     Trạng thái đơn hàng
                   </p>
-                  <p className={`font-montserrat font-bold ${statusCardStyle.text} text-[18px] leading-[1.2] truncate`}>
+                  <p
+                    className={`font-montserrat font-bold ${statusCardStyle.text} text-[18px] leading-[1.2] truncate`}
+                  >
                     {currentOrder.status}
                   </p>
                 </div>
@@ -337,8 +380,16 @@ const AdminOrderDetailPOS: React.FC = () => {
             <div className="flex-1 min-w-0">
               <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="flex items-center justify-center w-[40px] h-[40px] bg-white rounded-full shadow-sm">
-                  <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm2 2a1 1 0 000 2h.01a1 1 0 100-2H5zm3 0a1 1 0 000 2h3a1 1 0 100-2H8z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 text-orange-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm2 2a1 1 0 000 2h.01a1 1 0 100-2H5zm3 0a1 1 0 000 2h3a1 1 0 100-2H8z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="flex flex-col gap-[4px] flex-1 min-w-0">
@@ -356,8 +407,16 @@ const AdminOrderDetailPOS: React.FC = () => {
             <div className="flex-1 min-w-0">
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
                 <div className="flex items-center justify-center w-[40px] h-[40px] bg-white rounded-full shadow-sm">
-                  <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 text-purple-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="flex flex-col gap-[4px] flex-1 min-w-0">
@@ -374,7 +433,6 @@ const AdminOrderDetailPOS: React.FC = () => {
 
           {/* POS Order Info */}
           <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] relative rounded-[8px] w-full overflow-hidden min-w-0">
-
             {/* Header */}
             <div className="flex items-center gap-[8px] w-full">
               <div className="w-[4px] h-[20px] bg-[#e04d30] rounded-[2px]"></div>
@@ -501,8 +559,9 @@ const AdminOrderDetailPOS: React.FC = () => {
 
           {/* Payment Table */}
           <div
-            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden min-w-0 ${currentOrder.status === "Đã hủy" ? "opacity-50" : ""
-              }`}
+            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[8px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden min-w-0 ${
+              currentOrder.status === "Đã hủy" ? "opacity-50" : ""
+            }`}
           >
             <div className="w-full">
               <div className="box-border flex gap-[6px] items-center px-[6px] py-0 mb-1 relative shrink-0 w-full">

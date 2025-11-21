@@ -57,42 +57,50 @@ const OrderDetailTab: React.FC = () => {
   >(new Map());
 
   // Determine status from navigation state if available
-  const currentStatus: "pending" | "confirmed" | "shipping" | "delivered" | "cancelled" | "return" | "default" =
-    incomingOrder?.status ?? "default";
+  const currentStatus:
+    | "pending"
+    | "confirmed"
+    | "shipping"
+    | "delivered"
+    | "cancelled"
+    | "return"
+    | "default" = incomingOrder?.status ?? "default";
 
   // Mock order data - in real app, fetch from API using orderId
   const [order] = useState({
     id: orderId || incomingOrder?.id || "WB0303168522",
     orderDate: incomingOrder?.orderDate || "25/08/2025",
-    status: incomingOrder?.statusLabel || (currentStatus === "delivered" ? "Đã giao hàng" : "Chờ xác nhận"),
-    products:
-      (incomingOrder?.products &&
-        incomingOrder.products.map((p: any, idx: number) => ({
-          id: p.id?.toString?.() || p.productId?.toString?.() || String(idx + 1),
-          imageUrl: p.imageUrl || "/api/placeholder/100/100",
-          name: p.name,
-          price: p.price ?? 0,
-          originalPrice: p.originalPrice,
-          variant: p.variant,
-          quantity: p.quantity ?? 1,
-          isReviewed: false,
-        }))) ||
-      [
-        {
-          id: "1",
-          imageUrl: "/api/placeholder/100/100",
-          name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
-          price: 199000,
-          originalPrice: 230000,
-          variant: "Đen",
-          quantity: 1,
-          isReviewed: false,
-        },
-      ],
+    status:
+      incomingOrder?.statusLabel ||
+      (currentStatus === "delivered" ? "Đã giao hàng" : "Chờ xác nhận"),
+    products: (incomingOrder?.products &&
+      incomingOrder.products.map((p: any, idx: number) => ({
+        id: p.id?.toString?.() || p.productId?.toString?.() || String(idx + 1),
+        imageUrl: p.imageUrl || "/api/placeholder/100/100",
+        name: p.name,
+        price: p.price ?? 0,
+        originalPrice: p.originalPrice,
+        variant: p.variant,
+        quantity: p.quantity ?? 1,
+        isReviewed: false,
+      }))) || [
+      {
+        id: "1",
+        imageUrl: "/api/placeholder/100/100",
+        name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
+        price: 199000,
+        originalPrice: 230000,
+        variant: "Đen",
+        quantity: 1,
+        isReviewed: false,
+      },
+    ],
     customer: {
       name: incomingOrder?.customer?.name || "Nguyen Thi thanh",
       phone: incomingOrder?.customer?.phone || "0868211760",
-      address: incomingOrder?.customer?.address || "310 Cầu Giấy, P. Dịch Vọng, Q. Cầu Giấy",
+      address:
+        incomingOrder?.customer?.address ||
+        "310 Cầu Giấy, P. Dịch Vọng, Q. Cầu Giấy",
       notes: incomingOrder?.customer?.notes || "-",
     },
     payment: {
@@ -168,7 +176,9 @@ const OrderDetailTab: React.FC = () => {
         {/* Tổng quan (Overview) Section */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 text-[14px]">
           <div className="mb-4">
-            <h2 className="text-[18px] font-bold text-gray-900 mb-0">Tổng quan</h2>
+            <h2 className="text-[18px] font-bold text-gray-900 mb-0">
+              Tổng quan
+            </h2>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
               <div className="flex flex-wrap items-center gap-2 text-[14px] text-gray-700">
                 <span>Đơn hàng: #{order.id}</span>
@@ -285,14 +295,14 @@ const OrderDetailTab: React.FC = () => {
           {(currentStatus === "pending" || currentStatus === "confirmed") && (
             <div className="flex justify-end mt-4 pt-4 border-t border-gray-200">
               <Button
-              variant="outline"
+                variant="outline"
                 size="md"
                 onClick={() => {
                   // Handle cancel order
                   console.log("Cancel order:", order.id);
                   // In real app, this would show a confirmation modal and call API
                 }}
-              className="!h-[36px] !bg-white !border-[#E04D30] !text-[#E04D30] hover:!bg-[#E04D30] hover:!text-white"
+                className="!h-[36px] !bg-white !border-[#E04D30] !text-[#E04D30] hover:!bg-[#E04D30] hover:!text-white"
               >
                 Hủy đơn hàng
               </Button>
@@ -397,7 +407,11 @@ const OrderDetailTab: React.FC = () => {
         {currentStatus === "cancelled" && (
           <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
             <div className="text-[18px] text-gray-900">
-              <span className="font-bold">Lý do:</span> <span className="font-normal">{incomingOrder?.cancellationReason || "Tôi muốn cập nhật địa chỉ/sđt nhận hàng"}</span>
+              <span className="font-bold">Lý do:</span>{" "}
+              <span className="font-normal">
+                {incomingOrder?.cancellationReason ||
+                  "Tôi muốn cập nhật địa chỉ/sđt nhận hàng"}
+              </span>
             </div>
           </div>
         )}

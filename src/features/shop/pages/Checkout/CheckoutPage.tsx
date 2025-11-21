@@ -154,9 +154,12 @@ const CheckoutPage: React.FC = () => {
   const [selectedAddressId, setSelectedAddressId] = useState<number>(
     () => addresses[0]?.id ?? 0
   );
-  const [pendingAddressId, setPendingAddressId] = useState<number>(selectedAddressId);
+  const [pendingAddressId, setPendingAddressId] =
+    useState<number>(selectedAddressId);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<AddressOption | null>(null);
+  const [editingAddress, setEditingAddress] = useState<AddressOption | null>(
+    null
+  );
   const [editForm, setEditForm] = useState<EditFormState>({
     name: "",
     phone: "",
@@ -166,8 +169,11 @@ const CheckoutPage: React.FC = () => {
     setAsDefault: false,
     detailAddress: "",
   });
-  const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null);
-  const [isPaymentMethodModalOpen, setIsPaymentMethodModalOpen] = useState(false);
+  const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(
+    null
+  );
+  const [isPaymentMethodModalOpen, setIsPaymentMethodModalOpen] =
+    useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     PaymentMethod["id"]
   >(PAYMENT_METHODS[0].id);
@@ -276,7 +282,8 @@ const CheckoutPage: React.FC = () => {
   }, [editingAddress]);
 
   const selectedAddress =
-    addresses.find((address) => address.id === selectedAddressId) ?? addresses[0];
+    addresses.find((address) => address.id === selectedAddressId) ??
+    addresses[0];
 
   // Map cart items to checkout items with product data
   const checkoutItems: CheckoutItem[] = useMemo(() => {
@@ -361,8 +368,8 @@ const CheckoutPage: React.FC = () => {
       }
 
       return {
-      ...prev,
-      [field]: value,
+        ...prev,
+        [field]: value,
       } as EditFormState;
     });
   };
@@ -390,11 +397,11 @@ const CheckoutPage: React.FC = () => {
       const updated = prev.map((addr) => {
         if (addr.id === editingAddress.id) {
           return {
-              ...addr,
-              name: editForm.name,
-              phone: editForm.phone,
+            ...addr,
+            name: editForm.name,
+            phone: editForm.phone,
             region,
-              detailAddress: editForm.detailAddress,
+            detailAddress: editForm.detailAddress,
             address: region
               ? `${editForm.detailAddress}\n${region}`
               : editForm.detailAddress,
@@ -485,15 +492,17 @@ const CheckoutPage: React.FC = () => {
                   <div className="grid grid-cols-12 items-center">
                     <div className="col-span-6" />
                     <div className="col-span-12 md:col-span-6 md:col-start-7 flex items-center justify-between pl-6">
-                      <div className="font-medium text-gray-900">Mã giảm giá:</div>
-                        <button
+                      <div className="font-medium text-gray-900">
+                        Mã giảm giá:
+                      </div>
+                      <button
                         onClick={handleOpenVoucherModal}
                         className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
-                        >
-                          Chọn mã giảm giá
-                        </button>
-                      </div>
+                      >
+                        Chọn mã giảm giá
+                      </button>
                     </div>
+                  </div>
                 </div>
                 {/* Body */}
                 <div className="grid grid-cols-1 md:grid-cols-2">
@@ -504,13 +513,13 @@ const CheckoutPage: React.FC = () => {
                         Lời nhắn:
                       </label>
                       <div className="flex-1">
-                    <Textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Lưu ý cho shop"
-                      rows={6}
+                        <Textarea
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="Lưu ý cho shop"
+                          rows={6}
                           className="h-24 w-full"
-                    />
+                        />
                       </div>
                     </div>
                   </div>
@@ -530,7 +539,7 @@ const CheckoutPage: React.FC = () => {
               <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between px-6 py-5 border-b border-gray-200 gap-4">
                   <p className="text-[14px] font-semibold text-gray-900">
-                        Phương thức thanh toán
+                    Phương thức thanh toán
                   </p>
                   <div className="flex items-center gap-3 md:gap-6 text-[14px] text-gray-800">
                     <span>{selectedPaymentMethodInfo.title}</span>
@@ -540,7 +549,7 @@ const CheckoutPage: React.FC = () => {
                     >
                       Thay đổi
                     </button>
-                    </div>
+                  </div>
                 </div>
                 <div className="bg-[#FFFCF5] px-6 py-5 text-[14px] text-gray-700">
                   <div className="md:max-w-[360px] md:ml-auto space-y-2">
@@ -614,7 +623,9 @@ const CheckoutPage: React.FC = () => {
           />
           <div className="relative w-full max-w-[520px] bg-white rounded-xl shadow-2xl overflow-hidden text-[14px]">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-[20px] font-semibold text-gray-900">Địa chỉ của tôi</h3>
+              <h3 className="text-[20px] font-semibold text-gray-900">
+                Địa chỉ của tôi
+              </h3>
             </div>
             <div className="max-h-[420px] overflow-y-auto">
               {addresses.map((address) => (
@@ -665,7 +676,11 @@ const CheckoutPage: React.FC = () => {
               >
                 Hủy
               </button>
-              <Button variant="primary" onClick={handleConfirmAddress} className="px-6">
+              <Button
+                variant="primary"
+                onClick={handleConfirmAddress}
+                className="px-6"
+              >
                 Xác nhận
               </Button>
             </div>
@@ -676,7 +691,10 @@ const CheckoutPage: React.FC = () => {
       {/* Address Edit Modal */}
       {isEditModalOpen && editingAddress && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => handleCloseEditModal()} />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => handleCloseEditModal()}
+          />
           <div className="relative w-full max-w-[520px] bg-white rounded-xl shadow-2xl overflow-hidden text-[14px]">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-[20px] font-semibold text-gray-900">
@@ -690,26 +708,36 @@ const CheckoutPage: React.FC = () => {
                   <input
                     type="text"
                     value={editForm.name}
-                    onChange={(e) => handleChangeEditForm("name", e.target.value)}
+                    onChange={(e) =>
+                      handleChangeEditForm("name", e.target.value)
+                    }
                     className="w-full h-11 border border-gray-300 rounded-lg px-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30]"
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-600 mb-2">Số điện thoại</label>
+                  <label className="block text-gray-600 mb-2">
+                    Số điện thoại
+                  </label>
                   <input
                     type="text"
                     value={editForm.phone}
-                    onChange={(e) => handleChangeEditForm("phone", e.target.value)}
+                    onChange={(e) =>
+                      handleChangeEditForm("phone", e.target.value)
+                    }
                     className="w-full h-11 border border-gray-300 rounded-lg px-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30]"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="relative">
-                  <label className="block text-gray-600 mb-2">Tỉnh/Thành phố</label>
+                  <label className="block text-gray-600 mb-2">
+                    Tỉnh/Thành phố
+                  </label>
                   <select
                     value={editForm.province}
-                    onChange={(e) => handleChangeEditForm("province", e.target.value)}
+                    onChange={(e) =>
+                      handleChangeEditForm("province", e.target.value)
+                    }
                     className="w-full h-11 border border-gray-300 rounded-lg pr-10 pl-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30] appearance-none bg-white"
                   >
                     <option value="">Chọn Tỉnh/Thành phố</option>
@@ -738,7 +766,9 @@ const CheckoutPage: React.FC = () => {
                   <label className="block text-gray-600 mb-2">Quận/Huyện</label>
                   <select
                     value={editForm.district}
-                    onChange={(e) => handleChangeEditForm("district", e.target.value)}
+                    onChange={(e) =>
+                      handleChangeEditForm("district", e.target.value)
+                    }
                     className="w-full h-11 border border-gray-300 rounded-lg pr-10 pl-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30] appearance-none bg-white disabled:bg-gray-100"
                     disabled={!editForm.province}
                   >
@@ -768,7 +798,9 @@ const CheckoutPage: React.FC = () => {
                   <label className="block text-gray-600 mb-2">Phường/Xã</label>
                   <select
                     value={editForm.ward}
-                    onChange={(e) => handleChangeEditForm("ward", e.target.value)}
+                    onChange={(e) =>
+                      handleChangeEditForm("ward", e.target.value)
+                    }
                     className="w-full h-11 border border-gray-300 rounded-lg pr-10 pl-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30] appearance-none bg-white disabled:bg-gray-100"
                     disabled={!editForm.district}
                   >
@@ -796,10 +828,14 @@ const CheckoutPage: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-gray-600 mb-2">Địa chỉ cụ thể</label>
+                <label className="block text-gray-600 mb-2">
+                  Địa chỉ cụ thể
+                </label>
                 <textarea
                   value={editForm.detailAddress}
-                  onChange={(e) => handleChangeEditForm("detailAddress", e.target.value)}
+                  onChange={(e) =>
+                    handleChangeEditForm("detailAddress", e.target.value)
+                  }
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[14px] text-gray-900 h-20 resize-none focus:outline-none focus:border-[#E04D30]"
                 />
               </div>
@@ -838,7 +874,11 @@ const CheckoutPage: React.FC = () => {
               >
                 Trở lại
               </button>
-              <Button variant="primary" onClick={handleSaveEditAddress} className="px-6">
+              <Button
+                variant="primary"
+                onClick={handleSaveEditAddress}
+                className="px-6"
+              >
                 Hoàn thành
               </Button>
             </div>
@@ -898,7 +938,10 @@ const CheckoutPage: React.FC = () => {
                 })}
               </div>
               <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={handleClosePaymentMethodModal}>
+                <Button
+                  variant="outline"
+                  onClick={handleClosePaymentMethodModal}
+                >
                   Hủy
                 </Button>
                 <Button

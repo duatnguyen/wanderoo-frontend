@@ -135,7 +135,11 @@ export const DataTable = <T extends Record<string, any>>({
                     className={`flex gap-[6px] items-center px-[4px] py-[12px] ${
                       column.width || "flex-1"
                     } ${column.className || ""}`}
-                    style={column.minWidth ? { minWidth: column.minWidth } : undefined}
+                    style={
+                      column.minWidth
+                        ? { minWidth: column.minWidth }
+                        : undefined
+                    }
                   >
                     <span className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       {column.title}
@@ -179,7 +183,11 @@ export const DataTable = <T extends Record<string, any>>({
                     className={`flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] ${
                       column.width || "flex-1"
                     } ${column.className || ""}`}
-                    style={column.minWidth ? { minWidth: column.minWidth } : undefined}
+                    style={
+                      column.minWidth
+                        ? { minWidth: column.minWidth }
+                        : undefined
+                    }
                   >
                     {column.render ? (
                       column.render(record[column.key], record, index)

@@ -124,10 +124,7 @@ const CreateReturnOrder: React.FC = () => {
                 </p>
               )}
               {returnProducts.map((item) => (
-                <div
-                  key={item.product.id}
-                  className="rounded-lg"
-                >
+                <div key={item.product.id} className="rounded-lg">
                   <div className="flex items-center gap-4">
                     {/* Hình ảnh */}
                     {item.product.image && (
@@ -161,7 +158,8 @@ const CreateReturnOrder: React.FC = () => {
                             disabled={item.returnQuantity <= 0}
                             className={cn(
                               "w-7 h-7 flex items-center justify-center rounded-full border border-[#e7e7e7] text-[#272424] hover:bg-gray-100 transition-colors",
-                              item.returnQuantity <= 0 && "opacity-50 cursor-not-allowed"
+                              item.returnQuantity <= 0 &&
+                                "opacity-50 cursor-not-allowed"
                             )}
                           >
                             <Minus className="w-4 h-4" />
@@ -177,7 +175,9 @@ const CreateReturnOrder: React.FC = () => {
                                 item.product.quantity
                               )
                             }
-                            disabled={item.returnQuantity >= item.product.quantity}
+                            disabled={
+                              item.returnQuantity >= item.product.quantity
+                            }
                             className={cn(
                               "w-7 h-7 flex items-center justify-center rounded-full border border-[#e7e7e7] text-[#272424] hover:bg-gray-100 transition-colors",
                               item.returnQuantity >= item.product.quantity &&
@@ -210,7 +210,10 @@ const CreateReturnOrder: React.FC = () => {
                     <SimpleDropdown
                       value={returnProducts[0]?.reason || ""}
                       onValueChange={(reason) =>
-                        handleReasonChange(returnProducts[0]?.product.id || "", reason)
+                        handleReasonChange(
+                          returnProducts[0]?.product.id || "",
+                          reason
+                        )
                       }
                       options={returnReasons}
                       placeholder="Chọn lý do"
@@ -237,7 +240,8 @@ const CreateReturnOrder: React.FC = () => {
                   !
                 </div>
                 <p className="m-0">
-                  Chỉ có bạn và nhân viên trong cửa hàng có thể nhìn thấy lý do này
+                  Chỉ có bạn và nhân viên trong cửa hàng có thể nhìn thấy lý do
+                  này
                 </p>
               </div>
             </div>

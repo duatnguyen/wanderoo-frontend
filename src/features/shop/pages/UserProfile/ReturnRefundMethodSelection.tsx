@@ -54,7 +54,8 @@ const ReturnRefundMethodSelection: React.FC = () => {
     orderId: "WB0303168522",
     requestDate: "12:05 6/04/2025",
     status: "Chấp nhận yêu cầu",
-    statusMessage: "Bạn vui lòng chọn phương thức trả hàng. Nếu không yêu cầu sẽ bị hủy tự động trong 24 giờ.",
+    statusMessage:
+      "Bạn vui lòng chọn phương thức trả hàng. Nếu không yêu cầu sẽ bị hủy tự động trong 24 giờ.",
     products: [
       {
         id: "1",
@@ -114,7 +115,9 @@ const ReturnRefundMethodSelection: React.FC = () => {
       description: "Đơn vị vận chuyển sẽ đến lấy hàng tại địa chỉ đã cung cấp.",
       refundAmount: data.refundAmount,
       contact: "Thanh Nguyên, 086268423",
-      address: data.address || "Đường Đắp Mỹ Tạp Hóa Cô Hoa Đối Diện Có Đường Bê Tông Chay Hết Đường Bê Tông Quẹo Trái Nhà Nằm Bên Phải Thị Trấn An Phú, Huyện An Phú, An Giang",
+      address:
+        data.address ||
+        "Đường Đắp Mỹ Tạp Hóa Cô Hoa Đối Diện Có Đường Bê Tông Chay Hết Đường Bê Tông Quẹo Trái Nhà Nằm Bên Phải Thị Trấn An Phú, Huyện An Phú, An Giang",
     }),
     [data]
   );
@@ -290,15 +293,20 @@ const MethodCard: React.FC<MethodCardProps> = ({
                   </div>
                 </div>
                 <div>
-                  <div className="text-[13px] text-gray-500">Địa chỉ lấy hàng</div>
+                  <div className="text-[13px] text-gray-500">
+                    Địa chỉ lấy hàng
+                  </div>
                   <div className="text-[14px] text-gray-700">
-                    {address || "Đường Đắp Mỹ Tạp Hóa Cô Hoa Đối Diện Có Đường Bê Tông Chay Hết Đường Bê Tông Quẹo Trái Nhà Nằm Bên Phải Thị Trấn An Phú, Huyện An Phú, An Giang"}
+                    {address ||
+                      "Đường Đắp Mỹ Tạp Hóa Cô Hoa Đối Diện Có Đường Bê Tông Chay Hết Đường Bê Tông Quẹo Trái Nhà Nằm Bên Phải Thị Trấn An Phú, Huyện An Phú, An Giang"}
                   </div>
                 </div>
               </div>
               <div className="space-y-3 sm:text-right">
                 <div>
-                  <div className="text-[13px] text-gray-500">Thông tin liên hệ</div>
+                  <div className="text-[13px] text-gray-500">
+                    Thông tin liên hệ
+                  </div>
                   <div className="text-[14px] text-gray-700">
                     {contact || "—"}
                   </div>

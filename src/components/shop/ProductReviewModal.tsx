@@ -34,12 +34,17 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
   initialReviews,
 }) => {
   // State for each product's review
-  const [reviews, setReviews] = useState<Map<string, {
-    rating: number;
-    comment: string;
-    images: File[];
-    videos: File[];
-  }>>(new Map());
+  const [reviews, setReviews] = useState<
+    Map<
+      string,
+      {
+        rating: number;
+        comment: string;
+        images: File[];
+        videos: File[];
+      }
+    >
+  >(new Map());
 
   // Load existing review data when modal opens
   React.useEffect(() => {

@@ -40,7 +40,9 @@ const CustomerReviews: React.FC = () => {
               </svg>
               <div>
                 <div className="text-[14px] font-bold text-gray-900">4.8</div>
-                <div className="text-[14px] text-gray-500">428 Lượt đánh giá</div>
+                <div className="text-[14px] text-gray-500">
+                  428 Lượt đánh giá
+                </div>
               </div>
             </div>
 
@@ -104,7 +106,9 @@ const CustomerReviews: React.FC = () => {
                 <div className="w-12 h-12 rounded-full border border-gray-300 bg-transparent" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[14px] font-bold text-gray-900">Linh</span>
+                    <span className="text-[14px] font-bold text-gray-900">
+                      Linh
+                    </span>
                     <div className="flex items-center gap-0.5">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star key={i} filled={true} />
@@ -133,7 +137,9 @@ const CustomerReviews: React.FC = () => {
                 <div className="w-12 h-12 rounded-full border border-gray-300 bg-transparent" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[14px] font-bold text-gray-900">Nguyễn Du</span>
+                    <span className="text-[14px] font-bold text-gray-900">
+                      Nguyễn Du
+                    </span>
                     <div className="flex items-center gap-0.5">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star key={i} filled={true} />
@@ -157,7 +163,9 @@ const CustomerReviews: React.FC = () => {
                 <div className="w-12 h-12 rounded-full border border-gray-300 bg-transparent" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[14px] font-bold text-gray-900">Thanh</span>
+                    <span className="text-[14px] font-bold text-gray-900">
+                      Thanh
+                    </span>
                     <div className="flex items-center gap-0.5">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star key={i} filled={true} />
@@ -224,4 +232,3 @@ const CustomerReviews: React.FC = () => {
 };
 
 export default CustomerReviews;
-

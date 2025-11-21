@@ -1,5 +1,9 @@
 import React from "react";
-import { adminNavSections, type AdminNavItem, type AdminNavSection } from "../adminNavData";
+import {
+  adminNavSections,
+  type AdminNavItem,
+  type AdminNavSection,
+} from "../adminNavData";
 import { ProfileIcon, KeyIcon, ShopIcon } from "../SettingsIcons";
 import NavItem from "./NavItem";
 
@@ -64,7 +68,8 @@ const NavContent: React.FC<NavContentProps> = ({
       {adminNavSections.map((section: AdminNavSection, index: number) => {
         const hasTitle = Boolean(section.title);
         const sectionKey = section.title ?? index;
-        const wrapperClasses = index === 0 ? "mt-[5px]" : "mt-4 border-t border-white/10 pt-4";
+        const wrapperClasses =
+          index === 0 ? "mt-[5px]" : "mt-4 border-t border-white/10 pt-4";
         const listClasses = hasTitle ? "mt-3 space-y-1.5" : "space-y-1.5";
 
         return (
@@ -77,16 +82,18 @@ const NavContent: React.FC<NavContentProps> = ({
                   </p>
                   <div className="mt-1.5 h-px bg-white/15 -mx-3" />
                   <div className="mt-2 space-y-1.5 [&>a]:pl-3 [&>div]:pl-3">
-                    {section.items.map((item: AdminNavItem, itemIndex: number) => (
-                      <NavItem
-                        key={`${sectionKey}-${itemIndex}`}
-                        item={item}
-                        itemKey={`item-${sectionKey}-${itemIndex}`}
-                        activePath={activePath}
-                        expandedItems={expandedItems}
-                        onToggleExpand={onToggleExpand}
-                      />
-                    ))}
+                    {section.items.map(
+                      (item: AdminNavItem, itemIndex: number) => (
+                        <NavItem
+                          key={`${sectionKey}-${itemIndex}`}
+                          item={item}
+                          itemKey={`item-${sectionKey}-${itemIndex}`}
+                          activePath={activePath}
+                          expandedItems={expandedItems}
+                          onToggleExpand={onToggleExpand}
+                        />
+                      )
+                    )}
                   </div>
                 </div>
               ) : (
@@ -95,16 +102,18 @@ const NavContent: React.FC<NavContentProps> = ({
                     {section.title}
                   </p>
                   <div className={listClasses}>
-                    {section.items.map((item: AdminNavItem, itemIndex: number) => (
-                      <NavItem
-                        key={`${sectionKey}-${itemIndex}`}
-                        item={item}
-                        itemKey={`item-${sectionKey}-${itemIndex}`}
-                        activePath={activePath}
-                        expandedItems={expandedItems}
-                        onToggleExpand={onToggleExpand}
-                      />
-                    ))}
+                    {section.items.map(
+                      (item: AdminNavItem, itemIndex: number) => (
+                        <NavItem
+                          key={`${sectionKey}-${itemIndex}`}
+                          item={item}
+                          itemKey={`item-${sectionKey}-${itemIndex}`}
+                          activePath={activePath}
+                          expandedItems={expandedItems}
+                          onToggleExpand={onToggleExpand}
+                        />
+                      )
+                    )}
                   </div>
                 </>
               )

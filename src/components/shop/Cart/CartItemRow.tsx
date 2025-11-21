@@ -82,7 +82,9 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
             popupClassName="cart-variant-dropdown"
           />
         ) : (
-          <span className="text-[14px] text-gray-700">{item.variant || "Mặc định"}</span>
+          <span className="text-[14px] text-gray-700">
+            {item.variant || "Mặc định"}
+          </span>
         )}
       </div>
 
@@ -170,4 +172,3 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
 };
 
 export default CartItemRow;
-

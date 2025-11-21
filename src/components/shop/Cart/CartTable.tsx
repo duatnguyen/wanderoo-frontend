@@ -89,9 +89,13 @@ const CartTable: React.FC<CartTableProps> = ({
             item={item}
             isSelected={selectedItems.has(item.id)}
             onSelect={() => onSelectItem(item.id)}
-            onQuantityChange={(change) => onQuantityChange(item.productId, change)}
+            onQuantityChange={(change) =>
+              onQuantityChange(item.productId, change)
+            }
             onRemove={() => onRemoveItem(item.productId)}
-            onVariantChange={(variant) => onVariantChange(item.productId, variant)}
+            onVariantChange={(variant) =>
+              onVariantChange(item.productId, variant)
+            }
           />
         ))}
       </div>
@@ -103,7 +107,9 @@ const CartTable: React.FC<CartTableProps> = ({
             checked={items.length > 0 && selectedItems.size === items.length}
             onChange={onSelectAll}
           />
-          <span className="text-[14px] text-gray-700">Chọn tất cả ({items.length})</span>
+          <span className="text-[14px] text-gray-700">
+            Chọn tất cả ({items.length})
+          </span>
           <button
             onClick={onDeleteSelected}
             disabled={selectedItems.size === 0}
@@ -137,4 +143,3 @@ const CartTable: React.FC<CartTableProps> = ({
 };
 
 export default CartTable;
-

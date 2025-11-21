@@ -1,5 +1,5 @@
 // src/types/auth.ts - Authentication and user management types
-import type { PageResponse } from './common';
+import type { PageResponse } from "./common";
 
 export interface UserResponse {
   id: number;

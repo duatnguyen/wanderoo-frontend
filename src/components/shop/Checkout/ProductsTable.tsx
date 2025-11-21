@@ -43,9 +43,7 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ items }) => {
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded border border-gray-300 bg-transparent" />
                     <div className="leading-5">
-                      <p className="font-medium text-gray-900">
-                        {item.name}
-                      </p>
+                      <p className="font-medium text-gray-900">{item.name}</p>
                       {item.variant && (
                         <p className="text-gray-500">
                           Phân loại hàng: {item.variant}
@@ -77,4 +75,3 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ items }) => {
 };
 
 export default ProductsTable;
-

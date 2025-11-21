@@ -11,4 +11,3 @@ const ShopLayout: React.FC = () => {
 };
 
 export default ShopLayout;
-

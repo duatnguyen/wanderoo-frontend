@@ -12,7 +12,7 @@ interface AdminSidebarProps {
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  
+
   // Check if we're in settings mode based on the path
   const isSettingsMode = activePath.startsWith("/admin/settings");
 
@@ -45,7 +45,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
   }, [activePath]);
 
   const handleToggleExpand = (key: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(key)) {
         newSet.delete(key);
@@ -60,7 +60,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
     <aside className="w-[230px] h-screen bg-[#18345C] text-white flex flex-col admin-sidebar-font overflow-hidden">
       {/* Header Component */}
       <SidebarHeader />
-      
+
       {/* Content Area */}
       <div className="flex-1 flex flex-col px-[16px] overflow-hidden">
         {isSettingsMode ? (
@@ -83,7 +83,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activePath }) => {
                 isSettingsMode={false}
               />
             </div>
-            
+
             {/* Fixed Footer Component */}
             <div className="flex-shrink-0">
               <SidebarFooter
