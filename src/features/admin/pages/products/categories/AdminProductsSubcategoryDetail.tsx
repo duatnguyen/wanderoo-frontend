@@ -47,8 +47,6 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
 
   const parentCategoryId = Number(categoryId);
   const childCategoryId = Number(subcategoryId);
-  const isIdsValid =
-    Number.isFinite(parentCategoryId) && Number.isFinite(childCategoryId);
 
   const locationState = location.state as
     | {
@@ -227,7 +225,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
     staleTime: 30_000,
   });
 
-  const products: ProductResponse[] = productPage?.productResponseList ?? [];
+  const products: ProductResponse[] = productPage?.content ?? [];
   const totalProducts =
     productPage?.totalElements ?? subcategory?.productCount ?? 0;
   const totalProductPages = Math.max(1, productPage?.totalPages ?? 1);
