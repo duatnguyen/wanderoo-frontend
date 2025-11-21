@@ -90,12 +90,6 @@ const LandingPage: React.FC = () => {
     queryFn: () => getSuggestionProducts(15),
   });
 
-  // Today's suggestions - 18 products (3 rows x 6 columns)
-  // Take products starting from index 12, or from beginning if not enough
-  const remainingProducts = productsData.slice(12);
-  const todaySuggestions = remainingProducts.length >= 18
-    ? remainingProducts.slice(0, 18)
-    : [...remainingProducts, ...productsData.slice(0, 18 - remainingProducts.length)];
   // Convert HomepageProductResponse to Product format for components
   const convertToProduct = (item: HomepageProductResponse): Product => {
     const salePrice = item.salePrice ?? 0;
@@ -110,7 +104,7 @@ const LandingPage: React.FC = () => {
         typeof item.discountPercent === "number"
           ? Math.round(item.discountPercent)
           : undefined,
-      rating: 0, // API doesn't return rating yet
+      rating: 0, // API doesn't sreturn rating yet
       stock: 0,
       category: "",
       brand: "",

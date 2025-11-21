@@ -28,10 +28,34 @@ import type {
 } from '../../types';
 import type { AvailableServiceResponse, AvailableServicesRequest } from '../../types/api';
 
+const mapProvinceResponse = (items: any[] = []): ProvinceResponse[] =>
+  items.map((item) => ({
+    provinceId: item.ProvinceID ?? item.provinceId ?? item.province_id ?? 0,
+    provinceName: item.ProvinceName ?? item.provinceName ?? "",
+    countryId: item.CountryID ?? item.countryId ?? "",
+    code: item.Code ?? item.code ?? null,
+  }));
+
+const mapDistrictResponse = (items: any[] = []): DistrictResponse[] =>
+  items.map((item) => ({
+    districtId: item.DistrictID ?? item.districtId ?? item.district_id ?? 0,
+    districtName: item.DistrictName ?? item.districtName ?? "",
+    provinceId: item.ProvinceID ?? item.provinceId ?? item.province_id ?? undefined,
+    code: item.Code ?? item.code ?? null,
+  }));
+
+const mapWardResponse = (items: any[] = []): WardResponse[] =>
+  items.map((item) => ({
+    wardCode: item.WardCode ?? item.wardCode ?? item.ward_code ?? "",
+    wardName: item.WardName ?? item.wardName ?? "",
+    districtId: item.DistrictID ?? item.districtId ?? item.district_id ?? undefined,
+    code: item.Code ?? item.code ?? null,
+  }));
+
 // Address APIs
 export const getProvinces = async (): Promise<ProvinceResponse[]> => {
-  const response = await api.get<ApiResponse<ProvinceResponse[]>>('/api/shipping/provinces');
-  return response.data.data;
+  const response = await api.get<ApiResponse<any[]>>('/api/shipping/provinces');
+  return mapProvinceResponse(response.data.data);
 };
 
 export const getDistricts = async (provinceId: number): Promise<DistrictResponse[]> => {
@@ -40,8 +64,8 @@ export const getDistricts = async (provinceId: number): Promise<DistrictResponse
 };
 
 export const getDistrictsByPath = async (provinceId: number): Promise<DistrictResponse[]> => {
-  const response = await api.get<ApiResponse<DistrictResponse[]>>(`/api/shipping/districts/${provinceId}`);
-  return response.data.data;
+  const response = await api.get<ApiResponse<any[]>>(`/api/shipping/districts/${provinceId}`);
+  return mapDistrictResponse(response.data.data);
 };
 
 export const getWards = async (districtId: number): Promise<WardResponse[]> => {
@@ -50,8 +74,8 @@ export const getWards = async (districtId: number): Promise<WardResponse[]> => {
 };
 
 export const getWardsByPath = async (districtId: number): Promise<WardResponse[]> => {
-  const response = await api.get<ApiResponse<WardResponse[]>>(`/api/shipping/wards/${districtId}`);
-  return response.data.data;
+  const response = await api.get<ApiResponse<any[]>>(`/api/shipping/wards/${districtId}`);
+  return mapWardResponse(response.data.data);
 };
 
 // Shipping Fee and Stations APIs

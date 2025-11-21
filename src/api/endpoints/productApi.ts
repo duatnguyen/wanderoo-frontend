@@ -18,16 +18,18 @@ import type {
   CategoryParentUpdateRequest,
   CategoryChildUpdateRequest,
   VariantDetailIdRequest,
+  ProductDetailsResponse,
+  VariantDetailIdResponse,
 } from '../../types';
 
 // Public Product APIs
-export const getProductDetail = async (id: number): Promise<ProductResponse> => {
-  const response = await api.get<ApiResponse<ProductResponse>>(`/auth/v1/public/product/${id}`);
+export const getProductDetail = async (id: number): Promise<ProductDetailsResponse> => {
+  const response = await api.get<ApiResponse<ProductDetailsResponse>>(`/auth/v1/public/product/${id}`);
   return response.data.data;
 };
 
-export const getProductVariants = async (variantRequest: VariantDetailIdRequest): Promise<VariantResponse> => {
-  const response = await api.post<ApiResponse<VariantResponse>>('/auth/v1/public/product/variants', variantRequest);
+export const getProductVariants = async (variantRequest: VariantDetailIdRequest): Promise<VariantDetailIdResponse> => {
+  const response = await api.post<ApiResponse<VariantDetailIdResponse>>('/auth/v1/public/product/variants', variantRequest);
   return response.data.data;
 };
 

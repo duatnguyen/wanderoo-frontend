@@ -13,9 +13,10 @@ const BannerSection: React.FC = () => {
   });
 
   const { heroBanners, subBanners } = useMemo(() => {
-    const hero = (banners || []).filter((banner) =>
-      ["top", "hero"].includes((banner.position || "").toLowerCase())
-    );
+    const hero = (banners || []).filter((banner) => {
+      const position = (banner.position ?? "").toString().toLowerCase();
+      return ["top", "hero"].includes(position);
+    });
     const heroList = hero.length > 0 ? hero : (banners || []).slice(0, 1);
 
     const heroIds = new Set(heroList.map((b) => b.id));
@@ -60,7 +61,7 @@ const BannerSection: React.FC = () => {
       <img
         src={banner.imageUrl || mainBanner}
         alt={banner.title}
-        className="w-full h-full object-cover rounded-lg"
+        className="w-full h-full object-cover rounded-none"
         onError={(e) => {
           (e.target as HTMLImageElement).src = mainBanner;
         }}
@@ -69,9 +70,9 @@ const BannerSection: React.FC = () => {
   );
 
   return (
-    <section className="w-full bg-white pt-4 pb-2">
-      <div className="max-w-[1200px] mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="col-span-2 relative overflow-hidden rounded-lg min-h-[320px]">
+    <section className="w-full bg-white pt-0 pb-6">
+      <div className="w-full">
+        <div className="relative overflow-hidden rounded-none min-h-[320px] w-full">
           {currentHero && renderBannerImage(currentHero, "h-full")}
           {heroBanners.length > 1 && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
@@ -89,18 +90,15 @@ const BannerSection: React.FC = () => {
           )}
         </div>
 
-        <div className="flex flex-col gap-4">
-          {subBanners.slice(0, 3).map((banner) => (
-            <div key={banner.id} className="h-[150px]">
-              {renderBannerImage(banner, "h-full")}
-            </div>
-          ))}
-          {subBanners.length === 0 && (
-            <div className="h-[150px]">
-              <img src={mainBanner} alt="Banner" className="h-full w-full object-cover rounded-lg" />
-            </div>
-          )}
-        </div>
+        {subBanners.length > 0 && (
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {subBanners.slice(0, 3).map((banner) => (
+              <div key={banner.id} className="h-[150px]">
+                {renderBannerImage(banner, "h-full")}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
