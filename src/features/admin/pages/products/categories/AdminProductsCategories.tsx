@@ -105,9 +105,9 @@ const AdminProductsCategories: React.FC = () => {
     if (!shouldFocusLastPage || !data?.totalPages) {
       return;
     }
-    const lastPage = Math.max(1, data.totalPages);
-    setCurrentPage(lastPage);
-    setShouldFocusLastPage(false);
+      const lastPage = Math.max(1, data.totalPages);
+        setCurrentPage(lastPage);
+      setShouldFocusLastPage(false);
   }, [shouldFocusLastPage, data?.totalPages]);
 
   useEffect(() => {
@@ -351,26 +351,26 @@ const AdminProductsCategories: React.FC = () => {
       return;
     }
 
-    const target = categories.find((cat) => cat.id === uploadingImageFor);
-    if (!target) return;
-    setPendingCategoryId(target.id);
-    try {
+      const target = categories.find((cat) => cat.id === uploadingImageFor);
+      if (!target) return;
+      setPendingCategoryId(target.id);
+      try {
       const imageUrl = await uploadCategoryImage(file);
-      await updateCategoryMutation.mutateAsync({
-        payload: {
-          id: target.id,
-          name: target.name,
+        await updateCategoryMutation.mutateAsync({
+          payload: {
+            id: target.id,
+            name: target.name,
           imageUrl,
-        },
-        status: target.status,
-        successMessage: "Đã cập nhật hình ảnh danh mục",
-      });
-    } finally {
-      setPendingCategoryId(null);
-      setUploadingImageFor(null);
+          },
+          status: target.status,
+          successMessage: "Đã cập nhật hình ảnh danh mục",
+        });
+      } finally {
+        setPendingCategoryId(null);
+        setUploadingImageFor(null);
       event.target.value = "";
-    }
-  };
+      }
+    };
 
   const handleRemoveImage = async (category: CategoryParentResponse) => {
     if (!category.imageUrl) return;

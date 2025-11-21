@@ -418,25 +418,25 @@ const AdminProductsCategoryDetail: React.FC = () => {
       return;
     }
 
-    const target = categories.find((cat) => cat.id === uploadingImageFor);
-    if (!target) return;
-    setPendingCategoryId(target.id);
-    try {
+      const target = categories.find((cat) => cat.id === uploadingImageFor);
+      if (!target) return;
+      setPendingCategoryId(target.id);
+      try {
       const imageUrl = await uploadCategoryImage(file);
-      await updateCategoryMutation.mutateAsync({
-        payload: {
-          id: target.id,
-          name: target.name,
+        await updateCategoryMutation.mutateAsync({
+          payload: {
+            id: target.id,
+            name: target.name,
           imageUrl,
-        },
-        status: target.status,
-        successMessage: "Đã cập nhật hình ảnh danh mục con",
-      });
-    } finally {
-      setPendingCategoryId(null);
-      setUploadingImageFor(null);
+          },
+          status: target.status,
+          successMessage: "Đã cập nhật hình ảnh danh mục con",
+        });
+      } finally {
+        setPendingCategoryId(null);
+        setUploadingImageFor(null);
       event.target.value = "";
-    }
+      }
   };
 
   const handlePrevPage = () => {

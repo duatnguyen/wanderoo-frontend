@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
   deleteProductPrivate,
   getProductsByCategoryPrivate,
 } from "@/api/endpoints/productApi";
+import { BASE_URL } from "@/api/apiClient";
 import type {
   CategoryChildResponse,
   CategoryParentResponse,
@@ -42,7 +43,6 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
   const location = useLocation();
   const { categoryId, subcategoryId } =
     useParams<{ categoryId: string; subcategoryId: string }>();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const parentCategoryId = Number(categoryId);
@@ -116,6 +116,17 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
     }
     return "Danh mục";
   }, [parentCategory, parentCategoryId]);
+
+  const resolveImageUrl = (url?: string | null) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    if (url.startsWith("/")) {
+      return `${BASE_URL}${url}`;
+    }
+    return `${BASE_URL}/${url}`;
+  };
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState("");
@@ -300,48 +311,6 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
     setEditingName(subcategory?.name ?? "");
   };
 
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !subcategory) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert(`${file.name} vượt quá dung lượng 2MB`);
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      alert(`${file.name} không phải là file hình ảnh`);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const result = e.target?.result;
-      if (result && typeof result === "string") {
-        try {
-          await updateCategoryMutation.mutateAsync({
-            payload: {
-              id: subcategory.id,
-              name: subcategory.name,
-              imageUrl: result,
-            },
-            status: subcategory.status,
-            successMessage: "Đã cập nhật hình ảnh danh mục con",
-          });
-        } catch (error) {
-          // handled
-        }
-      }
-    };
-    reader.readAsDataURL(file);
-
-    event.target.value = "";
-  };
-
   const handleDeleteProduct = async (productId: number) => {
     if (isProductMutating) return;
     const confirmed = window.confirm("Bạn có chắc muốn xoá sản phẩm này?");
@@ -415,16 +384,15 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
 
       {/* Subcategory Info Card */}
       <div className="bg-white border-2 border-[#e7e7e7] rounded-[24px] p-[24px] flex gap-[16px] items-start w-full">
-        {/* Image Upload */}
+        {/* Image Display */}
         <div
-          onClick={handleImageClick}
-          className={`bg-[#ffeeea] border-2 border-dashed border-[#e04d30] rounded-[8px] w-[100px] h-[100px] flex flex-col items-center justify-center gap-[8px] cursor-pointer hover:bg-[#ffe4dd] transition-colors flex-shrink-0 ${
+          className={`bg-[#ffeeea] border-2 border-dashed border-[#e04d30] rounded-[8px] w-[100px] h-[100px] flex flex-col items-center justify-center gap-[8px] flex-shrink-0 ${
             subcategory?.imageUrl ? "" : "p-[20px]"
           }`}
         >
           {subcategory?.imageUrl ? (
             <img
-              src={subcategory.imageUrl}
+              src={resolveImageUrl(subcategory.imageUrl)}
               alt={subcategory?.name}
               className="w-full h-full object-cover rounded-[8px]"
             />
@@ -432,7 +400,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
             <>
               <Icon name="image" size={32} color="#e04d30" />
               <p className="text-[10px] font-medium text-[#737373] text-center leading-[1.4]">
-                Thêm hình ảnh
+                Chưa có hình ảnh
               </p>
             </>
           )}
@@ -709,15 +677,6 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleImageUpload}
-        className="hidden"
-      />
     </div>
   );
 };

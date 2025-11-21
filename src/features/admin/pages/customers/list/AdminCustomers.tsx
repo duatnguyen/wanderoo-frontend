@@ -1,6 +1,6 @@
 // src/pages/admin/AdminCustomers.tsx
-import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/icons/Icon";
@@ -32,6 +32,7 @@ import type { CustomerResponse } from "@/types/api";
 
 const AdminCustomers: React.FC = () => {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInputValue, setSearchInputValue] = useState(""); // Temporary value for input
   const [statusFilter, setStatusFilter] = useState<
@@ -41,7 +42,18 @@ const AdminCustomers: React.FC = () => {
     new Set()
   );
   const [currentPage, setCurrentPage] = useState(1);
+  const [shouldFocusLastPage, setShouldFocusLastPage] = useState(false);
   const navigate = useNavigate();
+
+  // Check if we should focus last page after adding new customer
+  useEffect(() => {
+    const state = location.state as { shouldFocusLastPage?: boolean } | null;
+    if (state?.shouldFocusLastPage) {
+      setShouldFocusLastPage(true);
+      // Clear the state to avoid re-triggering on re-render
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   // Fetch customers from API
   const {
@@ -98,6 +110,28 @@ const AdminCustomers: React.FC = () => {
     console.log("Filtered customers:", filtered);
     return filtered;
   }, [customersData?.content, allCustomersData?.content, statusFilter]);
+
+  // Calculate total pages based on filter mode
+  const totalPages = useMemo(() => {
+    if (statusFilter !== "all") {
+      // When filtering, calculate from filtered customers
+      return Math.max(1, Math.ceil(filteredCustomers.length / 10));
+    } else {
+      // When showing all, use backend pagination
+      return customersData?.totalPages || 1;
+    }
+  }, [statusFilter, filteredCustomers.length, customersData?.totalPages]);
+
+  // Handle focusing last page after adding new customer
+  useEffect(() => {
+    if (shouldFocusLastPage && totalPages) {
+      const lastPage = Math.max(1, totalPages);
+      if (currentPage !== lastPage) {
+        setCurrentPage(lastPage);
+      }
+      setShouldFocusLastPage(false);
+    }
+  }, [shouldFocusLastPage, currentPage, totalPages]);
 
   // Paginate filtered customers
   const customers = useMemo(() => {
@@ -243,7 +277,7 @@ const AdminCustomers: React.FC = () => {
                   {statusFilter === "all"
                     ? "Tất cả trạng thái"
                     : statusFilter === "active"
-                      ? "Kích hoạt"
+                      ? "Đang hoạt động"
                       : "Ngừng kích hoạt"}
                 </span>
                 <CaretDown className="text-[#e04d30]" />
@@ -260,7 +294,7 @@ const AdminCustomers: React.FC = () => {
                 setStatusFilter("active");
                 setCurrentPage(1);
               }}>
-                Kích hoạt
+                Đang hoạt động
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
                 setStatusFilter("disabled");
@@ -430,7 +464,7 @@ const AdminCustomers: React.FC = () => {
                   {/* Total spent col */}
                   <div className="flex flex-col gap-[2px] items-start justify-center px-[4px]">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
-                      {c.totalOrderAmount ? `${parseFloat(c.totalOrderAmount).toLocaleString('vi-VN')} đ` : "0 đ"}
+                      {c.totalOrderAmount ? `${parseFloat(c.totalOrderAmount).toLocaleString('vi-VN')}đ` : "0đ"}
                     </span>
                     <span className="font-medium text-[#737373] text-[11px] leading-[1.3]">
                       {c.totalOrders || "0"} đơn hàng
@@ -441,7 +475,7 @@ const AdminCustomers: React.FC = () => {
                   <div className="flex items-center justify-center px-[4px]">
                     <ChipStatus
                       status={c.status?.toUpperCase() === "ACTIVE" ? "active" : "disabled"}
-                      labelOverride={c.status?.toUpperCase() === "ACTIVE" ? "Kích hoạt" : "Ngừng kích hoạt"}
+                      labelOverride={c.status?.toUpperCase() === "ACTIVE" ? "Đang hoạt động" : "Ngừng kích hoạt"}
                       size="small"
                     />
                   </div>
@@ -454,11 +488,7 @@ const AdminCustomers: React.FC = () => {
         {/* Pagination */}
         <Pagination
           current={currentPage}
-          total={
-            statusFilter !== "all"
-              ? Math.ceil(filteredCustomers.length / 10) // Use filtered count when filtering
-              : customersData?.totalPages || 1
-          }
+          total={totalPages}
           onChange={setCurrentPage}
         />
       </ContentCard>
