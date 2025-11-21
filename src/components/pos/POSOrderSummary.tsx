@@ -185,7 +185,9 @@ export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-[#E04D30] font-medium truncate">
                     {assignedCustomer.name}{" "}
-                    {assignedCustomer.phone ? `- ${assignedCustomer.phone}` : ""}
+                    {assignedCustomer.phone
+                      ? `- ${assignedCustomer.phone}`
+                      : ""}
                   </p>
                 </div>
                 {/* Delete Button */}

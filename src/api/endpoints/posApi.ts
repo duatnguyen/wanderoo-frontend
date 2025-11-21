@@ -1,5 +1,5 @@
-import apiClient from '../apiClient';
-import type { PageResponse } from '../../types/common';
+import apiClient from "../apiClient";
+import type { PageResponse } from "../../types/common";
 
 // Minimal types for POS order responses/requests
 export interface PosOrderListParams {
@@ -36,21 +36,29 @@ export interface PosOrderDetailResponse {
 }
 
 // POS Order APIs
-export const getPosOrderList = async (params: PosOrderListParams = {}): Promise<PosOrderListResponse> => {
+export const getPosOrderList = async (
+  params: PosOrderListParams = {}
+): Promise<PosOrderListResponse> => {
   const query = new URLSearchParams();
-  if (params.search) query.append('search', params.search);
-  if (params.fromDate) query.append('fromDate', params.fromDate);
-  if (params.toDate) query.append('toDate', params.toDate);
-  query.append('page', String(params.page ?? 0));
-  query.append('size', String(params.size ?? 10));
-  if (params.sort) query.append('sort', params.sort);
+  if (params.search) query.append("search", params.search);
+  if (params.fromDate) query.append("fromDate", params.fromDate);
+  if (params.toDate) query.append("toDate", params.toDate);
+  query.append("page", String(params.page ?? 0));
+  query.append("size", String(params.size ?? 10));
+  if (params.sort) query.append("sort", params.sort);
 
-  const resp = await apiClient.get<PosOrderListResponse>(`/api/v1/pos/orders?${query.toString()}`);
+  const resp = await apiClient.get<PosOrderListResponse>(
+    `/api/v1/pos/orders?${query.toString()}`
+  );
   return resp.data;
 };
 
-export const getPosOrderDetail = async (id: number): Promise<PosOrderDetailResponse> => {
-  const resp = await apiClient.get<PosOrderDetailResponse>(`/api/v1/pos/orders/${id}`);
+export const getPosOrderDetail = async (
+  id: number
+): Promise<PosOrderDetailResponse> => {
+  const resp = await apiClient.get<PosOrderDetailResponse>(
+    `/api/v1/pos/orders/${id}`
+  );
   return resp.data;
 };
 
@@ -92,29 +100,42 @@ export interface ReturnOrderDetailResponse {
   createdAt?: string;
 }
 
-export const createPosReturnOrder = async (request: CreateReturnOrderRequest): Promise<ReturnOrderDetailResponse> => {
-  const resp = await apiClient.post<ReturnOrderDetailResponse>('/api/v1/pos/returns', request);
+export const createPosReturnOrder = async (
+  request: CreateReturnOrderRequest
+): Promise<ReturnOrderDetailResponse> => {
+  const resp = await apiClient.post<ReturnOrderDetailResponse>(
+    "/api/v1/pos/returns",
+    request
+  );
   return resp.data;
 };
 
-export const getPosReturnOrderList = async (params: ReturnOrderListParams = {}): Promise<ReturnOrderListResponse> => {
+export const getPosReturnOrderList = async (
+  params: ReturnOrderListParams = {}
+): Promise<ReturnOrderListResponse> => {
   const query = new URLSearchParams();
-  if (params.search) query.append('search', params.search);
-  if (params.returnType) query.append('returnType', params.returnType);
-  if (params.returnReason) query.append('returnReason', params.returnReason);
-  if (params.status) query.append('status', params.status);
-  if (params.fromDate) query.append('fromDate', params.fromDate);
-  if (params.toDate) query.append('toDate', params.toDate);
-  query.append('page', String(params.page ?? 0));
-  query.append('size', String(params.size ?? 10));
-  if (params.sortBy) query.append('sortBy', params.sortBy);
+  if (params.search) query.append("search", params.search);
+  if (params.returnType) query.append("returnType", params.returnType);
+  if (params.returnReason) query.append("returnReason", params.returnReason);
+  if (params.status) query.append("status", params.status);
+  if (params.fromDate) query.append("fromDate", params.fromDate);
+  if (params.toDate) query.append("toDate", params.toDate);
+  query.append("page", String(params.page ?? 0));
+  query.append("size", String(params.size ?? 10));
+  if (params.sortBy) query.append("sortBy", params.sortBy);
 
-  const resp = await apiClient.get<ReturnOrderListResponse>(`/api/v1/pos/returns?${query.toString()}`);
+  const resp = await apiClient.get<ReturnOrderListResponse>(
+    `/api/v1/pos/returns?${query.toString()}`
+  );
   return resp.data;
 };
 
-export const getPosReturnOrderDetail = async (id: number): Promise<ReturnOrderDetailResponse> => {
-  const resp = await apiClient.get<ReturnOrderDetailResponse>(`/api/v1/pos/returns/${id}`);
+export const getPosReturnOrderDetail = async (
+  id: number
+): Promise<ReturnOrderDetailResponse> => {
+  const resp = await apiClient.get<ReturnOrderDetailResponse>(
+    `/api/v1/pos/returns/${id}`
+  );
   return resp.data;
 };
 

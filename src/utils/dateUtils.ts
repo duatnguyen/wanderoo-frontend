@@ -25,26 +25,26 @@ export const formatDate = (
 
   if (shortFormat) {
     // Short format: DD/MM/YYYY
-    const day = dateObj.getDate().toString().padStart(2, '0');
-    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const day = dateObj.getDate().toString().padStart(2, "0");
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, "0");
     const year = dateObj.getFullYear();
     return `${day}/${month}/${year}`;
   }
 
   // Full format with Vietnamese locale
   const dateOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    ...(showWeekday && { weekday: 'long' }),
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    ...(showWeekday && { weekday: "long" }),
     ...(showTime && {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     }),
   };
 
-  return dateObj.toLocaleString('vi-VN', dateOptions);
+  return dateObj.toLocaleString("vi-VN", dateOptions);
 };
 
 /**
@@ -52,18 +52,20 @@ export const formatDate = (
  * @param date - Date to format
  * @returns Formatted date string for timeline
  */
-export const formatTimelineDate = (date: Date | string | number | null | undefined): string => {
+export const formatTimelineDate = (
+  date: Date | string | number | null | undefined
+): string => {
   if (!date) return "";
 
   const dateObj = new Date(date);
   if (isNaN(dateObj.getTime())) return "";
 
-  return dateObj.toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return dateObj.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -72,19 +74,21 @@ export const formatTimelineDate = (date: Date | string | number | null | undefin
  * @param date - Date to format
  * @returns Formatted date string for orders
  */
-export const formatOrderDate = (date: Date | string | number | null | undefined): string => {
+export const formatOrderDate = (
+  date: Date | string | number | null | undefined
+): string => {
   if (!date) return "Chưa có thông tin";
 
   const dateObj = new Date(date);
   if (isNaN(dateObj.getTime())) return "Ngày không hợp lệ";
 
-  return dateObj.toLocaleString('vi-VN', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return dateObj.toLocaleString("vi-VN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 

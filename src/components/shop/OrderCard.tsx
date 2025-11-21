@@ -65,8 +65,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
           "Shop đang xem xét yêu cầu trả hàng & hoàn tiền của bạn",
         "Chấp nhận yêu cầu":
           "Yêu cầu của bạn đã được chấp nhận, vui lòng chuẩn bị trả hàng",
-        "Trả hàng":
-          "Vui lòng gửi hàng hoàn về shop theo hướng dẫn đã cung cấp",
+        "Trả hàng": "Vui lòng gửi hàng hoàn về shop theo hướng dẫn đã cung cấp",
         "Kiểm tra hàng hoàn":
           "Shop đang kiểm tra sản phẩm hoàn trả, vui lòng chờ thêm nhé",
         "Đã hoàn tiền":

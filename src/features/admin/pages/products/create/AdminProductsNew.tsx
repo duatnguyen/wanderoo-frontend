@@ -9,10 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  PageContainer,
-  ContentCard,
-} from "@/components/common";
+import { PageContainer, ContentCard } from "@/components/common";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import FormField from "@/components/ui/FormField";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -26,7 +23,7 @@ import type {
   ProductVersion,
   EditingVersion,
   ProductImage,
-  FormErrors
+  FormErrors,
 } from "@/types/product";
 import type { ProductCreateRequest } from "@/types";
 import { validateForm, validateField } from "@/utils/productValidation";
@@ -97,14 +94,20 @@ const AdminProductsNew: React.FC = () => {
   const [isAttributeFormVisible, setIsAttributeFormVisible] = useState(true);
   const [images, setImages] = useState<ProductImage[]>([]);
   const [versions, setVersions] = useState<ProductVersion[]>([]);
-  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(new Set());
+  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(
+    new Set()
+  );
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
-  const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>({});
+  const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>(
+    {}
+  );
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [priceValues, setPriceValues] = useState<Record<string, string>>({});
   const [applyAllPrice, setApplyAllPrice] = useState("");
   const [showEditVersionModal, setShowEditVersionModal] = useState(false);
-  const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(null);
+  const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(
+    null
+  );
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -140,32 +143,23 @@ const AdminProductsNew: React.FC = () => {
     "Thông tin cơ bản",
     "Thuộc tính & Phiên bản",
     "Thông tin vận chuyển",
-    "Hoàn thành"
+    "Hoàn thành",
   ];
 
-  const handleInputChange = useCallback((field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({
+  const handleInputChange = useCallback(
+    (field: string, value: string) => {
+      setFormData((prev) => ({
         ...prev,
-        [field]: "",
+        [field]: value,
       }));
-    }
 
-    // Real-time validation for specific fields
-    const fieldError = validateField(field, value);
-    if (fieldError) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: fieldError,
-      }));
-    }
-  }, [errors]);
+      // Clear error when user starts typing
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "",
+        }));
+      }
 
   const fetchProductVariants = useCallback(
     async (productId: number, page = 0, size = VARIANT_PAGE_SIZE) => {
@@ -220,15 +214,13 @@ const AdminProductsNew: React.FC = () => {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form
-    const formErrors = validateForm(formData);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
     setErrors(formErrors);
 
-    if (Object.keys(formErrors).length > 0) {
-      console.log("Form has errors:", formErrors);
-      return;
-    }
+      setErrors(formErrors);
 
     setIsSubmitting(true);
     setVariantStatusMessage("Đang tạo sản phẩm và tải phiên bản...");
@@ -852,11 +844,11 @@ const AdminProductsNew: React.FC = () => {
         prev.map((v) =>
           v.id === editingVersion.id
             ? {
-              ...v,
-              price: editingVersion.sellingPrice,
-              inventory: editingVersion.inventory,
-              available: editingVersion.available,
-            }
+                ...v,
+                price: editingVersion.sellingPrice,
+                inventory: editingVersion.inventory,
+                available: editingVersion.available,
+              }
             : v
         )
       );
@@ -883,7 +875,6 @@ const AdminProductsNew: React.FC = () => {
   }, [formData, showAttributes, attributes]);
 
   return (
-
     <PageContainer>
       {/* Header */}
       <div className="flex flex-col gap-4 mb-2">
@@ -902,7 +893,10 @@ const AdminProductsNew: React.FC = () => {
       </div>
 
       <ContentCard>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-[22px] w-full">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-[22px] w-full"
+        >
           {/* Image Upload Section */}
           <ImageUpload
             images={images}
@@ -926,7 +920,9 @@ const AdminProductsNew: React.FC = () => {
                   label="Tên sản phẩm"
                   required
                   error={errors.productName}
-                  success={!errors.productName && formData.productName.length > 2}
+                  success={
+                    !errors.productName && formData.productName.length > 2
+                  }
                   hint="Tên sản phẩm nên ngắn gọn và dễ hiểu"
                   className="flex-1"
                 >
@@ -936,9 +932,13 @@ const AdminProductsNew: React.FC = () => {
                     onChange={(e) =>
                       handleInputChange("productName", e.target.value)
                     }
-                    containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${errors.productName ? 'error-border' :
-                      !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
-                      }`}
+                    containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${
+                      errors.productName
+                        ? "error-border"
+                        : !errors.productName && formData.productName.length > 2
+                          ? "success-border"
+                          : ""
+                    }`}
                   />
                 </FormField>
               </div>
@@ -1738,9 +1738,11 @@ const AdminProductsNew: React.FC = () => {
                   <input
                     type="text"
                     inputMode="numeric"
-                  placeholder="Nhập vào"
-                  value={formData.weight}
-                  onChange={(e) => handleInputChange("weight", e.target.value)}
+                    placeholder="Nhập vào"
+                    value={formData.weight}
+                    onChange={(e) =>
+                      handleInputChange("weight", e.target.value)
+                    }
                     className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat placeholder:text-[#b0b0b0]"
                   />
                   <div className="flex items-center gap-2.5 ml-2">
@@ -1755,8 +1757,8 @@ const AdminProductsNew: React.FC = () => {
               {/* Package Dimensions */}
               <div className="flex flex-col gap-2">
                 <p className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                  Kích thước đóng gói (Phí vận chuyển thực tế sẽ thay đổi nếu bạn
-                  nhập sai kích thước)
+                  Kích thước đóng gói (Phí vận chuyển thực tế sẽ thay đổi nếu
+                  bạn nhập sai kích thước)
                 </p>
 
                 <div className="flex gap-4">
@@ -1770,7 +1772,9 @@ const AdminProductsNew: React.FC = () => {
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.width}
-                        onChange={(e) => handleInputChange("width", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("width", e.target.value)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                       />
                       <div className="flex items-center gap-2.5 ml-2">
@@ -1792,7 +1796,9 @@ const AdminProductsNew: React.FC = () => {
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.length}
-                        onChange={(e) => handleInputChange("length", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("length", e.target.value)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                       />
                       <div className="flex items-center gap-2.5 ml-2">
@@ -1814,7 +1820,9 @@ const AdminProductsNew: React.FC = () => {
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.height}
-                        onChange={(e) => handleInputChange("height", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("height", e.target.value)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                       />
                       <div className="flex items-center gap-2.5 ml-2">
@@ -1846,7 +1854,9 @@ const AdminProductsNew: React.FC = () => {
                 <span className="text-red-500 animate-shake">
                   ⚠️ Vui lòng kiểm tra lại thông tin
                 </span>
-              ) : formData.productName && formData.brand && formData.description ? (
+              ) : formData.productName &&
+                formData.brand &&
+                formData.description ? (
                 <span className="text-green-600 animate-fadeIn">
                   ✅ Thông tin cơ bản đã đầy đủ
                 </span>
@@ -2069,8 +2079,9 @@ const AdminProductsNew: React.FC = () => {
                 return (
                   <div
                     key={versionId}
-                    className={`flex items-center justify-between px-6 py-6 ${index > 0 ? "border-t border-[#d1d1d1]" : ""
-                      }`}
+                    className={`flex items-center justify-between px-6 py-6 ${
+                      index > 0 ? "border-t border-[#d1d1d1]" : ""
+                    }`}
                   >
                     <div className="flex items-center">
                       <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
@@ -2181,8 +2192,9 @@ const AdminProductsNew: React.FC = () => {
                 return (
                   <div
                     key={versionId}
-                    className={`flex items-center justify-between px-6 py-6 ${index > 0 ? "border-t border-[#d1d1d1]" : ""
-                      }`}
+                    className={`flex items-center justify-between px-6 py-6 ${
+                      index > 0 ? "border-t border-[#d1d1d1]" : ""
+                    }`}
                   >
                     <div className="flex items-center">
                       <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
@@ -2354,7 +2366,9 @@ const AdminProductsNew: React.FC = () => {
 
                 {/* Right Column - Image Upload */}
                 <div className="flex flex-col gap-6 items-center px-4 py-6">
-                  <div className={`bg-[#ffeeea] border border-[#e04d30] border-dashed flex flex-col gap-2 items-center justify-center rounded-[8px] w-[120px] h-[120px] ${editingVersion.image ? '' : 'p-5'}`}>
+                  <div
+                    className={`bg-[#ffeeea] border border-[#e04d30] border-dashed flex flex-col gap-2 items-center justify-center rounded-[8px] w-[120px] h-[120px] ${editingVersion.image ? "" : "p-5"}`}
+                  >
                     {editingVersion.image ? (
                       <img
                         src={editingVersion.image}

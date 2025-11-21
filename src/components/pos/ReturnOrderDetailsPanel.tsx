@@ -151,14 +151,14 @@ export const ReturnOrderDetailsPanel: React.FC<
                               </p>
                               {(item.product.category ||
                                 item.product.variant) && (
-                                  <p className="text-xs text-[#737373] mt-1">
-                                    Phân loại hàng:{" "}
-                                    <span className="text-[#272424]">
-                                      {item.product.variant ||
-                                        item.product.category}
-                                    </span>
-                                  </p>
-                                )}
+                                <p className="text-xs text-[#737373] mt-1">
+                                  Phân loại hàng:{" "}
+                                  <span className="text-[#272424]">
+                                    {item.product.variant ||
+                                      item.product.category}
+                                  </span>
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -185,20 +185,20 @@ export const ReturnOrderDetailsPanel: React.FC<
                     {returnOrder.receivedProducts.some(
                       (item) => item.reason
                     ) && (
-                        <tr className="border-t border-[#e7e7e7]">
-                          <td colSpan={4} className="px-4 py-3">
-                            {returnOrder.receivedProducts.map((item, index) => (
-                              <div key={index}>
-                                {item.reason && (
-                                  <p className="text-sm text-[#e04d30] font-medium">
-                                    Lý do: {item.reason}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
-                          </td>
-                        </tr>
-                      )}
+                      <tr className="border-t border-[#e7e7e7]">
+                        <td colSpan={4} className="px-4 py-3">
+                          {returnOrder.receivedProducts.map((item, index) => (
+                            <div key={index}>
+                              {item.reason && (
+                                <p className="text-sm text-[#e04d30] font-medium">
+                                  Lý do: {item.reason}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

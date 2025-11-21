@@ -54,10 +54,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleAmountPaidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let inputValue = e.target.value;
-    
+
     // Remove all non-digit characters (including dots, commas, and đ)
     const numericValue = inputValue.replace(/[^\d]/g, "");
-    
+
     // Allow empty value for clearing
     setAmountPaid(numericValue);
   };
@@ -122,45 +122,29 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         {/* Form Content */}
         <div className="px-6 pt-6 pb-6">
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* Payment Method Selection */}
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-4">
-              {/* Cash Payment */}
-              <button
-                type="button"
-                onClick={() => {
-                  setPaymentMethod("cash");
-                  setAmountPaid("");
-                  setChange(0);
-                }}
-                className={cn(
-                  "flex-1 flex flex-col items-center gap-3 p-4 border-2 rounded-lg transition-all",
-                  paymentMethod === "cash"
-                    ? "border-[#e04d30] bg-[#e04d30]/5"
-                    : "border-[#e7e7e7] bg-white hover:border-[#e04d30]/50"
-                )}
-              >
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                    {/* Banknotes icon */}
-                    <svg
-                      className="w-6 h-6 text-green-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  {paymentMethod === "cash" && (
-                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+            {/* Payment Method Selection */}
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-4">
+                {/* Cash Payment */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod("cash");
+                    setAmountPaid("");
+                    setChange(0);
+                  }}
+                  className={cn(
+                    "flex-1 flex flex-col items-center gap-3 p-4 border-2 rounded-lg transition-all",
+                    paymentMethod === "cash"
+                      ? "border-[#e04d30] bg-[#e04d30]/5"
+                      : "border-[#e7e7e7] bg-white hover:border-[#e04d30]/50"
+                  )}
+                >
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                      {/* Banknotes icon */}
                       <svg
-                        className="w-4 h-4 text-white"
+                        className="w-6 h-6 text-green-600"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -169,59 +153,53 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M5 13l4 4L19 7"
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
                     </div>
-                  )}
-                </div>
-                <span className="text-sm font-medium text-[#272424]">
-                  Tiền mặt
-                </span>
-              </button>
-
-              {/* Bank Transfer */}
-              <button
-                type="button"
-                onClick={() => {
-                  setPaymentMethod("transfer");
-                  setAmountPaid("");
-                  setChange(0);
-                }}
-                className={cn(
-                  "flex-1 flex flex-col items-center gap-3 p-4 border-2 rounded-lg transition-all",
-                  paymentMethod === "transfer"
-                    ? "border-[#e04d30] bg-[#e04d30]/5"
-                    : "border-[#e7e7e7] bg-white hover:border-[#e04d30]/50"
-                )}
-              >
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    {/* Smartphone with document/checkmark icon */}
-                    <svg
-                      className="w-6 h-6 text-blue-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4"
-                      />
-                    </svg>
+                    {paymentMethod === "cash" && (
+                      <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    )}
                   </div>
-                  {paymentMethod === "transfer" && (
-                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                  <span className="text-sm font-medium text-[#272424]">
+                    Tiền mặt
+                  </span>
+                </button>
+
+                {/* Bank Transfer */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMethod("transfer");
+                    setAmountPaid("");
+                    setChange(0);
+                  }}
+                  className={cn(
+                    "flex-1 flex flex-col items-center gap-3 p-4 border-2 rounded-lg transition-all",
+                    paymentMethod === "transfer"
+                      ? "border-[#e04d30] bg-[#e04d30]/5"
+                      : "border-[#e7e7e7] bg-white hover:border-[#e04d30]/50"
+                  )}
+                >
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                      {/* Smartphone with document/checkmark icon */}
                       <svg
-                        className="w-4 h-4 text-white"
+                        className="w-6 h-6 text-blue-600"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -230,83 +208,105 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M5 13l4 4L19 7"
+                          d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4"
                         />
                       </svg>
                     </div>
-                  )}
-                </div>
-                <span className="text-sm font-medium text-[#272424]">
-                  Chuyển khoản
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Transaction Details */}
-          <div className="flex flex-col gap-4 pt-4 border-t border-[#e7e7e7]">
-            {/* Customer owes */}
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-[#272424]">
-                Khách phải trả
-              </span>
-              <span className="text-sm font-bold text-[#272424]">
-                {formatCurrency(finalAmount)}
-              </span>
-            </div>
-
-            {/* Amount paid (only show for cash) */}
-            {paymentMethod === "cash" && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-[#272424]">
-                  Tiền khách đưa
-                </span>
-                <input
-                  type="text"
-                  value={
-                    isAmountInputFocused
-                      ? amountPaid
-                      : amountPaid
-                        ? formatCurrency(parseFloat(amountPaid))
-                        : ""
-                  }
-                  onChange={handleAmountPaidChange}
-                  onFocus={() => setIsAmountInputFocused(true)}
-                  onBlur={() => setIsAmountInputFocused(false)}
-                  placeholder="0đ"
-                  className="text-sm font-bold text-[#272424] text-right border-b-2 border-[#272424] outline-none bg-transparent w-32"
-                  required={paymentMethod === "cash"}
-                />
+                    {paymentMethod === "transfer" && (
+                      <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-[#272424]">
+                    Chuyển khoản
+                  </span>
+                </button>
               </div>
-            )}
+            </div>
 
-            {/* Change */}
-            {paymentMethod === "cash" && (
+            {/* Transaction Details */}
+            <div className="flex flex-col gap-4 pt-4 border-t border-[#e7e7e7]">
+              {/* Customer owes */}
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-[#272424]">
-                  Tiền thừa trả khách
+                  Khách phải trả
                 </span>
                 <span className="text-sm font-bold text-[#272424]">
-                  {formatCurrency(change)}
+                  {formatCurrency(finalAmount)}
                 </span>
               </div>
-            )}
-          </div>
 
-          {/* Complete Button */}
-          <div className="pt-4">
-            <Button
-              type="submit"
-              disabled={
-                paymentMethod === "cash" &&
-                (parseFloat(amountPaid.replace(/[^\d]/g, "")) || 0) <
-                  finalAmount
-              }
-              className="w-full px-8 py-2.5"
-            >
-              <span className="text-sm font-bold">Hoàn tất</span>
-            </Button>
-          </div>
+              {/* Amount paid (only show for cash) */}
+              {paymentMethod === "cash" && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-[#272424]">
+                    Tiền khách đưa
+                  </span>
+                  <input
+                    type="text"
+                    value={
+                      isAmountInputFocused
+                        ? amountPaid
+                        : amountPaid
+                          ? formatCurrency(parseFloat(amountPaid))
+                          : ""
+                    }
+                    onChange={handleAmountPaidChange}
+                    onFocus={() => setIsAmountInputFocused(true)}
+                    onBlur={() => setIsAmountInputFocused(false)}
+                    placeholder="0đ"
+                    className="text-sm font-bold text-[#272424] text-right border-b-2 border-[#272424] outline-none bg-transparent w-32"
+                    required={paymentMethod === "cash"}
+                  />
+                </div>
+              )}
+
+              {/* Change */}
+              {paymentMethod === "cash" && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-[#272424]">
+                    Tiền thừa trả khách
+                  </span>
+                  <span className="text-sm font-bold text-[#272424]">
+                    {formatCurrency(change)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Complete Button */}
+            <div className="pt-4">
+              <Button
+                type="submit"
+                disabled={
+                  paymentMethod === "cash" &&
+                  (parseFloat(amountPaid.replace(/[^\d]/g, "")) || 0) <
+                    finalAmount
+                }
+                className="w-full px-8 py-2.5"
+              >
+                <span className="text-sm font-bold">Hoàn tất</span>
+              </Button>
+            </div>
           </form>
         </div>
       </div>

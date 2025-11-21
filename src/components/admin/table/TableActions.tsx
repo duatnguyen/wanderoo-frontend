@@ -24,8 +24,9 @@ export const TableActions = ({
   const getButtonStyles = (
     variant: "primary" | "secondary" | "danger" = "primary"
   ) => {
-    const baseStyles = "h-9 px-4 rounded-lg transition-all duration-200 font-medium text-sm";
-    
+    const baseStyles =
+      "h-9 px-4 rounded-lg transition-all duration-200 font-medium text-sm";
+
     switch (variant) {
       case "primary":
         return `${baseStyles} bg-[#e04d30] text-white hover:bg-[#d54933] hover:shadow-md active:scale-95`;
@@ -44,11 +45,15 @@ export const TableActions = ({
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[#e04d30] animate-pulse"></div>
           <span className="font-medium text-[#2d3748] text-sm leading-relaxed whitespace-nowrap">
-            Đã chọn <span className="font-semibold text-[#e04d30]">{selectedCount}</span> {itemName}
+            Đã chọn{" "}
+            <span className="font-semibold text-[#e04d30]">
+              {selectedCount}
+            </span>{" "}
+            {itemName}
           </span>
         </div>
       </div>
-      
+
       <div className={className}>
         {actions.map((action, index) => (
           <Button

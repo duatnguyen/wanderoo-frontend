@@ -63,24 +63,20 @@ export const ChipStatus: React.FC<Readonly<ChipStatusProps>> = ({
   textClassName,
 }) => {
   const styles = CHIP_STYLES[status] ?? CHIP_STYLES.default;
-  
+
   const sizeClasses = {
     default: "rounded-[10px] px-[8px] h-[28px]",
-    small: "rounded-[8px] px-[6px] h-[22px]"
+    small: "rounded-[8px] px-[6px] h-[22px]",
   };
-  
+
   const textSizeClasses = {
     default: "text-[14px]",
-    small: "text-[11px]"
+    small: "text-[11px]",
   };
 
   return (
     <div
-      className={cn(
-        "w-fit flex items-center",
-        sizeClasses[size],
-        className
-      )}
+      className={cn("w-fit flex items-center", sizeClasses[size], className)}
       style={{ backgroundColor: styles.bg }}
     >
       <span

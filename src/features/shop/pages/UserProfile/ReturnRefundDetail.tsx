@@ -123,8 +123,9 @@ const ReturnRefundDetail: React.FC = () => {
     ];
   }, [data.statusSteps, isCancelled]);
 
-  const latestCompletedStep =
-    stepsToRender.filter((step) => step.completed).slice(-1)[0];
+  const latestCompletedStep = stepsToRender
+    .filter((step) => step.completed)
+    .slice(-1)[0];
   const activeStatus = isCancelled ? "Yêu cầu đã được hủy" : data.status;
   const statusTitle =
     activeStatus === "Chấp nhận yêu cầu"
@@ -160,8 +161,9 @@ const ReturnRefundDetail: React.FC = () => {
           <button
             onClick={() => {
               // Determine current step label to show in orders list
-              const lastCompleted =
-                data.statusSteps.filter((s) => s.completed).slice(-1)[0];
+              const lastCompleted = data.statusSteps
+                .filter((s) => s.completed)
+                .slice(-1)[0];
               const currentLabel = lastCompleted?.label || "Trả hàng/Hoàn tiền";
 
               // Navigate back to orders page with "return" tab active
@@ -169,7 +171,10 @@ const ReturnRefundDetail: React.FC = () => {
               navigate("/user/profile/orders", {
                 state: {
                   activeTab: "return",
-                  statusOverride: { orderId: data.orderId, label: currentLabel },
+                  statusOverride: {
+                    orderId: data.orderId,
+                    label: currentLabel,
+                  },
                 },
               });
             }}
@@ -214,7 +219,10 @@ const ReturnRefundDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    console.log("Cancel return request for order:", data.orderId);
+                    console.log(
+                      "Cancel return request for order:",
+                      data.orderId
+                    );
                     setIsCancelled(true);
                   }}
                   className="px-4 h-6 text-[13px] font-normal rounded-[10px] border border-[#E04D30] text-[#E04D30] bg-white hover:bg-[#E04D30] hover:text-white transition-colors w-full sm:w-auto"
@@ -226,9 +234,12 @@ const ReturnRefundDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    navigate(`/user/profile/return-refund/${data.orderId}/method`, {
-                      state: { data },
-                    });
+                    navigate(
+                      `/user/profile/return-refund/${data.orderId}/method`,
+                      {
+                        state: { data },
+                      }
+                    );
                   }}
                   className="px-4 h-6 text-[13px] font-normal rounded-[10px] border border-[#E04D30] text-white bg-[#E04D30] hover:bg-[#c93d24] hover:border-[#c93d24] transition-colors w-full sm:w-auto sm:self-start"
                 >
@@ -242,7 +253,9 @@ const ReturnRefundDetail: React.FC = () => {
         {/* Tổng quan (Overview) Section */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 text-[14px]">
           <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 className="text-[18px] font-bold text-gray-900 mb-0">Sản phẩm trả</h2>
+            <h2 className="text-[18px] font-bold text-gray-900 mb-0">
+              Sản phẩm trả
+            </h2>
             <div className="flex flex-wrap items-center gap-2 text-[14px] text-gray-700 sm:justify-end sm:text-right">
               <span>Đơn hàng:</span>
               <button
@@ -312,12 +325,8 @@ const ReturnRefundDetail: React.FC = () => {
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-gray-700">
-                Hoàn tiền vào
-              </span>
-              <span className="text-[14px] text-gray-900">
-                {data.bankInfo}
-              </span>
+              <span className="text-[14px] text-gray-700">Hoàn tiền vào</span>
+              <span className="text-[14px] text-gray-900">{data.bankInfo}</span>
             </div>
           </div>
         </div>

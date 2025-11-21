@@ -30,13 +30,15 @@ const NavItem: React.FC<NavItemProps> = ({
     "flex items-center gap-3 rounded-xl px-4 h-8 py-0 text-sm font-medium tracking-wide transition-colors duration-200";
   const activeClasses = "bg-[#E04D30] text-white";
   const inactiveClasses = "text-white hover:text-white hover:bg-[#172b46]";
-  const submenuClasses = "ml-[25px] pl-3 text-xs font-normal tracking-normal h-7";
+  const submenuClasses =
+    "ml-[25px] pl-3 text-xs font-normal tracking-normal h-7";
   const submenuActiveClasses = "text-white font-medium";
   const submenuInactiveClasses = "text-white/60 hover:text-white/90";
   const footerBaseClasses =
     "flex items-center gap-3 rounded-xl px-4 h-8 py-0 text-sm font-medium tracking-wide transition-colors duration-200";
   const footerActiveClasses = "bg-[#E04D30] text-white";
-  const footerInactiveClasses = "text-white hover:text-white hover:bg-[#172b46]";
+  const footerInactiveClasses =
+    "text-white hover:text-white hover:bg-[#172b46]";
 
   // Check if item is active
   let isActive = false;
@@ -63,7 +65,12 @@ const NavItem: React.FC<NavItemProps> = ({
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
         </svg>
       )}
     </>
@@ -97,7 +104,7 @@ const NavItem: React.FC<NavItemProps> = ({
         <div className={itemClasses} onClick={handleItemClick}>
           {content}
         </div>
-        
+
         {/* Inline submenu */}
         {isExpanded && (
           <div className="mt-1 space-y-0.5">
@@ -106,7 +113,8 @@ const NavItem: React.FC<NavItemProps> = ({
                 key={`${itemKey}-sub-${subIndex}`}
                 to={subItem.path || "#"}
                 className={`flex items-center gap-2 rounded-lg px-3 py-1.5 transition-colors duration-200 ${submenuClasses} ${
-                  subItem.activeMatch && activePath.startsWith(subItem.activeMatch)
+                  subItem.activeMatch &&
+                  activePath.startsWith(subItem.activeMatch)
                     ? `${submenuActiveClasses} bg-[#E04D30]/20 border-l-2 border-[#E04D30]`
                     : submenuInactiveClasses
                 } hover:text-white hover:bg-white/5`}
@@ -129,11 +137,7 @@ const NavItem: React.FC<NavItemProps> = ({
     );
   }
 
-  return (
-    <div className={`${itemClasses} cursor-default`}>
-      {content}
-    </div>
-  );
+  return <div className={`${itemClasses} cursor-default`}>{content}</div>;
 };
 
 export default NavItem;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface ProgressStepProps {
   step: number;
@@ -13,28 +13,31 @@ const ProgressStep: React.FC<ProgressStepProps> = ({
   title,
   isCompleted,
   isActive,
-  isLast = false
+  isLast = false,
 }) => {
   return (
     <div className="flex items-center">
       {/* Step Circle */}
       <div className="flex items-center">
-        <div className={`
+        <div
+          className={`
           relative flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-300
-          ${isCompleted 
-            ? 'bg-green-500 border-green-500 text-white' 
-            : isActive 
-              ? 'bg-[#e04d30] border-[#e04d30] text-white' 
-              : 'bg-white border-gray-300 text-gray-400'
+          ${
+            isCompleted
+              ? "bg-green-500 border-green-500 text-white"
+              : isActive
+                ? "bg-[#e04d30] border-[#e04d30] text-white"
+                : "bg-white border-gray-300 text-gray-400"
           }
-        `}>
+        `}
+        >
           {isCompleted ? (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path 
-                d="M20 6L9 17l-5-5" 
-                stroke="currentColor" 
-                strokeWidth="2.5" 
-                strokeLinecap="round" 
+              <path
+                d="M20 6L9 17l-5-5"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
@@ -42,22 +45,26 @@ const ProgressStep: React.FC<ProgressStepProps> = ({
             <span className="text-[12px] font-bold">{step}</span>
           )}
         </div>
-        
+
         {/* Step Title */}
-        <span className={`
+        <span
+          className={`
           ml-3 text-[13px] font-medium transition-colors duration-200
-          ${isCompleted || isActive ? 'text-[#272424]' : 'text-gray-400'}
-        `}>
+          ${isCompleted || isActive ? "text-[#272424]" : "text-gray-400"}
+        `}
+        >
           {title}
         </span>
       </div>
-      
+
       {/* Connector Line */}
       {!isLast && (
-        <div className={`
+        <div
+          className={`
           ml-4 w-12 h-0.5 transition-colors duration-300
-          ${isCompleted ? 'bg-green-500' : 'bg-gray-200'}
-        `} />
+          ${isCompleted ? "bg-green-500" : "bg-gray-200"}
+        `}
+        />
       )}
     </div>
   );
@@ -72,10 +79,12 @@ interface ProgressIndicatorProps {
 const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   currentStep,
   steps,
-  className = ""
+  className = "",
 }) => {
   return (
-    <div className={`bg-white rounded-[16px] p-4 border border-gray-100 shadow-sm ${className}`}>
+    <div
+      className={`bg-white rounded-[16px] p-4 border border-gray-100 shadow-sm ${className}`}
+    >
       <div className="flex items-center justify-between">
         {steps.map((stepTitle, index) => (
           <ProgressStep

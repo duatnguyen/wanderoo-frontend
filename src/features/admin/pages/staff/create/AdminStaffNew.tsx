@@ -168,7 +168,9 @@ const AdminStaffNew: React.FC = () => {
     }
 
     const genderEnum =
-      formData.gender === "male" ? "MALE" : ("FEMALE" as EmployeeCreationRequest["gender"]);
+      formData.gender === "male"
+        ? "MALE"
+        : ("FEMALE" as EmployeeCreationRequest["gender"]);
     const payload: EmployeeCreationRequest = {
       name: formData.fullName.trim(),
       username: formData.username.trim(),
@@ -418,4 +420,3 @@ const AdminStaffNew: React.FC = () => {
 };
 
 export default AdminStaffNew;
-

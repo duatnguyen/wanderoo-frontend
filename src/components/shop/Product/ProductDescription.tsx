@@ -19,7 +19,7 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ product }) => {
     } = {};
 
     const lines = desc.split("\n").filter((line) => line.trim());
-    
+
     let currentSection = "";
     sections.productInfo = [];
     sections.features = [];
@@ -27,11 +27,17 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ product }) => {
 
     lines.forEach((line) => {
       const trimmed = line.trim();
-      if (trimmed.includes("Đặc điểm nổi bật") || trimmed.includes("đặc điểm")) {
+      if (
+        trimmed.includes("Đặc điểm nổi bật") ||
+        trimmed.includes("đặc điểm")
+      ) {
         currentSection = "features";
       } else if (trimmed.includes("Phù hợp") || trimmed.includes("phù hợp")) {
         currentSection = "suitableFor";
-      } else if (trimmed.includes("Thông tin") || trimmed.includes("thông tin")) {
+      } else if (
+        trimmed.includes("Thông tin") ||
+        trimmed.includes("thông tin")
+      ) {
         currentSection = "productInfo";
       } else if (trimmed.startsWith("-") || trimmed.startsWith("✔")) {
         const content = trimmed.replace(/^[-✔]\s*/, "").trim();
@@ -54,7 +60,9 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ product }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-      <h2 className="text-[20px] font-bold text-gray-900 mb-6">Mô Tả Sản Phẩm</h2>
+      <h2 className="text-[20px] font-bold text-gray-900 mb-6">
+        Mô Tả Sản Phẩm
+      </h2>
 
       {/* Intro Section */}
       <div className="mb-6">
@@ -163,7 +171,8 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ product }) => {
       <div className="flex items-start gap-2">
         <span className="text-green-600 mt-0.5">✔️</span>
         <p className="text-sm text-gray-700 font-medium">
-          Wanderoo cam kết chỉ bán giày và phụ kiện leo núi chính hãng – đồng hành cùng bạn trên mọi cung đường chinh phục thiên nhiên!
+          Wanderoo cam kết chỉ bán giày và phụ kiện leo núi chính hãng – đồng
+          hành cùng bạn trên mọi cung đường chinh phục thiên nhiên!
         </p>
       </div>
     </div>
@@ -171,4 +180,3 @@ const ProductDescription: React.FC<ProductDescriptionProps> = ({ product }) => {
 };
 
 export default ProductDescription;
-
