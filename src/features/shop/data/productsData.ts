@@ -12,6 +12,7 @@ export interface Product {
   images?: string[];
   stock?: number;
   category?: string;
+  categoryId?: number; // Category ID for filtering
   brand?: string;
   reviews?: number;
   variant?: string;
@@ -42,6 +43,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", "", ""],
     stock: 25,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 128,
   },
@@ -58,6 +60,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", ""],
     stock: 15,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 95,
   },
@@ -73,6 +76,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 30,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 67,
   },
@@ -88,6 +92,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", "", ""],
     stock: 20,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 142,
   },
@@ -103,6 +108,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 35,
     category: "Thể thao ngoài trời",
+    categoryId: 3, // Mock category ID
     brand: "Naturehike",
     reviews: 89,
   },
@@ -118,6 +124,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 50,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 56,
   },
@@ -133,6 +140,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 40,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 78,
   },
@@ -148,6 +156,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 60,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 103,
   },
@@ -163,6 +172,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", "", ""],
     stock: 10,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 234,
   },
@@ -178,6 +188,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 18,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 156,
   },
@@ -193,6 +204,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", ""],
     stock: 12,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 187,
   },
@@ -208,6 +220,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", ""],
     stock: 22,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 201,
   },
@@ -223,6 +236,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 28,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 134,
   },
@@ -239,6 +253,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", ""],
     stock: 25,
     category: "Thể thao ngoài trời",
+    categoryId: 3, // Mock category ID
     brand: "Naturehike",
     reviews: 198,
   },
@@ -255,6 +270,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 32,
     category: "Thể thao ngoài trời",
+    categoryId: 3, // Mock category ID
     brand: "Naturehike",
     reviews: 87,
   },
@@ -270,6 +286,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 40,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 112,
   },
@@ -285,6 +302,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 55,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 245,
   },
@@ -301,6 +319,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 45,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 156,
   },
@@ -316,6 +335,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 30,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 98,
   },
@@ -332,6 +352,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 28,
     category: "Thể thao ngoài trời",
+    categoryId: 3, // Mock category ID
     brand: "Naturehike",
     reviews: 167,
   },
@@ -347,6 +368,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 50,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 203,
   },
@@ -359,9 +381,14 @@ export const getProductById = (id: string | number): Product | undefined => {
   );
 };
 
-// Helper function to get products by category
+// Helper function to get products by category name
 export const getProductsByCategory = (category: string): Product[] => {
   return productsData.filter((product) => product.category === category);
+};
+
+// Helper function to get products by category ID
+export const getProductsByCategoryId = (categoryId: number): Product[] => {
+  return productsData.filter((product) => product.categoryId === categoryId);
 };
 
 // Helper function to get related products (excluding current product)

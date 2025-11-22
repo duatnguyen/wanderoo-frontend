@@ -40,6 +40,22 @@ export const getProductVariants = async (
   return response.data.data;
 };
 
+export const getProductsByCategory = async (
+  categoryId: number,
+  params?: {
+    keyword?: string;
+    sort?: string;
+    page?: number;
+    size?: number;
+  }
+): Promise<ProductPageResponse> => {
+  const response = await api.get<ApiResponse<ProductPageResponse>>(
+    `/auth/v1/public/product/category/${categoryId}`,
+    { params }
+  );
+  return response.data.data;
+};
+
 // Admin Product APIs (Private v1)
 export const createProductPrivate = async (
   productData: ProductCreateRequest
