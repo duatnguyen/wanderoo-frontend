@@ -927,9 +927,12 @@ export interface VariantDetailIdRequest {
 
 export interface VariantUpdateRequest {
   id: number;
-  price?: number;
-  quantity?: number;
-  status?: string;
+  imageUrl?: string[];
+  barcode?: string;
+  sellingPrice?: number;
+  importPrice?: number;
+  totalQuantity?: number;
+  availableQuantity?: number;
 }
 
 export interface ProductStatusRequest {

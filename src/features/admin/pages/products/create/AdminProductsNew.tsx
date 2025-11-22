@@ -34,6 +34,8 @@ import {
   createProductPrivate,
   getCategoryChildOptions,
   getProductVariantsPrivate,
+  updateVariantPrivate,
+  updateProductPrivate,
 } from "@/api/endpoints/productApi";
 import {
   getBrandList,
@@ -54,11 +56,11 @@ const formatCurrencyDisplay = (value?: string | number | null): string => {
   if (!Number.isFinite(numeric)) {
     return "0đ";
   }
+  // Format với dấu chấm ngăn cách hàng nghìn và thêm "đ" ở cuối (không có khoảng trắng)
   return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
+    minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(numeric);
+  }).format(numeric) + "đ";
 };
 
 const CATEGORY_PAGE_SIZE = 20;
@@ -278,6 +280,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
               variant.sellingPrice !== undefined && variant.sellingPrice !== null
                 ? String(variant.sellingPrice)
                 : "",
+            costPrice:
+              variant.importPrice !== undefined && variant.importPrice !== null
+                ? String(variant.importPrice)
+                : "",
             inventory:
               variant.totalQuantity !== undefined && variant.totalQuantity !== null
                 ? String(variant.totalQuantity)
@@ -309,6 +315,13 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     []
   );
 
+  // Load variants when in edit mode
+  useEffect(() => {
+    if (isEditMode && productId && !initialVersions?.length) {
+      fetchProductVariants(productId, 0, VARIANT_PAGE_SIZE);
+    }
+  }, [isEditMode, productId, initialVersions?.length, fetchProductVariants]);
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewMode) {
@@ -326,7 +339,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     }
 
     setIsSubmitting(true);
-    setVariantStatusMessage("Đang tạo sản phẩm và tải phiên bản...");
+    setVariantStatusMessage(
+      isEditMode
+        ? "Đang cập nhật sản phẩm..."
+        : "Đang tạo sản phẩm và tải phiên bản..."
+    );
     setVariantError(null);
     setIsVariantSectionVisible(true);
 
@@ -341,45 +358,82 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         return Number.isNaN(parsed) ? undefined : parsed;
       };
 
-      const payload: ProductCreateRequest = {
-        name: formData.productName.trim(),
-        description: formData.description.trim(),
-        categoryId: formData.categoryId!,
-        brandId: formData.brandId!,
-        images: images.map((img) => img.url).filter(Boolean),
-        attributes: attributes.length > 0 ? attributes : [],
-        packagedWeight: toFloat(formData.weight),
-        length: toFloat(formData.length),
-        width: toFloat(formData.width),
-        height: toFloat(formData.height),
-        importPrice: toOptionalFloat(formData.costPrice),
-        sellingPrice: toOptionalFloat(formData.sellingPrice),
-        totalQuantity: toOptionalInt(formData.inventory),
-        availableQuantity: toOptionalInt(formData.available),
-      };
+      if (isEditMode && productId) {
+        // Update existing product
+        const updatePayload = {
+          id: productId,
+          name: formData.productName.trim(),
+          description: formData.description.trim(),
+          categoryId: formData.categoryId!,
+          brandId: formData.brandId!,
+          images: images.map((img) => img.url).filter(Boolean),
+          attributes: attributes.length > 0 ? attributes : [],
+          packagedWeight: toFloat(formData.weight),
+          length: toFloat(formData.length),
+          width: toFloat(formData.width),
+          height: toFloat(formData.height),
+          importPrice: toOptionalFloat(formData.costPrice),
+          sellingPrice: toOptionalFloat(formData.sellingPrice),
+          totalQuantity: toOptionalInt(formData.inventory),
+          availableQuantity: toOptionalInt(formData.available),
+        };
 
-      const creationResponse = await createProductPrivate(payload);
-      const newProductId = creationResponse?.data;
-
-      if (typeof newProductId === "number") {
-        setCreatedProductId(newProductId);
-        await fetchProductVariants(newProductId, 0, VARIANT_PAGE_SIZE);
+        await updateProductPrivate(updatePayload);
         setVariantStatusMessage(null);
-        toast.success("Thêm sản phẩm thành công!");
+        toast.success("Đã cập nhật sản phẩm thành công!");
+        
+        // Refresh variants
+        await fetchProductVariants(productId, 0, VARIANT_PAGE_SIZE);
       } else {
-        setVariantStatusMessage(null);
-        toast.success("Thêm sản phẩm thành công nhưng không lấy được dữ liệu phiên bản.");
+        // Create new product
+        const payload: ProductCreateRequest = {
+          name: formData.productName.trim(),
+          description: formData.description.trim(),
+          categoryId: formData.categoryId!,
+          brandId: formData.brandId!,
+          images: images.map((img) => img.url).filter(Boolean),
+          attributes: attributes.length > 0 ? attributes : [],
+          packagedWeight: toFloat(formData.weight),
+          length: toFloat(formData.length),
+          width: toFloat(formData.width),
+          height: toFloat(formData.height),
+          importPrice: toOptionalFloat(formData.costPrice),
+          sellingPrice: toOptionalFloat(formData.sellingPrice),
+          totalQuantity: toOptionalInt(formData.inventory),
+          availableQuantity: toOptionalInt(formData.available),
+        };
+
+        const creationResponse = await createProductPrivate(payload);
+        const newProductId = creationResponse?.data;
+
+        if (typeof newProductId === "number") {
+          setCreatedProductId(newProductId);
+          await fetchProductVariants(newProductId, 0, VARIANT_PAGE_SIZE);
+          setVariantStatusMessage(null);
+          toast.success("Thêm sản phẩm thành công!");
+        } else {
+          setVariantStatusMessage(null);
+          toast.success("Thêm sản phẩm thành công nhưng không lấy được dữ liệu phiên bản.");
+        }
       }
     } catch (error) {
       console.error("Error submitting form:", error);
       setVariantStatusMessage(null);
-      toast.error("Không thể thêm sản phẩm. Vui lòng thử lại.");
-      setErrors({ submit: "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại." });
+      toast.error(
+        isEditMode
+          ? "Không thể cập nhật sản phẩm. Vui lòng thử lại."
+          : "Không thể thêm sản phẩm. Vui lòng thử lại."
+      );
+      setErrors({
+        submit: isEditMode
+          ? "Có lỗi xảy ra khi cập nhật sản phẩm. Vui lòng thử lại."
+          : "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại.",
+      });
     } finally {
       setVariantStatusMessage(null);
       setIsSubmitting(false);
     }
-  }, [attributes, fetchProductVariants, formData, images, isViewMode]);
+  }, [attributes, fetchProductVariants, formData, images, isViewMode, isEditMode, productId, createdProductId]);
 
   const handleCancel = () => {
     if (isViewMode) {
@@ -910,7 +964,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         id: version.id,
         name: version.name,
         barcode: version.barcode || "",
-        costPrice: "",
+        costPrice: version.costPrice || "",
         sellingPrice: version.price || "",
         inventory: version.inventory || "",
         available: version.available || "",
@@ -969,24 +1023,91 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     setEditingVersion(null);
   };
 
-  const handleEditVersionConfirm = () => {
-    if (editingVersion) {
-      // TODO: Save version data
-      console.log("Version data:", editingVersion);
+  const handleEditVersionConfirm = async () => {
+    if (!editingVersion) return;
+
+    try {
+      const variantId = parseInt(editingVersion.id, 10);
+      if (isNaN(variantId)) {
+        toast.error("ID phiên bản không hợp lệ");
+        return;
+      }
+
+      const updateData: any = {
+        id: variantId,
+      };
+
+      // Only include fields that have values
+      if (editingVersion.barcode && editingVersion.barcode.trim()) {
+        updateData.barcode = editingVersion.barcode.trim();
+      }
+
+      if (editingVersion.sellingPrice && editingVersion.sellingPrice.trim()) {
+        const sellingPrice = parseFloat(editingVersion.sellingPrice);
+        if (!isNaN(sellingPrice)) {
+          updateData.sellingPrice = sellingPrice;
+        }
+      }
+
+      if (editingVersion.costPrice && editingVersion.costPrice.trim()) {
+        const importPrice = parseFloat(editingVersion.costPrice);
+        if (!isNaN(importPrice)) {
+          updateData.importPrice = importPrice;
+        }
+      }
+
+      if (editingVersion.inventory && editingVersion.inventory.trim()) {
+        const totalQuantity = parseInt(editingVersion.inventory, 10);
+        if (!isNaN(totalQuantity)) {
+          updateData.totalQuantity = totalQuantity;
+        }
+      }
+
+      if (editingVersion.available && editingVersion.available.trim()) {
+        const availableQuantity = parseInt(editingVersion.available, 10);
+        if (!isNaN(availableQuantity)) {
+          updateData.availableQuantity = availableQuantity;
+        }
+      }
+
+      if (editingVersion.image && editingVersion.image.trim()) {
+        updateData.imageUrl = [editingVersion.image];
+      }
+
+      await updateVariantPrivate(updateData);
+
+      // Update local state
       setVersions((prev) =>
         prev.map((v) =>
           v.id === editingVersion.id
             ? {
-              ...v,
-              price: editingVersion.sellingPrice,
-              inventory: editingVersion.inventory,
-              available: editingVersion.available,
-            }
+                ...v,
+                price: editingVersion.sellingPrice,
+                costPrice: editingVersion.costPrice,
+                inventory: editingVersion.inventory,
+                available: editingVersion.available,
+                barcode: editingVersion.barcode,
+                image: editingVersion.image,
+              }
             : v
         )
       );
+
+      toast.success("Đã cập nhật phiên bản thành công");
       setShowEditVersionModal(false);
       setEditingVersion(null);
+
+      // Refresh variant list
+      if (createdProductId) {
+        await fetchProductVariants(
+          createdProductId,
+          variantPagination.page,
+          variantPagination.pageSize
+        );
+      }
+    } catch (error) {
+      console.error("Error updating variant:", error);
+      toast.error("Không thể cập nhật phiên bản. Vui lòng thử lại.");
     }
   };
 
@@ -1644,20 +1765,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           {/* Version Section */}
           {isVariantSectionVisible && (
             <div className="bg-white border border-[#e7e7e7] rounded-[24px] py-6 flex flex-col gap-4">
-              <div className="flex items-center justify-between px-6 flex-wrap gap-3">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
-                    Phiên bản
-                  </h2>
-                  <span className="text-sm text-gray-500 font-montserrat">
-                    {variantPagination.total.toLocaleString("vi-VN")} phiên bản
-                  </span>
-                </div>
-                {createdProductId && (
-                  <span className="text-sm text-gray-500 font-montserrat">
-                    Mã sản phẩm: #{createdProductId}
-                  </span>
-                )}
+              <div className="px-6">
+                <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+                  Phiên bản
+                </h2>
               </div>
 
               {(variantStatusMessage || variantError) && (
@@ -1803,59 +1914,31 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         </div>
                         <div className="flex items-center justify-end gap-3">
                           {!isViewMode && (
-                            <>
-                              <button
-                                type="button"
-                                className="text-[#1a71f6] hover:text-[#0f5ad8]"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleVersionRowClick(version.id);
-                                }}
-                              >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                  <path
-                                    d="M12 20h9"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                              <button
-                                type="button"
-                                className="text-[#f44336] hover:text-[#d32f2f]"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // TODO: Hook up delete logic when API is available
-                                  console.log("Delete variant", version.id);
-                                }}
-                              >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                  <path
-                                    d="M3 6H5H21"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                            </>
+                            <button
+                              type="button"
+                              className="text-[#1a71f6] hover:text-[#0f5ad8]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVersionRowClick(version.id);
+                              }}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path
+                                  d="M12 20h9"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -2046,11 +2129,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">
                       <LoadingSpinner size="sm" />
-                      Đang lưu...
+                      {isEditMode ? "Đang cập nhật..." : "Đang lưu..."}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span>Thêm sản phẩm</span>
+                      <span>{isEditMode ? "Cập nhật sản phẩm" : "Thêm sản phẩm"}</span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                         <path
                           d="M5 12h14m-7-7l7 7-7 7"

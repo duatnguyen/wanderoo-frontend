@@ -1,5 +1,6 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Icon } from "../icons";
+import { toast } from "sonner";
 
 interface ImageFile {
   id: string;
@@ -29,62 +30,153 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   readOnly = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [replacingImageId, setReplacingImageId] = useState<string | null>(null);
+
+  const handleImageClick = () => {
+    if (readOnly) return;
+    setReplacingImageId(null); // Reset to add mode
+    fileInputRef.current?.click();
+  };
+
+  const handleExistingImageClick = (imageId: string, event?: React.MouseEvent) => {
+    if (readOnly) return;
+    // Don't trigger if clicking on delete button
+    if ((event?.target as HTMLElement)?.closest('button')) {
+      return;
+    }
+    setReplacingImageId(imageId);
+    fileInputRef.current?.click();
+  };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (readOnly) return;
     const files = event.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) {
+      setReplacingImageId(null);
+      return;
+    }
 
-    const newImages: ImageFile[] = [];
-    const remainingSlots = maxImages - images.length;
     const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
+    const imageIdToReplace = replacingImageId;
 
-    for (let i = 0; i < Math.min(files.length, remainingSlots); i++) {
-      const file = files[i];
-
-      // Check file size
-      if (file.size > maxSizeInBytes) {
-        alert(`${file.name} vượt quá dung lượng ${maxSizeInMB}MB`);
-        continue;
+    // If replacing an existing image
+    if (imageIdToReplace) {
+      const file = files[0];
+      if (!file) {
+        event.target.value = "";
+        setReplacingImageId(null);
+        return;
       }
 
-      // Check file type
+      if (file.size > maxSizeInBytes) {
+        toast.error(`${file.name} vượt quá dung lượng ${maxSizeInMB}MB`);
+        event.target.value = "";
+        setReplacingImageId(null);
+        return;
+      }
+
       if (!file.type.startsWith("image/")) {
-        alert(`${file.name} không phải là file hình ảnh`);
-        continue;
+        toast.error(`${file.name} không phải là file hình ảnh`);
+        event.target.value = "";
+        setReplacingImageId(null);
+        return;
       }
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (e.target?.result) {
+        const result = e.target?.result;
+        if (typeof result === "string" && imageIdToReplace) {
+          const updatedImages = images.map((img) =>
+            img.id === imageIdToReplace
+              ? {
+                  id: img.id,
+                  url: result,
+                  file: file,
+                }
+              : img
+          );
+          onImagesChange(updatedImages);
+          toast.success("Đã cập nhật hình ảnh");
+        }
+      };
+      reader.onerror = () => {
+        toast.error("Không thể đọc file hình ảnh");
+        event.target.value = "";
+        setReplacingImageId(null);
+      };
+      reader.readAsDataURL(file);
+      event.target.value = "";
+      setReplacingImageId(null);
+      return;
+    }
+
+    // Adding new images
+    const remainingSlots = maxImages - images.length;
+    if (remainingSlots <= 0) {
+      toast.error(`Chỉ có thể thêm tối đa ${maxImages} hình ảnh`);
+      event.target.value = "";
+      return;
+    }
+
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    const newImages: ImageFile[] = [];
+    let processedCount = 0;
+
+    filesToProcess.forEach((file, index) => {
+      if (file.size > maxSizeInBytes) {
+        toast.error(`${file.name} vượt quá dung lượng ${maxSizeInMB}MB`);
+        processedCount++;
+        if (processedCount === filesToProcess.length && newImages.length > 0) {
+          onImagesChange([...images, ...newImages]);
+        }
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        toast.error(`${file.name} không phải là file hình ảnh`);
+        processedCount++;
+        if (processedCount === filesToProcess.length && newImages.length > 0) {
+          onImagesChange([...images, ...newImages]);
+        }
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === "string") {
           newImages.push({
-            id: `${Date.now()}-${i}`,
-            url: e.target.result as string,
+            id: `${Date.now()}-${index}`,
+            url: result,
             file: file,
           });
-
-          if (newImages.length === Math.min(files.length, remainingSlots)) {
+        }
+        processedCount++;
+        if (processedCount === filesToProcess.length) {
+          if (newImages.length > 0) {
             onImagesChange([...images, ...newImages]);
           }
         }
       };
+      reader.onerror = () => {
+        toast.error(`Không thể đọc file ${file.name}`);
+        processedCount++;
+        if (processedCount === filesToProcess.length && newImages.length > 0) {
+          onImagesChange([...images, ...newImages]);
+        }
+      };
       reader.readAsDataURL(file);
-    }
+    });
 
-    // Reset input
-    if (event.target) {
       event.target.value = "";
-    }
   };
 
-  const handleRemoveImage = (id: string) => {
+  const handleRemoveImage = (id: string, event: React.MouseEvent) => {
     if (readOnly) return;
+    event.stopPropagation();
+    event.preventDefault();
     onImagesChange(images.filter((img) => img.id !== id));
-  };
-
-  const handleImageClick = () => {
-    if (readOnly) return;
-    fileInputRef.current?.click();
+    toast.success("Đã xóa hình ảnh");
   };
 
   return (
@@ -112,21 +204,23 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           {images.map((image) => (
             <div
               key={image.id}
-              className="relative bg-white border-2 border-dashed border-[#e04d30] rounded-[8px] w-[78px] h-[78px] overflow-hidden group"
+              className="relative bg-white border-2 border-dashed border-[#e04d30] rounded-[8px] w-[78px] h-[78px] overflow-hidden cursor-pointer"
+              onClick={(e) => handleExistingImageClick(image.id, e)}
             >
               <img
                 src={image.url}
                 alt="Product"
                 className="w-full h-full object-cover"
               />
-              {/* Remove button */}
+              {/* Delete button - small X in top right corner */}
               {!readOnly && (
                 <button
                   type="button"
-                  onClick={() => handleRemoveImage(image.id)}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  onClick={(e) => handleRemoveImage(image.id, e)}
+                  className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white rounded-bl-[8px] w-5 h-5 flex items-center justify-center transition-colors z-10"
+                  title="Xóa hình ảnh"
                 >
-                  <Icon name="close" size={16} color="white" />
+                  <Icon name="close" size={12} color="white" />
                 </button>
               )}
             </div>
@@ -153,7 +247,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             </div>
           )}
 
-          {/* Hidden file input */}
+          {/* Hidden file input - used for both adding and replacing */}
           <input
             ref={fileInputRef}
             type="file"

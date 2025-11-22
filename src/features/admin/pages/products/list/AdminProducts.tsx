@@ -17,7 +17,9 @@ import {
   getInactiveProductsPrivate,
   disableProductsPrivate,
   enableProductsPrivate,
+  updateSellingQuantityPrivate,
 } from "@/api/endpoints/productApi";
+import ChannelDisplayModal from "@/components/admin/modals/ChannelDisplayModal";
 import type {
   AdminProductResponse,
   AdminProductDetailResponse,
@@ -112,6 +114,7 @@ const AdminProducts: React.FC = () => {
     inactive: 0,
   });
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const latestRequestRef = useRef(0);
 
   useEffect(() => {
@@ -360,6 +363,65 @@ const AdminProducts: React.FC = () => {
     }
   };
 
+  const handleShowChannelModal = () => {
+    if (selectedProducts.size === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm");
+      return;
+    }
+    setIsChannelModalOpen(true);
+  };
+
+  const handleChannelModalConfirm = async (data: {
+    websiteEnabled: boolean;
+    websiteQuantity: number;
+    posEnabled: boolean;
+    posQuantity: number;
+  }) => {
+    setIsActionLoading(true);
+    setIsChannelModalOpen(false);
+
+    try {
+      // Lấy tất cả variants của các sản phẩm đã chọn
+      const selectedProductIds = Array.from(selectedProducts).map((id) => Number(id));
+      const selectedProductsData = products.filter((p) => selectedProductIds.includes(Number(p.id)));
+
+      // Thu thập tất cả variants từ các sản phẩm đã chọn
+      const allVariants: ProductVariant[] = [];
+      selectedProductsData.forEach((product) => {
+        if (product.variants && product.variants.length > 0) {
+          allVariants.push(...product.variants);
+        }
+      });
+
+      if (allVariants.length === 0) {
+        toast.error("Không tìm thấy biến thể nào để cập nhật");
+        setIsActionLoading(false);
+        return;
+      }
+
+      // Cập nhật từng variant
+      const updatePromises = allVariants.map((variant) => {
+        const request = {
+          id: Number(variant.id),
+          sellingQuantityWeb: data.websiteEnabled ? data.websiteQuantity : 0,
+          sellingQuantityPos: data.posEnabled ? data.posQuantity : 0,
+        };
+        return updateSellingQuantityPrivate(request);
+      });
+
+      await Promise.all(updatePromises);
+      toast.success(`Đã cập nhật số lượng bán cho ${allVariants.length} biến thể`);
+      await fetchProducts();
+      await fetchTabCounts();
+      handleClearSelection();
+    } catch (error) {
+      console.error("Không thể cập nhật số lượng bán", error);
+      toast.error("Cập nhật số lượng bán thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   // Keyboard shortcuts handler
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -463,6 +525,7 @@ const AdminProducts: React.FC = () => {
             onBulkExport={handleBulkExport}
             showSelectionActions={selectedProducts.size > 0}
             onBulkShow={handleBulkShow}
+            onShowChannelModal={handleShowChannelModal}
             actionDisabled={isActionLoading}
           />          {/* Table Body */}
           <div className={`w-full transition-all duration-200 ${selectedProducts.size > 0 ? 'ring-2 ring-blue-200 ring-opacity-50 rounded-b-[16px]' : 'rounded-b-[16px]'} overflow-hidden`}>
@@ -567,6 +630,14 @@ const AdminProducts: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Channel Display Modal */}
+      <ChannelDisplayModal
+        isOpen={isChannelModalOpen}
+        onClose={() => setIsChannelModalOpen(false)}
+        onConfirm={handleChannelModalConfirm}
+        selectedCount={selectedProducts.size}
+      />
     </PageContainer>
   );
 };

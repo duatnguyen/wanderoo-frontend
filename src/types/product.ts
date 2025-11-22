@@ -27,6 +27,7 @@ export interface ProductVersion {
   id: string;
   name: string;
   price?: string;
+  costPrice?: string;
   inventory?: string;
   available?: string;
   image?: string | null;
