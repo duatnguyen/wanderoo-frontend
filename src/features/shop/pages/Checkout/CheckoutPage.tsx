@@ -1,14 +1,25 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import Button from "../../../../components/shop/Button";
 import { Textarea } from "../../../../components/shop/Input";
-import { useCart } from "../../../../context/CartContext";
-import { getProductById } from "../../data/productsData";
+import { useAuth } from "../../../../context/AuthContext";
 import ShippingAddress from "../../../../components/shop/Checkout/ShippingAddress";
 import ProductsTable from "../../../../components/shop/Checkout/ProductsTable";
 import VoucherSelectionModal from "../../../../components/shop/Checkout/VoucherSelectionModal";
 import { formatCurrencyVND } from "./utils/formatCurrency";
+import {
+  getUserAddresses,
+  updateAddress,
+  deleteAddress,
+  setDefaultAddress
+} from "../../../../api/endpoints/userApi";
+import { getCart } from "../../../../api/endpoints/cartApi";
+import { createOrder } from "../../../../api/endpoints/orderApi";
+import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
+import type { AddressResponse, AddressUpdateRequest } from "../../../../types/auth";
+import type { BackendCartResponse, CustomerOrderPublicCreateRequest } from "../../../../types/api";
 
 type CheckoutItem = {
   id: string;
@@ -18,6 +29,7 @@ type CheckoutItem = {
   price: number;
   quantity: number;
   variant?: string;
+  cartId?: number; // For checkbox selection
 };
 
 type AddressOption = {
@@ -41,20 +53,20 @@ type EditFormState = {
 };
 
 type PaymentMethod = {
-  id: "cod" | "bank_transfer";
+  id: "CASH" | "BANKING";
   title: string;
   description: string;
 };
 
 const PAYMENT_METHODS: PaymentMethod[] = [
   {
-    id: "cod",
+    id: "CASH",
     title: "Thanh toán khi nhận hàng",
     description:
       "Thanh toán trực tiếp với nhân viên giao hàng sau khi nhận sản phẩm.",
   },
   {
-    id: "bank_transfer",
+    id: "BANKING",
     title: "Chuyển khoản ngân hàng qua mã QR",
     description:
       "Quét mã QR bằng ứng dụng ngân hàng để thanh toán nhanh chóng, an toàn.",
@@ -117,40 +129,17 @@ const parseRegion = (
 };
 
 const CheckoutPage: React.FC = () => {
-  const { cartItems, getCartCount } = useCart();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isAuthenticated, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
-  const [addresses, setAddresses] = useState<AddressOption[]>(() => [
-    {
-      id: 1,
-      name: "Lê Minh Trang",
-      phone: "(+84) 912 334 556",
-      detailAddress: "Số 215 Nguyễn Trãi",
-      region: "Quận Thanh Xuân, Hà Nội",
-      address: "Số 215 Nguyễn Trãi\nQuận Thanh Xuân, Hà Nội",
-      isDefault: true,
-    },
-    {
-      id: 2,
-      name: "Nguyễn Đức Hải",
-      phone: "(+84) 934 778 900",
-      detailAddress: "Chung cư Green Town, Block B2",
-      region: "Phường Bình Hưng Hòa B, Quận Bình Tân, TP. HCM",
-      address:
-        "Chung cư Green Town, Block B2\nPhường Bình Hưng Hòa B, Quận Bình Tân, TP. HCM",
-    },
-    {
-      id: 3,
-      name: "Võ Thanh Hà",
-      phone: "(+84) 963 112 450",
-      detailAddress: "Tầng 12, Tòa S2, Vinhomes Smart City",
-      region: "Phường Tây Mỗ, Quận Nam Từ Liêm, Hà Nội",
-      address:
-        "Tầng 12, Tòa S2, Vinhomes Smart City\nPhường Tây Mỗ, Quận Nam Từ Liêm, Hà Nội",
-    },
-  ]);
+  const [addresses, setAddresses] = useState<AddressOption[]>([]);
+  const [cartData, setCartData] = useState<BackendCartResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<number>(
     () => addresses[0]?.id ?? 0
   );
@@ -180,6 +169,7 @@ const CheckoutPage: React.FC = () => {
   const [pendingPaymentMethod, setPendingPaymentMethod] = useState<
     PaymentMethod["id"]
   >(PAYMENT_METHODS[0].id);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const voucherSections = useMemo(
     () => [
@@ -265,6 +255,81 @@ const CheckoutPage: React.FC = () => {
     []
   );
 
+  // Fetch addresses and cart data
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch addresses
+        const addressResponse = await getUserAddresses();
+        const addressList = addressResponse.addresses || [];
+
+        // Map AddressResponse to AddressOption
+        const mappedAddresses: AddressOption[] = addressList.map((addr: AddressResponse) => {
+          const region = [
+            addr.wardName,
+            addr.districtName,
+            addr.provinceName
+          ].filter(Boolean).join(", ");
+
+          const fullAddress = addr.fullAddress || `${addr.street}, ${region}`;
+
+          // Use receiverName/receiverPhone if available, otherwise fallback to name/phone
+          const displayName = addr.receiverName || addr.name;
+          const displayPhone = addr.receiverPhone || addr.phone;
+
+          return {
+            id: addr.id,
+            name: displayName,
+            phone: displayPhone,
+            detailAddress: addr.street,
+            region: region,
+            address: fullAddress,
+            isDefault: addr.isDefault === true || addr.isDefault === "Địa chỉ mặc định",
+          };
+        });
+
+        setAddresses(mappedAddresses);
+
+        // Set default address if exists
+        const defaultAddress = mappedAddresses.find(addr => addr.isDefault);
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress.id);
+          setPendingAddressId(defaultAddress.id);
+        } else if (mappedAddresses.length > 0) {
+          setSelectedAddressId(mappedAddresses[0].id);
+          setPendingAddressId(mappedAddresses[0].id);
+        }
+
+        // Check if we have selected items from CartPage
+        const locationState = location.state as { selectedCartItems?: BackendCartResponse[] } | null;
+
+        if (locationState?.selectedCartItems && locationState.selectedCartItems.length > 0) {
+          // Use selected items from CartPage
+          setCartData(locationState.selectedCartItems);
+        } else {
+          // If no selected items, fetch all cart items
+          const cartResponse = await getCart({ page: 1, size: 100 });
+          setCartData(cartResponse.carts || []);
+        }
+      } catch (err: any) {
+        console.error("Error fetching checkout data:", err);
+        setError(err?.response?.data?.message || "Không thể tải dữ liệu thanh toán");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [isAuthenticated, location.state]);
+
   useEffect(() => {
     if (editingAddress) {
       const { province, district, ward } = parseRegion(editingAddress.region);
@@ -285,25 +350,27 @@ const CheckoutPage: React.FC = () => {
     addresses.find((address) => address.id === selectedAddressId) ??
     addresses[0];
 
-  // Map cart items to checkout items with product data
+  // Map cart items from API to checkout items
   const checkoutItems: CheckoutItem[] = useMemo(() => {
-    return cartItems
-      .map((cartItem) => {
-        const product = getProductById(cartItem.productId);
-        if (!product) return null;
+    return cartData.map((cartItem) => {
+      // Map attributes to variant string
+      // Format: "name: value, name: value"
+      const variant = cartItem.attributes
+        ?.map(attr => `${attr.name}: ${attr.value}`)
+        .join(", ") || undefined;
 
-        return {
-          id: cartItem.productId.toString(),
-          name: product.name,
-          description: product.description,
-          imageUrl: product.imageUrl || "",
-          price: product.price,
-          quantity: cartItem.quantity,
-          variant: cartItem.variant,
-        } as CheckoutItem;
-      })
-      .filter((item): item is CheckoutItem => item !== null);
-  }, [cartItems]);
+      return {
+        id: cartItem.id.toString(),
+        name: cartItem.productName,
+        description: cartItem.attributes?.map(attr => `${attr.name}: ${attr.value}`).join(", ") || "",
+        imageUrl: cartItem.imageUrl || "",
+        price: cartItem.productPrice,
+        quantity: cartItem.quantity,
+        variant: variant,
+        cartId: cartItem.id, // Store cartId for checkbox selection
+      } as CheckoutItem & { cartId: number };
+    });
+  }, [cartData]);
 
   const subtotal = checkoutItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -327,9 +394,48 @@ const CheckoutPage: React.FC = () => {
     setIsAddressModalOpen(true);
   };
 
-  const handleConfirmAddress = () => {
-    setSelectedAddressId(pendingAddressId);
-    setIsAddressModalOpen(false);
+  const handleConfirmAddress = async () => {
+    try {
+      // If address changed, optionally set as default
+      if (pendingAddressId !== selectedAddressId) {
+        // Optionally set as default - you can add a checkbox for this
+        // await setDefaultAddress(pendingAddressId);
+      }
+      setSelectedAddressId(pendingAddressId);
+      setIsAddressModalOpen(false);
+    } catch (err: any) {
+      console.error("Error confirming address:", err);
+      setError(err?.response?.data?.message || "Không thể xác nhận địa chỉ");
+    }
+  };
+
+  const handleDeleteAddress = async (addressId: number) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) {
+      return;
+    }
+
+    try {
+      await deleteAddress(addressId);
+
+      // If deleted address was selected, select another one
+      if (addressId === selectedAddressId) {
+        const remainingAddresses = addresses.filter(a => a.id !== addressId);
+        if (remainingAddresses.length > 0) {
+          const defaultAddr = remainingAddresses.find(a => a.isDefault) || remainingAddresses[0];
+          setSelectedAddressId(defaultAddr.id);
+          setPendingAddressId(defaultAddr.id);
+        } else {
+          setSelectedAddressId(0);
+          setPendingAddressId(0);
+        }
+      }
+
+      // Refresh addresses
+      await refreshAddresses();
+    } catch (err: any) {
+      console.error("Error deleting address:", err);
+      setError(err?.response?.data?.message || "Không thể xóa địa chỉ");
+    }
   };
 
   const handleCloseAddressModal = () => {
@@ -386,55 +492,95 @@ const CheckoutPage: React.FC = () => {
     return locationOptions[editForm.province]?.[editForm.district] || [];
   }, [editForm.province, editForm.district]);
 
-  const handleSaveEditAddress = () => {
-    if (!editingAddress) return;
+  // Refresh addresses from API
+  const refreshAddresses = async () => {
+    try {
+      const addressResponse = await getUserAddresses();
+      const addressList = addressResponse.addresses || [];
 
-    const region = [editForm.ward, editForm.district, editForm.province]
-      .filter(Boolean)
-      .join(", ");
+      const mappedAddresses: AddressOption[] = addressList.map((addr: AddressResponse) => {
+        const region = [
+          addr.wardName,
+          addr.districtName,
+          addr.provinceName
+        ].filter(Boolean).join(", ");
 
-    setAddresses((prev) => {
-      const updated = prev.map((addr) => {
-        if (addr.id === editingAddress.id) {
-          return {
-            ...addr,
-            name: editForm.name,
-            phone: editForm.phone,
-            region,
-            detailAddress: editForm.detailAddress,
-            address: region
-              ? `${editForm.detailAddress}\n${region}`
-              : editForm.detailAddress,
-            isDefault: editForm.setAsDefault ? true : addr.isDefault,
-          };
-        }
+        const fullAddress = addr.fullAddress || `${addr.street}, ${region}`;
 
-        if (editForm.setAsDefault) {
-          return {
-            ...addr,
-            isDefault: false,
-          };
-        }
+        // Use receiverName/receiverPhone if available, otherwise fallback to name/phone
+        const displayName = addr.receiverName || addr.name;
+        const displayPhone = addr.receiverPhone || addr.phone;
 
-        return addr;
+        return {
+          id: addr.id,
+          name: displayName,
+          phone: displayPhone,
+          detailAddress: addr.street,
+          region: region,
+          address: fullAddress,
+          isDefault: addr.isDefault === true || addr.isDefault === "Địa chỉ mặc định",
+        };
       });
 
-      return updated;
-    });
+      setAddresses(mappedAddresses);
 
-    if (editingAddress.id === selectedAddressId) {
-      setSelectedAddressId(editingAddress.id);
+      // Update selected address if needed
+      const defaultAddress = mappedAddresses.find(addr => addr.isDefault);
+      if (defaultAddress && !mappedAddresses.find(a => a.id === selectedAddressId)) {
+        setSelectedAddressId(defaultAddress.id);
+        setPendingAddressId(defaultAddress.id);
+      }
+    } catch (err: any) {
+      console.error("Error refreshing addresses:", err);
+      setError("Không thể tải lại danh sách địa chỉ");
     }
-    if (editingAddress.id === pendingAddressId) {
-      setPendingAddressId(editingAddress.id);
-    }
+  };
 
-    if (editForm.setAsDefault) {
-      setSelectedAddressId(editingAddress.id);
-      setPendingAddressId(editingAddress.id);
-    }
+  const handleSaveEditAddress = async () => {
+    if (!editingAddress) return;
 
-    handleCloseEditModal(false);
+    try {
+      // Parse province, district, ward from region
+      const { province, district, ward } = parseRegion(editingAddress.region);
+
+      // TODO: Map province/district/ward to actual IDs and codes from location API
+      // For now, using the text values - these should be fetched from location API
+      const updateData: AddressUpdateRequest = {
+        id: editingAddress.id,
+        name: editForm.name,
+        phone: editForm.phone,
+        street: editForm.detailAddress,
+        wardName: ward,
+        districtName: district,
+        provinceName: province,
+        // Note: These fields should be fetched from location API
+        // For now, trying to preserve existing values if available
+        wardCode: "", // Should be fetched from location API based on wardName
+        districtId: 0, // Should be fetched from location API based on districtName
+        fullAddress: `${editForm.detailAddress}, ${[ward, district, province].filter(Boolean).join(", ")}`,
+      };
+
+      await updateAddress(updateData);
+
+      // Set as default if requested
+      if (editForm.setAsDefault) {
+        await setDefaultAddress(editingAddress.id);
+      }
+
+      // Refresh addresses
+      await refreshAddresses();
+
+      // Update selected address
+      if (editForm.setAsDefault || editingAddress.id === selectedAddressId) {
+        setSelectedAddressId(editingAddress.id);
+        setPendingAddressId(editingAddress.id);
+      }
+
+      handleCloseEditModal(false);
+    } catch (err: any) {
+      console.error("Error updating address:", err);
+      setError(err?.response?.data?.message || "Không thể cập nhật địa chỉ");
+    }
   };
 
   const handleOpenVoucherModal = () => {
@@ -459,10 +605,78 @@ const CheckoutPage: React.FC = () => {
     setIsPaymentMethodModalOpen(false);
   };
 
+  const handlePlaceOrder = async () => {
+    if (!user || !selectedAddress) {
+      setError("Vui lòng đăng nhập và chọn địa chỉ giao hàng");
+      return;
+    }
+
+    if (checkoutItems.length === 0) {
+      setError("Giỏ hàng của bạn đang trống");
+      return;
+    }
+
+    try {
+      setIsPlacingOrder(true);
+      setError(null);
+
+      // Prepare order data
+      const orderData: CustomerOrderPublicCreateRequest = {
+        customerId: user.id,
+        addressId: selectedAddress.id,
+        discountId: selectedVoucherId ? parseInt(selectedVoucherId.split("-")[1]) : undefined,
+        paymentMethod: selectedPaymentMethod === "BANKING" ? "BANKING" : "CASH",
+        shippingFee: shippingFee,
+        totalProductPrice: subtotal,
+        totalOrderPrice: total,
+        notes: notes || undefined,
+        items: checkoutItems.map((item) => {
+          const cartItem = cartData.find(c => c.id.toString() === item.id);
+          if (!cartItem || !cartItem.productDetailId) {
+            throw new Error(`Không tìm thấy thông tin sản phẩm: ${item.name}`);
+          }
+          return {
+            productDetailId: cartItem.productDetailId,
+            quantity: item.quantity,
+          };
+        }),
+      };
+
+      // Create order
+      const orderResponse = await createOrder(orderData);
+      const orderId = orderResponse.order.id;
+
+      // If payment method is banking, redirect to VNPay
+      if (selectedPaymentMethod === "BANKING") {
+        const paymentResponse = await createVNPayPayment(orderId);
+        if (paymentResponse.url) {
+          // Redirect to VNPay payment page
+          window.location.href = paymentResponse.url;
+          return;
+        } else {
+          setError("Không thể tạo URL thanh toán. Vui lòng thử lại.");
+        }
+      } else {
+        // CASH - Order created successfully
+        navigate("/shop/orders", {
+          state: {
+            orderId,
+            message: "Đặt hàng thành công! Đơn hàng của bạn đang được xử lý."
+          }
+        });
+      }
+    } catch (err: any) {
+      console.error("Error placing order:", err);
+      setError(err?.response?.data?.message || "Không thể đặt hàng. Vui lòng thử lại.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header
-        cartCount={getCartCount()}
+        cartCount={cartData.reduce((sum, item) => sum + item.quantity, 0)}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
@@ -470,146 +684,164 @@ const CheckoutPage: React.FC = () => {
         {/* Checkout Content */}
         <section className="w-full bg-gray-50 py-8">
           <div className="max-w-[1200px] mx-auto px-4">
-            <h1 className="text-[24px] font-bold text-[#E04D30] mb-1">
-              Thanh toán
-            </h1>
+            <div className="mb-6">
+              <button
+                onClick={() => navigate("/shop/cart")}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                <span className="text-sm">Quay lại giỏ hàng</span>
+              </button>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Thanh toán
+              </h1>
+            </div>
 
-            <div className="space-y-6">
-              <ShippingAddress
-                name={selectedAddress?.name || ""}
-                phone={selectedAddress?.phone || ""}
-                address={selectedAddress?.address || ""}
-                isDefault={Boolean(selectedAddress?.isDefault)}
-                onChange={handleOpenAddressModal}
-              />
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
 
-              <ProductsTable items={checkoutItems} />
+            {loading ? (
+              <div className="text-center py-16">
+                <p className="text-gray-600 text-lg">Đang tải dữ liệu...</p>
+              </div>
+            ) : checkoutItems.length === 0 ? (
+              <div className="text-center py-16">
+                <p className="text-gray-600 text-lg mb-4">
+                  Giỏ hàng của bạn đang trống
+                </p>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => window.location.href = "/shop/cart"}
+                >
+                  Quay lại giỏ hàng
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Main Content */}
+                <div className="lg:col-span-2 space-y-4">
+                  <ShippingAddress
+                    name={selectedAddress?.name || ""}
+                    phone={selectedAddress?.phone || ""}
+                    address={selectedAddress?.address || ""}
+                    isDefault={Boolean(selectedAddress?.isDefault)}
+                    onChange={handleOpenAddressModal}
+                  />
 
-              {/* Discount Code, Notes, and Shipping Method */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden text-[14px]">
-                {/* Header */}
-                <div className="border-b border-gray-200 px-6 py-3">
-                  <div className="grid grid-cols-12 items-center">
-                    <div className="col-span-6" />
-                    <div className="col-span-12 md:col-span-6 md:col-start-7 flex items-center justify-between pl-6">
-                      <div className="font-medium text-gray-900">
-                        Mã giảm giá:
-                      </div>
+                  <ProductsTable items={checkoutItems} />
+
+                  {/* Notes and Voucher */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Lời nhắn
+                      </label>
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Lưu ý cho shop (tùy chọn)"
+                        rows={4}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                      <span className="text-sm text-gray-700">Mã giảm giá</span>
                       <button
                         onClick={handleOpenVoucherModal}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+                        className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
                       >
                         Chọn mã giảm giá
                       </button>
                     </div>
                   </div>
                 </div>
-                {/* Body */}
-                <div className="grid grid-cols-1 md:grid-cols-2">
-                  {/* Left - Notes */}
-                  <div className="p-6">
-                    <div className="flex items-start gap-4">
-                      <label className="shrink-0 font-medium text-gray-700">
-                        Lời nhắn:
-                      </label>
-                      <div className="flex-1">
-                        <Textarea
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          placeholder="Lưu ý cho shop"
-                          rows={6}
-                          className="h-24 w-full"
-                        />
+
+                {/* Right Column - Order Summary */}
+                <div className="lg:col-span-1">
+                  <div className="bg-white border border-gray-200 rounded-lg p-5 sticky top-4">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                      Tóm tắt đơn hàng
+                    </h2>
+
+                    <div className="space-y-3 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Tổng tiền hàng</span>
+                        <span className="text-gray-900 font-semibold">
+                          {formatCurrencyVND(subtotal)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Phí vận chuyển</span>
+                        <span className="text-gray-900 font-semibold">
+                          {formatCurrencyVND(shippingFee)}
+                        </span>
+                      </div>
+                      {discountCode > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Giảm giá</span>
+                          <span className="text-[#E04D30] font-semibold">
+                            -{formatCurrencyVND(discountCode)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-3 mb-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-base font-semibold text-gray-900">
+                          Tổng thanh toán
+                        </span>
+                        <span className="text-xl font-bold text-[#E04D30]">
+                          {formatCurrencyVND(total)}
+                        </span>
                       </div>
                     </div>
-                  </div>
-                  {/* Right - Shipping method */}
-                  <div className="p-6 md:border-l md:border-gray-200">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-700">
-                        Phương thức vận chuyển:
-                      </span>
-                      <span className="text-gray-900">Giao hàng tận nơi</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Payment Method and Order Summary */}
-              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between px-6 py-5 border-b border-gray-200 gap-4">
-                  <p className="text-[14px] font-semibold text-gray-900">
-                    Phương thức thanh toán
-                  </p>
-                  <div className="flex items-center gap-3 md:gap-6 text-[14px] text-gray-800">
-                    <span>{selectedPaymentMethodInfo.title}</span>
-                    <button
-                      onClick={() => setIsPaymentMethodModalOpen(true)}
-                      className="text-[#1B5CF0] hover:text-[#164aba] text-[14px] font-semibold transition-colors tracking-wide"
+                    {/* Payment Method */}
+                    <div className="border-t border-gray-200 pt-4 mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">Thanh toán</span>
+                        <button
+                          onClick={() => setIsPaymentMethodModalOpen(true)}
+                          className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                          Thay đổi
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-900">
+                        {selectedPaymentMethodInfo.title}
+                      </p>
+                    </div>
+
+                    {/* Place Order Button */}
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full bg-[#E04D30] hover:bg-[#c53b1d] text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      onClick={handlePlaceOrder}
+                      disabled={isPlacingOrder || !selectedAddress || checkoutItems.length === 0}
                     >
-                      Thay đổi
-                    </button>
-                  </div>
-                </div>
-                <div className="bg-[#FFFCF5] px-6 py-5 text-[14px] text-gray-700">
-                  <div className="md:max-w-[360px] md:ml-auto space-y-2">
-                    <div className="grid grid-cols-2 gap-x-4 items-center">
-                      <span className="text-gray-700 whitespace-nowrap">
-                        Tổng tiền hàng
-                      </span>
-                      <span className="text-gray-900 font-semibold text-right">
-                        {formatCurrencyVND(subtotal)}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 items-center">
-                      <span className="text-gray-700 whitespace-nowrap">
-                        Tổng tiền phí vận chuyển
-                      </span>
-                      <span className="text-gray-900 font-semibold text-right">
-                        {formatCurrencyVND(shippingFee)}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 items-center">
-                      <span className="text-gray-700 whitespace-nowrap">
-                        Tổng cộng Voucher giảm giá
-                      </span>
-                      <span
-                        className={`font-semibold text-right ${
-                          discountCode > 0 ? "text-[#E04D30]" : "text-gray-900"
-                        }`}
-                      >
-                        {discountCode > 0
-                          ? `-${formatCurrencyVND(Math.abs(discountCode))}`
-                          : `-${formatCurrencyVND(0)}`}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="md:max-w-[360px] md:ml-auto flex items-center justify-between pt-3">
-                    <span className="text-[14px] text-gray-900 whitespace-nowrap">
-                      Tổng thanh toán
-                    </span>
-                    <span className="text-[16px] font-bold text-[#E04D30] whitespace-nowrap">
-                      {formatCurrencyVND(total)}
-                    </span>
+                      {isPlacingOrder ? "Đang xử lý..." : "Đặt hàng"}
+                    </Button>
                   </div>
                 </div>
               </div>
-
-              {/* Place Order Button */}
-              <div className="flex justify-end">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="px-20 bg-[#E04D30] hover:bg-[#c53b1d]"
-                  onClick={() => {
-                    console.log("Place order");
-                    // Navigate to order confirmation page
-                  }}
-                >
-                  Đặt hàng
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </section>
       </main>
@@ -621,9 +853,9 @@ const CheckoutPage: React.FC = () => {
             className="absolute inset-0 bg-black/40"
             onClick={handleCloseAddressModal}
           />
-          <div className="relative w-full max-w-[520px] bg-white rounded-xl shadow-2xl overflow-hidden text-[14px]">
+          <div className="relative w-full max-w-[520px] bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-[20px] font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900">
                 Địa chỉ của tôi
               </h3>
             </div>
@@ -646,7 +878,7 @@ const CheckoutPage: React.FC = () => {
                       <span className="-mx-1 text-gray-400">|</span>
                       <span className="text-gray-900">{address.phone}</span>
                       {address.isDefault && (
-                        <span className="px-3 py-1 border border-[#E04D30] text-[#E04D30] text-[12px] rounded h-6 inline-flex items-center">
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
                           Mặc định
                         </span>
                       )}
@@ -655,17 +887,30 @@ const CheckoutPage: React.FC = () => {
                       {address.address}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="text-blue-600 hover:text-blue-700 text-[14px] font-medium whitespace-nowrap"
-                    onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      handleOpenEditModal(address);
-                    }}
-                  >
-                    Cập nhật
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:text-blue-700 text-[14px] font-medium whitespace-nowrap"
+                      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleOpenEditModal(address);
+                      }}
+                    >
+                      Cập nhật
+                    </button>
+                    <button
+                      type="button"
+                      className="text-red-600 hover:text-red-700 text-[14px] font-medium whitespace-nowrap"
+                      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleDeleteAddress(address.id);
+                      }}
+                    >
+                      Xóa
+                    </button>
+                  </div>
                 </label>
               ))}
             </div>
@@ -695,10 +940,10 @@ const CheckoutPage: React.FC = () => {
             className="absolute inset-0 bg-black/40"
             onClick={() => handleCloseEditModal()}
           />
-          <div className="relative w-full max-w-[520px] bg-white rounded-xl shadow-2xl overflow-hidden text-[14px]">
+          <div className="relative w-full max-w-[520px] bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-[20px] font-semibold text-gray-900">
-                Cập nhật địa chỉ (dùng thông tin trước sáp nhập)
+              <h3 className="text-lg font-semibold text-gray-900">
+                Cập nhật địa chỉ
               </h3>
             </div>
             <div className="px-6 py-5 space-y-4">
@@ -892,15 +1137,15 @@ const CheckoutPage: React.FC = () => {
             className="absolute inset-0 bg-black/40"
             onClick={handleClosePaymentMethodModal}
           />
-          <div className="relative w-full max-w-[520px] bg-white rounded-xl shadow-2xl overflow-hidden text-[14px]">
+          <div className="relative w-full max-w-[520px] bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-[20px] font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900">
                 Phương thức thanh toán
               </h3>
               <button
                 type="button"
                 onClick={handleClosePaymentMethodModal}
-                className="text-[36px] leading-none text-gray-400 hover:text-gray-600 transition-colors font-normal"
+                className="text-2xl leading-none text-gray-400 hover:text-gray-600 transition-colors"
               >
                 ×
               </button>
@@ -914,23 +1159,21 @@ const CheckoutPage: React.FC = () => {
                       key={method.id}
                       type="button"
                       onClick={() => setPendingPaymentMethod(method.id)}
-                      className={`relative text-left px-5 py-4 border rounded-xl transition-all ${
-                        isActive
-                          ? "border-[#E04D30] bg-[#FFF5F0] shadow-sm"
-                          : "border-gray-200 bg-white hover:border-[#E04D30]/60"
-                      }`}
+                      className={`relative text-left px-4 py-3 border rounded-lg transition-all ${isActive
+                        ? "border-gray-900 bg-gray-50"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
                     >
                       <span
-                        className={`absolute top-4 right-4 text-[12px] font-semibold ${
-                          isActive ? "text-[#E04D30]" : "text-transparent"
-                        }`}
+                        className={`absolute top-3 right-3 text-sm ${isActive ? "text-gray-900" : "text-transparent"
+                          }`}
                       >
                         ✓
                       </span>
-                      <div className="text-[15px] font-semibold text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 pr-6">
                         {method.title}
                       </div>
-                      <div className="mt-2 text-[13px] text-gray-600 leading-relaxed">
+                      <div className="mt-1 text-xs text-gray-600">
                         {method.description}
                       </div>
                     </button>

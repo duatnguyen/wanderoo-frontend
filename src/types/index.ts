@@ -36,4 +36,6 @@ export type {
   CategoryPublicResponse,
   AvailableServicesRequest,
   AvailableServiceResponse,
+  BackendCartResponse,
+  CartPageResponse,
 } from "./api";

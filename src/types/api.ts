@@ -118,6 +118,50 @@ export interface CartItemResponse {
   total: number;
 }
 
+// Backend Cart Types (matching CartController response)
+export interface VariantAttributeSnapshot {
+  groupLevel: number;
+  name: string;
+  id: number;
+  value: string;
+}
+
+export interface ProductDetailVariantResponse {
+  id: number;
+  productDetailId: number;
+  imageUrl: string | null;
+  attributes: VariantAttributeSnapshot[];
+  originalPrice: number;
+  discountedPrice: number;
+  discountValue: string | null;
+  websiteSoldQuantity: number;
+}
+
+export interface BackendCartResponse {
+  id: number;
+  productId: number;
+  productDetailId: number;
+  imageUrl: string | null;
+  productName: string;
+  attributes: VariantAttributeSnapshot[];
+  originalPrice: number;
+  discountedPrice: number;
+  productPrice: number;
+  discountValue: string | null;
+  quantity: number;
+  totalPrice: number;
+  websiteSoldQuantity: number;
+  availableVariants?: ProductDetailVariantResponse[];
+}
+
+export interface CartPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalElements: number;
+  carts: BackendCartResponse[];
+}
+
 // Review Types
 export interface ReviewResponse {
   id: number;
@@ -262,7 +306,7 @@ export interface DiscountResponse {
   description?: string;
 }
 
-export interface DiscountPageResponse extends PageResponse<DiscountResponse> {}
+export interface DiscountPageResponse extends PageResponse<DiscountResponse> { }
 
 export interface DraftOrderResponse {
   id: number;
@@ -308,7 +352,7 @@ export interface SimpleInventoryItemResponse {
 }
 
 export interface SimpleInventoryPageResponse
-  extends PageResponse<SimpleInventoryItemResponse> {}
+  extends PageResponse<SimpleInventoryItemResponse> { }
 
 export interface ProviderResponse {
   id: number;
@@ -348,7 +392,7 @@ export interface InvoiceResponse {
   createdAt: string;
 }
 
-export interface InvoicePageResponse extends PageResponse<InvoiceResponse> {}
+export interface InvoicePageResponse extends PageResponse<InvoiceResponse> { }
 
 // Request Types
 export interface SignInRequest {
@@ -446,6 +490,13 @@ export interface OrderItemRequest {
 
 export interface CustomerOrderPublicCreateRequest {
   customerId: number;
+  addressId: number;
+  discountId?: number;
+  paymentMethod: "CASH" | "BANKING";
+  shippingFee: number;
+  totalProductPrice: number;
+  totalOrderPrice: number;
+  notes?: string;
   items: OrderItemRequest[];
 }
 
@@ -910,7 +961,7 @@ export interface DiscountUpdateRequest extends DiscountCreateRequest {
   id: number;
 }
 
-export interface DiscountPageResponse extends PageResponse<DiscountResponse> {}
+export interface DiscountPageResponse extends PageResponse<DiscountResponse> { }
 
 export interface DiscountMetadataResponse {
   types: string[];
@@ -1037,14 +1088,14 @@ export interface EmployeeResponse extends UserResponse {
   position: string;
 }
 
-export interface EmployeePageResponse extends PageResponse<EmployeeResponse> {}
+export interface EmployeePageResponse extends PageResponse<EmployeeResponse> { }
 
 export interface CustomerResponse extends UserResponse {
   address: string;
   membershipLevel: string;
 }
 
-export interface CustomerPageResponse extends PageResponse<CustomerResponse> {}
+export interface CustomerPageResponse extends PageResponse<CustomerResponse> { }
 
 export interface EmployeeCreationRequest {
   username: string;
@@ -1109,7 +1160,7 @@ export interface OrderHistoryResponse {
   details: string;
 }
 
-export interface OrderHistoryPageResponse extends PageResponse<OrderHistoryResponse> {}
+export interface OrderHistoryPageResponse extends PageResponse<OrderHistoryResponse> { }
 
 export interface OrderHistoryCreateRequest {
   orderId: number;
@@ -1122,7 +1173,7 @@ export interface OrderHistoryUpdateRequest {
   details?: string;
 }
 
-export interface OrderDetailPageResponse extends PageResponse<OrderDetailResponse> {}
+export interface OrderDetailPageResponse extends PageResponse<OrderDetailResponse> { }
 
 export interface CustomerOrderMetadataResponse {
   paymentMethods: string[];

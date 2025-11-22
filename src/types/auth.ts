@@ -22,8 +22,10 @@ export interface AddressResponse {
   districtName: string;
   provinceName: string;
   fullAddress?: string;
-  name: string;
-  phone: string;
+  name: string; // User name (fallback)
+  phone: string; // User phone (fallback)
+  receiverName?: string | null; // Receiver name from address
+  receiverPhone?: string | null; // Receiver phone from address
   isDefault: string | boolean; // Backend returns "Địa chỉ mặc định" or "Địa chỉ không mặc định" as string
 }
 
@@ -31,7 +33,9 @@ export interface AddressPageResponse {
   addresses: AddressResponse[];
 }
 
-export interface AddressDetailResponse extends AddressResponse {}
+export interface AddressDetailResponse extends AddressResponse {
+  // Same as AddressResponse, includes receiverName and receiverPhone
+}
 
 export interface EmployeeResponse extends UserResponse {
   department?: string;

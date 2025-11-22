@@ -63,22 +63,20 @@ export const changePassword = async (
 };
 
 // Address APIs
-export const getUserAddresses = async (params?: {
-  page?: number;
-  size?: number;
-}): Promise<AddressPageResponse> => {
-  const response = await api.get<AddressPageResponse>(
-    "/auth/v1/private/users/addresses",
-    { params }
+export const getUserAddresses = async (): Promise<AddressPageResponse> => {
+  const response = await api.get<ApiResponse<AddressPageResponse>>(
+    "/auth/v1/private/users/address"
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const setDefaultAddress = async (
   addressId: number
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
-    `/auth/v1/private/users/addresses/${addressId}/default`
+    "/auth/v1/private/users/address/default",
+    null,
+    { params: { addressId } }
   );
   return response.data;
 };
@@ -87,7 +85,7 @@ export const addAddress = async (
   addressData: AddressCreationRequest
 ): Promise<ApiResponse<number>> => {
   const response = await api.post<ApiResponse<number>>(
-    "/auth/v1/private/users/addresses",
+    "/auth/v1/private/users/address",
     addressData
   );
   return response.data;
@@ -97,7 +95,7 @@ export const getAddressById = async (
   addressId: number
 ): Promise<AddressDetailResponse> => {
   const response = await api.get<ApiResponse<AddressDetailResponse>>(
-    `/auth/v1/private/users/addresses/${addressId}`
+    `/auth/v1/private/users/address/${addressId}`
   );
   return response.data.data;
 };
@@ -106,7 +104,7 @@ export const updateAddress = async (
   addressData: AddressUpdateRequest
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
-    `/auth/v1/private/users/addresses/${addressData.id}`,
+    "/auth/v1/private/users/address",
     addressData
   );
   return response.data;
@@ -116,7 +114,7 @@ export const deleteAddress = async (
   addressId: number
 ): Promise<ApiResponse<null>> => {
   const response = await api.delete<ApiResponse<null>>(
-    `/auth/v1/private/users/addresses/${addressId}`
+    `/auth/v1/private/users/address/${addressId}`
   );
   return response.data;
 };
