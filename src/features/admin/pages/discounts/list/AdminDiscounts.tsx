@@ -12,7 +12,6 @@ import { TableActions } from "@/components/admin/table/TableActions";
 import { DiscountTable } from "@/components/admin/table/DiscountTable";
 import { VoucherCreationSection } from "@/components/admin/voucher/VoucherCreationSection";
 import {
-  CoinDiscountIcon,
   CreditCardPercentIcon,
   ReceiptDiscountIcon,
   TicketDiscountIcon,
@@ -269,11 +268,6 @@ const voucherTypes = {
       description:
         "Voucher nhằm áp dụng cho khách hàng mới và khách hàng tiềm năng",
     },
-    {
-      icon: <CoinDiscountIcon size={24} color="#292D32" />,
-      title: "Voucher khách hàng mua lại",
-      description: "Voucher nhằm áp dụng cho khách hàng đã mua hàng tại shop",
-    },
   ],
   privateChannel: {
     icon: <CreditCardPercentIcon size={24} color="#292D32" />,
@@ -287,7 +281,6 @@ const voucherRouteMap: Record<string, string> = {
   "Voucher toàn shop": "/admin/discounts/new/shop-wide",
   "Voucher sản phẩm": "/admin/discounts/new/product",
   "Voucher khách hàng mới": "/admin/discounts/new/new-customer",
-  "Voucher khách hàng mua lại": "/admin/discounts/new/returning-customer",
   "Voucher riêng tư": "/admin/discounts/new/private",
 };
 
@@ -318,7 +311,6 @@ const formatCurrency = (value?: number | null) => {
 const mapDiscountTypeLabel = (discount: AdminDiscountResponse) => {
   if (discount.applyTo === "PRODUCT") return "Voucher sản phẩm";
   if (discount.contextAllowed === "SIGNUP") return "Voucher khách hàng mới";
-  if (discount.contextAllowed === "EVENT") return "Voucher khách hàng mua lại";
   if (discount.applyOn === "POS" && discount.contextAllowed === "OTHER") {
     return "Voucher riêng tư";
   }
