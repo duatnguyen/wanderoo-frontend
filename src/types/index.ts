@@ -10,6 +10,8 @@ export type {
   OrderDetailCreateRequest,
   OrderDetailUpdateRequest,
   VariantDetailIdRequest,
+  VariantDetailIdResponse,
+  ProductDetailsResponse,
   CustomerSearchListResponse,
   DraftOrderDetailResponse,
   DraftOrderItemResponse,
@@ -33,3 +35,4 @@ export type {
   DiscountCategoryValue,
   ClaimVoucherRequest,
 } from "./api";
+export type { ProductDetailsResponse, VariantDetailIdResponse } from "./api";

@@ -192,6 +192,7 @@ export {
   getExportInvoices,
   getExportInvoicesPending,
   getExportInvoicesDone,
+  getReturnImportList,
 } from './warehouseApi';
 
 // POS APIs

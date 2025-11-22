@@ -1,17 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import Icon from "@/components/icons/Icon";
 import { ContentCard, PageContainer } from "@/components/common";
+import { getInvoiceDetail, createExportInvoice, getProviderList } from "@/api/endpoints/warehouseApi";
+import type { InvoiceDetailResponse } from "@/types/warehouse";
+import { toast } from "sonner";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+
 interface Product {
   id: string;
   name: string;
-  quantity: number;
+  quantity: number; // Số lượng trả (returnQuantity)
   price: number;
   image?: string;
-  availableStock?: number;
+  maxQuantity: number; // Tồn kho (quantity từ đơn nhập)
+  productDetailId?: number; // Cần để tạo đơn trả hàng
 }
 
 interface MockProduct {
@@ -89,12 +95,20 @@ const mockImportData: {
 const NOTE_MAX_LENGTH = 200;
 
 const AdminWarehouseCreateReturnImport = () => {
-  document.title = "Tạo đơn trả hàng nhập | Wanderoo";
-
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const importId = searchParams.get("importId");
+  const [importCode, setImportCode] = useState<string | null>(null);
+  
+  // Update document title when importCode is available
+  useEffect(() => {
+    if (importCode) {
+      document.title = `Tạo đơn trả hàng nhập ${importCode} | Wanderoo`;
+    } else {
+      document.title = "Tạo đơn trả hàng nhập | Wanderoo";
+    }
+  }, [importCode]);
 
+  const navigate = useNavigate();
   const [supplierSearch, setSupplierSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productFormSearch, setProductFormSearch] = useState("");
@@ -104,16 +118,92 @@ const AdminWarehouseCreateReturnImport = () => {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [providerId, setProviderId] = useState<number | null>(null);
 
-  // Load import data when importId is provided
-  useEffect(() => {
-    if (importId && mockImportData[importId]) {
-      const importData = mockImportData[importId];
-      setSupplierSearch(importData.supplier);
-      // Set initial products with their original quantities from import order
-      setProducts(importData.items.map((item) => ({ ...item })));
+  // Load import data from API when importId is provided
+  const fetchImportInvoice = useCallback(async () => {
+    if (!importId) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const invoiceId = parseInt(importId, 10);
+      if (isNaN(invoiceId)) {
+        setError("ID đơn nhập hàng không hợp lệ");
+        return;
+      }
+
+      const invoice = await getInvoiceDetail(invoiceId);
+      console.log("Invoice detail:", invoice);
+      console.log("Cart items:", invoice?.cartItem);
+      
+      if (!invoice) {
+        console.error("Invoice data is null or undefined");
+        setError("Không thể lấy thông tin đơn nhập hàng");
+        toast.error("Không thể lấy thông tin đơn nhập hàng");
+        return;
+      }
+      
+      setSupplierSearch(invoice.providerName || "");
+      setImportCode(invoice.code || null);
+      
+      // Map cart items to products
+      // quantity từ BE = tồn kho (maxQuantity)
+      // Số lượng trả ban đầu = tồn kho
+      if (invoice.cartItem && Array.isArray(invoice.cartItem) && invoice.cartItem.length > 0) {
+        const mappedProducts: Product[] = invoice.cartItem.map((item, index) => ({
+          id: `item-${index}`,
+          name: item.productName || "",
+          quantity: item.quantity || 0, // Số lượng trả, ban đầu = tồn kho
+          price: item.productPrice || 0,
+          image: undefined,
+          maxQuantity: item.quantity || 0, // Tồn kho = quantity từ đơn nhập
+          productDetailId: undefined, // BE không trả về, cần tìm cách khác
+        }));
+        
+        console.log("Mapped products:", mappedProducts);
+        setProducts(mappedProducts);
+      } else {
+        console.warn("No cart items in invoice response", {
+          cartItem: invoice.cartItem,
+          cartItemType: typeof invoice.cartItem,
+          isArray: Array.isArray(invoice.cartItem),
+          invoiceId: invoice.id,
+          invoiceCode: invoice.code,
+          fullInvoice: invoice
+        });
+        setProducts([]);
+        toast.warning("Đơn nhập hàng không có sản phẩm nào hoặc dữ liệu không hợp lệ");
+      }
+      
+      // Get providerId from providerName
+      if (invoice.providerName) {
+        try {
+          const providerList = await getProviderList(invoice.providerName, undefined, 0, 100);
+          const provider = providerList.providers?.find(p => p.name === invoice.providerName);
+          if (provider) {
+            setProviderId(provider.id);
+          } else {
+            console.warn("Provider not found by name:", invoice.providerName);
+          }
+        } catch (err) {
+          console.error("Error fetching provider:", err);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching import invoice:", err);
+      setError("Không thể tải thông tin đơn nhập hàng. Vui lòng thử lại.");
+      toast.error("Không thể tải thông tin đơn nhập hàng");
+    } finally {
+      setLoading(false);
     }
   }, [importId]);
+
+  useEffect(() => {
+    fetchImportInvoice();
+  }, [fetchImportInvoice]);
 
   const totalProducts = products.length;
   const totalAmount = products.reduce(
@@ -122,9 +212,9 @@ const AdminWarehouseCreateReturnImport = () => {
   );
 
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(productSearch.toLowerCase())
+    product.name.toLowerCase().includes((productSearch || "").toLowerCase())
   );
-  const hasProductSearch = productSearch.trim().length > 0;
+  const hasProductSearch = (productSearch || "").trim().length > 0;
 
   // Pagination logic
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -136,54 +226,78 @@ const AdminWarehouseCreateReturnImport = () => {
     setCurrentPage(1);
   }, [productSearch]);
   const isFormValid = Boolean(
-    supplierSearch.trim() && note.trim() && products.length > 0
+    (supplierSearch || "").trim() && (note || "").trim() && products.length > 0
   );
-  const isNoteMissing = note.trim().length === 0;
+  const isNoteMissing = (note || "").trim().length === 0;
 
-  const pageTitle = importId
-    ? `Tạo đơn trả hàng nhập ${importId.toUpperCase()}`
+  const pageTitle = importCode
+    ? `Tạo đơn trả hàng nhập ${importCode}`
+    : importId
+    ? `Tạo đơn trả hàng nhập ${importId}`
     : "Tạo đơn trả hàng nhập";
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    })
-      .format(amount)
-      .replace(/\s/g, "")
-      .replace(/₫/g, "đ");
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount) + "đ";
   };
 
   const handleCancel = () => {
     navigate("/admin/warehouse/returnsimport");
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!isFormValid) {
       return;
     }
-    // Generate a new return ID (in real app, this would come from the API)
-    const newReturnId = `return-${Date.now()}`;
-    // Save default status to localStorage so the list page can reflect the new return
-    // Default status: processing (Đang giao dịch), returned (Đã hoàn trả), pending_refund (Chưa thanh toán)
-    if (typeof window !== "undefined") {
-      const storedStatus = JSON.parse(
-        localStorage.getItem("returnImportStatuses") || "{}"
-      );
-      storedStatus[newReturnId] = {
-        status: "processing",
-        returnStatus: "returned",
-        refundStatus: "pending_refund",
-      };
-      localStorage.setItem(
-        "returnImportStatuses",
-        JSON.stringify(storedStatus)
-      );
-      // Dispatch custom event to notify the list page
-      window.dispatchEvent(new Event("returnImportStatusUpdated"));
+
+    // Validate that we have providerId
+    if (!providerId) {
+      toast.error("Không tìm thấy thông tin nhà cung cấp. Vui lòng thử lại.");
+      return;
     }
-    // Navigate to the return detail page
-    navigate(`/admin/warehouse/returns/${newReturnId}`);
+
+    // Validate that all products have productDetailId
+    // Note: BE doesn't return productDetailId in InvoiceDetailResponse.CartItemResponse
+    // We need to find another way to get it. For now, we'll show an error.
+    const productsWithoutDetailId = products.filter(p => !p.productDetailId);
+    if (productsWithoutDetailId.length > 0) {
+      toast.error("Không thể tạo đơn trả hàng: thiếu thông tin sản phẩm. Vui lòng liên hệ admin.");
+      console.error("Products without productDetailId:", productsWithoutDetailId);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Map products to cart items
+      const cartItems = products
+        .filter((product) => product.productDetailId && product.productDetailId > 0 && product.quantity > 0)
+        .map((product) => ({
+          productDetailId: product.productDetailId!,
+          quantity: product.quantity,
+        }));
+
+      if (cartItems.length === 0) {
+        toast.error("Vui lòng thêm ít nhất một sản phẩm hợp lệ.");
+        setLoading(false);
+        return;
+      }
+
+      const returnInvoiceId = await createExportInvoice({
+        cartItems,
+        providerId,
+        note: (note || "").trim() || undefined,
+      });
+
+      toast.success("Tạo đơn trả hàng nhập thành công");
+      navigate(`/admin/warehouse/returns/${returnInvoiceId}`);
+    } catch (err) {
+      console.error("Error creating return invoice:", err);
+      toast.error("Không thể tạo đơn trả hàng nhập. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleProductSelection = (productId: string) => {
@@ -214,11 +328,15 @@ const AdminWarehouseCreateReturnImport = () => {
 
   const handleUpdateQuantity = (productId: string, quantity: number) => {
     setProducts((prev) =>
-      prev.map((product) =>
-        product.id === productId
-          ? { ...product, quantity: Math.max(1, quantity) }
-          : product
-      )
+      prev.map((product) => {
+        if (product.id === productId) {
+          // Giới hạn số lượng trả <= tồn kho (maxQuantity)
+          const maxQty = product.maxQuantity || 0;
+          const newQuantity = Math.max(0, Math.min(quantity, maxQty));
+          return { ...product, quantity: newQuantity };
+        }
+        return product;
+      })
     );
   };
 
@@ -250,6 +368,19 @@ const AdminWarehouseCreateReturnImport = () => {
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isProductFormOpen]);
+
+  // Show loading only when fetching and no products yet
+  if (loading && importId && products.length === 0 && !error) {
+    return (
+      <PageContainer>
+        <ContentCard>
+          <div className="flex items-center justify-center py-20">
+            <LoadingSpinner size="lg" />
+          </div>
+        </ContentCard>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -296,10 +427,10 @@ const AdminWarehouseCreateReturnImport = () => {
               </Button>
               <Button
                 onClick={handleConfirm}
-                disabled={!isFormValid}
+                disabled={!isFormValid || loading}
                 className="bg-[#e04d30] hover:bg-[#c74429] disabled:bg-[#f0a090] disabled:text-white disabled:cursor-not-allowed rounded-[12px] px-[24px] py-[12px] text-[12px] font-['Inter'] font-bold"
               >
-                Tạo đơn trả hàng nhập
+                {loading ? "Đang tạo..." : "Tạo đơn trả hàng nhập"}
               </Button>
             </div>
             {!isFormValid && (
@@ -411,7 +542,7 @@ const AdminWarehouseCreateReturnImport = () => {
                                 </td>
                                 <td className="px-[14px] py-[16px] text-center align-middle w-[100px]">
                                   <span className="text-[13px] font-['Montserrat'] font-medium text-[#6b7280]">
-                                    {product.availableStock ?? '—'}
+                                    {product.maxQuantity ?? '—'}
                                   </span>
                                 </td>
                                 <td className="px-[14px] py-[16px] text-center align-middle w-[100px]">
@@ -421,11 +552,12 @@ const AdminWarehouseCreateReturnImport = () => {
                                     onChange={(e) =>
                                       handleUpdateQuantity(
                                         product.id,
-                                        parseInt(e.target.value) || 1
+                                        parseInt(e.target.value) || 0
                                       )
                                     }
                                     className="w-[70px] text-center border border-[#d1d5db] rounded-[8px] px-[8px] py-[6px] text-[13px] font-['Montserrat'] font-semibold text-[#1f2937] focus:border-[#e04d30] focus:outline-none focus:ring-1 focus:ring-[#e04d30] transition-all"
-                                    min="1"
+                                    min="0"
+                                    max={product.maxQuantity}
                                     aria-label={`Số lượng trả cho ${product.name}`}
                                   />
                                 </td>
@@ -601,7 +733,7 @@ const AdminWarehouseCreateReturnImport = () => {
                     <div className="flex justify-between items-center text-[14px] font-['Montserrat']">
                       <span className="text-[#737373]">Mã đơn:</span>
                       <span className="font-semibold text-[#272424]">
-                        {importId ? importId.toUpperCase() : "Tạo mới"}
+                        {importCode || (importId ? importId : "Tạo mới")}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-[14px] font-['Montserrat']">

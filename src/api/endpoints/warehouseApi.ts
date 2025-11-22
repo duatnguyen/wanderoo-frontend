@@ -239,10 +239,10 @@ export const getInvoicePreview = async (
 export const getInvoiceDetail = async (
   invoiceId: number
 ): Promise<InvoiceDetailResponse> => {
-  const response = await apiClient.get<InvoiceDetailResponse>(
+  const response = await apiClient.get<ApiResponse<InvoiceDetailResponse>>(
     `/auth/v1/private/invoice/${invoiceId}`
   );
-  return response.data;
+  return response.data.data;
 };
 
 export const confirmInvoicePayment = async (
@@ -262,4 +262,24 @@ export const confirmInvoiceProductStatus = async (
     `/auth/v1/private/invoice/${invoiceId}/confirm-product-status`
   );
   return response.data;
+};
+
+// Return Import APIs
+export const getReturnImportList = async (
+  keyword?: string,
+  sort?: string,
+  page: number = 0,
+  size: number = 20
+): Promise<InvoicePageResponse> => {
+  const params = new URLSearchParams();
+  if (keyword) params.append('keyword', keyword);
+  if (sort) params.append('sort', sort);
+  params.append('page', page.toString());
+  params.append('size', size.toString());
+
+  // Return import is treated as export invoice (returning goods to supplier)
+  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
+    `/auth/v1/private/invoice/export?${params.toString()}`
+  );
+  return response.data.data;
 };

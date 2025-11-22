@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,10 @@ import {
   PageHeader,
   TableFilters,
 } from "@/components/common";
+import { getReturnImportList, getImportInvoices } from "@/api/endpoints/warehouseApi";
+import type { InvoiceResponse } from "@/types/warehouse";
+import { toast } from "sonner";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface ReturnImport {
   id: string;
@@ -28,68 +32,106 @@ interface ReturnImport {
   totalValue: number;
 }
 
-const mockReturns: ReturnImport[] = [
-  {
-    id: "1",
-    returnCode: "SRT001",
-    importCode: "REI001",
-    createdDate: "2025-09-13T21:05:00",
-    paymentMethod: "cash",
-    returnStatus: "returned",
-    refundStatus: "refunded",
-    supplier: "Kho Nhật Quang",
-    createdBy: "Admin ThanhNguyen",
-    returnQuantity: 10000,
-    totalValue: 1000000,
-  },
-  {
-    id: "2",
-    returnCode: "SRT002",
-    importCode: "REI002",
-    createdDate: "2025-09-12T15:30:00",
-    paymentMethod: "transfer",
-    returnStatus: "pending_return",
-    refundStatus: "pending_refund",
-    supplier: "Công ty ABC",
-    createdBy: "Admin NguyenVanA",
-    returnQuantity: 5000,
-    totalValue: 750000,
-  },
-];
-
 const AdminWarehouseReturnsImport = () => {
   document.title = "Trả hàng nhập | Wanderoo";
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
-  const [returns] = useState<ReturnImport[]>(mockReturns);
+  const [returns, setReturns] = useState<ReturnImport[]>([]);
   const [returnStatus, setReturnStatus] = useState("Trạng thái hoàn hàng");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalSearchTerm, setModalSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [importInvoices, setImportInvoices] = useState<InvoiceResponse[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
 
-  const filteredReturns = useMemo(() => {
-    return returns.filter((returnItem) => {
-      const matchesSearch =
-        searchTerm === "" ||
-        returnItem.returnCode
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        returnItem.importCode
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        returnItem.supplier.toLowerCase().includes(searchTerm.toLowerCase());
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 500);
 
-      return matchesSearch;
-    });
-  }, [returns, searchTerm]);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  const paginatedReturns = useMemo(() => {
-    const startIndex = (currentPage - 1) * 10;
-    return filteredReturns.slice(startIndex, startIndex + 10);
-  }, [filteredReturns, currentPage]);
+  // Map InvoiceResponse to ReturnImport
+  const mapInvoiceToReturnImport = useCallback((invoice: InvoiceResponse): ReturnImport => {
+    return {
+      id: String(invoice.id),
+      returnCode: invoice.code,
+      importCode: "", // Not available in InvoiceResponse
+      createdDate: invoice.createdAt,
+      paymentMethod: invoice.method === "CASH" ? "cash" : invoice.method === "BANKING" ? "transfer" : "cash",
+      returnStatus: invoice.productStatus === "DONE" ? "returned" : "pending_return",
+      refundStatus: invoice.paymentStatus === "DONE" ? "refunded" : "pending_refund",
+      supplier: invoice.providerName,
+      createdBy: invoice.picName,
+      returnQuantity: invoice.totalQuantity,
+      totalValue: invoice.totalPrice,
+    };
+  }, []);
 
-  const totalPages = Math.ceil(filteredReturns.length / 10);
+  // Fetch return import list
+  const fetchReturnImports = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await getReturnImportList(
+        debouncedSearchTerm || undefined,
+        undefined,
+        currentPage - 1, // API uses 0-based page
+        10
+      );
+
+      const mappedReturns = response.invoices.map(mapInvoiceToReturnImport);
+      setReturns(mappedReturns);
+      setTotalPages(response.totalPages);
+      setTotalElements(response.totalElements);
+    } catch (err) {
+      console.error("Error fetching return imports:", err);
+      setError("Không thể tải danh sách đơn trả hàng nhập. Vui lòng thử lại.");
+      toast.error("Không thể tải danh sách đơn trả hàng nhập");
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearchTerm, currentPage, mapInvoiceToReturnImport]);
+
+  useEffect(() => {
+    fetchReturnImports();
+  }, [fetchReturnImports]);
+
+  // Fetch import invoices for modal
+  const fetchImportInvoices = useCallback(async () => {
+    if (!isModalOpen) return;
+    
+    setModalLoading(true);
+    try {
+      const response = await getImportInvoices(
+        modalSearchTerm || undefined,
+        undefined,
+        0,
+        20
+      );
+      setImportInvoices(response.invoices);
+    } catch (err) {
+      console.error("Error fetching import invoices:", err);
+      toast.error("Không thể tải danh sách đơn nhập hàng");
+    } finally {
+      setModalLoading(false);
+    }
+  }, [isModalOpen, modalSearchTerm]);
+
+  useEffect(() => {
+    fetchImportInvoices();
+  }, [fetchImportInvoices]);
+
+  const paginatedReturns = returns;
 
   const getPaymentMethodChip = (method: ReturnImport["paymentMethod"]) => {
     if (method === "cash" || method === "transfer") {
@@ -118,9 +160,9 @@ const AdminWarehouseReturnsImport = () => {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount) + "đ";
   };
 
   const formatDate = (dateString: string) => {
@@ -151,7 +193,16 @@ const AdminWarehouseReturnsImport = () => {
 
       {/* Main Content */}
       <ContentCard>
-        {filteredReturns.length === 0 ? (
+        {loading && returns.length === 0 ? (
+          <div className="flex items-center justify-center py-20">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={fetchReturnImports}>Thử lại</Button>
+          </div>
+        ) : returns.length === 0 ? (
           /* Empty State */
           <div className="flex-1 flex flex-col items-center justify-center w-full py-20">
             <div className="text-[#272424] text-[16px] font-medium text-center mb-6">
@@ -194,15 +245,10 @@ const AdminWarehouseReturnsImport = () => {
                 {/* Fixed Table Header */}
                 <div className="bg-[#f6f6f6] rounded-tl-[16px] rounded-tr-[16px] sticky top-0 z-10 border-b border-[#d1d1d1]">
                   {/* Desktop Header */}
-                  <div className="hidden lg:grid grid-cols-[100px_100px_120px_120px_120px_120px_150px_120px_80px_80px] gap-2 px-4 py-3 items-center min-w-[1200px]">
+                  <div className="hidden lg:grid grid-cols-[100px_120px_120px_120px_120px_150px_120px_80px_80px] gap-2 px-4 py-3 items-center min-w-[1100px]">
                     <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
                         Mã đơn trả
-                      </span>
-                    </div>
-                    <div className="text-center">
-                      <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
-                        Mã đơn nhập
                       </span>
                     </div>
                     <div className="text-center">
@@ -250,7 +296,7 @@ const AdminWarehouseReturnsImport = () => {
                   {/* Mobile Header */}
                   <div className="lg:hidden px-4 py-3">
                     <div className="text-[#272424] text-[16px] font-[600] font-montserrat">
-                      Danh sách đơn trả hàng ({paginatedReturns.length})
+                      Danh sách đơn trả hàng ({totalElements})
                     </div>
                   </div>
                 </div>
@@ -266,15 +312,10 @@ const AdminWarehouseReturnsImport = () => {
                       }
                     >
                       {/* Desktop Layout */}
-                      <div className="hidden lg:grid grid-cols-[100px_100px_120px_120px_120px_120px_150px_120px_80px_80px] gap-2 px-4 py-4 items-center min-w-[1200px]">
+                      <div className="hidden lg:grid grid-cols-[100px_120px_120px_120px_120px_150px_120px_80px_80px] gap-2 px-4 py-4 items-center min-w-[1100px]">
                         <div className="text-center">
                           <span className="font-semibold text-[12px] text-[#1a71f6] cursor-pointer hover:underline">
                             {returnItem.returnCode}
-                          </span>
-                        </div>
-                        <div className="text-center">
-                          <span className="font-semibold text-[12px] text-[#1a71f6] cursor-pointer hover:underline">
-                            {returnItem.importCode}
                           </span>
                         </div>
                         <div className="text-center">
@@ -332,10 +373,6 @@ const AdminWarehouseReturnsImport = () => {
 
                         <div className="space-y-1">
                           <div className="flex justify-between text-[12px]">
-                            <span className="text-gray-600">Mã đơn nhập:</span>
-                            <span className="font-semibold text-[#1a71f6]">{returnItem.importCode}</span>
-                          </div>
-                          <div className="flex justify-between text-[12px]">
                             <span className="text-gray-600">Nhà cung cấp:</span>
                             <span className="font-medium text-right max-w-[60%] truncate" title={returnItem.supplier}>
                               {returnItem.supplier}
@@ -369,7 +406,9 @@ const AdminWarehouseReturnsImport = () => {
             <Pagination
               current={currentPage}
               total={totalPages}
-              onChange={setCurrentPage}
+              onChange={(page) => {
+                setCurrentPage(page);
+              }}
             />
           </>
         )}
@@ -385,7 +424,7 @@ const AdminWarehouseReturnsImport = () => {
             onClick={() => setIsModalOpen(false)}
           >
             <div
-              className="bg-white w-[800px] max-w-[90vw] max-h-[90vh] flex flex-col rounded-[24px] shadow-2xl animate-scaleIn"
+              className="bg-white w-[1155px] max-w-[95vw] max-h-[90vh] flex flex-col rounded-[24px] shadow-2xl animate-scaleIn"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
@@ -410,33 +449,42 @@ const AdminWarehouseReturnsImport = () => {
                 {/* Table */}
                 <div className="border border-[#D1D1D1] rounded-[16px] overflow-hidden">
                   {/* Table Header */}
-                  <div className="bg-[#f6f6f6] flex items-center px-[12px] py-3 border-b border-[#D1D1D1]">
-                    <div className="flex flex-row items-center w-full text-[13px] font-semibold text-[#272424]">
-                      <div className="w-[150px]">Mã đơn nhập</div>
-                      <div className="w-[150px]">Ngày tạo</div>
-                      <div className="w-[150px]">Nhân viên</div>
-                      <div className="w-[150px]">Nhà cung cấp</div>
-                      <div className="w-[200px]">Giá trị đơn nhập hàng</div>
-                      <div className="w-[100px] text-center">Thao tác</div>
+                  <div className="bg-[#f6f6f6] flex items-center px-6 py-3 border-b border-[#D1D1D1]">
+                    <div className="flex flex-row items-center w-full text-[13px] font-semibold text-[#272424] gap-4">
+                      <div className="w-[180px] text-center">Mã đơn nhập</div>
+                      <div className="w-[180px] text-center">Ngày tạo</div>
+                      <div className="w-[180px] text-center">Nhân viên</div>
+                      <div className="w-[200px] text-center">Nhà cung cấp</div>
+                      <div className="w-[220px] text-center">Giá trị đơn nhập hàng</div>
+                      <div className="w-[120px] text-center">Thao tác</div>
                     </div>
                   </div>
 
                   {/* Table Body */}
-                  {mockReturns.map((item) => (
+                  {modalLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <LoadingSpinner size="md" />
+                    </div>
+                  ) : importInvoices.length === 0 ? (
+                    <div className="text-center py-10 text-sm text-gray-500">
+                      Không có đơn nhập hàng nào
+                    </div>
+                  ) : (
+                    importInvoices.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center px-[12px] py-3 border-b border-[#e7e7e7] hover:bg-gray-50 text-[13px] text-[#272424] cursor-pointer"
+                        className="flex items-center px-6 py-3 border-b border-[#e7e7e7] hover:bg-gray-50 text-[13px] text-[#272424] cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/admin/warehouse/returns/${item.id}`);
+                          navigate(`/admin/warehouse/returns/create?importId=${item.id}`);
                       }}
                     >
-                      <div className="flex flex-row items-center w-full">
-                        <div className="w-[150px] font-semibold text-[#1a71f6]">
-                          {item.importCode}
+                        <div className="flex flex-row items-center w-full gap-4">
+                          <div className="w-[180px] text-center font-semibold text-[#1a71f6]">
+                            {item.code}
                         </div>
-                        <div className="w-[150px]">
-                          {new Date(item.createdDate).toLocaleString("vi-VN", {
+                          <div className="w-[180px] text-center">
+                            {new Date(item.createdAt).toLocaleString("vi-VN", {
                             day: "2-digit",
                             month: "2-digit",
                             year: "numeric",
@@ -444,19 +492,20 @@ const AdminWarehouseReturnsImport = () => {
                             minute: "2-digit",
                           })}
                         </div>
-                        <div className="w-[150px]">{item.createdBy}</div>
-                        <div className="w-[150px]">{item.supplier}</div>
-                        <div className="w-[200px]">
-                          {formatCurrency(item.totalValue)}
+                          <div className="w-[180px] text-center">{item.picName}</div>
+                          <div className="w-[200px] text-center">{item.providerName}</div>
+                          <div className="w-[220px] text-center">
+                            {formatCurrency(item.totalPrice)}
                         </div>
-                        <div className="w-[100px] text-center">
+                          <div className="w-[120px] text-center">
                           <span className="text-[#1a71f6] hover:underline cursor-pointer">
                             Trả hàng
                           </span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
