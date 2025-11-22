@@ -14,6 +14,7 @@ import {
 } from "@/components/common";
 import { getCustomerById, updateCustomer, getCustomerAddresses, updateCustomerAddress, createCustomerAddress } from "@/api/endpoints/userApi";
 import { getProvinces, getDistrictsByPath, getWardsByPath } from "@/api/endpoints/shippingApi";
+import { getCustomerOrders } from "@/api/endpoints/orderApi";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -287,6 +288,20 @@ const AdminCustomerDetail = () => {
     enabled: !!customerId,
   });
 
+  // Fetch customer orders (recent orders)
+  const {
+    data: ordersData,
+    isLoading: isLoadingOrders,
+  } = useQuery({
+    queryKey: ["admin-customer-orders", customerId],
+    queryFn: () => getCustomerOrders({
+      userId: Number(customerId),
+      page: 0,
+      size: 10, // Lấy 10 đơn hàng gần đây nhất
+    }),
+    enabled: !!customerId,
+  });
+
   // Update customer mutation
   const updateCustomerMutation = useMutation({
     mutationFn: (data: CustomerUpdateRequest) => {
@@ -358,7 +373,7 @@ const AdminCustomerDetail = () => {
         birthdate: customer.birthday
           ? new Date(customer.birthday).toISOString().split("T")[0]
           : "",
-        gender: (customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ") || "Nữ",
+        gender: customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ",
         email: customer.email || "",
       });
     }
@@ -430,6 +445,7 @@ const AdminCustomerDetail = () => {
       email: formData.email.trim(),
       username: customer.username, // Keep existing username
       password: "", // Password not required for update - backend will skip encoding if empty
+      address: customer.address || "", // Keep existing address
       gender: formData.gender === "Nam" ? "MALE" : "FEMALE", // Convert to backend format
       birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : customer.birthday ? new Date(customer.birthday).toISOString() : undefined,
       // Note: address field is for contact address, not delivery address
@@ -614,7 +630,23 @@ const AdminCustomerDetail = () => {
                     Tổng chi tiêu
                   </p>
                   <p className="font-bold text-[#272424] text-[24px] leading-normal">
-                    ---
+                    {(() => {
+                      // Tính từ ordersData nếu có
+                      if (ordersData?.content && ordersData.content.length > 0) {
+                        const total = ordersData.content.reduce((sum, order) => {
+                          return sum + (order.totalAmount || 0);
+                        }, 0);
+                        return new Intl.NumberFormat('vi-VN', { 
+                          style: 'currency', 
+                          currency: 'VND' 
+                        }).format(total);
+                      }
+                      // Nếu đang loading hoặc chưa có data
+                      if (isLoadingOrders) {
+                        return "...";
+                      }
+                      return "0 ₫";
+                    })()}
                   </p>
                 </div>
                 <div className="w-[1px] h-[40px] bg-[#d1d1d1]"></div>
@@ -623,7 +655,17 @@ const AdminCustomerDetail = () => {
                     Đơn hàng
                   </p>
                   <p className="font-bold text-[#272424] text-[24px] leading-normal">
-                    ---
+                    {(() => {
+                      // Lấy từ ordersData totalElements (tổng số đơn hàng)
+                      if (ordersData?.totalElements !== undefined) {
+                        return ordersData.totalElements.toString();
+                      }
+                      // Nếu đang loading
+                      if (isLoadingOrders) {
+                        return "...";
+                      }
+                      return "0";
+                    })()}
                   </p>
                 </div>
               </div>
@@ -644,52 +686,119 @@ const AdminCustomerDetail = () => {
               {/* Content - Scrollable */}
               <div className="flex-1 overflow-y-auto">
                 <div className="flex flex-col py-[8px]">
-                  {/* Note: Recent orders would need to be fetched separately */}
-                  <div className="px-[16px] py-[8px] text-[#737373] text-[14px]">
-                    Chức năng đơn hàng gần đây sẽ được tích hợp sau
-                  </div>
-                  {/* {customer.recentOrders?.map((order, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-center justify-between px-[16px] py-[8px] ${index < customer.recentOrders.length - 1
-                        ? "border-b border-[#d1d1d1]"
-                        : ""
-                        }`}
-                    >
-                      <div className="flex flex-col gap-[4px]">
-                        <p className="font-semibold text-[#1a71f6] text-[12px] leading-[1.5]">
-                          {order.id}
-                        </p>
-                        <p className="font-normal text-[#737373] text-[12px] leading-[1.4]">
-                          Nguồn: {order.source} • {order.date}
-                        </p>
-                      </div>
-                      <div className="flex gap-[15px]">
-                        <ChipStatus
-                          status={
-                            order.paymentStatus === "Đã thanh toán"
-                              ? "paid"
-                              : order.paymentStatus === "Đã hoàn tiền 1 phần"
-                                ? "pending"
-                                : "processing"
-                          }
-                          labelOverride={order.paymentStatus}
-                          size="small"
-                        />
-                        <ChipStatus
-                          status={
-                            order.fulfillmentStatus === "Đã hoàn thành"
-                              ? "completed"
-                              : order.fulfillmentStatus === "Đã thanh toán"
-                                ? "paid"
-                                : "processing"
-                          }
-                          labelOverride={order.fulfillmentStatus}
-                          size="small"
-                        />
-                      </div>
+                  {isLoadingOrders ? (
+                    <div className="px-[16px] py-[8px] text-[#737373] text-[14px]">
+                      Đang tải đơn hàng...
                     </div>
-                  ))} */}
+                  ) : !ordersData?.content || ordersData.content.length === 0 ? (
+                    <div className="px-[16px] py-[8px] text-[#737373] text-[14px]">
+                      Khách hàng chưa có đơn hàng nào
+                    </div>
+                  ) : (
+                    ordersData.content.map((order, index) => {
+                      // Format date
+                      const orderDate = order.createdAt
+                        ? new Date(order.createdAt).toLocaleDateString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                        : "";
+
+                      // Map payment status
+                      const getPaymentStatusLabel = (status?: string) => {
+                        if (!status) return "Chưa thanh toán";
+                        const statusLower = status.toLowerCase();
+                        if (statusLower.includes("đã thanh toán") || statusLower.includes("paid")) {
+                          return "Đã thanh toán";
+                        }
+                        if (statusLower.includes("hoàn tiền")) {
+                          return "Đã hoàn tiền";
+                        }
+                        if (statusLower.includes("chờ") || statusLower.includes("pending")) {
+                          return "Chờ thanh toán";
+                        }
+                        return status;
+                      };
+
+                      // Map order status
+                      const getOrderStatusLabel = (status?: string) => {
+                        if (!status) return "Đang xử lý";
+                        const statusLower = status.toLowerCase();
+                        if (statusLower.includes("hoàn thành") || statusLower.includes("completed")) {
+                          return "Đã hoàn thành";
+                        }
+                        if (statusLower.includes("đã giao") || statusLower.includes("delivered")) {
+                          return "Đã giao";
+                        }
+                        if (statusLower.includes("đang giao") || statusLower.includes("shipping")) {
+                          return "Đang giao";
+                        }
+                        if (statusLower.includes("hủy") || statusLower.includes("cancelled")) {
+                          return "Đã hủy";
+                        }
+                        return status;
+                      };
+
+                      // Map status to ChipStatus props
+                      const getPaymentStatusChip = (status?: string) => {
+                        if (!status) return "processing";
+                        const statusLower = status.toLowerCase();
+                        if (statusLower.includes("đã thanh toán") || statusLower.includes("paid")) {
+                          return "paid";
+                        }
+                        if (statusLower.includes("hoàn tiền")) {
+                          return "pending";
+                        }
+                        return "processing";
+                      };
+
+                      const getOrderStatusChip = (status?: string) => {
+                        if (!status) return "processing";
+                        const statusLower = status.toLowerCase();
+                        if (statusLower.includes("hoàn thành") || statusLower.includes("completed") || statusLower.includes("đã giao")) {
+                          return "completed";
+                        }
+                        if (statusLower.includes("hủy") || statusLower.includes("cancelled")) {
+                          return "cancelled";
+                        }
+                        return "processing";
+                      };
+
+                      return (
+                        <div
+                          key={order.id}
+                          className={`flex items-center justify-between px-[16px] py-[8px] ${
+                            index < ordersData.content.length - 1
+                              ? "border-b border-[#d1d1d1]"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex flex-col gap-[4px]">
+                            <p className="font-semibold text-[#1a71f6] text-[12px] leading-[1.5] cursor-pointer hover:underline">
+                              {order.code || `#${order.id}`}
+                            </p>
+                            <p className="font-normal text-[#737373] text-[12px] leading-[1.4]">
+                              {order.source ? `Nguồn: ${order.source} • ` : ""}
+                              {orderDate}
+                            </p>
+                          </div>
+                          <div className="flex gap-[15px]">
+                            <ChipStatus
+                              status={getPaymentStatusChip(order.paymentStatus)}
+                              labelOverride={getPaymentStatusLabel(order.paymentStatus)}
+                              size="small"
+                            />
+                            <ChipStatus
+                              status={getOrderStatusChip(order.status)}
+                              labelOverride={getOrderStatusLabel(order.status)}
+                              size="small"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </div>
