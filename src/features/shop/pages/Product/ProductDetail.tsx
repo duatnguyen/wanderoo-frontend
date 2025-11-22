@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import Header from "../../../../components/shop/Header";
@@ -11,9 +11,9 @@ import ProductInfo from "../../../../components/shop/Product/ProductInfo";
 import ProductDescription from "../../../../components/shop/Product/ProductDescription";
 import CustomerReviews from "../../../../components/shop/Product/CustomerReviews";
 import RelatedProducts from "../../../../components/shop/Product/RelatedProducts";
-import { getProductDetail } from "../../../../api/endpoints/productApi";
+import { getProductDetail, getProductVariants } from "../../../../api/endpoints/productApi";
 import { getSuggestionProducts, type HomepageProductResponse } from "../../../../api/endpoints/homepageApi";
-import type { ProductDetailsResponse } from "../../../../types";
+import type { ProductDetailsResponse, VariantDetailIdResponse } from "../../../../types";
 
 type EnrichedProduct = Product & {
   priceRange?: {
@@ -136,6 +136,9 @@ const ProductDetail: React.FC = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>([]);
+  const [variantData, setVariantData] = useState<VariantDetailIdResponse | null>(null);
+  const [isLoadingVariant, setIsLoadingVariant] = useState(false);
 
   const productFromState = (location.state as { product?: Product })?.product;
 
@@ -180,6 +183,52 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     enabled: Boolean(productId),
   });
 
+  // Reset selected attributes when product changes
+  useEffect(() => {
+    setSelectedAttributeIds([]);
+    setVariantData(null);
+    setQuantity(1);
+  }, [productId]);
+
+  // Fetch variant when all attributes are selected
+  const fetchVariant = useCallback(async () => {
+    if (!productId || !productDetail) return;
+    
+    const totalAttributes = productDetail.attributes?.length || 0;
+    if (totalAttributes === 0) {
+      // Product has no attributes, no need to fetch variant
+      setVariantData(null);
+      return;
+    }
+
+    // Check if all attributes are selected (all IDs > 0)
+    const allSelected = selectedAttributeIds.length === totalAttributes && 
+                        selectedAttributeIds.every(id => id > 0);
+    
+    if (!allSelected) {
+      setVariantData(null);
+      return;
+    }
+
+    setIsLoadingVariant(true);
+    try {
+      const variant = await getProductVariants({
+        productId: Number(productId),
+        listAttributeId: selectedAttributeIds,
+      });
+      setVariantData(variant);
+    } catch (error) {
+      console.error("Không thể tải thông tin phân loại hàng", error);
+      setVariantData(null);
+    } finally {
+      setIsLoadingVariant(false);
+    }
+  }, [productId, productDetail, selectedAttributeIds]);
+
+  useEffect(() => {
+    fetchVariant();
+  }, [fetchVariant]);
+
   const { data: suggestionProducts } = useQuery({
     queryKey: ["product-suggestions"],
     queryFn: () => getSuggestionProducts(20),
@@ -216,7 +265,22 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
   };
 
   const handleAddToCart = () => {
+    if (!variantData) return;
     addToCart(product, quantity);
+  };
+
+  const handleAttributeSelect = (attributeIndex: number, valueId: number) => {
+    setSelectedAttributeIds((prev) => {
+      const newIds = [...prev];
+      // Ensure array has enough slots for all attributes
+      const totalAttributes = productDetail?.attributes?.length || 0;
+      while (newIds.length < totalAttributes) {
+        newIds.push(0);
+      }
+      // Select the value (replace previous selection for this attribute)
+      newIds[attributeIndex] = valueId;
+      return newIds;
+    });
   };
 
   const categoryLabel = product.category || "Danh mục";
@@ -261,9 +325,14 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                 />
                 <ProductInfo
                   product={product}
+                  productDetail={productDetail}
                   quantity={quantity}
                   onQuantityChange={handleQuantityChange}
                   onAddToCart={handleAddToCart}
+                  selectedAttributeIds={selectedAttributeIds}
+                  onAttributeSelect={handleAttributeSelect}
+                  variantData={variantData}
+                  isLoadingVariant={isLoadingVariant}
                 />
               </div>
             </div>
