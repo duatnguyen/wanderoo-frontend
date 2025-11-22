@@ -134,9 +134,83 @@ const ProductFilterPage: React.FC = () => {
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    // Apply filters
+    // Apply stock filter
     if (inStockOnly) {
       filtered = filtered.filter((p) => (p.stock || 0) > 0);
+    }
+
+    // Apply size filter
+    if (selectedSize) {
+      filtered = filtered.filter((p) => p.size === selectedSize);
+    }
+
+    // Apply weight filter
+    if (selectedWeight) {
+      filtered = filtered.filter((p) => {
+        const weight = p.weight || 0;
+        switch (selectedWeight) {
+          case "under500":
+            return weight < 500;
+          case "500-1000":
+            return weight >= 500 && weight < 1000;
+          case "1000-2000":
+            return weight >= 1000 && weight < 2000;
+          case "2000-3000":
+            return weight >= 2000 && weight < 3000;
+          case "over3000":
+            return weight >= 3000;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply material filter
+    if (selectedMaterial) {
+      filtered = filtered.filter((p) => p.material === selectedMaterial);
+    }
+
+    // Apply activity filter
+    if (selectedActivity) {
+      filtered = filtered.filter((p) => p.activity?.includes(selectedActivity));
+    }
+
+    // Apply color filter
+    if (selectedColor) {
+      filtered = filtered.filter((p) => p.color === selectedColor);
+    }
+
+    // Apply brand filter
+    if (selectedBrand) {
+      filtered = filtered.filter(
+        (p) => p.brand?.toLowerCase() === selectedBrand.toLowerCase()
+      );
+    }
+
+    // Apply feature filter
+    if (selectedFeature) {
+      filtered = filtered.filter((p) => p.features?.includes(selectedFeature));
+    }
+
+    // Apply price range filter
+    if (selectedPriceRange) {
+      filtered = filtered.filter((p) => {
+        const price = p.price;
+        switch (selectedPriceRange) {
+          case "under500k":
+            return price < 500000;
+          case "500k-1m":
+            return price >= 500000 && price < 1000000;
+          case "1m-2m":
+            return price >= 1000000 && price < 2000000;
+          case "2m-5m":
+            return price >= 2000000 && price < 5000000;
+          case "over5m":
+            return price >= 5000000;
+          default:
+            return true;
+        }
+      });
     }
 
     if (newArrivalsOnly) {
@@ -164,7 +238,20 @@ const ProductFilterPage: React.FC = () => {
     }
 
     return filtered;
-  }, [products, inStockOnly, newArrivalsOnly, sortOption]);
+  }, [
+    products,
+    inStockOnly,
+    newArrivalsOnly,
+    sortOption,
+    selectedSize,
+    selectedWeight,
+    selectedMaterial,
+    selectedActivity,
+    selectedColor,
+    selectedBrand,
+    selectedFeature,
+    selectedPriceRange,
+  ]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
