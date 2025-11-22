@@ -51,6 +51,9 @@ const LandingPage = lazy(
 const ProductDetail = lazy(
   () => import("../../features/shop/pages/Product/ProductDetail")
 );
+const ProductFilterPage = lazy(
+  () => import("../../features/shop/pages/Product/ProductFilterPage")
+);
 const CartPage = lazy(() => import("../../features/shop/pages/Cart/CartPage"));
 const CheckoutPage = lazy(
   () => import("../../features/shop/pages/Checkout/CheckoutPage")
@@ -245,6 +248,14 @@ export const shopRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <ProductDetail />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "filter",
+    element: (
+      <LazyWrapper>
+        <ProductFilterPage />
       </LazyWrapper>
     ),
   },

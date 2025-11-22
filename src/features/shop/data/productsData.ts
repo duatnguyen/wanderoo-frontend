@@ -12,10 +12,18 @@ export interface Product {
   images?: string[];
   stock?: number;
   category?: string;
+  categoryId?: number; // Category ID for filtering
   brand?: string;
   reviews?: number;
   variant?: string;
   variantOptions?: { label: string; value: string }[];
+  // Filter attributes for outdoor/climbing gear
+  size?: string; // small, medium, large, xlarge, onesize
+  weight?: number; // in grams
+  material?: string; // polyester, nylon, cotton, goretex, leather, canvas
+  activity?: string[]; // climbing, trekking, camping, hiking, multi
+  color?: string; // black, gray, blue, green, red, orange, brown
+  features?: string[]; // waterproof, windproof, breathable, uv-protection, lightweight, compact
 }
 
 export const productsData: Product[] = [
@@ -42,8 +50,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", "", ""],
     stock: 25,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 128,
+    size: "onesize",
+    weight: 2500, // 2.5kg in grams
+    material: "polyester",
+    activity: ["camping", "trekking"],
+    color: "green",
+    features: ["waterproof", "lightweight", "compact"],
   },
   {
     id: 2,
@@ -58,8 +73,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", ""],
     stock: 15,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 95,
+    size: "onesize",
+    weight: 1200,
+    material: "polyester",
+    activity: ["camping", "trekking"],
+    color: "blue",
+    features: ["lightweight", "compact"],
   },
   {
     id: 3,
@@ -73,8 +95,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 30,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 67,
+    size: "onesize",
+    weight: 800,
+    material: "metal",
+    activity: ["camping", "multi"],
+    color: "gray",
+    features: ["compact", "lightweight"],
   },
   {
     id: 4,
@@ -88,8 +117,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", "", ""],
     stock: 20,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 142,
+    size: "onesize",
+    weight: 1200,
+    material: "nylon",
+    activity: ["trekking", "hiking", "climbing"],
+    color: "black",
+    features: ["waterproof", "lightweight"],
   },
   {
     id: 5,
@@ -103,8 +139,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 35,
     category: "Thể thao ngoài trời",
+    categoryId: 3, // Mock category ID
     brand: "Naturehike",
     reviews: 89,
+    size: "large",
+    weight: 600,
+    material: "goretex",
+    activity: ["trekking", "hiking", "climbing"],
+    color: "blue",
+    features: ["waterproof", "windproof", "breathable"],
   },
   {
     id: 6,
@@ -118,8 +161,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 50,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 56,
+    size: "onesize",
+    weight: 1200,
+    material: "aluminum",
+    activity: ["camping", "multi"],
+    color: "gray",
+    features: ["lightweight", "compact"],
   },
   {
     id: 7,
@@ -133,8 +183,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 40,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 78,
+    size: "onesize",
+    weight: 300,
+    material: "plastic",
+    activity: ["camping", "trekking", "hiking", "multi"],
+    color: "black",
+    features: ["lightweight", "compact"],
   },
   {
     id: 8,
@@ -148,8 +205,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 60,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 103,
+    size: "onesize",
+    weight: 500,
+    material: "metal",
+    activity: ["camping", "multi"],
+    color: "gray",
+    features: ["compact"],
   },
   {
     id: 101,
@@ -163,8 +227,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", "", ""],
     stock: 10,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 234,
+    size: "onesize",
+    weight: 4500,
+    material: "polyester",
+    activity: ["camping", "trekking"],
+    color: "green",
+    features: ["waterproof", "lightweight"],
   },
   {
     id: 102,
@@ -178,8 +249,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 18,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 156,
+    size: "onesize",
+    weight: 3500,
+    material: "metal",
+    activity: ["camping", "multi"],
+    color: "black",
+    features: ["compact"],
   },
   {
     id: 103,
@@ -193,8 +271,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", ""],
     stock: 12,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 187,
+    size: "onesize",
+    weight: 1500,
+    material: "polyester",
+    activity: ["camping", "trekking", "hiking"],
+    color: "blue",
+    features: ["lightweight", "compact"],
   },
   {
     id: 104,
@@ -208,8 +293,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", ""],
     stock: 22,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 201,
+    size: "onesize",
+    weight: 1800,
+    material: "nylon",
+    activity: ["trekking", "hiking", "climbing"],
+    color: "black",
+    features: ["waterproof", "lightweight"],
   },
   {
     id: 105,
@@ -223,8 +315,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 28,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 134,
+    size: "onesize",
+    weight: 2000,
+    material: "stainless-steel",
+    activity: ["camping", "multi"],
+    color: "gray",
+    features: ["compact"],
   },
   {
     id: 106,
@@ -239,8 +338,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", "", ""],
     stock: 25,
     category: "Thể thao ngoài trời",
+    categoryId: 3, // Mock category ID
     brand: "Naturehike",
     reviews: 198,
+    size: "large",
+    weight: 1200,
+    material: "leather",
+    activity: ["climbing", "trekking", "hiking"],
+    color: "brown",
+    features: ["waterproof"],
   },
   {
     id: 107,
@@ -255,8 +361,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 32,
     category: "Thể thao ngoài trời",
+    categoryId: 3, // Mock category ID
     brand: "Naturehike",
     reviews: 87,
+    size: "onesize",
+    weight: 800,
+    material: "nylon",
+    activity: ["climbing", "multi"],
+    color: "orange",
+    features: ["lightweight", "compact"],
   },
   {
     id: 108,
@@ -270,8 +383,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 40,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 112,
+    size: "onesize",
+    weight: 800,
+    material: "nylon",
+    activity: ["camping", "trekking"],
+    color: "green",
+    features: ["lightweight", "compact"],
   },
   {
     id: 109,
@@ -285,8 +405,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 55,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 245,
+    size: "onesize",
+    weight: 400,
+    material: "stainless-steel",
+    activity: ["camping", "trekking", "hiking", "multi"],
+    color: "gray",
+    features: ["lightweight"],
   },
   {
     id: 110,
@@ -301,8 +428,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 45,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 156,
+    size: "onesize",
+    weight: 50,
+    material: "plastic",
+    activity: ["trekking", "hiking", "climbing", "multi"],
+    color: "black",
+    features: ["uv-protection"],
   },
   {
     id: 111,
@@ -316,8 +450,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 30,
     category: "Đồ cắm trại",
+    categoryId: 1, // Mock category ID
     brand: "Naturehike",
     reviews: 98,
+    size: "onesize",
+    weight: 2500,
+    material: "polyester",
+    activity: ["camping", "multi"],
+    color: "blue",
+    features: ["waterproof", "compact"],
   },
   {
     id: 112,
@@ -332,8 +473,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: ["", ""],
     stock: 28,
     category: "Thể thao ngoài trời",
+    categoryId: 3, // Mock category ID
     brand: "Naturehike",
     reviews: 167,
+    size: "onesize",
+    weight: 600,
+    material: "aluminum",
+    activity: ["trekking", "hiking"],
+    color: "black",
+    features: ["lightweight", "compact"],
   },
   {
     id: 113,
@@ -347,8 +495,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     images: [""],
     stock: 50,
     category: "Phụ kiện",
+    categoryId: 2, // Mock category ID
     brand: "Naturehike",
     reviews: 203,
+    size: "onesize",
+    weight: 400,
+    material: "nylon",
+    activity: ["camping", "trekking", "hiking", "multi"],
+    color: "blue",
+    features: ["waterproof", "compact"],
   },
 ];
 
@@ -359,9 +514,14 @@ export const getProductById = (id: string | number): Product | undefined => {
   );
 };
 
-// Helper function to get products by category
+// Helper function to get products by category name
 export const getProductsByCategory = (category: string): Product[] => {
   return productsData.filter((product) => product.category === category);
+};
+
+// Helper function to get products by category ID
+export const getProductsByCategoryId = (categoryId: number): Product[] => {
+  return productsData.filter((product) => product.categoryId === categoryId);
 };
 
 // Helper function to get related products (excluding current product)
