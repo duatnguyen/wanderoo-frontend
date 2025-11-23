@@ -5,19 +5,31 @@ import { lazy } from "react";
 import { LazyWrapper } from "../../components/common/LazyWrapper";
 
 // Lazy load user/shop pages
-const UserHome = lazy(() => import("../../features/shop/pages/UserProfile/UserHome"));
-const ProfileLayout = lazy(() => import("../../features/shop/layouts/ProfileLayout"));
-const BasicInformationTab = lazy(
-  () => import("../../features/shop/pages/UserProfile/BasicInformationTab")
+const UserHome = lazy(
+  () => import("../../features/shop/pages/UserProfile/UserHome")
 );
-const AddressTab = lazy(() => import("../../features/shop/pages/UserProfile/AddressTab"));
-const PasswordTab = lazy(() => import("../../features/shop/pages/UserProfile/PasswordTab"));
-const PrivacyTab = lazy(() => import("../../features/shop/pages/UserProfile/PrivacyTab"));
-const OrdersTab = lazy(() => import("../../features/shop/pages/UserProfile/OrdersTab"));
+const ProfileLayout = lazy(() => import("../../layouts/ProfileLayout"));
+const BasicInformationTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/ProfileTab")
+);
+const AddressTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/AddressTab")
+);
+const PasswordTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/PasswordTab")
+);
+const PrivacyTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/PrivacyTab")
+);
+const OrdersTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/OrdersTab")
+);
 const OrderDetailTab = lazy(
   () => import("../../features/shop/pages/UserProfile/OrderDetailTab")
 );
-const VouchersTab = lazy(() => import("../../features/shop/pages/UserProfile/VouchersTab"));
+const VouchersTab = lazy(
+  () => import("../../features/shop/pages/UserProfile/VouchersTab")
+);
 const ReturnRefundPage = lazy(
   () => import("../../features/shop/pages/ReturnRefund/ReturnRefundPage")
 );
