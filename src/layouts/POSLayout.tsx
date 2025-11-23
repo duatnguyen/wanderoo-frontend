@@ -23,6 +23,7 @@ const POSLayoutContent: React.FC = () => {
     setOrders,
     currentOrderId,
     setCurrentOrderId,
+    addOrderHandler,
     user,
   } = usePOSContext();
 
@@ -52,11 +53,10 @@ const POSLayoutContent: React.FC = () => {
     setActiveSidebarItem,
   ]);
 
-  const handleAddOrder = () => {
-    const newOrderId = String(orders.length + 1);
-    const newOrder: OrderTab = { id: newOrderId, label: `Đơn ${newOrderId}` };
-    setOrders([...orders, newOrder]);
-    setCurrentOrderId(newOrderId);
+  const handleAddOrder = async () => {
+    if (addOrderHandler) {
+      await addOrderHandler();
+    }
   };
 
   const handleCloseOrder = (orderId: string) => {
@@ -64,9 +64,14 @@ const POSLayoutContent: React.FC = () => {
       return;
     }
     const newOrders = orders.filter((o) => o.id !== orderId);
-    setOrders(newOrders);
+    // Đánh số lại các đơn còn lại: Đơn 1, Đơn 2, Đơn 3, Đơn 4
+    const renumberedOrders = newOrders.map((order, index) => ({
+      ...order,
+      label: `Đơn ${index + 1}`,
+    }));
+    setOrders(renumberedOrders);
     if (currentOrderId === orderId) {
-      setCurrentOrderId(newOrders[0]?.id || "1");
+      setCurrentOrderId(renumberedOrders[0]?.id || "1");
     }
   };
 

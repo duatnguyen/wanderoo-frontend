@@ -1,5 +1,5 @@
 import React from "react";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type OrderTab = {
@@ -21,6 +21,7 @@ export const POSOrderTabs: React.FC<POSOrderTabsProps> = ({
   currentOrderId,
   onOrderSelect,
   onOrderClose,
+  onOrderAdd,
   className,
 }) => {
   return (
@@ -63,6 +64,16 @@ export const POSOrderTabs: React.FC<POSOrderTabsProps> = ({
         })}
       </div>
 
+      {/* Add Order Button */}
+      {onOrderAdd && (
+        <button
+          onClick={onOrderAdd}
+          className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#4A90E2] hover:bg-[#357ABD] transition-colors flex items-center justify-center"
+          aria-label="Add new order"
+        >
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        </button>
+      )}
     </div>
   );
 };

@@ -9,6 +9,7 @@ import {
   usePOSContext,
   type POSProductSelectHandler,
 } from "../../../../context/POSContext";
+import type { OrderTab } from "../../../../components/pos/POSOrderTabs";
 import {
   addItemToOrder,
   assignCustomerToOrder,
@@ -28,8 +29,13 @@ import type {
 import { Loader2 } from "lucide-react";
 
 const POSPage: React.FC = () => {
-  const { setOrders, setCurrentOrderId, setProductSelectHandler } =
-    usePOSContext();
+  const { 
+    setOrders, 
+    setCurrentOrderId, 
+    setProductSelectHandler, 
+    setAddOrderHandler,
+    currentOrderId: contextCurrentOrderId 
+  } = usePOSContext();
   const [draftOrderId, setDraftOrderId] = useState<number | null>(null);
   const [orderDetail, setOrderDetail] = useState<DraftOrderDetailResponse | null>(
     null
@@ -54,28 +60,37 @@ const POSPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
+      // Lấy tất cả đơn nháp hiện có (tối đa 5)
       const draftOrders = await getOrCreateDraftOrders();
-      let orderId: number | null = null;
+      
       if (Array.isArray(draftOrders) && draftOrders.length > 0) {
-        orderId = draftOrders[0]?.id ?? null;
-      }
-      if (!orderId) {
+        // Chuyển đổi danh sách đơn nháp thành tabs với số thứ tự (1, 2, 3, 4, 5)
+        const orderTabs: OrderTab[] = draftOrders.map((order, index) => ({
+          id: order.id.toString(),
+          label: `Đơn ${index + 1}`, // Đánh số theo thứ tự: Đơn 1, Đơn 2, Đơn 3, Đơn 4, Đơn 5
+        }));
+        
+        setOrders(orderTabs);
+        
+        // Chọn đơn đầu tiên làm đơn hiện tại
+        const firstOrderId = draftOrders[0].id;
+        setDraftOrderId(firstOrderId);
+        setCurrentOrderId(firstOrderId.toString());
+        await loadDraftOrderDetail(firstOrderId);
+      } else {
+        // Nếu không có đơn nháp nào, tạo mới
         const created = await createNewDraftOrder();
-        orderId = created.data?.id ?? null;
-        if (!orderId) {
-          const refreshed = await getOrCreateDraftOrders();
-          if (Array.isArray(refreshed) && refreshed.length > 0) {
-            orderId = refreshed[0]?.id ?? null;
-          }
+        const newOrderId = created.data?.id;
+        
+        if (!newOrderId) {
+          throw new Error("Không thể tạo hóa đơn chờ mới");
         }
+        
+        setDraftOrderId(newOrderId);
+        setOrders([{ id: newOrderId.toString(), label: `Đơn 1` }]);
+        setCurrentOrderId(newOrderId.toString());
+        await loadDraftOrderDetail(newOrderId);
       }
-      if (!orderId) {
-        throw new Error("Không thể khởi tạo hóa đơn chờ");
-      }
-      setDraftOrderId(orderId);
-      setOrders([{ id: orderId.toString(), label: "Hóa đơn chờ" }]);
-      setCurrentOrderId(orderId.toString());
-      await loadDraftOrderDetail(orderId);
     } catch (err) {
       console.error(err);
       setError(
@@ -91,6 +106,20 @@ const POSPage: React.FC = () => {
   useEffect(() => {
     void initializeDraftOrder();
   }, [initializeDraftOrder]);
+
+  // Xử lý khi chuyển đổi giữa các đơn hàng
+  useEffect(() => {
+    if (!contextCurrentOrderId) return;
+    
+    const orderId = Number(contextCurrentOrderId);
+    if (Number.isNaN(orderId)) return;
+    
+    // Nếu đơn hàng hiện tại khác với đơn hàng đang load
+    if (draftOrderId !== orderId) {
+      setDraftOrderId(orderId);
+      void loadDraftOrderDetail(orderId);
+    }
+  }, [contextCurrentOrderId, draftOrderId, loadDraftOrderDetail]);
 
   useEffect(() => {
     if (!draftOrderId) return;
@@ -272,6 +301,84 @@ const POSPage: React.FC = () => {
     },
     [draftOrderId, initializeDraftOrder]
   );
+
+  const handleAddNewOrder = useCallback(async () => {
+    try {
+      setIsRefreshing(true);
+      setError(null);
+      
+      // Gọi API tạo hóa đơn nháp mới
+      console.log("Đang tạo hóa đơn nháp mới...");
+      const created = await createNewDraftOrder();
+      console.log("Response từ createNewDraftOrder:", created);
+      
+      // Kiểm tra response structure
+      if (!created) {
+        throw new Error("API không trả về dữ liệu");
+      }
+      
+      // Lấy orderId từ response
+      // Có thể là created.data.id hoặc created.data?.id tùy vào structure
+      const newOrderId = created.data?.id || created.data?.data?.id;
+      
+      if (!newOrderId) {
+        console.error("Response không có orderId:", created);
+        throw new Error("Không thể lấy ID hóa đơn từ response");
+      }
+
+      console.log("Đã tạo hóa đơn mới với ID:", newOrderId);
+
+      // Tải chi tiết hóa đơn mới
+      const detail = await getDraftOrderDetail(newOrderId);
+      
+      // Cập nhật state
+      setDraftOrderId(newOrderId);
+      
+      // Thêm tab mới vào danh sách với số thứ tự đúng
+      // Đánh số lại tất cả các tab: Đơn 1, Đơn 2, Đơn 3, Đơn 4, Đơn 5
+      setOrders((prev) => {
+        const newTabs = [...prev, { id: newOrderId.toString(), label: "" }];
+        // Đánh số lại tất cả các tab theo thứ tự
+        return newTabs.map((tab, index) => ({
+          ...tab,
+          label: `Đơn ${index + 1}`,
+        }));
+      });
+      setCurrentOrderId(newOrderId.toString());
+      
+      // Load chi tiết đơn hàng mới
+      await loadDraftOrderDetail(newOrderId);
+      
+      console.log("Đã tạo và load hóa đơn mới thành công");
+    } catch (err) {
+      console.error("Lỗi khi tạo hóa đơn mới:", err);
+      
+      // Xử lý lỗi chi tiết hơn
+      let errorMessage = "Không thể tạo hóa đơn mới. Vui lòng thử lại.";
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'object' && err !== null) {
+        // Kiểm tra nếu có response từ API
+        const apiError = err as any;
+        if (apiError?.response?.data?.message) {
+          errorMessage = apiError.response.data.message;
+        } else if (apiError?.message) {
+          errorMessage = apiError.message;
+        }
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [setOrders, setCurrentOrderId, loadDraftOrderDetail]);
+
+  // Đăng ký handler vào context
+  useEffect(() => {
+    setAddOrderHandler(() => handleAddNewOrder);
+    return () => setAddOrderHandler(null);
+  }, [handleAddNewOrder, setAddOrderHandler]);
 
   if (isLoading) {
     return (

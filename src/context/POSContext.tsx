@@ -26,6 +26,8 @@ type POSContextType = {
   setCurrentOrderId: (id: string) => void;
   productSelectHandler: POSProductSelectHandler | null;
   setProductSelectHandler: (handler: POSProductSelectHandler | null) => void;
+  addOrderHandler: (() => Promise<void>) | null;
+  setAddOrderHandler: (handler: (() => Promise<void>) | null) => void;
 
   // User
   user: {
@@ -65,10 +67,19 @@ export const POSProvider: React.FC<POSProviderProps> = ({
   const [currentOrderId, setCurrentOrderId] = useState("1");
   const [productSelectHandler, setProductSelectHandlerState] =
     useState<POSProductSelectHandler | null>(null);
+  const [addOrderHandler, setAddOrderHandlerState] =
+    useState<(() => Promise<void>) | null>(null);
 
   const setProductSelectHandler = useCallback(
     (handler: POSProductSelectHandler | null) => {
       setProductSelectHandlerState(handler);
+    },
+    []
+  );
+
+  const setAddOrderHandler = useCallback(
+    (handler: (() => Promise<void>) | null) => {
+      setAddOrderHandlerState(handler);
     },
     []
   );
@@ -86,6 +97,8 @@ export const POSProvider: React.FC<POSProviderProps> = ({
         setCurrentOrderId,
         productSelectHandler,
         setProductSelectHandler,
+        addOrderHandler,
+        setAddOrderHandler,
         user,
       }}
     >

@@ -47,8 +47,56 @@ export const getOrCreateDraftOrders = async (): Promise<DraftOrderResponse[]> =>
 };
 
 export const createNewDraftOrder = async (): Promise<ApiResponse<DraftOrderResponse>> => {
-  const response = await api.post<ApiResponse<DraftOrderResponse>>('/auth/v1/private/sale/draft-orders');
-  return response.data;
+  try {
+    const response = await api.post<ApiResponse<DraftOrderResponse>>('/auth/v1/private/sale/draft-orders');
+    console.log('createNewDraftOrder response:', response);
+    
+    // Kiểm tra nếu response có data
+    if (!response.data) {
+      throw new Error('API không trả về dữ liệu');
+    }
+    
+    // Kiểm tra nếu có lỗi trong response (status >= 400)
+    if (response.data.status && response.data.status >= 400) {
+      const errorMessage = response.data.message || 'Lỗi khi tạo hóa đơn nháp';
+      
+      // Xử lý trường hợp LIMIT_REACHED với message rõ ràng hơn
+      if (errorMessage === 'LIMIT_REACHED') {
+        throw new Error('Bạn đã đạt giới hạn tối đa 5 hóa đơn nháp. Vui lòng hoàn tất hoặc xóa một hóa đơn trước khi tạo mới.');
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('Error in createNewDraftOrder:', error);
+    
+    // Nếu đã là Error object với message rõ ràng, throw lại
+    if (error instanceof Error && error.message.includes('giới hạn')) {
+      throw error;
+    }
+    
+    // Nếu có response từ server, throw với message từ server
+    if (error.response?.data?.message) {
+      const serverMessage = error.response.data.message;
+      
+      // Xử lý LIMIT_REACHED từ server
+      if (serverMessage === 'LIMIT_REACHED') {
+        throw new Error('Bạn đã đạt giới hạn tối đa 5 hóa đơn nháp. Vui lòng hoàn tất hoặc xóa một hóa đơn trước khi tạo mới.');
+      }
+      
+      throw new Error(serverMessage);
+    }
+    
+    // Nếu có message từ error
+    if (error.message) {
+      throw error;
+    }
+    
+    // Default error
+    throw new Error('Không thể tạo hóa đơn nháp. Vui lòng thử lại.');
+  }
 };
 
 export const updateItemQuantity = async (orderId: number, request: UpdateItemQuantityRequest): Promise<ApiResponse<null>> => {
