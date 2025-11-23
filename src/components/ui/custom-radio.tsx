@@ -21,7 +21,7 @@ const CustomRadio = React.forwardRef<HTMLInputElement, CustomRadioProps>(
     return (
       <label
         className={cn(
-          "flex items-center gap-[20px] cursor-pointer group",
+          "flex items-center gap-[6px] cursor-pointer group",
           containerClassName
         )}
       >
@@ -58,7 +58,7 @@ const CustomRadio = React.forwardRef<HTMLInputElement, CustomRadioProps>(
         {label && (
           <span
             className={cn(
-              "font-semibold text-[12px] leading-[1.4] transition-colors duration-200",
+              "font-semibold text-[14px] leading-[1.4] transition-colors duration-200",
               checked ? "text-[#e04d30]" : "text-[#272424]"
             )}
           >

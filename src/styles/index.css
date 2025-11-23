@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./animations.css";
 
 /* Animations */
 @keyframes fadeIn {
@@ -121,8 +122,16 @@
 
 body {
   margin: 0;
-  font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    "Montserrat",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
 }
 
 #root {
@@ -282,6 +291,289 @@ body {
   }
 }
 
+/* Reusable Content Container Classes */
+.content-container {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .content-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .content-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+.content-container-sm {
+  max-width: 48rem; /* 768px */
+}
+
+.content-container-md {
+  max-width: 64rem; /* 1024px */
+}
+
+.content-container-lg {
+  max-width: 80rem; /* 1280px */
+}
+
+.content-container-full {
+  max-width: none;
+}
+
+/* Admin Layout Classes */
+.admin-page-container {
+  width: 100%;
+  min-height: 100vh;
+  padding: 1rem;
+  background-color: #f9fafb;
+}
+
+@media (min-width: 640px) {
+  .admin-page-container {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-page-container {
+    padding: 2rem;
+  }
+}
+
+.admin-content-wrapper {
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: white;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Table Container Classes */
+.table-container {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+}
+
+/* Responsive Utility Classes */
+.responsive-flex {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .responsive-flex {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.responsive-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.responsive-grid-auto {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+/* Button Container Classes */
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.button-group-inline {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .button-group {
+    flex-direction: column;
+  }
+
+  .button-group > * {
+    width: 100%;
+  }
+}
+
+/* Search and Filter Container */
+.search-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .search-filter-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.search-input-container {
+  flex: 1;
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .search-input-container {
+    max-width: 400px;
+  }
+}
+
+.filter-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Mobile-First Design Classes */
+.mobile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-stack {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+}
+
+.mobile-full {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .mobile-full {
+    width: auto;
+  }
+}
+
+.mobile-hidden {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mobile-hidden {
+    display: block;
+  }
+}
+
+.desktop-hidden {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .desktop-hidden {
+    display: none;
+  }
+}
+
+/* Card Layout Classes */
+.card-container {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+/* Spacing Utilities */
+.space-y-sm > * + * {
+  margin-top: 0.5rem;
+}
+
+.space-y-md > * + * {
+  margin-top: 1rem;
+}
+
+.space-y-lg > * + * {
+  margin-top: 1.5rem;
+}
+
+.space-x-sm > * + * {
+  margin-left: 0.5rem;
+}
+
+.space-x-md > * + * {
+  margin-left: 1rem;
+}
+
+.space-x-lg > * + * {
+  margin-left: 1.5rem;
+}
+
 /* Custom Table Scrollbar Styling - Horizontal Only */
 .table-scroll-horizontal {
   scrollbar-width: thin;
@@ -417,4 +709,32 @@ body {
       /* --sidebar-width-icon */
     }
   }
+}
+
+/* Sidebar font override to Inter */
+.admin-sidebar-font {
+  font-family:
+    Inter,
+    -apple-system,
+    system-ui,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif !important;
+  font-size: 14px; /* đảm bảo đồng nhất 14px */
+}
+
+/* Hide native date input picker icon when we provide our own */
+.hide-native-picker::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+
+/* Enlarge and keep native datepicker icon visible */
+.big-native-picker::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  width: 24px;
+  height: 24px;
+  transform: scale(1);
+  cursor: pointer;
 }

@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { POSSidebar } from "../features/pos/components/POSSidebar";
-import { POSHeader, type OrderTab } from "../features/pos/components/POSHeader";
-import { POSProvider, usePOSContext } from "../features/pos/context/POSContext";
+﻿import React, { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { POSSidebar } from "../components/pos/POSSidebar";
+import { POSHeader, type OrderTab } from "../components/pos/POSHeader";
+import { POSProvider, usePOSContext } from "../context/POSContext";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { POSSidebarItemId } from "../features/pos/components/POSSidebar";
+import type { POSSidebarItemId } from "../components/pos/POSSidebar";
 
 const POSLayoutContent: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const isOrderManagementPage = location.pathname.includes("/orders");
   const isReturnOrderPage = location.pathname.includes("/returns");
   const isCreateReturnOrderPage = location.pathname.includes("/returns/create");
@@ -24,6 +23,7 @@ const POSLayoutContent: React.FC = () => {
     setOrders,
     currentOrderId,
     setCurrentOrderId,
+    orderHandlers,
     user,
   } = usePOSContext();
 
@@ -54,20 +54,38 @@ const POSLayoutContent: React.FC = () => {
   ]);
 
   const handleAddOrder = () => {
-    const newOrderId = String(orders.length + 1);
-    const newOrder: OrderTab = { id: newOrderId, label: `Đơn ${newOrderId}` };
-    setOrders([...orders, newOrder]);
-    setCurrentOrderId(newOrderId);
+    if (orderHandlers.onOrderAdd) {
+      orderHandlers.onOrderAdd();
+    } else {
+      // Fallback: tạo order local (cho các page khác)
+      const newOrderId = String(orders.length + 1);
+      const newOrder: OrderTab = { id: newOrderId, label: `Đơn ${newOrderId}` };
+      setOrders([...orders, newOrder]);
+      setCurrentOrderId(newOrderId);
+    }
   };
 
   const handleCloseOrder = (orderId: string) => {
-    if (orders.length === 1) {
-      return;
+    if (orderHandlers.onOrderClose) {
+      orderHandlers.onOrderClose(orderId);
+    } else {
+      // Fallback: xóa order local (cho các page khác)
+      if (orders.length === 1) {
+        return;
+      }
+      const newOrders = orders.filter((o) => o.id !== orderId);
+      setOrders(newOrders);
+      if (currentOrderId === orderId) {
+        setCurrentOrderId(newOrders[0]?.id || "1");
+      }
     }
-    const newOrders = orders.filter((o) => o.id !== orderId);
-    setOrders(newOrders);
-    if (currentOrderId === orderId) {
-      setCurrentOrderId(newOrders[0]?.id || "1");
+  };
+
+  const handleOrderSelect = (orderId: string) => {
+    if (orderHandlers.onOrderSelect) {
+      orderHandlers.onOrderSelect(orderId);
+    } else {
+      setCurrentOrderId(orderId);
     }
   };
 
@@ -79,14 +97,14 @@ const POSLayoutContent: React.FC = () => {
           isCreateReturnOrderPage
             ? "Tạo đơn trả hàng"
             : isOrderManagementPage
-            ? "Quản lý đơn hàng"
-            : isInventoryPage
-            ? "Tra cứu tồn kho"
-            : isReturnOrderPage
-            ? "Trả hàng"
-            : isCashBookPage
-            ? "Sổ Qũy"
-            : "Bán hàng"
+              ? "Quản lý đơn hàng"
+              : isInventoryPage
+                ? "Tra cứu tồn kho"
+                : isReturnOrderPage
+                  ? "Trả hàng"
+                  : isCashBookPage
+                    ? "Sổ Qũy"
+                    : "Bán hàng"
         }
         searchValue={
           location.pathname.includes("/sales") ? searchValue : undefined
@@ -101,7 +119,7 @@ const POSLayoutContent: React.FC = () => {
         }
         orders={location.pathname.includes("/sales") ? orders : undefined}
         onOrderSelect={
-          location.pathname.includes("/sales") ? setCurrentOrderId : undefined
+          location.pathname.includes("/sales") ? handleOrderSelect : undefined
         }
         onOrderClose={
           location.pathname.includes("/sales") ? handleCloseOrder : undefined
@@ -145,20 +163,6 @@ const POSLayoutContent: React.FC = () => {
               onItemClick={(item) => {
                 setActiveSidebarItem(item);
                 setSidebarOpen(false); // Close on mobile after selection
-
-                // Navigate based on sidebar item
-                if (item === "invoices") {
-                  navigate("/pos/orders");
-                } else if (item === "cart") {
-                  navigate("/pos/sales");
-                } else if (item === "products") {
-                  navigate("/pos/inventory");
-                } else if (item === "receipts") {
-                  navigate("/pos/returns");
-                } else if (item === "payments") {
-                  navigate("/pos/cashbook");
-                }
-                // Add more navigation cases as needed
               }}
               className="h-full"
             />

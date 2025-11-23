@@ -1,3 +1,38 @@
+// src/types/index.ts - Export all types
+export * from "./common";
 export * from "./auth";
-export * from "./admin";
-export * from "./user";
+export * from "./products";
+export * from "./orders";
+export type { POSCustomerResponse as CustomerResponse } from "./shipping";
+export * from "./shipping";
+export * from "./warehouse";
+export type {
+  OrderDetailCreateRequest,
+  OrderDetailUpdateRequest,
+  VariantDetailIdRequest,
+  CustomerSearchListResponse,
+  DraftOrderDetailResponse,
+  DraftOrderItemResponse,
+  CheckoutOrderItemResponse,
+  AddItemToOrderRequest,
+  UpdateItemQuantityRequest,
+  AssignCustomerToOrderRequest,
+  RemoveItemFromDraftOrderRequest,
+  GetStationsRequest,
+  StationsResponse,
+  GHNOrderDetailResponse,
+  OrderByClientCodeResponse,
+  GHNTrackingResponse,
+  GeneratePrintTokenResponse,
+  PrintOrderResponse,
+  SwitchStatusResponse,
+  DiscountPublicResponse,
+  VoucherHistoryResponse,
+  VoucherStatus,
+  DiscountTypeValue,
+  DiscountCategoryValue,
+  ClaimVoucherRequest,
+  BrandCreateRequest,
+  BrandPageResponse,
+} from "./api";
+

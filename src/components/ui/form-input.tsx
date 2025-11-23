@@ -4,29 +4,38 @@ import { cn } from "@/lib/utils";
 export type FormInputProps = React.ComponentProps<"input"> & {
   containerClassName?: string;
   right?: React.ReactNode;
+  label?: string;
 };
 
 export function FormInput({
   className,
   containerClassName,
   right,
+  label,
   ...props
 }: FormInputProps) {
   return (
-    <div
-      className={cn(
-        "bg-white border-2 border-[#e04d30] flex items-center p-[16px] h-[40px] rounded-[12px] w-full",
-        containerClassName
+    <div className="w-full">
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
       )}
-    >
-      <input
-        {...props}
+      <div
         className={cn(
-          "border-0 outline-none bg-transparent text-[12px] font-semibold placeholder:text-[#888888] text-[#272424] flex-1",
-          className
+          "bg-white border-2 border-[#e04d30] flex items-center h-[40px] px-[16px] rounded-[12px] w-full",
+          containerClassName
         )}
-      />
-      {right ? <div className="ml-2 flex items-center">{right}</div> : null}
+      >
+        <input
+          {...props}
+          className={cn(
+            "border-0 outline-none bg-transparent text-[14px] font-semibold placeholder:text-[#888888] text-black flex-1 text-left",
+            className
+          )}
+        />
+        {right ? <div className="ml-2 flex items-center">{right}</div> : null}
+      </div>
     </div>
   );
 }

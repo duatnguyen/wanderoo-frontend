@@ -31,7 +31,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
   isOpen,
   onClose,
   supplierData,
-  onSave
+  onSave,
 }) => {
   const [formData, setFormData] = useState({
     supplierName: supplierData.name,
@@ -40,19 +40,18 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
     street: "số 40 Đinh Tiên Hoàng, Hà Nội",
     city: "Hà Nội",
     district: "Hoàn Kiếm",
-    ward: "Đinh Tiên Hoàng"
+    ward: "Đinh Tiên Hoàng",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
-
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -102,7 +101,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
         street: formData.street,
         ward: formData.ward,
         district: formData.district,
-        city: formData.city
+        city: formData.city,
       });
       onClose();
     }
@@ -116,7 +115,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
       street: "số 40 Đinh Tiên Hoàng, Hà Nội",
       city: "Hà Nội",
       district: "Hoàn Kiếm",
-      ward: "Đinh Tiên Hoàng"
+      ward: "Đinh Tiên Hoàng",
     });
     setErrors({});
     onClose();
@@ -134,33 +133,39 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[24px] p-[32px] w-[500px] max-h-[90vh] overflow-y-auto shadow-2xl animate-scaleIn"
+        className="bg-white rounded-[24px] w-[500px] max-h-[90vh] overflow-y-auto shadow-2xl animate-scaleIn flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <h2 className="text-[20px] font-bold text-[#272424] mb-[24px]">
-          Sửa nhà cung cấp
-        </h2>
+        <div className="pt-[24px] pb-[12px] border-b border-[#d1d1d1]">
+          <h2 className="text-[20px] font-bold text-[#272424] px-[24px]">
+            Sửa nhà cung cấp
+          </h2>
+        </div>
 
         {/* Form Content */}
-        <div className="flex flex-col gap-[16px]">
+        <div className="flex flex-col gap-[12px] px-[24px] pt-[16px] pb-[24px]">
           {/* Tên nhà cung cấp */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[6px]">
             <label className="font-medium text-[#272424] text-[14px]">
               Tên nhà cung cấp
             </label>
             <FormInput
               value={formData.supplierName}
-              onChange={(e) => handleInputChange("supplierName", e.target.value)}
+              onChange={(e) =>
+                handleInputChange("supplierName", e.target.value)
+              }
               placeholder="Kho Nhật Quang"
             />
             {errors.supplierName && (
-              <span className="text-red-500 text-[12px]">{errors.supplierName}</span>
+              <span className="text-red-500 text-[12px]">
+                {errors.supplierName}
+              </span>
             )}
           </div>
 
           {/* Số điện thoại */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[6px]">
             <label className="font-medium text-[#272424] text-[14px]">
               Số điện thoại
             </label>
@@ -175,7 +180,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
           </div>
 
           {/* Email */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[6px]">
             <label className="font-medium text-[#272424] text-[14px]">
               Email
             </label>
@@ -191,12 +196,12 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
           </div>
 
           {/* Address Section */}
-          <div className="font-bold text-[#272424] text-[16px] leading-normal mt-[8px]">
+          <div className="font-bold text-[#272424] text-[16px] leading-normal mt-[4px]">
             Địa chỉ
           </div>
 
           {/* Tỉnh/Thành phố */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[6px]">
             <label className="font-medium text-[#272424] text-[14px]">
               Tỉnh/Thành phố
             </label>
@@ -211,7 +216,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
           </div>
 
           {/* Phường/Xã */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[6px]">
             <label className="font-medium text-[#272424] text-[14px]">
               Phường/Xã
             </label>
@@ -226,7 +231,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
           </div>
 
           {/* Quận/Huyện */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[6px]">
             <label className="font-medium text-[#272424] text-[14px]">
               Quận/Huyện
             </label>
@@ -236,12 +241,14 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
               error={!!errors.district}
             />
             {errors.district && (
-              <span className="text-red-500 text-[12px]">{errors.district}</span>
+              <span className="text-red-500 text-[12px]">
+                {errors.district}
+              </span>
             )}
           </div>
 
           {/* Địa chỉ cụ thể */}
-          <div className="flex flex-col gap-[8px]">
+          <div className="flex flex-col gap-[6px]">
             <label className="font-medium text-[#272424] text-[14px]">
               Địa chỉ cụ thể <span className="text-[#e04d30]">*</span>
             </label>
@@ -260,7 +267,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-[12px] justify-end mt-[8px]">
+          <div className="flex gap-[12px] justify-end mt-[4px]">
             <Button variant="secondary" onClick={handleCancel}>
               Huỷ
             </Button>

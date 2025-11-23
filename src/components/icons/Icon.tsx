@@ -1,4 +1,5 @@
 import React from "react";
+import ShopLogo from "@/assets/icons/ShopLogo.svg";
 
 export type IconName =
   | "image"
@@ -7,7 +8,8 @@ export type IconName =
   | "arrow-left"
   | "close"
   | "star"
-  | "chevron-down";
+  | "chevron-down"
+  | "shop-logo";
 
 interface IconProps {
   name: IconName;
@@ -129,6 +131,9 @@ const Icon: React.FC<IconProps> = ({
           />
         );
 
+      case "shop-logo":
+        return <img src={ShopLogo} alt="Shop Logo" style={{ width: size, height: size }} className={className} />;
+
       default:
         return null;
     }
@@ -144,6 +149,8 @@ const Icon: React.FC<IconProps> = ({
         return "0 0 12 12";
       case "star":
         return "0 0 20 20";
+      case "shop-logo":
+        return `0 0 ${size} ${size}`;
       default:
         return "0 0 24 24";
     }

@@ -1,7 +1,7 @@
 // src/app/providers/AuthProvider.tsx
 import { createContext, useContext, useEffect, useState } from "react";
 import { getToken, setToken, clearToken } from "../../utils/storage";
-import { authMe } from "../../services/auth.api";
+import { getUserFromToken, isTokenExpired } from "../../utils/jwt";
 
 type Role = "USER" | "ADMIN";
 type AuthState = { loading: boolean; isAuth: boolean; role?: Role; user?: any };
@@ -25,13 +25,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const bootstrap = async () => {
     const token = getToken();
     if (!token) return setState({ loading: false, isAuth: false });
-    try {
-      const me = await authMe(); // trả về { role: 'ADMIN' | 'USER', ... }
-      setState({ loading: false, isAuth: true, role: me.role, user: me });
-    } catch {
+
+    // Check if token is expired
+    if (isTokenExpired(token)) {
       clearToken();
-      setState({ loading: false, isAuth: false });
+      return setState({ loading: false, isAuth: false });
     }
+
+    // Decode token to get user info
+    const userFromToken = getUserFromToken(token);
+    if (!userFromToken) {
+      clearToken();
+      return setState({ loading: false, isAuth: false });
+    }
+
+    // Set user info from token
+    setState({
+      loading: false,
+      isAuth: true,
+      role: userFromToken.role as Role,
+      user: {
+        id: parseInt(userFromToken.id) || 0,
+        username: userFromToken.username,
+        role: userFromToken.role as Role,
+      }
+    });
   };
 
   useEffect(() => {

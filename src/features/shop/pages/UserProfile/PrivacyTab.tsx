@@ -1,5 +1,5 @@
 import React from "react";
-import Button from "../../components/Button";
+import Button from "../../../../components/shop/Button";
 
 const PrivacyTab: React.FC = () => {
   const handleDeleteAccount = () => {
@@ -9,14 +9,14 @@ const PrivacyTab: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
+    <div className="bg-white rounded-lg border border-gray-200 min-h-[507px]">
       {/* Header */}
-      <div className="px-4 sm:px-6 py-4 sm:py-6 border-b border-gray-200">
+      <div className="px-4 sm:px-6 border-b border-gray-200 h-[86px] flex items-center">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-[18px] font-bold text-gray-900 mb-0">
             Thiết lập quyền riêng tư
           </h1>
-          <p className="text-sm sm:text-base text-gray-500">Privacy Settings</p>
+          <p className="text-[14px] text-gray-500">Privacy Settings</p>
         </div>
       </div>
 

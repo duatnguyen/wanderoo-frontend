@@ -1,45 +1,9 @@
 import React, { useState, useEffect } from "react";
-import Button from "../../components/Button";
-import DropdownList from "../../components/DropdownList";
-
-function PlusIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M10 4V16M4 10H16"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M5 7.5L10 12.5L15 7.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import { Plus } from "lucide-react";
+import Button from "../../../../components/shop/Button";
+import { Select } from "antd";
+import { Input, Textarea } from "../../../../components/shop/Input";
+import Checkbox from "../../../../components/shop/Checkbox";
 
 type Address = {
   id: string;
@@ -149,12 +113,15 @@ const AddressTab: React.FC = () => {
   }, [editingId, isAddingNew, addresses]);
 
   const handleSetDefault = (id: string) => {
-    setAddresses((prev) =>
-      prev.map((addr) => ({
+    setAddresses((prev) => {
+      const updated = prev.map((addr) => ({
         ...addr,
         isDefault: addr.id === id,
-      }))
-    );
+      }));
+      // Move the default address to the top
+      updated.sort((a, b) => (a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1));
+      return updated;
+    });
   };
 
   const handleDelete = (id: string) => {
@@ -186,8 +153,8 @@ const AddressTab: React.FC = () => {
   const handleSave = () => {
     if (editingId) {
       // Update existing address
-      setAddresses((prev) =>
-        prev.map((addr) =>
+      setAddresses((prev) => {
+        const mapped = prev.map((addr) =>
           addr.id === editingId
             ? {
                 ...addr,
@@ -201,10 +168,13 @@ const AddressTab: React.FC = () => {
                 isDefault: formData.isDefault,
               }
             : formData.isDefault
-            ? { ...addr, isDefault: false }
-            : addr
-        )
-      );
+              ? { ...addr, isDefault: false }
+              : addr
+        );
+        // If this becomes default, ensure it appears first
+        mapped.sort((a, b) => (a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1));
+        return mapped;
+      });
     } else if (isAddingNew) {
       // Add new address
       const newAddress: Address = {
@@ -222,7 +192,8 @@ const AddressTab: React.FC = () => {
         const updated = formData.isDefault
           ? prev.map((addr) => ({ ...addr, isDefault: false }))
           : prev;
-        return [...updated, newAddress];
+        // If new address is default, place it at the top; otherwise append
+        return formData.isDefault ? [newAddress, ...updated] : [...updated, newAddress];
       });
     }
     handleCloseModal();
@@ -236,15 +207,15 @@ const AddressTab: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
+    <div className="bg-white rounded-lg border border-gray-200 min-h-[507px]">
       {/* Header */}
-      <div className="px-4 sm:px-6 py-4 sm:py-6 border-b border-gray-200">
+      <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-[13px] border-b border-gray-200">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-[18px] font-bold text-gray-900 mb-0">
               Địa chỉ của tôi
             </h1>
-            <p className="text-sm sm:text-base text-gray-600">
+            <p className="text-[14px] text-gray-600">
               Quản lý địa chỉ nhận hàng của bạn
             </p>
           </div>
@@ -252,9 +223,9 @@ const AddressTab: React.FC = () => {
             variant="primary"
             size="md"
             onClick={handleAddNew}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 !bg-[#E04D30] !border-[#E04D30] hover:!bg-[#c93d24] hover:!border-[#c93d24]"
           >
-            <PlusIcon />
+            <Plus size={20} />
             <span>Thêm địa chỉ mới</span>
           </Button>
         </div>
@@ -262,66 +233,71 @@ const AddressTab: React.FC = () => {
 
       {/* Address List */}
       <div className="px-4 sm:px-6 py-4 sm:py-6">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">
-          Địa chỉ
-        </h2>
+        {/* Tiêu đề danh mục địa chỉ đã được bỏ theo yêu cầu */}
 
         <div className="space-y-4">
-          {addresses.map((address, index) => (
+          {addresses.map((address) => (
             <div
               key={address.id}
-              className={`${
-                index < addresses.length - 1
-                  ? "border-b border-gray-200 pb-4"
-                  : ""
-              }`}
+              className="border border-gray-200 rounded-2xl px-4 sm:px-6 py-4 sm:py-5"
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 {/* Address Info */}
                 <div className="flex-1">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                    <span className="font-bold text-gray-900 text-base sm:text-lg">
+                    <span className="font-bold text-gray-900 text-[18px]">
                       {address.name}
                     </span>
                     <span className="hidden sm:inline text-gray-400">|</span>
-                    <span className="text-gray-700 text-sm sm:text-base">
+                    <span className="text-gray-700 text-[14px]">
                       {address.phone}
                     </span>
                   </div>
-                  <p className="text-gray-700 text-sm sm:text-base mb-2">
+                  <p className="text-gray-700 text-[14px] mb-2">
                     {address.address}
                   </p>
                   {address.isDefault && (
-                    <span className="inline-block px-3 py-1 border border-red-500 text-red-600 text-xs sm:text-sm font-medium rounded">
-                      Mặc định
-                    </span>
+                    <div className="bg-[#b2ffb4] inline-flex items-center h-[24px] px-[8px] rounded-[12px] w-fit">
+                      <span className="font-semibold text-[#04910c] text-[12px] leading-[1.2]">
+                        Địa chỉ mặc định
+                      </span>
+                    </div>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                  <button
-                    onClick={() => handleUpdate(address.id)}
-                    className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base transition-colors"
-                  >
-                    Cập nhật
-                  </button>
-                  {!address.isDefault && (
-                    <>
+                <div className="flex flex-col items-start sm:items-end gap-2 sm:text-right self-stretch">
+                  <div className="flex flex-row items-center gap-4 w-full justify-start sm:justify-end">
+                    {!address.isDefault && (
                       <button
                         onClick={() => handleDelete(address.id)}
-                        className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base transition-colors"
+                        className="text-blue-600 hover:text-blue-700 font-medium text-[14px] transition-colors"
                       >
                         Xoá
                       </button>
-                    </>
-                  )}
-                  {!address.isDefault && (
+                    )}
+                    <button
+                      onClick={() => handleUpdate(address.id)}
+                      className="text-blue-600 hover:text-blue-700 font-medium text-[14px] transition-colors"
+                    >
+                      Cập nhật
+                    </button>
+                  </div>
+                  {address.isDefault ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      className="whitespace-nowrap rounded-md px-4 py-2 mt-1 self-start sm:self-end cursor-not-allowed !bg-[#f5f5f5] !border-gray-300 !text-gray-400"
+                    >
+                      Thiết lập mặc định
+                    </Button>
+                  ) : (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleSetDefault(address.id)}
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap rounded-md !bg-white !border-[#E04D30] !text-[#E04D30] hover:!bg-white hover:!text-[#E04D30] px-4 py-2 mt-1 self-start sm:self-end"
                     >
                       Thiết lập mặc định
                     </Button>
@@ -340,7 +316,7 @@ const AddressTab: React.FC = () => {
                 onClick={handleAddNew}
                 className="flex items-center gap-2 mx-auto"
               >
-                <PlusIcon />
+                <Plus size={20} />
                 <span>Thêm địa chỉ mới</span>
               </Button>
             </div>
@@ -359,7 +335,7 @@ const AddressTab: React.FC = () => {
 
           {/* Modal Content */}
           <div
-            className="relative z-50 bg-white rounded-lg shadow-xl w-full max-w-[600px] max-h-[90vh] overflow-y-auto m-4"
+            className="relative z-50 bg-white rounded-lg shadow-xl w-full max-w-[520px] max-h-[90vh] overflow-y-auto m-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -370,129 +346,114 @@ const AddressTab: React.FC = () => {
             </div>
 
             {/* Form Content */}
-            <div className="px-6 py-6 space-y-6">
+            <div className="px-6 py-4 space-y-3">
               {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Họ và tên
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Nhập họ và tên của bạn"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-                />
-              </div>
+              <Input
+                label="Họ và tên"
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                placeholder="Nhập họ và tên của bạn"
+                className="hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30]"
+              />
 
               {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Số điện thoại
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  placeholder="Nhập số điện thoại của bạn"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-                />
-              </div>
+              <Input
+                label="Số điện thoại"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                placeholder="Nhập số điện thoại của bạn"
+                className="hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30]"
+              />
 
               {/* Address Section */}
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
                   Địa chỉ
                 </h3>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {/* Province/City */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-[2px]">
                       Tỉnh/Thành Phố
                     </label>
-                    <DropdownList
-                      options={provinces}
+                    <Select
                       value={formData.province}
-                      onChange={(value) => handleInputChange("province", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("province", value)
+                      }
                       placeholder="Chọn Tỉnh/Thành Phố"
-                      className="w-full"
+                      className="w-full [&_.ant-select-selector:hover]:!border-[#E04D30] [&.ant-select-focused_.ant-select-selector]:!border-[#E04D30]"
+                      options={provinces}
                     />
                   </div>
 
                   {/* District */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-[2px]">
                       Quận/Huyện
                     </label>
-                    <DropdownList
-                      options={districts}
+                    <Select
                       value={formData.district}
-                      onChange={(value) => handleInputChange("district", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("district", value)
+                      }
                       placeholder="Chọn Quận/Huyện"
-                      className="w-full"
+                      className="w-full [&_.ant-select-selector:hover]:!border-[#E04D30] [&.ant-select-focused_.ant-select-selector]:!border-[#E04D30]"
+                      options={districts}
                     />
                   </div>
 
                   {/* Ward/Commune */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-[2px]">
                       Phường/Xã
                     </label>
-                    <DropdownList
-                      options={wards}
+                    <Select
                       value={formData.ward}
-                      onChange={(value) => handleInputChange("ward", value)}
+                      onChange={(value: string) =>
+                        handleInputChange("ward", value)
+                      }
                       placeholder="Chọn Phường/Xã"
-                      className="w-full"
+                      className="w-full [&_.ant-select-selector:hover]:!border-[#E04D30] [&.ant-select-focused_.ant-select-selector]:!border-[#E04D30]"
+                      options={wards}
                     />
                   </div>
 
                   {/* Detail Address */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Địa chỉ chi tiết
-                    </label>
-                    <textarea
-                      value={formData.detailAddress}
-                      onChange={(e) =>
-                        handleInputChange("detailAddress", e.target.value)
-                      }
-                      placeholder="Nhập địa chỉ chi tiết"
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none resize-none text-sm sm:text-base"
-                    />
-                  </div>
+                  <Textarea
+                    label="Địa chỉ chi tiết"
+                    value={formData.detailAddress}
+                    onChange={(e) =>
+                      handleInputChange("detailAddress", e.target.value)
+                    }
+                    placeholder="Nhập địa chỉ chi tiết"
+                    rows={3}
+                    className="hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30]"
+                  />
                 </div>
               </div>
 
               {/* Default Address Checkbox */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isDefault"
-                  checked={formData.isDefault}
-                  onChange={(e) =>
-                    handleInputChange("isDefault", e.target.checked)
-                  }
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label
-                  htmlFor="isDefault"
-                  className="text-sm sm:text-base text-gray-700 cursor-pointer"
-                >
-                  Đặt làm địa chỉ mặc định
-                </label>
-              </div>
+              <Checkbox
+                id="isDefault"
+                checked={formData.isDefault}
+                onChange={(e) =>
+                  handleInputChange("isDefault", e.target.checked)
+                }
+                label="Đặt làm địa chỉ mặc định"
+              />
             </div>
 
             {/* Footer Buttons */}
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 bg-white">
+            <div className="px-6 py-4 flex justify-end gap-3 sticky bottom-0 bg-white">
               <Button
                 variant="outline"
                 size="md"
                 onClick={handleCloseModal}
-                className="border-[#ea5b0c] text-[#ea5b0c] hover:bg-[#ea5b0c] hover:text-white"
+                className="!bg-white !border-[#E04D30] !text-[#E04D30] hover:!bg-white hover:!text-[#E04D30]"
               >
                 Trở Lại
               </Button>
@@ -500,7 +461,7 @@ const AddressTab: React.FC = () => {
                 variant="primary"
                 size="md"
                 onClick={handleSave}
-                className="px-6"
+                className="px-6 !bg-[#E04D30] !border-[#E04D30] hover:!bg-[#c93d24] hover:!border-[#c93d24]"
               >
                 Lưu
               </Button>
@@ -513,4 +474,3 @@ const AddressTab: React.FC = () => {
 };
 
 export default AddressTab;
-
