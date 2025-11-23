@@ -38,4 +38,6 @@ export type {
   AvailableServiceResponse,
   BackendCartResponse,
   CartPageResponse,
+  BrandCreateRequest,
+  BrandPageResponse,
 } from "./api";

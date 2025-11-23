@@ -1,10 +1,6 @@
 import React, { useMemo, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminProductsNew from "../create/AdminProductsNew";
-import {
-  adminMockProducts,
-  type AdminProductDetail,
-} from "../data/mockProducts";
 import type {
   ProductAttribute,
   ProductFormData,
@@ -12,35 +8,78 @@ import type {
   ProductVersion,
 } from "@/types/product";
 import { PageContainer, ContentCard } from "@/components/common";
+import {
+  getProductDetailPrivate,
+  getProductVariantsPrivate,
+} from "@/api/endpoints/productApi";
+import type { ProductDetailsResponse } from "@/types";
+import { toast } from "sonner";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+
+const VARIANT_PAGE_SIZE = 20;
 
 const AdminProductsEdit: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productDetail, setProductDetail] = useState<ProductDetailsResponse | null>(null);
+  const [variants, setVariants] = useState<any[]>([]);
+  const [variantPagination, setVariantPagination] = useState({
+    page: 0,
+    pageSize: VARIANT_PAGE_SIZE,
+    total: 0,
+    totalPages: 0,
+  });
 
-  // Simulate API loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
+    const loadProductData = async () => {
       if (!productId) {
         setError("Product ID is required");
-      } else if (!productDetail) {
-        setError("Product not found");
+        setIsLoading(false);
+        return;
       }
-    }, 500);
 
-    return () => clearTimeout(timer);
+      try {
+        const productIdNum = parseInt(productId, 10);
+        if (isNaN(productIdNum)) {
+          setError("Invalid product ID");
+          setIsLoading(false);
+          return;
+        }
+
+        // Load product detail
+        const productData = await getProductDetailPrivate(productIdNum);
+        setProductDetail(productData);
+
+        // Load variants
+        const variantResponse = await getProductVariantsPrivate(productIdNum, {
+          page: 0,
+          size: VARIANT_PAGE_SIZE,
+        });
+        setVariants(variantResponse.variants || []);
+        setVariantPagination({
+          page: variantResponse.pageNumber ?? 0,
+          pageSize: variantResponse.pageSize ?? VARIANT_PAGE_SIZE,
+          total: variantResponse.totalElements ?? 0,
+          totalPages: variantResponse.totalPages ?? 1,
+        });
+      } catch (err) {
+        console.error("Error loading product:", err);
+        setError("Không thể tải thông tin sản phẩm. Vui lòng thử lại.");
+        toast.error("Không thể tải thông tin sản phẩm");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProductData();
   }, [productId]);
 
-  const productDetail = useMemo<AdminProductDetail | undefined>(
-    () => adminMockProducts.find((product) => product.id === productId),
-    [productId]
-  );
-
-  const stripCurrency = (value: string): string => {
-    if (!value) return "";
-    return value.replace(/[^\d]/g, "");
+  const stripCurrency = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "number") return value.toString();
+    return value.toString().replace(/[^\d]/g, "");
   };
 
   const initialFormData: Partial<ProductFormData> | undefined = useMemo(() => {
@@ -48,52 +87,79 @@ const AdminProductsEdit: React.FC = () => {
 
     return {
       productName: productDetail.name || "",
-      barcode: productDetail.barcode || "",
-      category: productDetail.categoryName || "",
-      brand: productDetail.brandName || "",
+      barcode: "",
+      category: productDetail.categoryResponse?.name || "",
+      categoryId: productDetail.categoryResponse?.id || null,
+      brand: productDetail.brandResponse?.name || "",
+      brandId: productDetail.brandResponse?.id || null,
       description: productDetail.description || "",
-      costPrice: stripCurrency(productDetail.costPrice || "0"),
-      sellingPrice: stripCurrency(productDetail.sellingPrice || "0"),
-      inventory: (productDetail.inventory || 0).toString(),
-      available: (productDetail.availableToSell || 0).toString(),
-      weight: productDetail.weight || "",
-      length: productDetail.length || "",
-      width: productDetail.width || "",
-      height: productDetail.height || "",
+      costPrice: "",
+      sellingPrice: "",
+      inventory: "",
+      available: "",
+      weight: productDetail.packagedWeight
+        ? productDetail.packagedWeight.toString()
+        : "",
+      length: productDetail.length ? productDetail.length.toString() : "",
+      width: productDetail.width ? productDetail.width.toString() : "",
+      height: productDetail.height ? productDetail.height.toString() : "",
     };
   }, [productDetail]);
 
   const initialImages: ProductImage[] = useMemo(() => {
     if (!productDetail) return [];
 
-    if (productDetail.images?.length) {
-      return productDetail.images;
+    if (productDetail.images && productDetail.images.length > 0) {
+      return productDetail.images.map((img, index) => ({
+        id: `img-${index}-${Date.now()}`,
+        url: img,
+      }));
     }
 
-    if (productDetail.image) {
-      return [
-        {
-          id: `cover-${productDetail.id}`,
-          url: productDetail.image,
-        },
-      ];
-    }
+    // Note: ProductDetailsResponse doesn't have imageUrl, only images array
 
     return [];
   }, [productDetail]);
 
-  const initialAttributes: ProductAttribute[] = useMemo(
-    () => productDetail?.attributes ?? [],
-    [productDetail]
-  );
+  const initialAttributes: ProductAttribute[] = useMemo(() => {
+    if (!productDetail || !productDetail.attributes) return [];
+    return productDetail.attributes.map((attr) => ({
+      name: attr.name,
+      values: attr.values?.map((v) => v.value) || [],
+    }));
+  }, [productDetail]);
 
-  const initialVersions: ProductVersion[] = useMemo(
-    () => productDetail?.versions ?? [],
-    [productDetail]
-  );
+  const initialVersions: ProductVersion[] = useMemo(() => {
+    if (!variants || variants.length === 0) return [];
+
+    return variants.map((variant) => ({
+      id: String(variant.id),
+      name: variant.nameDetail || variant.skuDetail || `Phiên bản #${variant.id}`,
+      price:
+        variant.sellingPrice !== undefined && variant.sellingPrice !== null
+          ? String(variant.sellingPrice)
+          : "",
+      costPrice:
+        variant.importPrice !== undefined && variant.importPrice !== null
+          ? String(variant.importPrice)
+          : "",
+      inventory:
+        variant.totalQuantity !== undefined && variant.totalQuantity !== null
+          ? String(variant.totalQuantity)
+          : "",
+      available:
+        variant.availableQuantity !== undefined &&
+        variant.availableQuantity !== null
+          ? String(variant.availableQuantity)
+          : "",
+      image: variant.imageUrl ?? null,
+      sku: variant.skuDetail ?? "",
+      barcode: variant.barcode ?? "",
+    }));
+  }, [variants]);
 
   const handleBack = () => {
-    navigate("/admin/products");
+    navigate("/admin/products/all");
   };
 
   // Loading state
@@ -102,8 +168,8 @@ const AdminProductsEdit: React.FC = () => {
       <PageContainer>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-[#e04d30] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-[16px] font-['Montserrat'] font-medium text-[#6b7280]">
+            <LoadingSpinner size="lg" />
+            <p className="text-[16px] font-['Montserrat'] font-medium text-[#6b7280] mt-4">
               Đang tải thông tin sản phẩm...
             </p>
           </div>
@@ -168,11 +234,14 @@ const AdminProductsEdit: React.FC = () => {
     <AdminProductsNew
       key={productId}
       mode="edit"
+      productId={productId ? parseInt(productId, 10) : null}
       initialFormData={initialFormData}
       initialImages={initialImages}
       initialAttributes={initialAttributes}
       initialVersions={initialVersions}
+      initialVariantPagination={variantPagination}
       onBack={handleBack}
+      title="Chỉnh sửa sản phẩm"
     />
   );
 };

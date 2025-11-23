@@ -197,7 +197,7 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
               Đơn hàng
             </p>
           )}
-          {onEnd && (
+          {onEnd && voucher.status !== "Đã kết thúc" && (
             <p
               className="hover:opacity-70 cursor-pointer"
               onClick={(e) => {

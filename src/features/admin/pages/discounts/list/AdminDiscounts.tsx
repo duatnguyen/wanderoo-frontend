@@ -1,7 +1,7 @@
 // src/pages/admin/AdminDiscounts.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import TabMenuAccount from "@/components/ui/tab-menu-account";
 import type { TabItem } from "@/components/ui/tab-menu-account";
@@ -12,7 +12,6 @@ import { TableActions } from "@/components/admin/table/TableActions";
 import { DiscountTable } from "@/components/admin/table/DiscountTable";
 import { VoucherCreationSection } from "@/components/admin/voucher/VoucherCreationSection";
 import {
-  CoinDiscountIcon,
   CreditCardPercentIcon,
   ReceiptDiscountIcon,
   TicketDiscountIcon,
@@ -23,9 +22,10 @@ import type {
   VoucherOrderSummary,
 } from "@/types/voucher";
 import VoucherOrdersModal from "@/components/admin/voucher/VoucherOrdersModal";
-import { getDiscounts } from "@/api/endpoints/discountApi";
+import { getDiscounts, getDiscountDetail, updateDiscount } from "@/api/endpoints/discountApi";
 import type {
   AdminDiscountResponse,
+  AdminDiscountCreateRequest,
   DiscountStateValue,
 } from "@/types/discount";
 
@@ -269,11 +269,6 @@ const voucherTypes = {
       description:
         "Voucher nhằm áp dụng cho khách hàng mới và khách hàng tiềm năng",
     },
-    {
-      icon: <CoinDiscountIcon size={24} color="#292D32" />,
-      title: "Voucher khách hàng mua lại",
-      description: "Voucher nhằm áp dụng cho khách hàng đã mua hàng tại shop",
-    },
   ],
   privateChannel: {
     icon: <CreditCardPercentIcon size={24} color="#292D32" />,
@@ -287,7 +282,6 @@ const voucherRouteMap: Record<string, string> = {
   "Voucher toàn shop": "/admin/discounts/new/shop-wide",
   "Voucher sản phẩm": "/admin/discounts/new/product",
   "Voucher khách hàng mới": "/admin/discounts/new/new-customer",
-  "Voucher khách hàng mua lại": "/admin/discounts/new/returning-customer",
   "Voucher riêng tư": "/admin/discounts/new/private",
 };
 
@@ -318,7 +312,6 @@ const formatCurrency = (value?: number | null) => {
 const mapDiscountTypeLabel = (discount: AdminDiscountResponse) => {
   if (discount.applyTo === "PRODUCT") return "Voucher sản phẩm";
   if (discount.contextAllowed === "SIGNUP") return "Voucher khách hàng mới";
-  if (discount.contextAllowed === "EVENT") return "Voucher khách hàng mua lại";
   if (discount.applyOn === "POS" && discount.contextAllowed === "OTHER") {
     return "Voucher riêng tư";
   }
@@ -387,6 +380,7 @@ const mapDiscountToVoucher = (discount: AdminDiscountResponse): Voucher => {
 
 const AdminDiscounts: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedRows, setSelectedRows] = useState<Set<string | number>>(new Set());
@@ -461,9 +455,74 @@ const AdminDiscounts: React.FC = () => {
     setIsOrdersModalOpen(true);
   };
 
-  const handleEnd = (voucher: Voucher) => {
-    console.log("End voucher:", voucher);
-    // End voucher logic
+  // Mutation để kết thúc voucher
+  const endVoucherMutation = useMutation({
+    mutationFn: async (discountId: number) => {
+      // Lấy chi tiết discount hiện tại
+      const discountDetail = await getDiscountDetail(discountId);
+      
+      // Tạo payload với status = DISABLE
+      const payload: AdminDiscountCreateRequest = {
+        name: discountDetail.name,
+        code: discountDetail.code,
+        category: discountDetail.category,
+        type: discountDetail.type,
+        applyTo: discountDetail.applyTo,
+        applyOn: discountDetail.applyOn,
+        value: discountDetail.value,
+        minOrderValue: discountDetail.minOrderValue ?? undefined,
+        maxOrderValue: discountDetail.maxOrderValue ?? undefined,
+        discountUsage: discountDetail.discountUsage ?? undefined,
+        contextAllowed: discountDetail.contextAllowed ?? undefined,
+        startDate: discountDetail.startDate,
+        endDate: discountDetail.endDate,
+        quantity: discountDetail.quantity,
+        status: "DISABLE", // Kết thúc voucher bằng cách set status = DISABLE
+        description: discountDetail.description ?? undefined,
+      };
+      
+      return updateDiscount(discountId, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
+      toast.success("Kết thúc voucher thành công");
+    },
+    onError: (error: unknown) => {
+      const message =
+        (error as any)?.response?.data?.message ?? "Không thể kết thúc voucher. Vui lòng thử lại.";
+      toast.error(message);
+    },
+  });
+
+  const handleEnd = async (voucher: Voucher) => {
+    // Chỉ cho phép kết thúc voucher đang diễn ra và sắp diễn ra
+    if (voucher.status === "Đã kết thúc") {
+      toast.error("Voucher này đã kết thúc rồi.");
+      return;
+    }
+
+    if (voucher.status !== "Đang diễn ra" && voucher.status !== "Sắp diễn ra") {
+      toast.error("Chỉ có thể kết thúc voucher đang diễn ra hoặc sắp diễn ra.");
+      return;
+    }
+
+    // Xác nhận trước khi kết thúc
+    if (!window.confirm(`Bạn có chắc chắn muốn kết thúc voucher "${voucher.name}" (${voucher.code})?`)) {
+      return;
+    }
+
+    // Lấy discount ID từ voucher
+    const discountId = typeof voucher.id === "string" ? Number(voucher.id) : voucher.id;
+    if (!discountId || Number.isNaN(discountId)) {
+      toast.error("Không xác định được ID của voucher.");
+      return;
+    }
+
+    try {
+      await endVoucherMutation.mutateAsync(discountId);
+    } catch (error) {
+      // Error đã được xử lý trong mutation onError
+    }
   };
 
   const handleBulkDelete = () => {
