@@ -291,7 +291,8 @@ export interface DraftOrderItemResponse {
   imageUrl?: string;
   productName: string;
   attributes?: string;
-  unitPrice: number;
+  unitPrice: number; // Giá gốc (original price)
+  discountedPrice?: number; // Giá sau giảm (discounted price)
   quantity: number;
   amount: number;
 }

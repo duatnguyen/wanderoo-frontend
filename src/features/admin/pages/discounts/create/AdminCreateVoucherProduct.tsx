@@ -13,11 +13,11 @@ import { CreditCardPercentIcon } from "@/components/icons/discount";
 import Icon from "@/components/icons/Icon";
 import CustomRadio from "@/components/ui/custom-radio";
 import type { VoucherEditData, VoucherProduct } from "@/types/voucher";
-import { getAllProductsPrivate } from "@/api/endpoints/productApi";
+import { getAllProductsPrivate, getVariantDetailPrivate } from "@/api/endpoints/productApi";
 import type { AdminProductResponse } from "@/types";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createDiscount, getDiscountDetail, updateDiscount } from "@/api/endpoints/discountApi";
+import { createDiscount, getDiscountDetail, updateDiscount, applyDiscountToProducts, getProductDetailIdsByDiscountId, removeDiscountFromProducts } from "@/api/endpoints/discountApi";
 import type { AdminDiscountCreateRequest } from "@/types/discount";
 
 // Date formatting utilities
@@ -89,14 +89,31 @@ const displaySettingToApplyOn = {
   "pos-website": "BOTH" as const,
 };
 
+const applyOnToDisplaySetting: Record<AdminDiscountCreateRequest["applyOn"], VoucherFormData["displaySetting"]> = {
+  POS: "pos",
+  WEBSITE: "website",
+  BOTH: "pos-website",
+};
+
 const AdminCreateVoucherProduct: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const fetchDiscountId = searchParams.get("id") ? Number(searchParams.get("id")) : null;
+  const discountIdQuery = searchParams.get("id");
+  const discountIdFromQuery = discountIdQuery ? Number(discountIdQuery) : undefined;
   const { mode, voucher } = (location.state as EditLocationState | undefined) || {};
   const editData = voucher?.editData;
-  const isEditMode = mode === "edit" && !!editData;
+  const stateDiscountId = voucher?.id ? Number(voucher.id) : undefined;
+  const fetchDiscountId = useMemo(() => {
+    if (discountIdFromQuery && !Number.isNaN(discountIdFromQuery)) {
+      return discountIdFromQuery;
+    }
+    if (stateDiscountId && !Number.isNaN(stateDiscountId)) {
+      return stateDiscountId;
+    }
+    return undefined;
+  }, [discountIdFromQuery, stateDiscountId]);
+  const isEditMode = Boolean(fetchDiscountId);
   const queryClient = useQueryClient();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -182,8 +199,12 @@ const AdminCreateVoucherProduct: React.FC = () => {
     };
   }, [location.pathname, location.search]);
 
+  // Only use editData for products if discountDetail is not available yet (fallback)
+  // Otherwise, always use discountDetail from API (similar to shop-wide voucher)
   useEffect(() => {
-    if (isEditMode && editData) {
+    // If we have discountDetail from API, it will be handled by the discountDetail useEffect
+    // Only use editData as fallback if no fetchDiscountId (shouldn't happen in edit mode)
+    if (!fetchDiscountId && isEditMode && editData) {
       setFormData({
         voucherName: editData.voucherName ?? "",
         voucherCode: editData.voucherCode ?? "",
@@ -205,13 +226,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
       setConfirmedProducts(applied);
       setSelectedProducts(new Set(applied.map((product) => product.id)));
       setAppliedProductsPage(1);
-    } else {
+    } else if (!fetchDiscountId) {
       setFormData(createDefaultFormData());
       setConfirmedProducts([]);
       setSelectedProducts(new Set());
       setAppliedProductsPage(1);
     }
-  }, [isEditMode, editData]);
+  }, [fetchDiscountId, isEditMode, editData]);
 
   const pageTitle = isEditMode ? "Chỉnh sửa mã giảm giá" : "Tạo mã giảm giá mới";
 
@@ -481,33 +502,203 @@ const AdminCreateVoucherProduct: React.FC = () => {
     navigate("/admin/discounts");
   };
 
-  // Fetch discount detail if edit mode
-  const { data: discountDetail } = useQuery({
-    queryKey: ["admin-discount-detail", fetchDiscountId],
+  // Fetch discount detail if edit mode (similar to shop-wide voucher)
+  const {
+    data: discountDetail,
+    error: discountDetailError,
+  } = useQuery<AdminDiscountResponse, Error>({
+    queryKey: ["admin-discount-detail", fetchDiscountId ?? "new"] as const,
     queryFn: () => getDiscountDetail(fetchDiscountId!),
-    enabled: !!fetchDiscountId && !editData,
+    enabled: Boolean(fetchDiscountId),
+    staleTime: 30000,
   });
 
-  // Update form data when discount detail is fetched
+  // Fetch product detail IDs when editing
+  // Only fetch if discount is PRODUCT_DISCOUNT category
+  const shouldFetchProductDetails = useMemo(() => {
+    const should = Boolean(fetchDiscountId) && discountDetail?.category === "PRODUCT_DISCOUNT";
+    console.log("shouldFetchProductDetails computed:", should, "fetchDiscountId:", fetchDiscountId, "category:", discountDetail?.category);
+    return should;
+  }, [fetchDiscountId, discountDetail?.category]);
+  
+  const { data: productDetailIds, isLoading: isLoadingProductDetailIds, error: productDetailIdsError } = useQuery({
+    queryKey: ["admin-discount-product-details", fetchDiscountId],
+    queryFn: async () => {
+      console.log("Fetching product detail IDs for discount:", fetchDiscountId);
+      const ids = await getProductDetailIdsByDiscountId(fetchDiscountId!);
+      console.log("Received product detail IDs:", ids);
+      return ids;
+    },
+    enabled: shouldFetchProductDetails,
+    staleTime: 30000,
+    // Refetch when discountDetail changes
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
   useEffect(() => {
-    if (discountDetail && !editData) {
-      setFormData({
-        voucherName: discountDetail.name ?? "",
-        voucherCode: discountDetail.code ?? "",
-        description: discountDetail.description ?? "",
-        startDate: discountDetail.startDate ? formatDateTimeForInput(discountDetail.startDate) : "",
-        endDate: discountDetail.endDate ? formatDateTimeForInput(discountDetail.endDate) : "",
-        discountType: discountDetail.type === "PERCENT" ? "percentage" : "fixed",
-        discountValue: discountDetail.value?.toString() ?? "",
-        maxDiscountLimit: discountDetail.maxOrderValue ? "limited" : "unlimited",
-        maxDiscountValue: discountDetail.maxOrderValue?.toString() ?? "",
-        minOrderAmount: discountDetail.minOrderValue?.toString() ?? "",
-        maxUsage: discountDetail.discountUsage?.toString() ?? discountDetail.quantity?.toString() ?? "",
-        maxUsagePerCustomer: "",
-        displaySetting: discountDetail.applyOn === "POS" ? "pos" : discountDetail.applyOn === "BOTH" ? "pos-website" : "website",
-      });
+    console.log("=== Query State Debug ===");
+    console.log("fetchDiscountId:", fetchDiscountId);
+    console.log("discountDetail:", discountDetail);
+    console.log("discountDetail?.category:", discountDetail?.category);
+    console.log("shouldFetchProductDetails:", shouldFetchProductDetails);
+    console.log("productDetailIds:", productDetailIds);
+    console.log("isLoadingProductDetailIds:", isLoadingProductDetailIds);
+    console.log("productDetailIdsError:", productDetailIdsError);
+    console.log("=========================");
+  }, [fetchDiscountId, discountDetail, shouldFetchProductDetails, productDetailIds, isLoadingProductDetailIds, productDetailIdsError]);
+
+  useEffect(() => {
+    if (productDetailIdsError) {
+      console.error("Error fetching product detail IDs:", productDetailIdsError);
+      toast.error("Không thể tải danh sách sản phẩm đã áp dụng discount");
     }
-  }, [discountDetail, editData]);
+  }, [productDetailIdsError]);
+
+  // Load product details when product detail IDs are available
+  useEffect(() => {
+    const loadProductDetails = async () => {
+      if (!fetchDiscountId) {
+        console.log("No fetchDiscountId, skipping load");
+        return;
+      }
+      
+      if (isLoadingProductDetailIds) {
+        console.log("Still loading product detail IDs, waiting...");
+        return;
+      }
+      
+      console.log("=== Loading product details ===");
+      console.log("productDetailIds:", productDetailIds);
+      console.log("discountDetail category:", discountDetail?.category);
+      console.log("isLoadingProductDetailIds:", isLoadingProductDetailIds);
+      
+      // Check if we have product detail IDs
+      console.log("Checking productDetailIds:", productDetailIds);
+      console.log("Type of productDetailIds:", typeof productDetailIds);
+      console.log("Is array?", Array.isArray(productDetailIds));
+      console.log("Length:", productDetailIds?.length);
+      
+      if (productDetailIds && Array.isArray(productDetailIds) && productDetailIds.length > 0) {
+        try {
+          console.log(`Loading ${productDetailIds.length} product details...`);
+          const productDetails: VoucherProduct[] = [];
+          
+          // Load all products once to avoid multiple API calls
+          let allProductsCache: AdminProductResponse[] | null = null;
+          
+          for (const productDetailId of productDetailIds) {
+            try {
+              const variantDetail = await getVariantDetailPrivate(productDetailId);
+              if (variantDetail) {
+                // Load all products only once
+                if (!allProductsCache) {
+                  const allProductsResponse = await getAllProductsPrivate({ page: 0, size: 1000 });
+                  allProductsCache = allProductsResponse?.productResponseList ?? [];
+                  console.log(`Loaded ${allProductsCache.length} products for searching`);
+                }
+                
+                // Find the product that contains this variant
+                const product = allProductsCache.find(p => 
+                  p.productDetails?.some(pd => pd.id === productDetailId)
+                );
+                
+                if (product) {
+                  const variant = product.productDetails?.find(pd => pd.id === productDetailId);
+                  if (variant) {
+                    productDetails.push({
+                      id: `${product.id}-${variant.id}`,
+                      name: `${product.name}${variant.nameDetail ? ` - ${variant.nameDetail}` : ''}`,
+                      image: variant.imageUrl || product.imageUrl || "",
+                      barcode: variant.barcode || "",
+                      price: typeof variant.sellingPrice === 'number' ? variant.sellingPrice : Number(variant.sellingPrice) || 0,
+                      available: variant.availableQuantity || 0,
+                      variantId: String(variant.id),
+                    });
+                    console.log(`Loaded product: ${product.name} - ${variant.nameDetail || variant.id}`);
+                  }
+                } else {
+                  // If product not found, use variant detail directly
+                  productDetails.push({
+                    id: String(productDetailId),
+                    name: variantDetail.nameDetail || `Product Detail ${productDetailId}`,
+                    image: variantDetail.imageUrl || "",
+                    barcode: variantDetail.barcode || "",
+                    price: typeof variantDetail.sellingPrice === 'number' ? variantDetail.sellingPrice : Number(variantDetail.sellingPrice) || 0,
+                    available: variantDetail.availableQuantity || 0,
+                    variantId: String(productDetailId),
+                  });
+                  console.log(`Loaded variant directly: ${variantDetail.nameDetail || productDetailId}`);
+                }
+              }
+            } catch (error) {
+              console.error(`Error loading product detail ${productDetailId}:`, error);
+            }
+          }
+          
+          console.log(`Successfully loaded ${productDetails.length} product details`);
+          console.log("Product details:", productDetails);
+          setConfirmedProducts(productDetails);
+        } catch (error) {
+          console.error("Error loading product details:", error);
+          toast.error("Không thể tải danh sách sản phẩm đã áp dụng discount");
+        }
+      } else if (productDetailIds && productDetailIds.length === 0) {
+        console.log("No product details found for this discount");
+        setConfirmedProducts([]);
+      } else if (!isLoadingProductDetailIds && !productDetailIds && shouldFetchProductDetails) {
+        // Query completed but returned no data (or error)
+        console.log("Query completed but no product detail IDs returned");
+        // Don't clear here - might be an error, keep existing products if any
+      } else if (isLoadingProductDetailIds) {
+        console.log("Still loading product detail IDs...");
+        // Don't do anything while loading
+      } else if (!shouldFetchProductDetails) {
+        console.log("Should not fetch product details - category:", discountDetail?.category);
+        // Only clear if we're sure this is not a product discount
+        if (discountDetail && discountDetail.category !== "PRODUCT_DISCOUNT") {
+          setConfirmedProducts([]);
+        }
+      }
+    };
+
+    // Only run loadProductDetails if we have all required conditions
+    if (fetchDiscountId && discountDetail?.category === "PRODUCT_DISCOUNT" && !isLoadingProductDetailIds) {
+      loadProductDetails();
+    } else {
+      console.log("Skipping load - fetchDiscountId:", fetchDiscountId, "category:", discountDetail?.category, "isLoading:", isLoadingProductDetailIds);
+    }
+  }, [productDetailIds, fetchDiscountId, discountDetail, isLoadingProductDetailIds, shouldFetchProductDetails]);
+
+  // Map discount detail to form data (similar to shop-wide voucher)
+  const mapDetailToFormData = (detail: AdminDiscountResponse): VoucherFormData => ({
+    voucherName: detail.name ?? "",
+    voucherCode: detail.code ?? "",
+    description: detail.description ?? "",
+    startDate: detail.startDate ? formatDateTimeForInput(detail.startDate) : "",
+    endDate: detail.endDate ? formatDateTimeForInput(detail.endDate) : "",
+    discountType: detail.type === "PERCENT" ? "percentage" : "fixed",
+    discountValue: detail.value != null ? detail.value.toString() : "",
+    maxDiscountLimit: detail.maxOrderValue != null ? "limited" : "unlimited",
+    maxDiscountValue: detail.maxOrderValue != null ? detail.maxOrderValue.toString() : "",
+    minOrderAmount: detail.minOrderValue != null ? detail.minOrderValue.toString() : "",
+    maxUsage: detail.quantity != null ? detail.quantity.toString() : "",
+    maxUsagePerCustomer: detail.discountUsage != null ? detail.discountUsage.toString() : "",
+    displaySetting: applyOnToDisplaySetting[detail.applyOn] ?? "website",
+  });
+
+  // Update form data when discount detail is fetched (similar to shop-wide voucher)
+  useEffect(() => {
+    if (discountDetail) {
+      setFormData(mapDetailToFormData(discountDetail));
+    }
+  }, [discountDetail]);
+
+  useEffect(() => {
+    if (discountDetailError) {
+      handleApiError(discountDetailError);
+    }
+  }, [discountDetailError]);
 
   const handleApiError = (error: unknown) => {
     const message =
@@ -517,7 +708,41 @@ const AdminCreateVoucherProduct: React.FC = () => {
 
   const createDiscountMutation = useMutation({
     mutationFn: (payload: AdminDiscountCreateRequest) => createDiscount(payload),
-    onSuccess: () => {
+    onSuccess: async (response) => {
+      const discountId = response.data;
+      if (discountId && confirmedProducts.length > 0) {
+        // Extract product detail IDs from confirmed products
+        const productDetailIds = confirmedProducts
+          .map((product) => {
+            // If product has variantId, use it (this is the product detail ID)
+            if (product.variantId) {
+              return Number(product.variantId);
+            }
+            // If product.id contains variant info (format: "productId-variantId")
+            const parts = product.id.split("-");
+            if (parts.length > 1) {
+              return Number(parts[parts.length - 1]);
+            }
+            // If no variantId and no variant info in id, this product doesn't have a valid product detail ID
+            console.warn("Product without valid product detail ID:", product);
+            return null;
+          })
+          .filter((id): id is number => id !== null && !Number.isNaN(id));
+
+        console.log("Extracted product detail IDs:", productDetailIds);
+        
+        if (productDetailIds.length > 0) {
+          try {
+            await applyDiscountToProducts(discountId, productDetailIds);
+          } catch (error) {
+            console.error("Error applying discount to products:", error);
+            handleApiError(error);
+            return;
+          }
+        } else {
+          console.warn("No valid product detail IDs found to apply discount");
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
       toast.success("Tạo mã giảm giá thành công");
       navigate("/admin/discounts");
@@ -528,8 +753,63 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const updateDiscountMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: AdminDiscountCreateRequest }) =>
       updateDiscount(id, payload),
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
+      const discountId = variables.id;
+      
+      // Get old product detail IDs
+      let oldProductDetailIds: number[] = [];
+      try {
+        oldProductDetailIds = await getProductDetailIdsByDiscountId(discountId);
+      } catch (error) {
+        console.error("Error getting old product detail IDs:", error);
+      }
+
+      // Extract new product detail IDs from confirmed products
+      const newProductDetailIds = confirmedProducts
+        .map((product) => {
+          if (product.variantId) {
+            return Number(product.variantId);
+          }
+          const parts = product.id.split("-");
+          if (parts.length > 1) {
+            return Number(parts[parts.length - 1]);
+          }
+          console.warn("Product without valid product detail ID:", product);
+          return null;
+        })
+        .filter((id): id is number => id !== null && !Number.isNaN(id));
+
+      console.log("Old product detail IDs:", oldProductDetailIds);
+      console.log("New product detail IDs:", newProductDetailIds);
+
+      // Find product details to remove discount from (in old but not in new)
+      const productDetailIdsToRemove = oldProductDetailIds.filter(
+        id => !newProductDetailIds.includes(id)
+      );
+
+      // Find product details to apply discount to (in new but not in old)
+      const productDetailIdsToApply = newProductDetailIds.filter(
+        id => !oldProductDetailIds.includes(id)
+      );
+
+      try {
+        // Remove discount from old product details
+        if (productDetailIdsToRemove.length > 0) {
+          await removeDiscountFromProducts(discountId, productDetailIdsToRemove);
+        }
+
+        // Apply discount to new product details
+        if (productDetailIdsToApply.length > 0) {
+          await applyDiscountToProducts(discountId, productDetailIdsToApply);
+        }
+      } catch (error) {
+        console.error("Error updating product discount assignments:", error);
+        handleApiError(error);
+        return;
+      }
+
       queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-discount-product-details"] });
       toast.success("Cập nhật mã giảm giá thành công");
       navigate("/admin/discounts");
     },
@@ -588,8 +868,25 @@ const AdminCreateVoucherProduct: React.FC = () => {
   };
 
   const buildPayload = (): AdminDiscountCreateRequest => {
-    const usageLimit = formData.maxUsage ? Number(formData.maxUsage) : 1;
-    return {
+    const quantity = formData.maxUsage ? Number(formData.maxUsage) : 1;
+    
+    // Parse discountUsage - send null if empty to ensure backend updates the field
+    const discountUsageValue = formData.maxUsagePerCustomer?.trim();
+    let discountUsage: number | null = null;
+    if (discountUsageValue) {
+      const parsed = Number(discountUsageValue);
+      if (!Number.isNaN(parsed) && parsed >= 0) {
+        discountUsage = parsed;
+      }
+    }
+    // If empty, keep as null (not undefined) so backend knows to clear/update the field
+    
+    console.log("Building payload:");
+    console.log("  - maxUsagePerCustomer (raw):", formData.maxUsagePerCustomer);
+    console.log("  - discountUsage (parsed):", discountUsage);
+    console.log("  - quantity:", quantity);
+    
+    const payload: AdminDiscountCreateRequest = {
       name: formData.voucherName.trim(),
       code: formData.voucherCode.trim().toUpperCase(),
       category: "PRODUCT_DISCOUNT",
@@ -597,19 +894,23 @@ const AdminCreateVoucherProduct: React.FC = () => {
       applyTo: "PRODUCT",
       applyOn: displaySettingToApplyOn[formData.displaySetting],
       value: Number(formData.discountValue),
-      minOrderValue: parseOptionalNumber(formData.minOrderAmount),
+      minOrderValue: parseOptionalNumber(formData.minOrderAmount) ?? null,
       maxOrderValue:
         formData.maxDiscountLimit === "limited"
-          ? parseOptionalNumber(formData.maxDiscountValue)
-          : undefined,
-      discountUsage: formData.maxUsage ? usageLimit : undefined,
+          ? (parseOptionalNumber(formData.maxDiscountValue) ?? null)
+          : null,
+      discountUsage: discountUsage, // Send null if empty, number if has value
       contextAllowed: "OTHER",
       startDate: normalizeDateValue(formData.startDate),
       endDate: normalizeDateValue(formData.endDate),
-      quantity: usageLimit,
+      quantity: quantity,
       status: "ENABLE",
-      description: formData.description?.trim() || undefined,
+      description: formData.description?.trim() || null,
     };
+    
+    console.log("Final payload:", JSON.stringify(payload, null, 2));
+    
+    return payload;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1435,19 +1736,24 @@ const AdminCreateVoucherProduct: React.FC = () => {
                       const newProducts: VoucherProduct[] = [];
                       
                       // Add selected products (without variants)
-                      displayProducts.forEach((product) => {
-                        if (selectedProducts.has(product.id)) {
-                          const hasVariants = product.variants && product.variants.length > 0;
+                      displayProducts.forEach((displayProduct) => {
+                        if (selectedProducts.has(displayProduct.id)) {
+                          const hasVariants = displayProduct.variants && displayProduct.variants.length > 0;
                           // Only add product if it has no variants or no variants are selected
-                          if (!hasVariants || !product.variants.some((v) => selectedVariants.has(String(v.id)))) {
+                          if (!hasVariants || !displayProduct.variants.some((v) => selectedVariants.has(String(v.id)))) {
+                            // If product has no variants, get the first product detail ID from the original product
+                            const originalProduct = products.find(p => String(p.id) === displayProduct.id);
+                            const productDetailId = !hasVariants && originalProduct?.productDetails && originalProduct.productDetails.length > 0
+                              ? String(originalProduct.productDetails[0].id)
+                              : undefined;
                             newProducts.push({
-                              id: product.id,
-                              name: product.name,
-                              image: product.image,
-                              barcode: product.barcode,
-                              price: product.price,
-                              available: product.available,
-                              variantId: undefined,
+                              id: displayProduct.id,
+                              name: displayProduct.name,
+                              image: displayProduct.image,
+                              barcode: displayProduct.barcode,
+                              price: displayProduct.price,
+                              available: displayProduct.available,
+                              variantId: productDetailId,
                             });
                           }
                         }

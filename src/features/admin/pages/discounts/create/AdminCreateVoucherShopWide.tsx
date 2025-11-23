@@ -135,13 +135,8 @@ const AdminCreateVoucherShopWide: React.FC = () => {
     maxDiscountLimit: detail.maxOrderValue != null ? "limited" : "unlimited",
     maxDiscountValue: detail.maxOrderValue != null ? detail.maxOrderValue.toString() : "",
     minOrderAmount: detail.minOrderValue != null ? detail.minOrderValue.toString() : "",
-    maxUsage:
-      detail.discountUsage != null
-        ? detail.discountUsage.toString()
-        : detail.quantity != null
-        ? detail.quantity.toString()
-        : "",
-    maxUsagePerCustomer: "",
+    maxUsage: detail.quantity != null ? detail.quantity.toString() : "",
+    maxUsagePerCustomer: detail.discountUsage != null ? detail.discountUsage.toString() : "",
     displaySetting: applyOnToDisplaySetting[detail.applyOn] ?? "website",
   });
 
@@ -342,7 +337,8 @@ const AdminCreateVoucherShopWide: React.FC = () => {
   };
 
   const buildPayload = (): AdminDiscountCreateRequest => {
-    const usageLimit = formData.maxUsage ? Number(formData.maxUsage) : 1;
+    const quantity = formData.maxUsage ? Number(formData.maxUsage) : 1;
+    const discountUsage = parseOptionalNumber(formData.maxUsagePerCustomer);
     return {
       name: formData.voucherName.trim(),
       code: formData.voucherCode.trim().toUpperCase(),
@@ -356,11 +352,11 @@ const AdminCreateVoucherShopWide: React.FC = () => {
         formData.maxDiscountLimit === "limited"
           ? parseOptionalNumber(formData.maxDiscountValue)
           : undefined,
-      discountUsage: formData.maxUsage ? usageLimit : undefined,
+      discountUsage: discountUsage,
       contextAllowed: "OTHER",
       startDate: normalizeDateValue(formData.startDate),
       endDate: normalizeDateValue(formData.endDate),
-      quantity: usageLimit,
+      quantity: quantity,
       status: "ENABLE",
       description: formData.description?.trim() || undefined,
     };

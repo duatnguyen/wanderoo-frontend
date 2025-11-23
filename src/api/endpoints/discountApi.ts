@@ -98,3 +98,43 @@ export const getMyVouchers = async (): Promise<VoucherHistoryResponse[]> => {
     );
     return response.data.data ?? [];
 };
+
+export const applyDiscountToProducts = async (
+    discountId: number,
+    productDetailIds: number[]
+): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>(
+        '/auth/v1/private/discount/apply-to-products',
+        {
+            discountId,
+            productDetailIds,
+        }
+    );
+    return response.data;
+};
+
+export const getProductDetailIdsByDiscountId = async (
+    discountId: number
+): Promise<number[]> => {
+    const response = await api.get<ApiResponse<number[]>>(
+        `/auth/v1/private/discount/${discountId}/product-details`
+    );
+    console.log(`API Response for discount ${discountId}:`, response.data);
+    const productDetailIds = response.data.data ?? [];
+    console.log(`Parsed product detail IDs:`, productDetailIds);
+    return productDetailIds;
+};
+
+export const removeDiscountFromProducts = async (
+    discountId: number,
+    productDetailIds: number[]
+): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>(
+        '/auth/v1/private/discount/remove-from-products',
+        {
+            discountId,
+            productDetailIds,
+        }
+    );
+    return response.data;
+};

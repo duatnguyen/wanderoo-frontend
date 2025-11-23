@@ -8,7 +8,8 @@ export type POSProduct = {
   image?: string;
   category?: string;
   variant?: string;
-  price: number;
+  price: number; // Giá sau giảm (discounted price)
+  originalPrice?: number; // Giá gốc (original price)
   quantity: number;
 };
 
@@ -30,6 +31,7 @@ export const POSProductList: React.FC<POSProductListProps> = ({
   };
 
   const getTotal = (price: number, quantity: number) => {
+    // price is already discounted price
     return price * quantity;
   };
 
@@ -67,8 +69,8 @@ export const POSProductList: React.FC<POSProductListProps> = ({
           </div>
         ) : (
           <div className="divide-y divide-[#e7e7e7]">
-            {products.map((product) => (
-              <div key={product.id} className="px-4 py-2 hover:bg-gray-50">
+            {products.map((product, index) => (
+              <div key={`${product.id}-${index}`} className="px-4 py-2 hover:bg-gray-50">
                 <div className="grid grid-cols-12 gap-4 items-center">
                   {/* Product Info with Image */}
                   <div className="col-span-5 flex items-center gap-3 min-w-0">
@@ -105,9 +107,22 @@ export const POSProductList: React.FC<POSProductListProps> = ({
                   </div>
                   {/* Price */}
                   <div className="col-span-2 text-center">
-                    <span className="text-sm text-[#272424] font-medium">
-                      {formatCurrency(product.price)}
-                    </span>
+                    {product.originalPrice != null && 
+                     product.originalPrice > product.price && 
+                     Math.abs(product.originalPrice - product.price) > 0.01 ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-sm text-gray-400 line-through">
+                          {formatCurrency(product.originalPrice)}
+                        </span>
+                        <span className="text-sm text-[#272424] font-medium">
+                          {formatCurrency(product.price)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-[#272424] font-medium">
+                        {formatCurrency(product.price)}
+                      </span>
+                    )}
                   </div>
                   {/* Quantity */}
                   <div className="col-span-2 flex items-center justify-center gap-2">
