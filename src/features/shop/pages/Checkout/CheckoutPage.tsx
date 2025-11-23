@@ -20,7 +20,7 @@ import { createOrder } from "../../../../api/endpoints/orderApi";
 import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
 import type { AddressResponse, AddressUpdateRequest } from "../../../../types/auth";
 import type { BackendCartResponse, CustomerOrderPublicCreateRequest } from "../../../../types/api";
-
+import { toast } from "sonner";
 type CheckoutItem = {
   id: string;
   name: string;
@@ -650,24 +650,43 @@ const CheckoutPage: React.FC = () => {
       if (selectedPaymentMethod === "BANKING") {
         const paymentResponse = await createVNPayPayment(orderId);
         if (paymentResponse.url) {
-          // Redirect to VNPay payment page
-          window.location.href = paymentResponse.url;
+          // Show success toast before redirecting
+          toast.success("Đặt hàng thành công!", {
+            description: "Đơn hàng đã được tạo. Đang chuyển hướng đến trang thanh toán...",
+            duration: 2000,
+          });
+          // Small delay to show toast before redirect
+          setTimeout(() => {
+            window.location.href = paymentResponse.url;
+          }, 500);
           return;
         } else {
           setError("Không thể tạo URL thanh toán. Vui lòng thử lại.");
+          toast.error("Lỗi thanh toán", {
+            description: "Đơn hàng đã được tạo nhưng không thể tạo URL thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
+            duration: 5000,
+          });
         }
       } else {
         // CASH - Order created successfully
+        toast.success("Đặt hàng thành công!", {
+          description: "Đơn hàng của bạn đã được tạo và đang được xử lý.",
+          duration: 3000,
+        });
         navigate("/shop/orders", {
           state: {
-            orderId,
-            message: "Đặt hàng thành công! Đơn hàng của bạn đang được xử lý."
+            orderId
           }
         });
       }
     } catch (err: any) {
       console.error("Error placing order:", err);
-      setError(err?.response?.data?.message || "Không thể đặt hàng. Vui lòng thử lại.");
+      const errorMessage = err?.response?.data?.message || "Không thể đặt hàng. Vui lòng thử lại.";
+      setError(errorMessage);
+      toast.error("Đặt hàng thất bại", {
+        description: errorMessage,
+        duration: 4000,
+      });
     } finally {
       setIsPlacingOrder(false);
     }

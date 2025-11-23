@@ -1,5 +1,4 @@
 // src/types/products.ts - Product and category types
-import type { PageResponse } from "./common";
 
 export interface ProductResponse {
   id: number;
@@ -12,8 +11,6 @@ export interface ProductResponse {
   updatedAt: string;
 }
 
-export interface ProductPageResponse extends PageResponse<ProductResponse> {}
-
 export interface VariantResponse {
   id: number;
   productId: number;
@@ -22,8 +19,6 @@ export interface VariantResponse {
   quantity: number;
   status: string;
 }
-
-export interface VariantPageResponse extends PageResponse<VariantResponse> {}
 
 export type CategoryStatus = 'ACTIVE' | 'INACTIVE';
 

@@ -11,7 +11,6 @@ import type {
   SelectAllRequest,
   BrandCreateRequest,
   BrandPageResponse,
-  CategoryStatus,
   CategoryPublicResponse,
   SimpleCategoryResponse,
 } from '../../types';
@@ -117,13 +116,6 @@ export const disableAllCategories = async (
 export const getBrandList = async (params?: {
   page?: number;
   size?: number;
-}): Promise<any> => {
-  // TODO: Define proper BrandPageResponse type
-  const response = await api.get<ApiResponse<any>>(
-    "/auth/v1/private/attribute/brand",
-    { params }
-  );
-  return response.data.data;
 }): Promise<BrandPageResponse> => {
   const response = await api.get<ApiResponse<BrandPageResponse>>('/auth/v1/private/attribute/brand', { params });
   const data = response.data.data;
