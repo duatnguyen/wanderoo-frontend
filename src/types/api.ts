@@ -42,6 +42,9 @@ export interface UserResponse {
   status: string;
   createdAt: string;
   updatedAt: string;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null; // ISO date string
+  avatar?: string | null;
 }
 
 // Address Types
@@ -993,6 +996,8 @@ export interface CustomerCreationRequest {
 
 export interface CustomerUpdateRequest extends CustomerCreationRequest {
   id: number;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null; // ISO date string
 }
 
 export interface SelectAllRequest {
