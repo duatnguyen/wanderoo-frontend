@@ -112,12 +112,6 @@ export const disableAllCategories = async (
   return response.data;
 };
 
-export const deleteCategory = async (categoryId: number): Promise<ApiResponse<null>> => {
-  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/attribute/category', {
-    params: { id: categoryId },
-  });
-  return response.data;
-};
 
 // Brand APIs
 export const getBrandList = async (params?: {

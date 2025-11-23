@@ -82,6 +82,7 @@ export {
   getAllProductsPrivate,
   getActiveProductsPrivate,
   getInactiveProductsPrivate,
+  getProductsByCategoryPrivate,
   getProductDetailPrivate,
   getProductVariantsPrivate,
   getVariantDetailPrivate,
