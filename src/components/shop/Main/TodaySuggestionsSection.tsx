@@ -9,7 +9,7 @@ interface TodaySuggestionsSectionProps {
 const TodaySuggestionsSection: React.FC<TodaySuggestionsSectionProps> = ({
   products,
 }) => {
-  const displayProducts = products.slice(0, 18);
+  const displayProducts = products.slice(0, 15);
 
   return (
     <section className="w-full pt-8 pb-4">

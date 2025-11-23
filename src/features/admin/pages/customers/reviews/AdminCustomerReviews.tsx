@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import { SearchBar } from "@/components/ui/search-bar";
 import type { Dayjs } from "dayjs";
 import { DatePicker as AntdDatePicker } from "antd";
 import { Button } from "@/components/ui/button";
 import ReviewResponseModal from "@/components/ui/review-response-modal";
-import { PageContainer, ContentCard, PageHeader } from "@/components/common";
+import {
+  PageContainer,
+  ContentCard,
+  PageHeader,
+} from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
+import { getReviews, updateReview } from "@/api/endpoints/reviewApi";
+import { toast } from "sonner";
+import type { ReviewResponse, ReviewUpdateRequest } from "@/types/api";
 interface Review {
   id: string;
   customerName: string;
@@ -22,6 +30,7 @@ interface Review {
 const AdminCustomerReviews = () => {
   document.title = "Đánh giá sản phẩm | Wanderoo";
 
+  const queryClient = useQueryClient();
   const [selectedRatings, setSelectedRatings] = useState<string[]>(["all"]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<
@@ -32,58 +41,37 @@ const AdminCustomerReviews = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const [reviews] = useState<Review[]>([
-    {
-      id: "1",
-      customerName: "Thanh",
-      orderId: "250905P0AYWQGB",
-      productName: "Tất leo núi cao cổ Gothiar Performa Crew Socks",
-      productImage: "/placeholder-product.jpg",
-      rating: 5,
-      comment: "OK hang dep lam",
-      reviewImages: [
-        "/placeholder-review1.jpg",
-        "/placeholder-review2.jpg",
-        "/placeholder-review3.jpg",
-      ],
+  // Fetch reviews from API
+  const {
+    data: reviewsData,
+    isLoading: isLoadingReviews,
+    refetch: refetchReviews,
+  } = useQuery({
+    queryKey: ["admin-reviews", currentPage, selectedRatings, searchTerm, dateRange],
+    queryFn: () => {
+      const params: {
+        page?: number;
+        size?: number;
+        rating?: number;
+      } = {
+        page: currentPage - 1, // Backend uses 0-based pagination
+        size: itemsPerPage,
+      };
+
+      // Add rating filter if not "all" and only one rating selected
+      if (!selectedRatings.includes("all") && selectedRatings.length === 1) {
+        const rating = parseInt(selectedRatings[0]);
+        if (!isNaN(rating)) {
+          params.rating = rating;
+        }
+      }
+
+      // Note: Date range and search will be filtered on frontend
+      // as backend API may not support these filters
+
+      return getReviews(params);
     },
-    {
-      id: "2",
-      customerName: "Hanh",
-      orderId: "250926F1S59D8H",
-      productName: "Bếp ga gấp gọn Snowline Plate Stove II SN75UGG006",
-      productImage: "/placeholder-product.jpg",
-      rating: 5,
-      comment: "Hàng ổn trong tầm giá, sẽ ủng hộ trong lần tiếp theo!",
-      reviewImages: [
-        "/placeholder-review1.jpg",
-        "/placeholder-review2.jpg",
-        "/placeholder-review3.jpg",
-      ],
-      shopReply:
-        "Shop cảm ơn bạn đã yêu thích sản phẩm của shop và đánh giá 5 sao cho shop. Đây là động lực giúp shop tiếp tục cô găng và phục vụ khách hàng, đem đến những sản phẩm tôt nhất. Rất mong sẽ được tiếp tục phục vụ bạn ở những đơn hàng tiếp theo!",
-    },
-    {
-      id: "3",
-      customerName: "Minh",
-      orderId: "250927A2B3C4D5",
-      productName: "Áo khoác nam",
-      productImage: "/placeholder-product.jpg",
-      rating: 4,
-      comment: "Chất lượng tốt, giá hợp lý",
-      reviewImages: ["/placeholder-review1.jpg"],
-    },
-    {
-      id: "4",
-      customerName: "Linh",
-      orderId: "250928E6F7G8H9",
-      productName: "Giày thể thao",
-      productImage: "/placeholder-product.jpg",
-      rating: 3,
-      comment: "Sản phẩm bình thường",
-      reviewImages: ["/placeholder-review1.jpg", "/placeholder-review2.jpg"],
-    },
-  ]);
+  });
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -99,52 +87,94 @@ const AdminCustomerReviews = () => {
     ));
   };
 
-  const ratingOptions = [
-    { value: "all", label: "Tất cả", count: reviews.length },
-    {
-      value: "5",
-      label: "5 sao",
-      count: reviews.filter((r) => r.rating === 5).length,
-    },
-    {
-      value: "4",
-      label: "4 sao",
-      count: reviews.filter((r) => r.rating === 4).length,
-    },
-    {
-      value: "3",
-      label: "3 sao",
-      count: reviews.filter((r) => r.rating === 3).length,
-    },
-    {
-      value: "2",
-      label: "2 sao",
-      count: reviews.filter((r) => r.rating === 2).length,
-    },
-  ];
+  // Map API ReviewResponse to component Review interface
+  const reviews = useMemo(() => {
+    if (!reviewsData?.content) return [];
+    
+    return reviewsData.content.map((review: ReviewResponse) => ({
+      id: review.id.toString(),
+      customerName: `User ${review.userId}`, // TODO: Fetch customer name from API
+      orderId: review.orderHistoryId?.toString() || `Order-${review.id}`, // TODO: Get order code
+      productName: `Product ${review.productDetailId}`, // TODO: Fetch product name from API
+      productImage: review.images?.[0] || "/placeholder-product.jpg",
+      rating: review.rating,
+      comment: review.judging || "",
+      reviewImages: review.images || [],
+      shopReply: review.response || undefined,
+    }));
+  }, [reviewsData]);
 
-  const filteredReviews = reviews.filter((review) => {
-    if (!selectedRatings.includes("all") && selectedRatings.length > 0) {
-      if (!selectedRatings.includes(review.rating.toString())) {
-        return false;
+  // Calculate rating counts
+  const ratingOptions = useMemo(() => {
+    const allReviews = reviews || [];
+    return [
+      { value: "all", label: "Tất cả", count: allReviews.length },
+      {
+        value: "5",
+        label: "5 sao",
+        count: allReviews.filter((r) => r.rating === 5).length,
+      },
+      {
+        value: "4",
+        label: "4 sao",
+        count: allReviews.filter((r) => r.rating === 4).length,
+      },
+      {
+        value: "3",
+        label: "3 sao",
+        count: allReviews.filter((r) => r.rating === 3).length,
+      },
+      {
+        value: "2",
+        label: "2 sao",
+        count: allReviews.filter((r) => r.rating === 2).length,
+      },
+    ];
+  }, [reviews]);
+
+  // Filter reviews (client-side filtering for search and multiple ratings)
+  const filteredReviews = useMemo(() => {
+    if (!reviews) return [];
+    
+    return reviews.filter((review) => {
+      // Rating filter (if multiple selected, filter on frontend)
+      if (!selectedRatings.includes("all") && selectedRatings.length > 0) {
+        if (!selectedRatings.includes(review.rating.toString())) {
+          return false;
+        }
       }
-    }
-    if (
-      searchTerm &&
-      !review.customerName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !review.productName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !review.comment.toLowerCase().includes(searchTerm.toLowerCase())
-    ) {
-      return false;
-    }
-    return true;
-  });
+      
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        if (
+          !review.customerName.toLowerCase().includes(searchLower) &&
+          !review.productName.toLowerCase().includes(searchLower) &&
+          !review.comment.toLowerCase().includes(searchLower)
+        ) {
+          return false;
+        }
+      }
+      
+      // Date range filter (if implemented)
+      // TODO: Add date range filtering when dateRange is set
+      
+      return true;
+    });
+  }, [reviews, selectedRatings, searchTerm, dateRange]);
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredReviews.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedReviews = filteredReviews.slice(startIndex, endIndex);
+  // If filtering on frontend (search or date range), use frontend pagination
+  // Otherwise, use backend pagination
+  const hasFrontendFilters = searchTerm || dateRange || (selectedRatings.length > 1 && !selectedRatings.includes("all"));
+  
+  const totalPages = hasFrontendFilters
+    ? Math.ceil(filteredReviews.length / itemsPerPage)
+    : (reviewsData?.totalPages || 1);
+  
+  const paginatedReviews = hasFrontendFilters
+    ? filteredReviews.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : filteredReviews;
 
   const handleReplyClick = (review: Review) => {
     setSelectedReview(review);
@@ -156,11 +186,53 @@ const AdminCustomerReviews = () => {
     setSelectedReview(null);
   };
 
+  // Update review mutation
+  const updateReviewMutation = useMutation({
+    mutationFn: (data: { reviewId: number; response: string; originalReview: ReviewResponse }) => {
+      const updateData: ReviewUpdateRequest = {
+        userId: data.originalReview.userId,
+        productDetailId: data.originalReview.productDetailId,
+        orderHistoryId: data.originalReview.orderHistoryId,
+        images: data.originalReview.images,
+        rating: data.originalReview.rating,
+        judging: data.originalReview.judging,
+        response: data.response,
+      };
+      return updateReview(data.reviewId, updateData);
+    },
+    onSuccess: () => {
+      toast.success("Phản hồi đánh giá thành công");
+      queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
+      setIsModalOpen(false);
+      setSelectedReview(null);
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể phản hồi đánh giá";
+      toast.error(errorMessage);
+    },
+  });
+
   const handleSubmitResponse = (response: string) => {
-    // TODO: Implement API call to submit the response
-    console.log("Submitting response:", response);
-    console.log("For review:", selectedReview?.id);
-    // Update the review with the response
+    if (!selectedReview) return;
+    
+    // Find original review data
+    const originalReview = reviewsData?.content?.find(
+      (r: ReviewResponse) => r.id.toString() === selectedReview.id
+    );
+    
+    if (!originalReview) {
+      toast.error("Không tìm thấy đánh giá");
+      return;
+    }
+    
+    updateReviewMutation.mutate({
+      reviewId: parseInt(selectedReview.id),
+      response: response.trim(),
+      originalReview,
+    });
   };
 
   // Reset pagination when filters change
@@ -283,7 +355,16 @@ const AdminCustomerReviews = () => {
 
         {/* Review Items */}
         <div className="flex flex-col items-start overflow-clip gap-4 relative w-full flex-shrink-0">
-          {paginatedReviews.map((review) => (
+          {isLoadingReviews ? (
+            <div className="w-full px-[20px] py-[40px] text-center text-[#737373] text-[14px]">
+              Đang tải đánh giá...
+            </div>
+          ) : paginatedReviews.length === 0 ? (
+            <div className="w-full px-[20px] py-[40px] text-center text-[#737373] text-[14px]">
+              Không có đánh giá nào
+            </div>
+          ) : (
+            paginatedReviews.map((review) => (
             <div key={review.id} className="w-full">
               {/* Customer Header */}
               <div className="bg-[#f6f6f6] flex items-center overflow-clip px-[12px] py-0 relative rounded-tl-[10px] rounded-tr-[10px] w-full">
@@ -316,12 +397,26 @@ const AdminCustomerReviews = () => {
                   {/* Product Info */}
                   <div className="flex flex-col gap-[8px] items-start p-[16px] relative w-[300px] min-w-[300px]">
                     <div className="flex gap-[12px] items-start w-full">
-                      <div className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center flex-shrink-0">
-                        <span className="text-gray-500 text-xs">IMG</span>
+                      <div className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden rounded">
+                        {review.productImage && review.productImage !== "/placeholder-product.jpg" ? (
+                          <img
+                            src={review.productImage}
+                            alt={review.productName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-gray-500 text-xs">IMG</span>';
+                            }}
+                          />
+                        ) : (
+                          <span className="text-gray-500 text-xs">IMG</span>
+                        )}
                       </div>
                       <div className="flex flex-col gap-[8px] items-start relative flex-1 flex-shrink-0 min-w-0">
                         <div className="font-medium leading-[1.4] relative text-[14px] text-black font-['Montserrat'] w-full">
-                          <p className="mb-0 text-left">{review.productName}</p>
+                          <p className="mb-0 text-left">
+                            {review.productName}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -341,16 +436,30 @@ const AdminCustomerReviews = () => {
                     </p>
 
                     {/* Review Images */}
-                    <div className="flex gap-[8px] items-center relative">
-                      {review.reviewImages.map((_, index) => (
-                        <div
-                          key={index}
-                          className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center"
-                        >
-                          <span className="text-gray-500 text-xs">IMG</span>
-                        </div>
-                      ))}
-                    </div>
+                    {review.reviewImages && review.reviewImages.length > 0 && (
+                      <div className="flex gap-[8px] items-center relative">
+                        {review.reviewImages.map((image, index) => (
+                          <div
+                            key={index}
+                            className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center overflow-hidden rounded"
+                          >
+                            {image ? (
+                              <img
+                                src={image}
+                                alt={`Review image ${index + 1}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-gray-500 text-xs">IMG</span>';
+                                }}
+                              />
+                            ) : (
+                              <span className="text-gray-500 text-xs">IMG</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Shop Reply below images, right section */}
                     {review.shopReply && (
@@ -376,21 +485,28 @@ const AdminCustomerReviews = () => {
                   <div className="flex items-center justify-center p-[16px] relative w-[160px] min-w-[160px]">
                     <Button
                       className={`w-auto px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] ${
-                        review.shopReply ? "opacity-50 cursor-not-allowed" : ""
+                        review.shopReply || updateReviewMutation.isPending
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
                       }`}
                       onClick={() => handleReplyClick(review)}
-                      disabled={!!review.shopReply}
+                      disabled={!!review.shopReply || updateReviewMutation.isPending}
                     >
-                      {review.shopReply ? "Đã phản hồi" : "Trả lời"}
+                      {updateReviewMutation.isPending && selectedReview?.id === review.id
+                        ? "Đang lưu..."
+                        : review.shopReply
+                        ? "Đã phản hồi"
+                        : "Trả lời"}
                     </Button>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
         {/* Pagination */}
-        {filteredReviews.length > itemsPerPage && (
+        {totalPages > 1 && (
           <div className="flex justify-center mt-6">
             <Pagination
               current={currentPage}
@@ -409,6 +525,8 @@ const AdminCustomerReviews = () => {
         customerName={selectedReview?.customerName || ""}
         initialResponse={selectedReview?.shopReply || ""}
       />
+
+
     </PageContainer>
   );
 };

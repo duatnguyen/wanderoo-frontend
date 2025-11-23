@@ -10,6 +10,8 @@ export type {
   OrderDetailCreateRequest,
   OrderDetailUpdateRequest,
   VariantDetailIdRequest,
+  VariantDetailIdResponse,
+  ProductDetailsResponse,
   CustomerSearchListResponse,
   DraftOrderDetailResponse,
   DraftOrderItemResponse,
@@ -41,3 +43,4 @@ export type {
   BrandCreateRequest,
   BrandPageResponse,
 } from "./api";
+export type { ProductDetailsResponse, VariantDetailIdResponse } from "./api";

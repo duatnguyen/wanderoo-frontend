@@ -15,23 +15,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getEmployees, enableEmployeeAccounts, disableEmployeeAccounts } from "@/api/endpoints/userApi";
+import { getEmployees, enableEmployeeAccounts, disableEmployeeAccounts, getAdminProfile } from "@/api/endpoints/userApi";
+import { BASE_URL } from "@/api/apiClient";
 import { toast } from "sonner";
 import type { EmployeePageResponse, EmployeeResponse } from "@/types";
-import type { SelectAllRequest } from "@/types/auth";
+import type { SelectAllRequest, AdminProfileDetailResponse } from "@/types/auth";
 
-type StoreOwner = {
-  name: string;
-  username: string;
-  status: "active" | "disabled";
-  avatar?: string;
-};
-
-const storeOwner: StoreOwner = {
-  name: "AdminThanhNguyen",
-  username: "adminthanhnguyen",
-  status: "active",
-  avatar: "/api/placeholder/40/40",
+const toAbsoluteImageUrl = (url?: string | null) => {
+  if (!url) return null;
+  return url.startsWith("http") ? url : `${BASE_URL}${url}`;
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -44,7 +36,8 @@ const ROLE_LABELS: Record<string, string> = {
 
 const getRoleLabel = (staff: EmployeeResponse) => {
   const rawType =
-    (typeof staff.type === "string" ? staff.type : undefined) ?? staff.role;
+    (typeof staff.type === "string" ? staff.type : undefined) ??
+    staff.role;
   const normalizedType = rawType?.toUpperCase();
   if (normalizedType && ROLE_LABELS[normalizedType]) {
     return ROLE_LABELS[normalizedType];
@@ -65,6 +58,12 @@ const AdminStaff: React.FC = () => {
   const pageSize = 10;
   const navigate = useNavigate();
 
+  // Fetch admin profile
+  const { data: adminProfile, isLoading: isLoadingAdminProfile } = useQuery<AdminProfileDetailResponse>({
+    queryKey: ["adminProfile"],
+    queryFn: getAdminProfile,
+  });
+
   useEffect(() => {
     const handler = window.setTimeout(() => {
       setDebouncedSearch(searchTerm.trim());
@@ -74,20 +73,25 @@ const AdminStaff: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, statusFilter]);
 
-  const { data, isLoading, isError, isFetching, refetch } =
-    useQuery<EmployeePageResponse>({
-      queryKey: ["admin-staff", currentPage, debouncedSearch],
-      queryFn: () =>
-        getEmployees({
-          page: currentPage,
-          size: pageSize,
-          search: debouncedSearch || undefined,
-        }),
-      placeholderData: (previousData: EmployeePageResponse | undefined) =>
-        previousData,
-    });
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery<EmployeePageResponse>({
+    queryKey: ["admin-staff", currentPage, debouncedSearch],
+    queryFn: () =>
+      getEmployees({
+        page: currentPage,
+        size: pageSize,
+        search: debouncedSearch || undefined,
+      }),
+    placeholderData: (previousData: EmployeePageResponse | undefined) =>
+      previousData,
+  });
 
   // Mutation for enabling employee accounts
   const { mutateAsync: enableEmployees, isPending: isEnabling } = useMutation({
@@ -123,6 +127,8 @@ const AdminStaff: React.FC = () => {
 
   const staff: EmployeeResponse[] = data?.content ?? [];
 
+  // Filter chỉ áp dụng cho search ở client-side nếu backend chưa hỗ trợ search
+  // Status filter đã được xử lý ở server-side
   const filtered = useMemo(() => {
     const result = staff.filter((s) => {
       const matchesStatus =
@@ -207,36 +213,62 @@ const AdminStaff: React.FC = () => {
       {/* Store Owner Header */}
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[8px] items-start justify-center px-[24px] py-[20px] rounded-[24px] w-full">
         <h1 className="font-bold text-[#272424] text-[20px] leading-normal">
-          Tài khoản chủ cửa hàng
+          Tài khoản của bạn
         </h1>
-        <div className="flex items-center justify-between w-full">
-          <div className="flex gap-[8px] items-center">
-            <div className="border border-[#d1d1d1] h-[37px] rounded-[24px] w-[40px] overflow-hidden">
-              <Avatar className="w-full h-full">
-                {storeOwner.avatar ? (
-                  <AvatarImage src={storeOwner.avatar} alt={storeOwner.name} />
-                ) : (
-                  <AvatarFallback className="text-xs">
-                    {storeOwner.name.charAt(0)}
-                  </AvatarFallback>
-                )}
-              </Avatar>
+        {isLoadingAdminProfile ? (
+          <div className="flex items-center justify-center w-full py-4">
+            <span className="text-sm text-gray-500">Đang tải thông tin...</span>
+          </div>
+        ) : adminProfile ? (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex gap-[8px] items-center">
+              <div className="border border-[#d1d1d1] w-[40px] h-[40px] rounded-full overflow-hidden flex-shrink-0">
+                <Avatar className="w-full h-full">
+                  {adminProfile.image_url ? (
+                    <AvatarImage 
+                      src={toAbsoluteImageUrl(adminProfile.image_url) || undefined} 
+                      alt={adminProfile.name || "Admin"}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <AvatarFallback className="bg-[#e5e5e5] flex items-center justify-center">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 32 32"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle cx="16" cy="12" r="6" fill="white" />
+                        <path
+                          d="M8 26C8 21.5817 11.5817 18 16 18C20.4183 18 24 21.5817 24 26"
+                          fill="white"
+                        />
+                      </svg>
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </div>
+              <div className="flex flex-col gap-[4px]">
+                <span
+                  className="font-semibold text-[#1a71f6] text-[14px] leading-normal cursor-pointer hover:underline"
+                  onClick={() => navigate("/admin/settings/profile")}
+                >
+                  {adminProfile.name || "Admin"}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col gap-[4px]">
-              <span
-                className="font-semibold text-[#1a71f6] text-[14px] leading-normal cursor-pointer hover:underline"
-                onClick={() => navigate("/admin/staff/S001")}
-              >
-                {storeOwner.name}
+            <div className="bg-[#b2ffb4] h-[24px] flex gap-[10px] items-center justify-center px-[8px] rounded-[10px]">
+              <span className="font-semibold text-[13px] text-[#04910c] leading-[1.4]">
+                Đang kích hoạt
               </span>
             </div>
           </div>
-          <div className="bg-[#b2ffb4] h-[24px] flex gap-[10px] items-center justify-center px-[8px] rounded-[10px]">
-            <span className="font-semibold text-[13px] text-[#04910c] leading-[1.4]">
-              Đang kích hoạt
-            </span>
+        ) : (
+          <div className="flex items-center justify-center w-full py-4">
+            <span className="text-sm text-red-500">Không thể tải thông tin tài khoản</span>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Staff Table */}
@@ -305,7 +337,9 @@ const AdminStaff: React.FC = () => {
                 <CustomCheckbox
                   checked={
                     paginatedStaff.length > 0 &&
-                    paginatedStaff.every((s) => selectedStaff.has(String(s.id)))
+                    paginatedStaff.every((s) =>
+                      selectedStaff.has(String(s.id))
+                    )
                   }
                   onChange={(checked) => handleSelectAll(checked)}
                   className="w-[30px] h-[30px]"
@@ -368,11 +402,7 @@ const AdminStaff: React.FC = () => {
               <span className="text-sm font-medium text-red-500">
                 Không thể tải danh sách nhân viên.
               </span>
-              <Button
-                variant="secondary"
-                className="mt-4"
-                onClick={() => refetch()}
-              >
+              <Button variant="secondary" className="mt-4" onClick={() => refetch()}>
                 Thử lại
               </Button>
             </div>
@@ -381,11 +411,7 @@ const AdminStaff: React.FC = () => {
               <span className="text-sm text-gray-600">
                 Không có nhân viên nào phù hợp.
               </span>
-              <Button
-                variant="secondary"
-                className="mt-4"
-                onClick={() => refetch()}
-              >
+              <Button variant="secondary" className="mt-4" onClick={() => refetch()}>
                 Tải lại
               </Button>
             </div>
@@ -415,40 +441,37 @@ const AdminStaff: React.FC = () => {
                           className="w-[30px] h-[30px]"
                         />
                       </div>
-                      <div className="w-[56px] h-[56px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
-                        <Avatar className="w-full h-full">
-                          {(
-                            s as unknown as {
-                              image_url?: string;
-                              avatar?: string;
-                            }
-                          )?.image_url ||
-                          (
-                            s as unknown as {
-                              image_url?: string;
-                              avatar?: string;
-                            }
-                          )?.avatar ? (
+                      <div className="w-[56px] h-[56px] relative overflow-hidden rounded-lg">
+                        <Avatar className="w-full h-full rounded-lg">
+                          {((s as unknown as { image_url?: string; avatar?: string })
+                            ?.image_url ||
+                            (s as unknown as { image_url?: string; avatar?: string })
+                              ?.avatar) ? (
                             <AvatarImage
                               src={
-                                (
-                                  s as unknown as {
-                                    image_url?: string;
-                                    avatar?: string;
-                                  }
-                                )?.image_url ??
-                                (
-                                  s as unknown as {
-                                    image_url?: string;
-                                    avatar?: string;
-                                  }
-                                )?.avatar
+                                (s as unknown as { image_url?: string; avatar?: string })
+                                  ?.image_url ??
+                                (s as unknown as { image_url?: string; avatar?: string })
+                                  ?.avatar
                               }
                               alt={s.name}
+                              className="object-cover rounded-lg"
                             />
                           ) : (
-                            <AvatarFallback className="text-xs">
-                              {s.name.charAt(0)}
+                            <AvatarFallback className="bg-[#e5e5e5] flex items-center justify-center rounded-lg">
+                              <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 32 32"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <circle cx="16" cy="12" r="6" fill="white" />
+                                <path
+                                  d="M8 26C8 21.5817 11.5817 18 16 18C20.4183 18 24 21.5817 24 26"
+                                  fill="white"
+                                />
+                              </svg>
                             </AvatarFallback>
                           )}
                         </Avatar>

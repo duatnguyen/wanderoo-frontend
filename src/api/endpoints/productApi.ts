@@ -22,20 +22,9 @@ import type {
   AdminProductDetailResponse,
   ProductVariantListResponse,
   ProductDetailsResponse,
+  ProductDetailsResponse,
+  VariantDetailIdResponse,
 } from '../../types';
-
-type ProductListQuery = {
-  keyword?: string;
-  sort?: string;
-  page?: number;
-  size?: number;
-};
-
-type VariantListQuery = {
-  page?: number;
-  size?: number;
-  sort?: string;
-};
 
 // Public Product APIs
 export const getProductDetail = async (id: number): Promise<ProductResponse> => {
@@ -54,53 +43,48 @@ export const createProductPrivate = async (productData: ProductCreateRequest): P
   return response.data;
 };
 
-export const getAllProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
-  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/', { params });
+export const getAllProductsPrivate = async (params?: {
+  keyword?: string;
+  sort?: string;
+  page?: number;
+  size?: number;
+}): Promise<ProductPageResponse> => {
+  const response = await api.get<ApiResponse<ProductPageResponse>>('/auth/v1/private/product/', { params });
   return response.data.data;
 };
 
-export const getActiveProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
-  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/active', { params });
+export const getActiveProductsPrivate = async (params?: {
+  keyword?: string;
+  sort?: string;
+  page?: number;
+  size?: number;
+}): Promise<ProductPageResponse> => {
+  const response = await api.get<ApiResponse<ProductPageResponse>>('/auth/v1/private/product/active', { params });
   return response.data.data;
 };
 
-export const getInactiveProductsPrivate = async (params?: ProductListQuery): Promise<AdminProductPageResponse> => {
-  const response = await api.get<ApiResponse<AdminProductPageResponse>>('/auth/v1/private/product/inactive', { params });
+export const getInactiveProductsPrivate = async (params?: {
+  keyword?: string;
+  sort?: string;
+  page?: number;
+  size?: number;
+}): Promise<ProductPageResponse> => {
+  const response = await api.get<ApiResponse<ProductPageResponse>>('/auth/v1/private/product/inactive', { params });
   return response.data.data;
 };
 
-export const getProductDetailPrivate = async (id: number): Promise<ProductDetailsResponse> => {
-  const response = await api.get<ApiResponse<ProductDetailsResponse>>(`/auth/v1/private/product/${id}`);
+export const getProductDetailPrivate = async (id: number): Promise<ProductResponse> => {
+  const response = await api.get<ApiResponse<ProductResponse>>(`/auth/v1/private/product/${id}`);
   return response.data.data;
 };
 
-export const getProductVariantsPrivate = async (
-  productId: number,
-  params?: VariantListQuery
-): Promise<ProductVariantListResponse> => {
-  const response = await api.get<ApiResponse<ProductVariantListResponse>>(
-    `/auth/v1/private/product/${productId}/variants`,
-    { params }
-  );
-
-  const data = response.data.data;
-  const variantsArray =
-    (Array.isArray(data?.variants)
-      ? (data?.variants as unknown as AdminProductDetailResponse[])
-      : undefined) ??
-    (Array.isArray((data as unknown as VariantPageResponse)?.content)
-      ? ((data as unknown as VariantPageResponse)?.content as unknown as AdminProductDetailResponse[])
-      : undefined) ??
-    [];
-  const variants = variantsArray as AdminProductDetailResponse[];
-
-  return {
-    variants,
-    pageNumber: data.pageNumber ?? (data as any)?.page ?? params?.page ?? 0,
-    pageSize: data.pageSize ?? params?.size ?? 20,
-    totalPages: data.totalPages ?? 1,
-    totalElements: data.totalElements ?? variants.length,
-  };
+export const getProductVariantsPrivate = async (productId: number, params?: {
+  page?: number;
+  size?: number;
+  sort?: string;
+}): Promise<VariantPageResponse> => {
+  const response = await api.get<ApiResponse<VariantPageResponse>>(`/auth/v1/private/product/${productId}/variants`, { params });
+  return response.data.data;
 };
 
 export const getVariantDetailPrivate = async (variantId: number): Promise<VariantResponse> => {

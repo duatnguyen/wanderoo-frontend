@@ -314,7 +314,7 @@ const AdminAddCustomer = () => {
         queryClient.invalidateQueries({ queryKey: ["admin-customers-all"] }),
       ]);
       toast.success("Thêm khách hàng thành công");
-      navigate("/admin/customers");
+      navigate("/admin/customers", { state: { shouldFocusLastPage: true } });
     },
     onError: (error: any) => {
       const errorMessage =

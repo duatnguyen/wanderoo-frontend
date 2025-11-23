@@ -1,17 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import Icon from "@/components/icons/Icon";
 import { ContentCard, PageContainer } from "@/components/common";
+import { getInvoiceDetail, createExportInvoice, getProviderList } from "@/api/endpoints/warehouseApi";
+import type { InvoiceDetailResponse } from "@/types/warehouse";
+import { toast } from "sonner";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+
 interface Product {
   id: string;
   name: string;
-  quantity: number;
+  quantity: number; // Số lượng trả (returnQuantity)
   price: number;
   image?: string;
-  availableStock?: number;
+  maxQuantity: number; // Tồn kho (quantity từ đơn nhập)
+  productDetailId?: number; // Cần để tạo đơn trả hàng
 }
 
 interface MockProduct {
@@ -89,12 +95,20 @@ const mockImportData: {
 const NOTE_MAX_LENGTH = 200;
 
 const AdminWarehouseCreateReturnImport = () => {
-  document.title = "Tạo đơn trả hàng nhập | Wanderoo";
-
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const importId = searchParams.get("importId");
+  const [importCode, setImportCode] = useState<string | null>(null);
+  
+  // Update document title when importCode is available
+  useEffect(() => {
+    if (importCode) {
+      document.title = `Tạo đơn xuất hàng ${importCode} | Wanderoo`;
+    } else {
+      document.title = "Tạo đơn xuất hàng | Wanderoo";
+    }
+  }, [importCode]);
 
+  const navigate = useNavigate();
   const [supplierSearch, setSupplierSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productFormSearch, setProductFormSearch] = useState("");
@@ -104,16 +118,92 @@ const AdminWarehouseCreateReturnImport = () => {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [providerId, setProviderId] = useState<number | null>(null);
 
-  // Load import data when importId is provided
-  useEffect(() => {
-    if (importId && mockImportData[importId]) {
-      const importData = mockImportData[importId];
-      setSupplierSearch(importData.supplier);
-      // Set initial products with their original quantities from import order
-      setProducts(importData.items.map((item) => ({ ...item })));
+  // Load import data from API when importId is provided
+  const fetchImportInvoice = useCallback(async () => {
+    if (!importId) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const invoiceId = parseInt(importId, 10);
+      if (isNaN(invoiceId)) {
+        setError("ID đơn nhập hàng không hợp lệ");
+        return;
+      }
+
+      const invoice = await getInvoiceDetail(invoiceId);
+      console.log("Invoice detail:", invoice);
+      console.log("Cart items:", invoice?.cartItem);
+      
+      if (!invoice) {
+        console.error("Invoice data is null or undefined");
+        setError("Không thể lấy thông tin đơn nhập hàng");
+        toast.error("Không thể lấy thông tin đơn nhập hàng");
+        return;
+      }
+      
+      setSupplierSearch(invoice.providerName || "");
+      setImportCode(invoice.code || null);
+      
+      // Map cart items to products
+      // quantity từ BE = tồn kho (maxQuantity)
+      // Số lượng trả ban đầu = tồn kho
+      if (invoice.cartItem && Array.isArray(invoice.cartItem) && invoice.cartItem.length > 0) {
+        const mappedProducts: Product[] = invoice.cartItem.map((item, index) => ({
+          id: `item-${index}`,
+          name: item.productName || "",
+          quantity: item.quantity || 0, // Số lượng trả, ban đầu = tồn kho
+          price: item.productPrice || 0,
+          image: undefined,
+          maxQuantity: item.quantity || 0, // Tồn kho = quantity từ đơn nhập
+          productDetailId: undefined, // BE không trả về, cần tìm cách khác
+        }));
+        
+        console.log("Mapped products:", mappedProducts);
+        setProducts(mappedProducts);
+      } else {
+        console.warn("No cart items in invoice response", {
+          cartItem: invoice.cartItem,
+          cartItemType: typeof invoice.cartItem,
+          isArray: Array.isArray(invoice.cartItem),
+          invoiceId: invoice.id,
+          invoiceCode: invoice.code,
+          fullInvoice: invoice
+        });
+        setProducts([]);
+        toast.warning("Đơn nhập hàng không có sản phẩm nào hoặc dữ liệu không hợp lệ");
+      }
+      
+      // Get providerId from providerName
+      if (invoice.providerName) {
+        try {
+          const providerList = await getProviderList(invoice.providerName, undefined, 0, 100);
+          const provider = providerList.providers?.find(p => p.name === invoice.providerName);
+          if (provider) {
+            setProviderId(provider.id);
+          } else {
+            console.warn("Provider not found by name:", invoice.providerName);
+          }
+        } catch (err) {
+          console.error("Error fetching provider:", err);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching import invoice:", err);
+      setError("Không thể tải thông tin đơn nhập hàng. Vui lòng thử lại.");
+      toast.error("Không thể tải thông tin đơn nhập hàng");
+    } finally {
+      setLoading(false);
     }
   }, [importId]);
+
+  useEffect(() => {
+    fetchImportInvoice();
+  }, [fetchImportInvoice]);
 
   const totalProducts = products.length;
   const totalAmount = products.reduce(
@@ -122,71 +212,92 @@ const AdminWarehouseCreateReturnImport = () => {
   );
 
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(productSearch.toLowerCase())
+    product.name.toLowerCase().includes((productSearch || "").toLowerCase())
   );
-  const hasProductSearch = productSearch.trim().length > 0;
+  const hasProductSearch = (productSearch || "").trim().length > 0;
 
   // Pagination logic
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProducts = filteredProducts.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
 
   // Reset to first page when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [productSearch]);
   const isFormValid = Boolean(
-    supplierSearch.trim() && note.trim() && products.length > 0
+    (supplierSearch || "").trim() && (note || "").trim() && products.length > 0
   );
-  const isNoteMissing = note.trim().length === 0;
+  const isNoteMissing = (note || "").trim().length === 0;
 
-  const pageTitle = importId
-    ? `Tạo đơn trả hàng nhập ${importId.toUpperCase()}`
-    : "Tạo đơn trả hàng nhập";
+  const pageTitle = importCode
+    ? `Tạo đơn xuất hàng ${importCode}`
+    : importId
+    ? `Tạo đơn xuất hàng ${importId}`
+    : "Tạo đơn xuất hàng";
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    })
-      .format(amount)
-      .replace(/\s/g, "")
-      .replace(/₫/g, "đ");
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount) + "đ";
   };
 
   const handleCancel = () => {
     navigate("/admin/warehouse/returnsimport");
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!isFormValid) {
       return;
     }
-    // Generate a new return ID (in real app, this would come from the API)
-    const newReturnId = `return-${Date.now()}`;
-    // Save default status to localStorage so the list page can reflect the new return
-    // Default status: processing (Đang giao dịch), returned (Đã hoàn trả), pending_refund (Chưa thanh toán)
-    if (typeof window !== "undefined") {
-      const storedStatus = JSON.parse(
-        localStorage.getItem("returnImportStatuses") || "{}"
-      );
-      storedStatus[newReturnId] = {
-        status: "processing",
-        returnStatus: "returned",
-        refundStatus: "pending_refund",
-      };
-      localStorage.setItem(
-        "returnImportStatuses",
-        JSON.stringify(storedStatus)
-      );
-      // Dispatch custom event to notify the list page
-      window.dispatchEvent(new Event("returnImportStatusUpdated"));
+
+    // Validate that we have providerId
+    if (!providerId) {
+      toast.error("Không tìm thấy thông tin nhà cung cấp. Vui lòng thử lại.");
+      return;
     }
-    // Navigate to the return detail page
-    navigate(`/admin/warehouse/returns/${newReturnId}`);
+
+    // Validate that all products have productDetailId
+    // Note: BE doesn't return productDetailId in InvoiceDetailResponse.CartItemResponse
+    // We need to find another way to get it. For now, we'll show an error.
+    const productsWithoutDetailId = products.filter(p => !p.productDetailId);
+    if (productsWithoutDetailId.length > 0) {
+      toast.error("Không thể tạo đơn trả hàng: thiếu thông tin sản phẩm. Vui lòng liên hệ admin.");
+      console.error("Products without productDetailId:", productsWithoutDetailId);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Map products to cart items
+      const cartItems = products
+        .filter((product) => product.productDetailId && product.productDetailId > 0 && product.quantity > 0)
+        .map((product) => ({
+          productDetailId: product.productDetailId!,
+          quantity: product.quantity,
+        }));
+
+      if (cartItems.length === 0) {
+        toast.error("Vui lòng thêm ít nhất một sản phẩm hợp lệ.");
+        setLoading(false);
+        return;
+      }
+
+      const returnInvoiceId = await createExportInvoice({
+        cartItems,
+        providerId,
+        note: (note || "").trim() || undefined,
+      });
+
+      toast.success("Tạo đơn xuất hàng thành công");
+      navigate(`/admin/warehouse/returns/${returnInvoiceId}`);
+    } catch (err) {
+      console.error("Error creating return invoice:", err);
+      toast.error("Không thể tạo đơn xuất hàng. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toggleProductSelection = (productId: string) => {
@@ -217,11 +328,15 @@ const AdminWarehouseCreateReturnImport = () => {
 
   const handleUpdateQuantity = (productId: string, quantity: number) => {
     setProducts((prev) =>
-      prev.map((product) =>
-        product.id === productId
-          ? { ...product, quantity: Math.max(1, quantity) }
-          : product
-      )
+      prev.map((product) => {
+        if (product.id === productId) {
+          // Giới hạn số lượng trả <= tồn kho (maxQuantity)
+          const maxQty = product.maxQuantity || 0;
+          const newQuantity = Math.max(0, Math.min(quantity, maxQty));
+          return { ...product, quantity: newQuantity };
+        }
+        return product;
+      })
     );
   };
 
@@ -254,6 +369,19 @@ const AdminWarehouseCreateReturnImport = () => {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isProductFormOpen]);
 
+  // Show loading only when fetching and no products yet
+  if (loading && importId && products.length === 0 && !error) {
+    return (
+      <PageContainer>
+        <ContentCard>
+          <div className="flex items-center justify-center py-20">
+            <LoadingSpinner size="lg" />
+          </div>
+        </ContentCard>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer>
       {/* Header */}
@@ -263,7 +391,7 @@ const AdminWarehouseCreateReturnImport = () => {
             <button
               onClick={() => navigate("/admin/warehouse/returnsimport")}
               className="relative shrink-0 size-[24px] flex items-center justify-center cursor-pointer"
-              aria-label="Quay lại danh sách trả hàng nhập"
+              aria-label="Quay lại danh sách xuất hàng"
             >
               <div className="flex items-center justify-center">
                 <svg
@@ -299,10 +427,10 @@ const AdminWarehouseCreateReturnImport = () => {
               </Button>
               <Button
                 onClick={handleConfirm}
-                disabled={!isFormValid}
+                disabled={!isFormValid || loading}
                 className="bg-[#e04d30] hover:bg-[#c74429] disabled:bg-[#f0a090] disabled:text-white disabled:cursor-not-allowed rounded-[12px] px-[24px] py-[12px] text-[12px] font-['Inter'] font-bold"
               >
-                Tạo đơn trả hàng nhập
+                {loading ? "Đang tạo..." : "Tạo đơn xuất hàng"}
               </Button>
             </div>
             {!isFormValid && (
@@ -317,9 +445,12 @@ const AdminWarehouseCreateReturnImport = () => {
       {/* Main Content */}
       <ContentCard>
         <div className="flex flex-col gap-[12px] w-full">
+
+
           <div className="flex flex-col lg:flex-row gap-[12px] items-start w-full">
             {/* Left Column */}
             <div className="flex flex-col gap-[12px] flex-1 w-full">
+
               {/* Products Section */}
               <div className="bg-white border border-[#e5e7eb] rounded-[16px] flex flex-col w-full shadow-sm">
                 {/* Fixed Header */}
@@ -350,12 +481,7 @@ const AdminWarehouseCreateReturnImport = () => {
                         onClick={() => setIsProductFormOpen(true)}
                         className="bg-[#e04d30] text-white border-0 hover:bg-[#c74429] rounded-[10px] px-[16px] py-[10px] flex items-center gap-2 font-semibold text-[14px]"
                       >
-                        <Icon
-                          name="plus"
-                          size={16}
-                          color="#ffffff"
-                          strokeWidth={2.5}
-                        />
+                        <Icon name="plus" size={16} color="#ffffff" strokeWidth={2.5} />
                         Thêm sản phẩm
                       </Button>
                     )}
@@ -371,24 +497,12 @@ const AdminWarehouseCreateReturnImport = () => {
                         <table className="w-full min-w-[800px]">
                           <thead>
                             <tr className="text-[#374151] text-[13px] font-['Montserrat'] font-semibold">
-                              <th className="w-[300px] px-[20px] py-[14px] text-left">
-                                Sản phẩm
-                              </th>
-                              <th className="px-[14px] py-[14px] text-center w-[100px]">
-                                Tồn kho
-                              </th>
-                              <th className="px-[14px] py-[14px] text-center w-[100px]">
-                                Số lượng
-                              </th>
-                              <th className="px-[14px] py-[14px] text-center w-[120px]">
-                                Đơn giá trả
-                              </th>
-                              <th className="px-[14px] py-[14px] text-right w-[100px]">
-                                Thành tiền
-                              </th>
-                              <th className="w-[50px] px-[14px] py-[14px] text-center">
-                                Xoá
-                              </th>
+                              <th className="w-[300px] px-[20px] py-[14px] text-left">Sản phẩm</th>
+                              <th className="px-[14px] py-[14px] text-center w-[100px]">Tồn kho</th>
+                              <th className="px-[14px] py-[14px] text-center w-[100px]">Số lượng</th>
+                              <th className="px-[14px] py-[14px] text-center w-[120px]">Đơn giá trả</th>
+                              <th className="px-[14px] py-[14px] text-right w-[100px]">Thành tiền</th>
+                              <th className="w-[50px] px-[14px] py-[14px] text-center">Xoá</th>
                             </tr>
                           </thead>
                         </table>
@@ -413,9 +527,7 @@ const AdminWarehouseCreateReturnImport = () => {
                                           className="size-full object-cover rounded-[8px]"
                                         />
                                       ) : (
-                                        <span className="text-[10px] text-[#9ca3af]">
-                                          48×48
-                                        </span>
+                                        <span className="text-[10px] text-[#9ca3af]">48×48</span>
                                       )}
                                     </div>
                                     <div className="flex flex-col gap-[4px] min-w-0">
@@ -430,7 +542,7 @@ const AdminWarehouseCreateReturnImport = () => {
                                 </td>
                                 <td className="px-[14px] py-[16px] text-center align-middle w-[100px]">
                                   <span className="text-[13px] font-['Montserrat'] font-medium text-[#6b7280]">
-                                    {product.availableStock ?? "—"}
+                                    {product.maxQuantity ?? '—'}
                                   </span>
                                 </td>
                                 <td className="px-[14px] py-[16px] text-center align-middle w-[100px]">
@@ -440,11 +552,12 @@ const AdminWarehouseCreateReturnImport = () => {
                                     onChange={(e) =>
                                       handleUpdateQuantity(
                                         product.id,
-                                        parseInt(e.target.value) || 1
+                                        parseInt(e.target.value) || 0
                                       )
                                     }
                                     className="w-[70px] text-center border border-[#d1d5db] rounded-[8px] px-[8px] py-[6px] text-[13px] font-['Montserrat'] font-semibold text-[#1f2937] focus:border-[#e04d30] focus:outline-none focus:ring-1 focus:ring-[#e04d30] transition-all"
-                                    min="1"
+                                    min="0"
+                                    max={product.maxQuantity}
                                     aria-label={`Số lượng trả cho ${product.name}`}
                                   />
                                 </td>
@@ -467,29 +580,17 @@ const AdminWarehouseCreateReturnImport = () => {
                                 </td>
                                 <td className="px-[14px] py-[16px] text-right align-middle w-[100px]">
                                   <span className="text-[13px] font-['Montserrat'] font-bold text-[#1f2937]">
-                                    {formatCurrency(
-                                      product.quantity * product.price
-                                    )}
+                                    {formatCurrency(product.quantity * product.price)}
                                   </span>
                                 </td>
                                 <td className="px-[14px] py-[16px] text-center align-middle w-[50px]">
                                   <button
-                                    onClick={() =>
-                                      handleRemoveProduct(product.id)
-                                    }
+                                    onClick={() => handleRemoveProduct(product.id)}
                                     className="w-[32px] h-[32px] rounded-[8px] bg-[#fef2f2] hover:bg-[#fecaca] border border-[#fecaca] hover:border-[#f87171] text-[#dc2626] hover:text-[#b91c1c] transition-all duration-200 flex items-center justify-center"
                                     aria-label={`Xoá ${product.name} khỏi danh sách`}
                                   >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="currentColor"
-                                      viewBox="0 0 20 20"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                        clipRule="evenodd"
-                                      ></path>
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
                                     </svg>
                                   </button>
                                 </td>
@@ -510,8 +611,7 @@ const AdminWarehouseCreateReturnImport = () => {
                             <span className="text-[16px] font-['Montserrat'] font-bold text-[#e04d30]">
                               {formatCurrency(
                                 filteredProducts.reduce(
-                                  (sum, product) =>
-                                    sum + product.quantity * product.price,
+                                  (sum, product) => sum + product.quantity * product.price,
                                   0
                                 )
                               )}
@@ -524,20 +624,11 @@ const AdminWarehouseCreateReturnImport = () => {
                           <div className="border-t border-[#e5e7eb] px-[20px] py-[12px] rounded-b-[16px]">
                             <div className="flex items-center justify-between">
                               <span className="text-[13px] text-[#6b7280] font-['Montserrat']">
-                                Hiện thị {startIndex + 1}-
-                                {Math.min(
-                                  startIndex + itemsPerPage,
-                                  filteredProducts.length
-                                )}{" "}
-                                của {filteredProducts.length}
+                                Hiện thị {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProducts.length)} của {filteredProducts.length}
                               </span>
                               <div className="flex items-center gap-[8px]">
                                 <button
-                                  onClick={() =>
-                                    setCurrentPage((prev) =>
-                                      Math.max(1, prev - 1)
-                                    )
-                                  }
+                                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                   disabled={currentPage === 1}
                                   className="px-[12px] py-[6px] text-[13px] font-semibold rounded-[6px] border border-[#d1d5db] bg-white text-[#374151] hover:bg-[#f9fafb] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
@@ -545,18 +636,14 @@ const AdminWarehouseCreateReturnImport = () => {
                                 </button>
 
                                 <div className="flex items-center gap-[4px]">
-                                  {Array.from(
-                                    { length: totalPages },
-                                    (_, i) => i + 1
-                                  ).map((page) => (
+                                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                     <button
                                       key={page}
                                       onClick={() => setCurrentPage(page)}
-                                      className={`w-[32px] h-[32px] text-[13px] font-semibold rounded-[6px] transition-colors ${
-                                        currentPage === page
-                                          ? "bg-[#e04d30] text-white"
-                                          : "bg-white border border-[#d1d5db] text-[#374151] hover:bg-[#f9fafb]"
-                                      }`}
+                                      className={`w-[32px] h-[32px] text-[13px] font-semibold rounded-[6px] transition-colors ${currentPage === page
+                                        ? 'bg-[#e04d30] text-white'
+                                        : 'bg-white border border-[#d1d5db] text-[#374151] hover:bg-[#f9fafb]'
+                                        }`}
                                     >
                                       {page}
                                     </button>
@@ -564,11 +651,7 @@ const AdminWarehouseCreateReturnImport = () => {
                                 </div>
 
                                 <button
-                                  onClick={() =>
-                                    setCurrentPage((prev) =>
-                                      Math.min(totalPages, prev + 1)
-                                    )
-                                  }
+                                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                   disabled={currentPage === totalPages}
                                   className="px-[12px] py-[6px] text-[13px] font-semibold rounded-[6px] border border-[#d1d5db] bg-white text-[#374151] hover:bg-[#f9fafb] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
@@ -584,18 +667,8 @@ const AdminWarehouseCreateReturnImport = () => {
                     <div className="flex-1 flex items-center justify-center">
                       <div className="text-center">
                         <div className="w-16 h-16 bg-[#f3f4f6] rounded-full flex items-center justify-center mx-auto mb-4">
-                          <svg
-                            className="w-8 h-8 text-[#9ca3af]"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            />
+                          <svg className="w-8 h-8 text-[#9ca3af]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                           </svg>
                         </div>
                         <p className="text-[16px] font-['Montserrat'] font-semibold text-[#374151] mb-2">
@@ -622,26 +695,15 @@ const AdminWarehouseCreateReturnImport = () => {
                   <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
                       <div className="w-20 h-20 bg-[#f3f4f6] rounded-full flex items-center justify-center mx-auto mb-6">
-                        <svg
-                          className="w-10 h-10 text-[#9ca3af]"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                          />
+                        <svg className="w-10 h-10 text-[#9ca3af]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
                       </div>
                       <p className="text-[18px] font-['Montserrat'] font-bold text-[#374151] mb-2">
                         Chưa có sản phẩm
                       </p>
                       <p className="text-[14px] text-[#6b7280] mb-6 max-w-sm mx-auto">
-                        Bắt đầu tạo đơn trả hàng bằng cách thêm sản phẩm cần
-                        hoàn trả.
+                        Bắt đầu tạo đơn trả hàng bằng cách thêm sản phẩm cần hoàn trả.
                       </p>
                       {!importId && (
                         <Button
@@ -649,12 +711,7 @@ const AdminWarehouseCreateReturnImport = () => {
                           onClick={() => setIsProductFormOpen(true)}
                           className="bg-[#e04d30] text-white border-0 hover:bg-[#c74429] px-[20px] py-[12px] rounded-[10px] text-[14px] font-semibold flex items-center gap-2 mx-auto"
                         >
-                          <Icon
-                            name="plus"
-                            size={16}
-                            color="#ffffff"
-                            strokeWidth={2.5}
-                          />
+                          <Icon name="plus" size={16} color="#ffffff" strokeWidth={2.5} />
                           Thêm sản phẩm đầu tiên
                         </Button>
                       )}
@@ -676,14 +733,12 @@ const AdminWarehouseCreateReturnImport = () => {
                     <div className="flex justify-between items-center text-[14px] font-['Montserrat']">
                       <span className="text-[#737373]">Mã đơn:</span>
                       <span className="font-semibold text-[#272424]">
-                        {importId ? importId.toUpperCase() : "Tạo mới"}
+                        {importCode || (importId ? importId : "Tạo mới")}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-[14px] font-['Montserrat']">
                       <span className="text-[#737373]">Số sản phẩm:</span>
-                      <span className="font-semibold text-[#272424]">
-                        {totalProducts}
-                      </span>
+                      <span className="font-semibold text-[#272424]">{totalProducts}</span>
                     </div>
                     <div className="flex justify-between items-center text-[14px] font-['Montserrat']">
                       <span className="text-[#737373]">Nhà cung cấp:</span>
@@ -693,9 +748,7 @@ const AdminWarehouseCreateReturnImport = () => {
                     </div>
                     <div className="border-t border-[#ffd0c3] pt-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-[16px] font-['Montserrat'] font-semibold text-[#c74429]">
-                          Giá trị đơn:
-                        </span>
+                        <span className="text-[16px] font-['Montserrat'] font-semibold text-[#c74429]">Giá trị đơn:</span>
                         <span className="text-[18px] font-['Montserrat'] font-bold text-[#c74429]">
                           {formatCurrency(totalAmount)}
                         </span>
@@ -708,15 +761,11 @@ const AdminWarehouseCreateReturnImport = () => {
               {/* Payment Summary Section */}
               <div className="bg-white border border-[#d1d1d1] rounded-[20px] w-full">
                 <div className="flex flex-col gap-[12px] px-[24px] py-[20px]">
-                  <p className="font-['Montserrat'] font-semibold text-[18px] text-[#272424]">
-                    Tóm tắt thanh toán
-                  </p>
+                  <p className="font-['Montserrat'] font-semibold text-[18px] text-[#272424]">Tóm tắt thanh toán</p>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-[14px] font-['Montserrat']">
                       <span className="text-[#737373]">Số sản phẩm:</span>
-                      <span className="font-semibold text-[#272424]">
-                        {totalProducts}
-                      </span>
+                      <span className="font-semibold text-[#272424]">{totalProducts}</span>
                     </div>
                     <div className="flex justify-between items-center text-[14px] font-['Montserrat']">
                       <span className="text-[#737373]">Tổng số lượng:</span>
@@ -726,9 +775,7 @@ const AdminWarehouseCreateReturnImport = () => {
                     </div>
                     <div className="border-t border-[#e7e7e7] pt-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-[16px] font-['Montserrat'] font-semibold text-[#272424]">
-                          Tổng tiền hoàn trả:
-                        </span>
+                        <span className="text-[16px] font-['Montserrat'] font-semibold text-[#272424]">Tổng tiền hoàn trả:</span>
                         <span className="text-[18px] font-['Montserrat'] font-bold text-[#c74429]">
                           {formatCurrency(totalAmount)}
                         </span>
@@ -737,8 +784,7 @@ const AdminWarehouseCreateReturnImport = () => {
                     {totalAmount > 0 && (
                       <div className="bg-[#fff6f4] border border-[#ffd0c3] rounded-[12px] p-3 mt-3">
                         <p className="text-[12px] text-[#c74429] font-['Montserrat'] leading-relaxed">
-                          💡 Số tiền này sẽ được hoàn trả cho nhà cung cấp sau
-                          khi đơn được xử lý.
+                          💡 Số tiền này sẽ được hoàn trả cho nhà cung cấp sau khi đơn được xử lý.
                         </p>
                       </div>
                     )}
@@ -755,13 +801,8 @@ const AdminWarehouseCreateReturnImport = () => {
                     </p>
                     <span className="text-[#eb2b0b]">*</span>
                   </div>
-                  <div
-                    className={`border-2 rounded-[12px] h-[120px] p-[12px] transition-colors ${
-                      isNoteMissing
-                        ? "border-[#c74429] bg-[#fff8f6]"
-                        : "border-[#e04d30]"
-                    }`}
-                  >
+                  <div className={`border-2 rounded-[12px] h-[120px] p-[12px] transition-colors ${isNoteMissing ? "border-[#c74429] bg-[#fff8f6]" : "border-[#e04d30]"
+                    }`}>
                     <textarea
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
@@ -772,19 +813,13 @@ const AdminWarehouseCreateReturnImport = () => {
                   </div>
                   <div className="flex items-center justify-between text-[12px] font-['Montserrat']">
                     <div className="flex flex-col gap-1">
-                      <span
-                        className={
-                          isNoteMissing ? "text-[#c74429]" : "text-[#737373]"
-                        }
-                      >
+                      <span className={isNoteMissing ? "text-[#c74429]" : "text-[#737373]"}>
                         {isNoteMissing
                           ? "⚠️ Ghi chú là bắt buộc."
                           : "💡 Mô tả lý do trả hàng để dễ theo dõi."}
                       </span>
                     </div>
-                    <span
-                      className={`${note.length >= NOTE_MAX_LENGTH - 20 ? "text-[#e04d30]" : "text-[#272424]"} font-medium`}
-                    >
+                    <span className={`${note.length >= NOTE_MAX_LENGTH - 20 ? "text-[#e04d30]" : "text-[#272424]"} font-medium`}>
                       {note.length}/{NOTE_MAX_LENGTH}
                     </span>
                   </div>
@@ -856,7 +891,7 @@ const AdminWarehouseCreateReturnImport = () => {
                     <Checkbox
                       checked={
                         selectedProductIds.length ===
-                          filteredMockProducts.length &&
+                        filteredMockProducts.length &&
                         filteredMockProducts.length > 0
                       }
                       onCheckedChange={(checked) => {

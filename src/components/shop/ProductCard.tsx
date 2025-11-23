@@ -41,9 +41,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
   className = "",
   id,
   product,
+  imageUrl,
 }) => {
   const navigate = useNavigate();
   const stars = Array.from({ length: 5 }, (_, i) => i < Math.round(rating));
+
+  const FALLBACK_IMAGE = "https://via.placeholder.com/600x600?text=No+Image";
+  const displayImage = imageUrl && imageUrl.trim().length > 0 ? imageUrl : FALLBACK_IMAGE;
 
   const handleClick = () => {
     if (onClick) {
@@ -68,7 +72,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onKeyDown={(e) => e.key === "Enter" && handleClick()}
     >
       <div className="relative">
-        <div className="w-full h-[180px] border border-gray-300 bg-transparent" />
+        <div className="w-full h-[180px] border border-gray-300 bg-gray-100 overflow-hidden">
+          <img
+            src={displayImage}
+            alt={name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = FALLBACK_IMAGE;
+            }}
+          />
+        </div>
         {typeof discountPercent === "number" && (
           <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-xs rounded-[4px] px-1.5 py-0.5 flex items-center gap-1">
             <svg

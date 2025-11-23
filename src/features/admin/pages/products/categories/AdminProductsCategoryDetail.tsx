@@ -20,7 +20,10 @@ import {
   enableAllCategories,
   getCategoryChildListByParent,
   updateCategoryChild,
+  deleteCategory,
 } from "@/api/endpoints/attributeApi";
+import { uploadFile } from "@/api/endpoints/fileApi";
+import { BASE_URL } from "@/api/apiClient";
 import type {
   CategoryChildResponse,
   CategoryChildUpdateRequest,
@@ -63,6 +66,7 @@ const AdminProductsCategoryDetail: React.FC = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const newChildImageInputRef = useRef<HTMLInputElement>(null);
 
   const parentCategory =
     (location.state as { category?: CategoryParentResponse } | undefined)
@@ -75,6 +79,9 @@ const AdminProductsCategoryDetail: React.FC = () => {
   const [uploadingImageFor, setUploadingImageFor] = useState<number | null>(
     null
   );
+  const [newCategoryImagePreview, setNewCategoryImagePreview] = useState<string | null>(null);
+  const [newCategoryImageFile, setNewCategoryImageFile] = useState<File | null>(null);
+  const [isUploadingNewImage, setIsUploadingNewImage] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [pendingCategoryId, setPendingCategoryId] = useState<number | null>(
@@ -100,6 +107,17 @@ const AdminProductsCategoryDetail: React.FC = () => {
     staleTime: 60_000,
     enabled: isParentIdValid,
   });
+
+  const resolveImageUrl = (url?: string | null) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+      return url;
+    }
+    if (url.startsWith("/")) {
+      return `${BASE_URL}${url}`;
+    }
+    return `${BASE_URL}/${url}`;
+  };
 
   const categories = data?.categoryChildResponseList ?? [];
   const totalPages = Math.max(1, data?.totalPages ?? 1);
@@ -156,6 +174,7 @@ const AdminProductsCategoryDetail: React.FC = () => {
       });
       setShowAddCategoryModal(false);
       setNewCategoryName("");
+      resetNewCategoryImage();
     },
     onError: (err) => {
       toast.error(getErrorMessage(err));
@@ -183,10 +202,27 @@ const AdminProductsCategoryDetail: React.FC = () => {
     },
   });
 
+  const deleteCategoriesMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await Promise.all(ids.map((id) => deleteCategory(id)));
+    },
+    onSuccess: (_res, ids) => {
+      toast.success(`Đã xoá ${ids.length} danh mục con`);
+      setSelectedCategories([]);
+      queryClient.invalidateQueries({
+        queryKey: ["category-child", parentCategoryId],
+      });
+    },
+    onError: (err) => {
+      toast.error(getErrorMessage(err));
+    },
+  });
+
   const isMutating =
     updateCategoryMutation.isPending ||
     createCategoryMutation.isPending ||
-    bulkStatusMutation.isPending;
+    bulkStatusMutation.isPending ||
+    deleteCategoriesMutation.isPending;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -258,14 +294,24 @@ const AdminProductsCategoryDetail: React.FC = () => {
     setEditingName("");
   };
 
+  const resetNewCategoryImage = () => {
+    if (newCategoryImagePreview) {
+      URL.revokeObjectURL(newCategoryImagePreview);
+    }
+    setNewCategoryImagePreview(null);
+    setNewCategoryImageFile(null);
+  };
+
   const handleAddCategory = () => {
     setShowAddCategoryModal(true);
     setNewCategoryName("");
+    resetNewCategoryImage();
   };
 
   const handleCloseAddModal = () => {
     setShowAddCategoryModal(false);
     setNewCategoryName("");
+    resetNewCategoryImage();
   };
 
   const handleConfirmAddCategory = async () => {
@@ -277,18 +323,28 @@ const AdminProductsCategoryDetail: React.FC = () => {
     }
     setIsAddingCategory(true);
     try {
+      let imageUrl: string | undefined;
+      if (newCategoryImageFile) {
+        setIsUploadingNewImage(true);
+        imageUrl = await uploadFile(newCategoryImageFile, "categories");
+      }
       await createCategoryMutation.mutateAsync({
         name: trimmed,
         parentId: parentCategoryId,
+        imageUrl,
       });
     } finally {
+      setIsUploadingNewImage(false);
       setIsAddingCategory(false);
     }
   };
 
-  const handleViewChildDetails = (childId: number) => {
+  const handleViewChildDetails = (child: CategoryChildResponse) => {
     navigate(
-      `/admin/products/categories/${parentCategoryId}/subcategories/${childId}`
+      `/admin/products/categories/${parentCategoryId}/subcategories/${child.id}`,
+      {
+        state: { parentCategory, childCategory: child },
+      }
     );
   };
 
@@ -297,12 +353,56 @@ const AdminProductsCategoryDetail: React.FC = () => {
     await bulkStatusMutation.mutateAsync({ ids: selectedCategories, status });
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedCategories.length === 0) return;
+    const confirmed = window.confirm(
+      `Bạn có chắc muốn xoá ${selectedCategories.length} danh mục con đã chọn?`
+    );
+    if (!confirmed) return;
+    await deleteCategoriesMutation.mutateAsync(selectedCategories);
+  };
   const handleImageClick = (categoryId: number) => {
     setUploadingImageFor(categoryId);
     fileInputRef.current?.click();
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewCategoryImageClick = () => {
+    newChildImageInputRef.current?.click();
+  };
+
+  const handleNewCategoryImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(`${file.name} vượt quá dung lượng 2MB`);
+      event.target.value = "";
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error(`${file.name} không phải là file hình ảnh`);
+      event.target.value = "";
+      return;
+    }
+
+    resetNewCategoryImage();
+    const previewUrl = URL.createObjectURL(file);
+    setNewCategoryImagePreview(previewUrl);
+    setNewCategoryImageFile(file);
+    event.target.value = "";
+  };
+
+  const uploadCategoryImage = async (file: File) => {
+    try {
+      return await uploadFile(file, "categories");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+      throw err;
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || uploadingImageFor === null) return;
 
@@ -318,19 +418,16 @@ const AdminProductsCategoryDetail: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const result = e.target?.result;
-      if (typeof result !== "string") return;
       const target = categories.find((cat) => cat.id === uploadingImageFor);
       if (!target) return;
       setPendingCategoryId(target.id);
       try {
+      const imageUrl = await uploadCategoryImage(file);
         await updateCategoryMutation.mutateAsync({
           payload: {
             id: target.id,
             name: target.name,
-            imageUrl: result,
+          imageUrl,
           },
           status: target.status,
           successMessage: "Đã cập nhật hình ảnh danh mục con",
@@ -338,10 +435,8 @@ const AdminProductsCategoryDetail: React.FC = () => {
       } finally {
         setPendingCategoryId(null);
         setUploadingImageFor(null);
+      event.target.value = "";
       }
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
   };
 
   const handlePrevPage = () => {
@@ -447,6 +542,14 @@ const AdminProductsCategoryDetail: React.FC = () => {
                     >
                       Ngừng kích hoạt
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={handleBulkDelete}
+                      disabled={deleteCategoriesMutation.isPending}
+                    >
+                      Xoá
+                    </Button>
                   </div>
                 )}
               </div>
@@ -506,9 +609,25 @@ const AdminProductsCategoryDetail: React.FC = () => {
                       }`}
                       onClick={() => handleImageClick(category.id)}
                     >
+                      {category.imageUrl && (
+                        <button
+                          type="button"
+                          className="absolute top-1 right-1 z-10 w-5 h-5 flex items-center justify-center bg-white/80 hover:bg-white text-[#272424] rounded-full shadow transition"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveImage(category);
+                          }}
+                          disabled={
+                            pendingCategoryId === category.id ||
+                            updateCategoryMutation.isPending
+                          }
+                        >
+                          ×
+                        </button>
+                      )}
                       {category.imageUrl ? (
                         <img
-                          src={category.imageUrl}
+                          src={resolveImageUrl(category.imageUrl)}
                           alt={category.name}
                           className="w-full h-full object-cover rounded-[8px]"
                         />
@@ -615,7 +734,7 @@ const AdminProductsCategoryDetail: React.FC = () => {
                       disabled={isMutating || pendingCategoryId === category.id}
                     />
                     <button
-                      onClick={() => handleViewChildDetails(category.id)}
+                      onClick={() => handleViewChildDetails(category)}
                       className="font-bold text-[14px] text-[#1a71f6] leading-[1.5] hover:opacity-70 transition-opacity whitespace-nowrap justify-self-end"
                     >
                       Xem chi tiết
@@ -704,6 +823,13 @@ const AdminProductsCategoryDetail: React.FC = () => {
         onChange={handleImageUpload}
         className="hidden"
       />
+      <input
+        ref={newChildImageInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleNewCategoryImageUpload}
+        className="hidden"
+      />
 
       {showAddCategoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -741,6 +867,40 @@ const AdminProductsCategoryDetail: React.FC = () => {
               />
             </div>
 
+            <div className="flex flex-col gap-2 items-start justify-center px-3">
+              <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                Hình ảnh (tuỳ chọn)
+              </label>
+              <div
+                className={`w-[120px] h-[120px] rounded-[12px] flex items-center justify-center cursor-pointer ${
+                  newCategoryImagePreview
+                    ? "border border-transparent"
+                    : "bg-[#ffeeea] border-2 border-dashed border-[#e04d30]"
+                }`}
+                onClick={handleNewCategoryImageClick}
+              >
+                {newCategoryImagePreview ? (
+                  <img
+                    src={newCategoryImagePreview}
+                    alt="New subcategory"
+                    className="w-full h-full object-cover rounded-[12px]"
+                  />
+                ) : (
+                  <Icon name="image" size={32} color="#e04d30" />
+                )}
+              </div>
+              {newCategoryImagePreview && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="px-0 text-[#e04d30]"
+                  onClick={resetNewCategoryImage}
+                >
+                  Xoá hình ảnh
+                </Button>
+              )}
+            </div>
+
             <div className="flex gap-[10px] items-center justify-end px-3">
               <Button variant="secondary" onClick={handleCloseAddModal}>
                 Huỷ
@@ -748,9 +908,17 @@ const AdminProductsCategoryDetail: React.FC = () => {
               <Button
                 type="button"
                 onClick={handleConfirmAddCategory}
-                disabled={isAddingCategory || createCategoryMutation.isPending}
+                disabled={
+                  isAddingCategory ||
+                  createCategoryMutation.isPending ||
+                  isUploadingNewImage
+                }
               >
-                {createCategoryMutation.isPending ? "Đang tạo..." : "Xác nhận"}
+                {isUploadingNewImage
+                  ? "Đang tải ảnh..."
+                  : createCategoryMutation.isPending
+                    ? "Đang tạo..."
+                    : "Xác nhận"}
               </Button>
             </div>
           </div>

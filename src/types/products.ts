@@ -9,6 +9,7 @@ export interface ProductResponse {
   categoryId: number;
   createdAt: string;
   updatedAt: string;
+  imageUrl?: string | null;
 }
 
 export interface VariantResponse {

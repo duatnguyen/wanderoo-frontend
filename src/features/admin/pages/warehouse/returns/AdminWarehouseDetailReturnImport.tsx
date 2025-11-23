@@ -97,7 +97,7 @@ const mockReturnDetailCompleted: ReturnImportDetail = {
 };
 
 const AdminWarehouseDetailReturnImport: React.FC = () => {
-  document.title = "Chi tiết đơn trả hàng nhập | Wanderoo";
+  document.title = "Chi tiết đơn xuất hàng | Wanderoo";
 
   const navigate = useNavigate();
   const { returnId } = useParams<{ returnId: string }>();

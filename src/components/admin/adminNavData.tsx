@@ -397,10 +397,10 @@ export const adminNavSections: AdminNavSection[] = [
             activeMatch: "/admin/warehouse/imports",
           },
           {
-            label: "Trả hàng nhập",
-            path: "/admin/warehouse/returnsimport",
+            label: "Xuất hàng",
+            path: "/admin/warehouse/exports",
             icon: icons.warehouse,
-            activeMatch: "/admin/warehouse/returnsimport",
+            activeMatch: "/admin/warehouse/exports",
           },
           {
             label: "Nhà cung cấp",
