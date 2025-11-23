@@ -124,6 +124,7 @@ export interface InvoiceDetailCartItemResponse {
 export interface InvoiceDetailResponse {
   id: number;
   updatedAt: string;
+  invoiceType: string;
   cartItem: InvoiceDetailCartItemResponse[];
   code: string;
   status: string;

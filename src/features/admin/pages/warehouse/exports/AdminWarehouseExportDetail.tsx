@@ -10,9 +10,9 @@ import { toast } from "sonner";
 import { FormInput } from "@/components/ui/form-input";
 import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 
-const AdminWarehouseImportDetail: React.FC = () => {
+const AdminWarehouseExportDetail: React.FC = () => {
   const navigate = useNavigate();
-  const { importId } = useParams<{ importId: string }>();
+  const { exportId } = useParams<{ exportId: string }>();
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
   // Fetch invoice detail from API
   useEffect(() => {
     const fetchInvoiceDetail = async () => {
-      if (!importId) {
+      if (!exportId) {
         setError("Không tìm thấy mã đơn hàng");
         setLoading(false);
         return;
@@ -41,7 +41,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
 
       try {
         setLoading(true);
-        const invoiceId = parseInt(importId, 10);
+        const invoiceId = parseInt(exportId, 10);
         if (isNaN(invoiceId)) {
           setError("Mã đơn hàng không hợp lệ");
           setLoading(false);
@@ -61,7 +61,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
     };
 
     fetchInvoiceDetail();
-  }, [importId]);
+  }, [exportId]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -110,7 +110,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <p className="text-red-500 text-lg">{error || "Không tìm thấy thông tin đơn hàng"}</p>
-        <Button onClick={() => navigate("/admin/warehouse/imports")} variant="secondary">
+        <Button onClick={() => navigate("/admin/warehouse/exports")} variant="secondary">
           Quay lại
         </Button>
       </div>
@@ -124,9 +124,9 @@ const AdminWarehouseImportDetail: React.FC = () => {
   const isCompleted = invoiceStatus === "Hoàn thành" || invoiceStatus === "DONE";
   
   // Map productStatus: Use the exact text from API
-  // API returns: "Đã nhập kho" or "Chưa nhập kho" (or similar Vietnamese text)
+  // API returns: "Đã xuất kho" or "Chưa xuất kho" (or similar Vietnamese text)
   const productStatus = invoiceDetail.productStatus || "";
-  const isImported = productStatus === "Đã nhập kho" || productStatus === "DONE";
+  const isExported = productStatus === "Đã xuất kho" || productStatus === "DONE";
   
   // Map paymentStatus: Use the exact text from API
   // API returns: "Đã thanh toán" or "Chưa thanh toán" (or similar Vietnamese text)
@@ -143,16 +143,16 @@ const AdminWarehouseImportDetail: React.FC = () => {
 
   // Get product status text and icon - use exact text from API
   const getProductStatusDisplay = () => {
-    // If API returns "Đã nhập kho", show with checkmark
-    if (isImported) {
+    // If API returns "Đã xuất kho", show with checkmark
+    if (isExported) {
       return {
-        text: productStatus || "Đã nhập kho",
+        text: productStatus || "Đã xuất kho",
         icon: <CheckCircle2 className="w-10 h-10 text-[#04910C]" />
       };
     }
-    // Otherwise show "Chưa nhập kho" with square
+    // Otherwise show "Chưa xuất kho" with square
     return {
-      text: productStatus || "Chưa nhập kho",
+      text: productStatus || "Chưa xuất kho",
       icon: <Square className="w-10 h-10 text-[#D1D1D1]" />
     };
   };
@@ -173,22 +173,22 @@ const AdminWarehouseImportDetail: React.FC = () => {
     };
   };
 
-  // Handle confirm import
-  const handleConfirmImport = async () => {
+  // Handle confirm export
+  const handleConfirmExport = async () => {
     if (!invoiceDetail) return;
 
     try {
       setIsConfirming(true);
       const updatedInvoice = await confirmInvoiceProductStatus(invoiceDetail.id);
       setInvoiceDetail(updatedInvoice);
-      toast.success("Xác nhận nhập kho thành công");
+      toast.success("Xác nhận xuất kho thành công");
     } catch (err: any) {
-      console.error("Error confirming import:", err);
+      console.error("Error confirming export:", err);
       console.error("Error response:", err?.response);
       console.error("Error response data:", err?.response?.data);
       
       // Extract error message from various possible response structures
-      let errorMessage = "Không thể xác nhận nhập kho";
+      let errorMessage = "Không thể xác nhận xuất kho";
       
       // Backend trả về ApiResponse với structure: { status, message, data }
       if (err?.response?.data?.message) {
@@ -332,7 +332,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
           variant="ghost"
           size="sm"
           className="p-0 w-6 h-6 cursor-pointer"
-          onClick={() => navigate("/admin/warehouse/imports")}
+          onClick={() => navigate("/admin/warehouse/exports")}
         >
           <ArrowLeft className="h-4 w-4 text-[#454545]" />
         </Button>
@@ -407,15 +407,15 @@ const AdminWarehouseImportDetail: React.FC = () => {
           </div>
         )}
 
-        {/* Confirm import button - only show when not imported */}
-        {!isImported && (
+        {/* Confirm export button - only show when not exported */}
+        {!isExported && (
           <div className="px-[14px] py-3 flex justify-end border-t border-[#D1D1D1]">
             <Button 
-              onClick={handleConfirmImport}
+              onClick={handleConfirmExport}
               disabled={isConfirming}
               className="bg-[#e04d30] hover:bg-[#c93e26] text-white disabled:opacity-50"
             >
-              {isConfirming ? "Đang xử lý..." : "Nhập kho"}
+              {isConfirming ? "Đang xử lý..." : "Xuất kho"}
             </Button>
           </div>
         )}
@@ -447,7 +447,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
         {/* Payment details */}
         <div className="grid grid-cols-[1fr_1fr] border-b border-[#D1D1D1] items-center">
           <div className="px-[14px] py-3 text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px]">
-            Tiền cần trả nhà cung cấp
+            Tổng tiền phải thu
           </div>
           <div className="px-[14px] py-3 text-[#272424] text-[16px] font-[600] font-montserrat leading-[22.40px] text-right">
             {formatCurrency(totals.value)}
@@ -649,5 +649,5 @@ const AdminWarehouseImportDetail: React.FC = () => {
   );
 };
 
-export default AdminWarehouseImportDetail;
+export default AdminWarehouseExportDetail;
 
