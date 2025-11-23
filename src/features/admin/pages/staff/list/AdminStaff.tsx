@@ -213,7 +213,7 @@ const AdminStaff: React.FC = () => {
       {/* Store Owner Header */}
       <div className="bg-white border border-[#b0b0b0] flex flex-col gap-[8px] items-start justify-center px-[24px] py-[20px] rounded-[24px] w-full">
         <h1 className="font-bold text-[#272424] text-[20px] leading-normal">
-          Tài khoản chủ cửa hàng
+          Tài khoản của bạn
         </h1>
         {isLoadingAdminProfile ? (
           <div className="flex items-center justify-center w-full py-4">
