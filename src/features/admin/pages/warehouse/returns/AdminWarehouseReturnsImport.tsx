@@ -33,7 +33,7 @@ interface ReturnImport {
 }
 
 const AdminWarehouseReturnsImport = () => {
-  document.title = "Trả hàng nhập | Wanderoo";
+  document.title = "Xuất hàng | Wanderoo";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -95,8 +95,8 @@ const AdminWarehouseReturnsImport = () => {
       setTotalElements(response.totalElements);
     } catch (err) {
       console.error("Error fetching return imports:", err);
-      setError("Không thể tải danh sách đơn trả hàng nhập. Vui lòng thử lại.");
-      toast.error("Không thể tải danh sách đơn trả hàng nhập");
+      setError("Không thể tải danh sách đơn xuất hàng. Vui lòng thử lại.");
+      toast.error("Không thể tải danh sách đơn xuất hàng");
     } finally {
       setLoading(false);
     }
@@ -180,13 +180,13 @@ const AdminWarehouseReturnsImport = () => {
     <PageContainer>
       {/* Page Header */}
       <PageHeader
-        title="Danh sách đơn trả hàng nhập"
+        title="Danh sách đơn xuất hàng"
         actions={
           <Button
             onClick={() => setIsModalOpen(true)}
             className="w-full sm:w-auto"
           >
-            Tạo đơn trả hàng nhập
+            Tạo đơn xuất hàng
           </Button>
         }
       />
@@ -206,14 +206,14 @@ const AdminWarehouseReturnsImport = () => {
           /* Empty State */
           <div className="flex-1 flex flex-col items-center justify-center w-full py-20">
             <div className="text-[#272424] text-[16px] font-medium text-center mb-6">
-              Cửa hàng của bạn chưa có đơn trả hàng nhập nào
+              Cửa hàng của bạn chưa có đơn xuất hàng nào
             </div>
             <Button
               onClick={() => setIsModalOpen(true)}
               className="bg-[#e04d30] hover:bg-[#c03d26] text-white px-6 py-2 rounded-lg flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
-              Tạo đơn trả hàng nhập
+              Tạo đơn xuất hàng
             </Button>
           </div>
         ) : (
@@ -248,7 +248,7 @@ const AdminWarehouseReturnsImport = () => {
                   <div className="hidden lg:grid grid-cols-[100px_120px_120px_120px_120px_150px_120px_80px_80px] gap-2 px-4 py-3 items-center min-w-[1100px]">
                     <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
-                        Mã đơn trả
+                        Mã đơn xuất
                       </span>
                     </div>
                     <div className="text-center">
@@ -283,7 +283,7 @@ const AdminWarehouseReturnsImport = () => {
                     </div>
                     <div className="text-center">
                       <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
-                        SL trả
+                        SL xuất
                       </span>
                     </div>
                     <div className="text-center">
@@ -430,7 +430,7 @@ const AdminWarehouseReturnsImport = () => {
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-[#D1D1D1]">
                 <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
-                  Tạo đơn trả hàng nhập
+                  Tạo đơn xuất hàng
                 </h2>
               </div>
 
@@ -499,7 +499,7 @@ const AdminWarehouseReturnsImport = () => {
                         </div>
                           <div className="w-[120px] text-center">
                           <span className="text-[#1a71f6] hover:underline cursor-pointer">
-                            Trả hàng
+                            Xuất hàng
                           </span>
                         </div>
                       </div>

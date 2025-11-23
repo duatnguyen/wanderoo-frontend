@@ -7,6 +7,8 @@ export type ChipStatusKey =
   | "completed"
   | "not_imported"
   | "imported"
+  | "not_exported"
+  | "exported"
   | "paid"
   | "unpaid"
   | "cash"
@@ -42,6 +44,9 @@ const CHIP_STYLES: Record<
   processing: { bg: "#cce5ff", text: "#004085", label: "Đang giao dịch" },
   not_imported: { bg: "#ffdcdc", text: "#eb2b0b", label: "Chưa nhập" },
   imported: { bg: "#b2ffb4", text: "#04910c", label: "Đã nhập" },
+  // Warehouse/export statuses
+  not_exported: { bg: "#ffdcdc", text: "#eb2b0b", label: "Chưa xuất" },
+  exported: { bg: "#b2ffb4", text: "#04910c", label: "Đã xuất" },
   active: { bg: "#b2ffb4", text: "#04910c", label: "Đang kích hoạt" },
   disabled: { bg: "#ffdcdc", text: "#eb2b0b", label: "Đã khóa" },
   default: { bg: "#f1f5f9", text: "#0f172a", label: "Trạng thái" },

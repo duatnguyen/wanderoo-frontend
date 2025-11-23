@@ -19,19 +19,19 @@ import {
   TableFilters,
 } from "@/components/common";
 import {
-  getImportInvoices,
-  getImportInvoicesPending,
-  getImportInvoicesDone,
+  getExportInvoices,
+  getExportInvoicesPending,
+  getExportInvoicesDone,
 } from "@/api/endpoints/warehouseApi";
 import type { InvoiceResponse } from "@/types/warehouse";
 
-interface WarehouseImport {
+interface WarehouseExport {
   id: string;
-  importCode: string;
+  exportCode: string;
   createdDate: string;
   paymentMethod: "cash" | "transfer";
   status: "processing" | "completed";
-  importStatus: "not_imported" | "imported";
+  exportStatus: "not_exported" | "exported";
   paymentStatus: "paid" | "unpaid";
   supplier: string;
   createdBy: string;
@@ -39,11 +39,11 @@ interface WarehouseImport {
   totalValue: number;
 }
 
-const AdminWarehouseImports = () => {
+const AdminWarehouseExports = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [importsData, setImportsData] = useState<WarehouseImport[]>([]);
+  const [exportsData, setExportsData] = useState<WarehouseExport[]>([]);
   const [selectedStatus, setSelectedStatus] = useState("Tất cả trạng thái");
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
@@ -51,17 +51,17 @@ const AdminWarehouseImports = () => {
 
   // Set document title
   useEffect(() => {
-    document.title = "Nhập hàng | Wanderoo";
+    document.title = "Xuất hàng | Wanderoo";
   }, []);
 
-  // Map InvoiceResponse to WarehouseImport
-  const mapInvoiceToWarehouseImport = (invoice: InvoiceResponse): WarehouseImport => {
+  // Map InvoiceResponse to WarehouseExport
+  const mapInvoiceToWarehouseExport = (invoice: InvoiceResponse): WarehouseExport => {
     
     // Map status: DONE -> completed, PENDING -> processing
     const status = invoice.status === "DONE" ? "completed" : "processing";
     
-    // Map productStatus: DONE -> imported, PENDING -> not_imported
-    const importStatus = invoice.productStatus === "DONE" ? "imported" : "not_imported";
+    // Map productStatus: DONE -> exported, PENDING -> not_exported
+    const exportStatus = invoice.productStatus === "DONE" ? "exported" : "not_exported";
     
     // Map paymentStatus: DONE -> paid, PENDING -> unpaid
     const paymentStatus = invoice.paymentStatus === "DONE" ? "paid" : "unpaid";
@@ -71,7 +71,7 @@ const AdminWarehouseImports = () => {
                          invoice.method === "BANKING" ? "transfer" : "cash";
 
     // Hiển thị code trực tiếp từ backend (không convert) - hiển thị đúng string backend trả về
-    const importCode = invoice.code || "";
+    const exportCode = invoice.code || "";
 
     // Format date: parse and format createdAt properly
     // Backend returns date as string like "2025-11-13 05:31:21" or ISO string
@@ -117,11 +117,11 @@ const AdminWarehouseImports = () => {
 
     return {
       id: invoice.id ? invoice.id.toString() : "",
-      importCode,
+      exportCode,
       createdDate,
       paymentMethod,
       status,
-      importStatus,
+      exportStatus,
       paymentStatus,
       supplier,
       createdBy,
@@ -146,70 +146,77 @@ const AdminWarehouseImports = () => {
 
         // Map selectedStatus to API call
         if (selectedStatus === "Đang giao dịch") {
-          response = await getImportInvoicesPending(keyword, undefined, page, size);
+          response = await getExportInvoicesPending(keyword, undefined, page, size);
         } else if (selectedStatus === "Đã hoàn thành") {
-          response = await getImportInvoicesDone(keyword, undefined, page, size);
+          response = await getExportInvoicesDone(keyword, undefined, page, size);
         } else {
           // For statuses that need client-side filtering, fetch all first
           // Then filter based on selectedStatus
-          if (selectedStatus === "Chưa nhập" || selectedStatus === "Đã nhập" || 
+          if (selectedStatus === "Chưa xuất" || selectedStatus === "Đã xuất" || 
               selectedStatus === "Chưa thanh toán" || selectedStatus === "Đã thanh toán") {
             // Fetch all invoices to filter client-side (with reasonable limit)
-            response = await getImportInvoices(keyword, undefined, 0, 500); // Limit to 500 for performance
+            response = await getExportInvoices(keyword, undefined, 0, 500); // Limit to 500 for performance
             
             // Map and filter in one pass for better performance
-            const mappedInvoices = response.invoices.map(mapInvoiceToWarehouseImport);
+            const mappedExports = response.invoices.map(mapInvoiceToWarehouseExport);
             
             // Filter based on selectedStatus
-            let filteredInvoices: WarehouseImport[];
-            if (selectedStatus === "Chưa nhập") {
-              filteredInvoices = mappedInvoices.filter(item => item.importStatus === "not_imported");
-            } else if (selectedStatus === "Đã nhập") {
-              filteredInvoices = mappedInvoices.filter(item => item.importStatus === "imported");
+            let filteredExports: WarehouseExport[];
+            if (selectedStatus === "Chưa xuất") {
+              filteredExports = mappedExports.filter(item => item.exportStatus === "not_exported");
+            } else if (selectedStatus === "Đã xuất") {
+              filteredExports = mappedExports.filter(item => item.exportStatus === "exported");
             } else if (selectedStatus === "Chưa thanh toán") {
-              filteredInvoices = mappedInvoices.filter(item => item.paymentStatus === "unpaid");
+              filteredExports = mappedExports.filter(item => item.paymentStatus === "unpaid");
             } else {
-              filteredInvoices = mappedInvoices.filter(item => item.paymentStatus === "paid");
+              filteredExports = mappedExports.filter(item => item.paymentStatus === "paid");
             }
             
             // Apply pagination manually
             const startIndex = page * size;
             const endIndex = startIndex + size;
-            const paginatedData = filteredInvoices.slice(startIndex, endIndex);
+            const paginatedData = filteredExports.slice(startIndex, endIndex);
             
             if (isMounted) {
-              setImportsData(paginatedData);
-              setTotalPages(Math.ceil(filteredInvoices.length / size));
-              setTotalElements(filteredInvoices.length);
+              setExportsData(paginatedData);
+              setTotalPages(Math.ceil(filteredExports.length / size));
+              setTotalElements(filteredExports.length);
             }
             return;
           } else {
             // "Tất cả trạng thái" - use all invoices
-            response = await getImportInvoices(keyword, undefined, page, size);
+            response = await getExportInvoices(keyword, undefined, page, size);
           }
         }
 
         if (!response || !response.invoices) {
           console.error("Invalid response structure:", response);
           if (isMounted) {
-            setImportsData([]);
+            setExportsData([]);
             setTotalPages(0);
             setTotalElements(0);
           }
           return;
         }
 
-        const mappedImports = response.invoices.map(mapInvoiceToWarehouseImport);
+        console.log("Export API Response:", response);
+        console.log("Export invoices count:", response.invoices?.length);
+        console.log("First export invoice:", response.invoices?.[0]);
+
+        const mappedExports = response.invoices.map(mapInvoiceToWarehouseExport);
+        
+        console.log("Mapped exports:", mappedExports);
+        console.log("First mapped export:", mappedExports[0]);
         
         if (isMounted) {
-          setImportsData(mappedImports);
+          setExportsData(mappedExports);
           setTotalPages(response.totalPages || 1);
           setTotalElements(response.totalElements || 0);
         }
       } catch (error) {
-        console.error("Error fetching import invoices:", error);
+        console.error("Error fetching export invoices:", error);
         if (isMounted) {
-          setImportsData([]);
+          setExportsData([]);
           setTotalPages(0);
           setTotalElements(0);
         }
@@ -228,23 +235,23 @@ const AdminWarehouseImports = () => {
   }, [selectedStatus, currentPage, searchTerm]);
 
   // Data is already filtered and paginated by the API
-  const paginatedImports = importsData;
+  const paginatedExports = exportsData;
 
-  const getStatusChip = (status: WarehouseImport["status"]) => {
+  const getStatusChip = (status: WarehouseExport["status"]) => {
     if (status === "processing" || status === "completed") {
       return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
     return null;
   };
 
-  const getImportStatusChip = (status: WarehouseImport["importStatus"]) => {
-    if (status === "not_imported" || status === "imported") {
+  const getExportStatusChip = (status: WarehouseExport["exportStatus"]) => {
+    if (status === "not_exported" || status === "exported") {
       return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
     return null;
   };
 
-  const getPaymentStatusChip = (status: WarehouseImport["paymentStatus"]) => {
+  const getPaymentStatusChip = (status: WarehouseExport["paymentStatus"]) => {
     if (status === "paid" || status === "unpaid") {
       return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
@@ -305,15 +312,15 @@ const AdminWarehouseImports = () => {
     <PageContainer>
       {/* Page Header */}
       <PageHeader 
-        title="Nhập hàng"
+        title="Xuất hàng"
         actions={
           <Button
             variant={"default"}
             className="h-[36px]"
-            onClick={() => navigate("/admin/warehouse/imports/create")}
+            onClick={() => navigate("/admin/warehouse/exports/create")}
           >
             <Icon name="plus" size={16} color="#ffffff" strokeWidth={3} />
-            <span>Tạo đơn nhập hàng</span>
+            <span>Tạo đơn xuất hàng</span>
           </Button>
         }
       />
@@ -361,19 +368,19 @@ const AdminWarehouseImports = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
-                    setSelectedStatus("Chưa nhập");
+                    setSelectedStatus("Chưa xuất");
                     setCurrentPage(1);
                   }}
                 >
-                  Chưa nhập
+                  Chưa xuất
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => {
-                    setSelectedStatus("Đã nhập");
+                    setSelectedStatus("Đã xuất");
                     setCurrentPage(1);
                   }}
                 >
-                  Đã nhập
+                  Đã xuất
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -418,7 +425,7 @@ const AdminWarehouseImports = () => {
               </div>
               <div className="col-span-1 text-center">
                 <span className="font-semibold text-[#272424] text-[12px] leading-[1.4]">
-                  TT Nhập
+                  TT Xuất
                 </span>
               </div>
               <div className="col-span-1 text-center">
@@ -455,15 +462,15 @@ const AdminWarehouseImports = () => {
               <div className="flex justify-center items-center py-10">
                 <span className="text-[#272424] text-[14px]">Đang tải...</span>
               </div>
-            ) : paginatedImports.length === 0 ? (
+            ) : paginatedExports.length === 0 ? (
               <div className="flex justify-center items-center py-10">
                 <span className="text-[#272424] text-[14px]">Không có dữ liệu</span>
               </div>
             ) : (
-              paginatedImports.map((importItem, index) => (
+              paginatedExports.map((exportItem, index) => (
               <div
-                key={importItem.id}
-                className={`border-b border-[#e7e7e7] hover:bg-gray-50 ${index === paginatedImports.length - 1 ? "border-b-0 rounded-bl-[16px] rounded-br-[16px]" : ""}`}
+                key={exportItem.id}
+                className={`border-b border-[#e7e7e7] hover:bg-gray-50 ${index === paginatedExports.length - 1 ? "border-b-0 rounded-bl-[16px] rounded-br-[16px]" : ""}`}
               >
                 {/* Desktop Layout */}
                 <div className="hidden lg:grid grid-cols-11 gap-2 px-4 py-4 items-center">
@@ -471,50 +478,50 @@ const AdminWarehouseImports = () => {
                     <span
                       className="font-semibold text-[12px] text-[#1a71f6] cursor-pointer hover:underline"
                       onClick={() =>
-                        navigate(`/admin/warehouse/imports/${importItem.id}`)
+                        navigate(`/admin/warehouse/exports/${exportItem.id}`)
                       }
                     >
-                      {importItem.importCode}
+                      {exportItem.exportCode}
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
                     <span className="font-medium text-[#272424] text-[12px]">
-                      {formatDate(importItem.createdDate)}
+                      {formatDate(exportItem.createdDate)}
                     </span>
                   </div>
                   <div className="col-span-1 flex justify-center">
-                    {getStatusChip(importItem.status)}
+                    {getStatusChip(exportItem.status)}
                   </div>
                   <div className="col-span-1 flex justify-center">
-                    {getImportStatusChip(importItem.importStatus)}
+                    {getExportStatusChip(exportItem.exportStatus)}
                   </div>
                   <div className="col-span-1 flex justify-center">
-                    {getPaymentStatusChip(importItem.paymentStatus)}
+                    {getPaymentStatusChip(exportItem.paymentStatus)}
                   </div>
                   <div className="col-span-2 text-center">
                     <span
                       className="font-medium text-[#272424] text-[12px] truncate block"
-                      title={importItem.supplier}
+                      title={exportItem.supplier}
                     >
-                      {importItem.supplier}
+                      {exportItem.supplier}
                     </span>
                   </div>
                   <div className="col-span-2 text-center">
                     <span
                       className="font-medium text-[#272424] text-[12px] truncate block"
-                      title={importItem.createdBy}
+                      title={exportItem.createdBy}
                     >
-                      {importItem.createdBy}
+                      {exportItem.createdBy}
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
                     <span className="font-medium text-[#272424] text-[12px]">
-                      {importItem.totalItems}
+                      {exportItem.totalItems}
                     </span>
                   </div>
                   <div className="col-span-1 text-center">
                     <span className="font-medium text-[#272424] text-[12px]">
-                      {formatPrice(importItem.totalValue)}
+                      {formatPrice(exportItem.totalValue)}
                     </span>
                   </div>
                 </div>
@@ -526,18 +533,18 @@ const AdminWarehouseImports = () => {
                       <span
                         className="font-semibold text-[14px] text-[#1a71f6] cursor-pointer hover:underline"
                         onClick={() =>
-                          navigate(`/admin/warehouse/imports/${importItem.id}`)
+                          navigate(`/admin/warehouse/exports/${exportItem.id}`)
                         }
                       >
-                        {importItem.importCode}
+                        {exportItem.exportCode}
                       </span>
                       <div className="text-[12px] text-gray-500 mt-1">
-                        {formatDate(importItem.createdDate)}
+                        {formatDate(exportItem.createdDate)}
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      {getStatusChip(importItem.status)}
-                      {getImportStatusChip(importItem.importStatus)}
+                      {getStatusChip(exportItem.status)}
+                      {getExportStatusChip(exportItem.exportStatus)}
                     </div>
                   </div>
 
@@ -546,28 +553,28 @@ const AdminWarehouseImports = () => {
                       <span className="text-gray-600">Nhà cung cấp:</span>
                       <span
                         className="font-medium text-right max-w-[60%] truncate"
-                        title={importItem.supplier}
+                        title={exportItem.supplier}
                       >
-                        {importItem.supplier}
+                        {exportItem.supplier}
                       </span>
                     </div>
                     <div className="flex justify-between text-[12px]">
                       <span className="text-gray-600">Người tạo:</span>
                       <span className="font-medium">
-                        {importItem.createdBy}
+                        {exportItem.createdBy}
                       </span>
                     </div>
                     <div className="flex justify-between text-[11px]">
                       <span className="text-gray-600">SL / Giá trị:</span>
                       <span className="font-medium">
-                        {importItem.totalItems} / {formatPrice(importItem.totalValue)}
+                        {exportItem.totalItems} / {formatPrice(exportItem.totalValue)}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex justify-between items-center pt-2">
                     <div className="flex gap-2">
-                      {getPaymentStatusChip(importItem.paymentStatus)}
+                      {getPaymentStatusChip(exportItem.paymentStatus)}
                     </div>
                   </div>
                 </div>
@@ -593,4 +600,5 @@ const AdminWarehouseImports = () => {
   );
 };
 
-export default AdminWarehouseImports;
+export default AdminWarehouseExports;
+

@@ -102,9 +102,9 @@ const AdminWarehouseCreateReturnImport = () => {
   // Update document title when importCode is available
   useEffect(() => {
     if (importCode) {
-      document.title = `Tạo đơn trả hàng nhập ${importCode} | Wanderoo`;
+      document.title = `Tạo đơn xuất hàng ${importCode} | Wanderoo`;
     } else {
-      document.title = "Tạo đơn trả hàng nhập | Wanderoo";
+      document.title = "Tạo đơn xuất hàng | Wanderoo";
     }
   }, [importCode]);
 
@@ -231,10 +231,10 @@ const AdminWarehouseCreateReturnImport = () => {
   const isNoteMissing = (note || "").trim().length === 0;
 
   const pageTitle = importCode
-    ? `Tạo đơn trả hàng nhập ${importCode}`
+    ? `Tạo đơn xuất hàng ${importCode}`
     : importId
-    ? `Tạo đơn trả hàng nhập ${importId}`
-    : "Tạo đơn trả hàng nhập";
+    ? `Tạo đơn xuất hàng ${importId}`
+    : "Tạo đơn xuất hàng";
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -290,11 +290,11 @@ const AdminWarehouseCreateReturnImport = () => {
         note: (note || "").trim() || undefined,
       });
 
-      toast.success("Tạo đơn trả hàng nhập thành công");
+      toast.success("Tạo đơn xuất hàng thành công");
       navigate(`/admin/warehouse/returns/${returnInvoiceId}`);
     } catch (err) {
       console.error("Error creating return invoice:", err);
-      toast.error("Không thể tạo đơn trả hàng nhập. Vui lòng thử lại.");
+      toast.error("Không thể tạo đơn xuất hàng. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -391,7 +391,7 @@ const AdminWarehouseCreateReturnImport = () => {
             <button
               onClick={() => navigate("/admin/warehouse/returnsimport")}
               className="relative shrink-0 size-[24px] flex items-center justify-center cursor-pointer"
-              aria-label="Quay lại danh sách trả hàng nhập"
+              aria-label="Quay lại danh sách xuất hàng"
             >
               <div className="flex items-center justify-center">
                 <svg
@@ -430,7 +430,7 @@ const AdminWarehouseCreateReturnImport = () => {
                 disabled={!isFormValid || loading}
                 className="bg-[#e04d30] hover:bg-[#c74429] disabled:bg-[#f0a090] disabled:text-white disabled:cursor-not-allowed rounded-[12px] px-[24px] py-[12px] text-[12px] font-['Inter'] font-bold"
               >
-                {loading ? "Đang tạo..." : "Tạo đơn trả hàng nhập"}
+                {loading ? "Đang tạo..." : "Tạo đơn xuất hàng"}
               </Button>
             </div>
             {!isFormValid && (
