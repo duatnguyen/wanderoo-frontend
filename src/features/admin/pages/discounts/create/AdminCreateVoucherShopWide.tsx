@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
   const [minDateTime] = useState(() => formatDateTimeForInput(new Date().toISOString()));
+  const topElementRef = useRef<HTMLDivElement>(null);
 
   const displaySettingToApplyOn: Record<VoucherFormData["displaySetting"], AdminDiscountCreateRequest["applyOn"]> = {
     pos: "POS",
@@ -153,6 +154,62 @@ const AdminCreateVoucherShopWide: React.FC = () => {
     enabled: Boolean(fetchDiscountId),
     staleTime: 30000,
   });
+
+  // Scroll to top when component mounts or route changes
+  useEffect(() => {
+    const scrollToTop = () => {
+      // Method 1: Scroll window
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      
+      // Method 2: Scroll document elements
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Method 3: Scroll using ref element
+      if (topElementRef.current) {
+        topElementRef.current.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
+      }
+      
+      // Method 4: Scroll main container if it exists
+      const mainContainer = document.querySelector('.w-full.overflow-x-auto.min-h-screen');
+      if (mainContainer) {
+        (mainContainer as HTMLElement).scrollTop = 0;
+        (mainContainer as HTMLElement).scrollLeft = 0;
+      }
+      
+      // Method 5: Scroll to header element
+      const header = document.querySelector('h1.font-montserrat');
+      if (header) {
+        (header as HTMLElement).scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
+      }
+      
+      // Method 6: Try to find and scroll any scrollable parent
+      const scrollableParents = document.querySelectorAll('[style*="overflow"], [class*="overflow"]');
+      scrollableParents.forEach((parent) => {
+        const element = parent as HTMLElement;
+        if (element.scrollTop > 0) {
+          element.scrollTop = 0;
+        }
+      });
+    };
+    
+    // Immediate scroll
+    scrollToTop();
+    // Try multiple times with delays to ensure it works
+    const timeoutId1 = setTimeout(scrollToTop, 0);
+    const timeoutId2 = setTimeout(scrollToTop, 10);
+    const timeoutId3 = setTimeout(scrollToTop, 50);
+    const timeoutId4 = setTimeout(scrollToTop, 100);
+    const timeoutId5 = setTimeout(scrollToTop, 200);
+    
+    return () => {
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
+      clearTimeout(timeoutId3);
+      clearTimeout(timeoutId4);
+      clearTimeout(timeoutId5);
+    };
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (discountDetail) {
@@ -334,7 +391,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
   };
 
   return (
-    <div className="w-full overflow-x-auto min-h-screen">
+    <div className="w-full overflow-x-auto min-h-screen" ref={topElementRef}>
       <div className="flex flex-col gap-[10px] items-start w-full">
         {/* Header with Back Button */}
         <div className="flex flex-col gap-[8px] items-start justify-center w-full">
