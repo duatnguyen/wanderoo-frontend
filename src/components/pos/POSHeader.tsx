@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { POSOrderTabs, type OrderTab } from "./POSOrderTabs";
 import { searchProducts } from "@/api/endpoints/saleApi";
 import { usePOSContext } from "@/context/POSContext";
-import type {SaleProductResponse} from "@/types/api.ts";
+import type { SaleProductResponse } from "@/types/api";
 
 export type { OrderTab };
 
@@ -281,7 +281,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           </div>
 
           {/* Order Tabs - Only on sales page */}
-          <div className="flex-1 min-w-0 max-w-[400px]">
+          <div className="min-w-0 max-w-full w-auto">
             <POSOrderTabs
               orders={orders}
               currentOrderId={currentOrderId || "1"}

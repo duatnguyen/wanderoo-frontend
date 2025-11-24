@@ -34,5 +34,8 @@ export type {
   DiscountTypeValue,
   DiscountCategoryValue,
   ClaimVoucherRequest,
+  BrandResponse,
+  BrandPageResponse,
+  BrandCreateRequest,
+  SellingQuantityRequest,
 } from "./api";
-export type { ProductDetailsResponse, VariantDetailIdResponse } from "./api";

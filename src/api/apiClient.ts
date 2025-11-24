@@ -8,7 +8,7 @@ export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: 300000, // align with -c (5 minutes) to avoid premature timeouts on heavy requests
   headers: {
     'Content-Type': 'application/json',
   },

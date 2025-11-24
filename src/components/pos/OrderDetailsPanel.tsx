@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Pencil, Printer, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
+import { Pencil, Printer, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { POSProduct } from "./POSProductList";
@@ -122,34 +122,13 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
             <div key={product.id} className="flex items-center hover:bg-gray-50 h-[100px]">
               <div className="flex-1 px-6">
                 <div className="flex items-center gap-3">
-                  {/* Product Image or Placeholder */}
-                  <div className="w-16 h-16 rounded-lg border border-[#e7e7e7] flex-shrink-0 flex items-center justify-center bg-[#f6f6f6] overflow-hidden relative">
-                    {product.image ? (
-                      <>
+                  {product.image && (
                     <img
                       src={product.image}
                       alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Hide image and show placeholder on error
-                            const target = e.currentTarget;
-                            target.style.display = "none";
-                            const placeholder = target.parentElement?.querySelector(".image-placeholder");
-                            if (placeholder) {
-                              placeholder.classList.remove("hidden");
-                            }
-                          }}
-                        />
-                        <div className="image-placeholder hidden w-full h-full flex items-center justify-center text-[#737373] absolute inset-0">
-                          <ImageIcon className="w-6 h-6" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#737373]">
-                        <ImageIcon className="w-6 h-6" />
-                      </div>
-                    )}
-                  </div>
+                      className="w-16 h-16 rounded-lg object-cover border border-[#e7e7e7] flex-shrink-0"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#272424] line-clamp-2">
                       {product.name}

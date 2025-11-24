@@ -343,6 +343,7 @@ export interface DraftOrderItemResponse {
   productName: string;
   attributes?: string;
   unitPrice: number;
+  discountedPrice?: number;
   quantity: number;
   amount: number;
 }
@@ -445,15 +446,37 @@ export interface AddressUpdateRequest extends AddressCreationRequest {
   id: number;
 }
 
-export interface ProductCreateRequest {
+export interface ProductAttributeInputRequest {
   name: string;
-  description: string;
-  price: number;
+  values: string[];
+}
+
+export interface ProductCreateRequest {
+  images?: string[];
+  name: string;
   categoryId: number;
+  brandId?: number;
+  description: string;
+  attributes?: ProductAttributeInputRequest[];
+  packagedWeight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  importPrice?: number;
+  sellingPrice?: number;
+  totalQuantity?: number;
+  availableQuantity?: number;
+  price?: number; // legacy field for older forms
 }
 
 export interface ProductUpdateRequest extends ProductCreateRequest {
   id: number;
+}
+
+export interface SellingQuantityRequest {
+  id: number;
+  sellingQuantityWeb: number;
+  sellingQuantityPos: number;
 }
 
 export interface CartItemRequest {
@@ -931,6 +954,26 @@ export interface CategoryChildUpdateRequest {
   imageUrl?: string;
 }
 
+export interface BrandResponse {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  status?: string;
+}
+
+export interface BrandPageResponse extends PageResponse<BrandResponse> {
+  last?: boolean;
+  pageable?: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  brands?: BrandResponse[];
+}
+
+export interface BrandCreateRequest {
+  name: string;
+}
+
 export interface VariantRequest {
   productId: number;
   // Other fields as needed
@@ -943,9 +986,12 @@ export interface VariantDetailIdRequest {
 
 export interface VariantUpdateRequest {
   id: number;
-  price?: number;
-  quantity?: number;
-  status?: string;
+  imageUrl?: string[];
+  barcode?: string;
+  sellingPrice?: number;
+  importPrice?: number;
+  totalQuantity?: number;
+  availableQuantity?: number;
 }
 
 export interface ProductStatusRequest {

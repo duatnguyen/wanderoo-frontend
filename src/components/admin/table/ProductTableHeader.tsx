@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 
 interface ProductTableHeaderProps {
@@ -10,8 +10,11 @@ interface ProductTableHeaderProps {
     onClearSelection: () => void;
     onBulkDelete?: () => void;
     onBulkHide?: () => void;
+    onBulkShow?: () => void;
     onBulkExport?: () => void;
+    onShowChannelModal?: () => void;
     showSelectionActions?: boolean;
+    actionDisabled?: boolean;
 }
 
 const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
@@ -23,9 +26,30 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
     onClearSelection,
     onBulkDelete,
     onBulkHide,
+    onBulkShow,
     onBulkExport,
+    onShowChannelModal,
     showSelectionActions = false,
+    actionDisabled = false,
 }) => {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        if (isDropdownOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isDropdownOpen]);
     if (showSelectionActions) {
         return (
             <div className="bg-gradient-to-r from-[#e3f2fd] to-[#f3e5f5] border-l-4 border-[#2196f3] flex items-center px-[16px] py-0 rounded-t-[16px] w-full h-[68px] shadow-sm">
@@ -62,18 +86,8 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                     {/* Bulk Actions with Icons */}
                     <div className="flex gap-[8px] items-center ml-auto">
                         <button
-                            onClick={onClearSelection}
-                            className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-sm flex items-center gap-2"
-                            title="Bỏ chọn tất cả (ESC)"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Bỏ chọn
-                        </button>
-
-                        <button
                             onClick={onBulkExport}
+                            disabled={actionDisabled}
                             className="px-4 py-2 bg-[#4caf50] hover:bg-[#45a049] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
                             title="Xuất dữ liệu sản phẩm đã chọn"
                         >
@@ -83,19 +97,73 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                             Xuất Excel
                         </button>
 
-                        <button
-                            onClick={onBulkHide}
-                            className="px-4 py-2 bg-[#ff9800] hover:bg-[#f57c00] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
-                            title="Ẩn sản phẩm đã chọn"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                            </svg>
-                            Ẩn ({selectedCount})
-                        </button>
+                        {/* Dropdown Thao tác khác */}
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                disabled={actionDisabled}
+                                className="px-4 py-2 bg-[#6b7280] hover:bg-[#4b5563] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
+                                title="Thao tác khác"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                                Thao tác khác
+                                <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                                    <div className="py-1">
+                                        <button
+                                            onClick={() => {
+                                                onBulkShow?.();
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            disabled={actionDisabled}
+                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Hiện ({selectedCount})
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                onBulkHide?.();
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            disabled={actionDisabled}
+                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                                            </svg>
+                                            Ẩn ({selectedCount})
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                onShowChannelModal?.();
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            disabled={actionDisabled}
+                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                                            </svg>
+                                            Hiển thị trên kênh
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         <button
                             onClick={onBulkDelete}
+                            disabled={actionDisabled}
                             className="px-4 py-2 bg-[#f44336] hover:bg-[#d32f2f] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
                             title="Xóa vĩnh viễn sản phẩm đã chọn (Delete)"
                         >

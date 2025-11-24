@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import type { OrderTab } from "../components/pos/POSHeader";
 import type { POSSidebarItemId } from "../components/pos/POSSidebar";
@@ -26,6 +26,18 @@ type POSContextType = {
   setCurrentOrderId: (id: string) => void;
   productSelectHandler: POSProductSelectHandler | null;
   setProductSelectHandler: (handler: POSProductSelectHandler | null) => void;
+
+  // Order handlers (for sales page)
+  orderHandlers: {
+    onOrderAdd?: () => void;
+    onOrderClose?: (orderId: string) => void;
+    onOrderSelect?: (orderId: string) => void;
+  };
+  setOrderHandlers: (handlers: {
+    onOrderAdd?: () => void;
+    onOrderClose?: (orderId: string) => void;
+    onOrderSelect?: (orderId: string) => void;
+  }) => void;
 
   // User
   user: {
@@ -65,10 +77,26 @@ export const POSProvider: React.FC<POSProviderProps> = ({
   const [currentOrderId, setCurrentOrderId] = useState("1");
   const [productSelectHandler, setProductSelectHandlerState] =
     useState<POSProductSelectHandler | null>(null);
+  const [orderHandlers, setOrderHandlersState] = useState<{
+    onOrderAdd?: () => void;
+    onOrderClose?: (orderId: string) => void;
+    onOrderSelect?: (orderId: string) => void;
+  }>({});
 
   const setProductSelectHandler = useCallback(
     (handler: POSProductSelectHandler | null) => {
-      setProductSelectHandlerState(handler);
+      setProductSelectHandlerState(() => handler);
+    },
+    []
+  );
+
+  const setOrderHandlers = useCallback(
+    (handlers: {
+      onOrderAdd?: () => void;
+      onOrderClose?: (orderId: string) => void;
+      onOrderSelect?: (orderId: string) => void;
+    }) => {
+      setOrderHandlersState(handlers);
     },
     []
   );
@@ -86,6 +114,8 @@ export const POSProvider: React.FC<POSProviderProps> = ({
         setCurrentOrderId,
         productSelectHandler,
         setProductSelectHandler,
+        orderHandlers,
+        setOrderHandlers,
         user,
       }}
     >

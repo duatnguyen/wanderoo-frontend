@@ -1,12 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SearchBar } from "@/components/ui/search-bar";
 import { DatePicker } from "@/components/ui/date-picker";
-import { getPosOrderList } from "../../api/endpoints/posApi";
-import Loading from "../common/Loading";
 
 export type Order = {
   id: string;
@@ -31,10 +28,8 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [startDate, setStartDate] = useState("2025-07-29");
+  const [endDate, setEndDate] = useState("2025-07-29");
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -50,47 +45,47 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
-  // Fetch orders list from API
-  const {
-    data: ordersData,
-    isLoading: isLoadingOrders,
-    error: ordersError,
-  } = useQuery({
-    queryKey: ["posOrdersForReturn", searchValue, startDate, endDate, currentPage],
-    queryFn: async () => {
-      return await getPosOrderList({
-        search: searchValue || undefined,
-        fromDate: startDate || undefined,
-        toDate: endDate || undefined,
-        page: currentPage - 1, // Backend uses 0-based pagination
-        size: pageSize,
-        sort: "createdAt,desc",
-      });
+  // Mock orders data
+  const mockOrders: Order[] = [
+    {
+      id: "1003",
+      createdAt: "2025-07-29T21:45:00",
+      totalAmount: 200000,
+      customerName: "Nguyễn Văn A",
+      customerPhone: "0123456789",
     },
-    enabled: isOpen, // Only fetch when modal is open
+    {
+      id: "1004",
+      createdAt: "2025-07-29T21:45:00",
+      totalAmount: 1000000,
+      customerName: "Trần Thị B",
+      customerPhone: "0987654321",
+    },
+  ];
+
+  // Filter orders based on search and date range
+  const filteredOrders = mockOrders.filter((order) => {
+    const matchesSearch =
+      !searchValue ||
+      order.id.toLowerCase().includes(searchValue.toLowerCase()) ||
+      order.customerName?.toLowerCase().includes(searchValue.toLowerCase()) ||
+      order.customerPhone?.includes(searchValue);
+
+    const orderDate = new Date(order.createdAt);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // Include full end date
+
+    const matchesDate = orderDate >= start && orderDate <= end;
+
+    return matchesSearch && matchesDate;
   });
 
-  // Convert API response to component types
-  const orders: Order[] =
-    ordersData?.content.map((order) => ({
-      id: order.code || order.id.toString(),
-      createdAt: order.createdAt,
-      totalAmount: order.totalOrderPrice || 0,
-      customerName: undefined, // Backend doesn't provide customer name in list
-      customerPhone: undefined, // Backend doesn't provide customer phone in list
-    })) || [];
-
   const handleOrderReturn = (orderId: string) => {
-    // Find the actual order ID from the code
-    const order = ordersData?.content.find(
-      (o) => (o.code || o.id.toString()) === orderId
-    );
-    if (order) {
-      onSelectOrder(order.id.toString());
-      onClose();
-      // Navigate to create return order page
-      navigate(`/pos/returns/create/${order.id}`);
-    }
+    onSelectOrder(orderId);
+    onClose();
+    // Navigate to create return order page
+    navigate(`/pos/returns/create/${orderId}`);
   };
 
   if (!isOpen) return null;
@@ -155,106 +150,64 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
 
         {/* Order List Table */}
         <div className="flex-1 overflow-y-auto">
-          {isLoadingOrders ? (
-            <div className="flex items-center justify-center py-12">
-              <Loading />
-            </div>
-          ) : ordersError ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <p className="text-red-500 mb-2">Lỗi khi tải danh sách đơn hàng</p>
-                <p className="text-sm text-gray-500">
-                  {ordersError instanceof Error
-                    ? ordersError.message
-                    : "Vui lòng thử lại sau"}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead className="bg-[#f6f6f6] sticky top-0">
+          <table className="w-full">
+            <thead className="bg-[#f6f6f6] sticky top-0">
+              <tr>
+                <th className="text-left px-4 py-3 text-sm font-medium text-[#272424]">
+                  Mã đơn hàng
+                </th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-[#272424]">
+                  Ngày tạo
+                </th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-[#272424]">
+                  Tổng tiền
+                </th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-[#272424]">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#e7e7e7] bg-white">
+              {filteredOrders.length === 0 ? (
                 <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-[#272424]">
-                    Mã đơn hàng
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-[#272424]">
-                    Ngày tạo
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-[#272424]">
-                    Tổng tiền
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-[#272424]">
-                    Thao tác
-                  </th>
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-sm text-[#737373]"
+                  >
+                    Không tìm thấy đơn hàng nào
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#e7e7e7] bg-white">
-                {orders.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="px-4 py-8 text-center text-sm text-[#737373]"
-                    >
-                      Không tìm thấy đơn hàng nào
+              ) : (
+                filteredOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleOrderReturn(order.id)}
+                        className="text-sm font-medium text-[#007bff] hover:text-[#0056b3] hover:underline"
+                      >
+                        #{order.id}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#272424]">
+                      {formatDate(order.createdAt)}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-[#272424]">
+                      {formatCurrency(order.totalAmount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleOrderReturn(order.id)}
+                        className="text-sm font-medium text-[#007bff] hover:text-[#0056b3] hover:underline"
+                      >
+                        Trả hàng
+                      </button>
                     </td>
                   </tr>
-                ) : (
-                  orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleOrderReturn(order.id)}
-                          className="text-sm font-medium text-[#007bff] hover:text-[#0056b3] hover:underline"
-                        >
-                          #{order.id}
-                        </button>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-[#272424]">
-                        {formatDate(order.createdAt)}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-[#272424]">
-                        {formatCurrency(order.totalAmount)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleOrderReturn(order.id)}
-                          className="text-sm font-medium text-[#007bff] hover:text-[#0056b3] hover:underline"
-                        >
-                          Trả hàng
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-
-        {/* Pagination */}
-        {ordersData && ordersData.totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-[#e7e7e7] flex items-center justify-between">
-            <div className="text-sm text-[#737373]">
-              Trang {currentPage} / {ordersData.totalPages}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-[#e7e7e7] rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Trước
-              </button>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(ordersData.totalPages, p + 1))}
-                disabled={currentPage === ordersData.totalPages}
-                className="px-3 py-1 text-sm border border-[#e7e7e7] rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Sau
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

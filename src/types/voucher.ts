@@ -8,6 +8,7 @@ export interface VoucherProduct {
   price: number;
   available: number;
   quantity?: number;
+  variantId?: string;
 }
 
 export interface VoucherEditData {

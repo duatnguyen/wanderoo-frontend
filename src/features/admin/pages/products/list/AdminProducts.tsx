@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import SearchBar from "@/components/ui/search-bar";
 import ProductItem from "../../../../../components/admin/table/ProductItem";
 import ProductTableHeader from "../../../../../components/admin/table/ProductTableHeader";
-import type { Product } from "../../../../../types/types";
+import type { Product, ProductVariant } from "../../../../../types/types";
 import {
   TabMenuWithBadge,
   PageContainer,
@@ -11,40 +11,90 @@ import {
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
 import { useNavigate } from "react-router-dom";
-import { useMemo } from "react";
 import {
-  adminMockProducts,
-  type AdminProductDetail,
-} from "../data/mockProducts";
+  getAllProductsPrivate,
+  getActiveProductsPrivate,
+  getInactiveProductsPrivate,
+  disableProductsPrivate,
+  enableProductsPrivate,
+  updateSellingQuantityPrivate,
+} from "@/api/endpoints/productApi";
+import ChannelDisplayModal from "@/components/admin/modals/ChannelDisplayModal";
+import type {
+  AdminProductResponse,
+  AdminProductDetailResponse,
+} from "@/types";
+import { toast } from "sonner";
 type ProductStatus = "active" | "inactive";
 
 type ProductWithStatus = Product & {
   status: ProductStatus;
 };
 
-const mapDetailToProduct = (
-  product: AdminProductDetail
-): ProductWithStatus => ({
-  id: product.id,
+const formatCurrency = (value?: number | string | null): string => {
+  if (value === null || value === undefined) return "0 ₫";
+  const numeric =
+    typeof value === "number"
+      ? value
+      : Number(value.toString().replace(/[^\d.-]/g, "")) || 0;
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(numeric);
+};
+
+const toNumber = (value?: number | string | null): number => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const numeric = Number(value.toString().replace(/[^\d.-]/g, ""));
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const formatPriceDisplay = (value?: number | string | null): string => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.includes("-")) {
+      return trimmed;
+    }
+  }
+  return formatCurrency(value);
+};
+
+const mapVariant = (
+  variant: AdminProductDetailResponse
+): ProductVariant => ({
+  id: String(variant.id),
+  name: variant.nameDetail,
+  sku: variant.skuDetail,
+  barcode: variant.barcode ?? "---",
+  inventory: toNumber(variant.totalQuantity),
+  availableToSell: toNumber(variant.availableQuantity),
+  webQuantity: toNumber(variant.websiteSoldQuantity),
+  posQuantity: toNumber(variant.posSoldQuantity),
+  sellingPrice: formatCurrency(variant.sellingPrice),
+  costPrice: formatCurrency(variant.importPrice),
+});
+
+const mapProductToUi = (product: AdminProductResponse): ProductWithStatus => ({
+  id: String(product.id),
   name: product.name,
-  image: product.image,
+  image: product.imageUrl,
   sku: product.sku,
-  barcode: product.barcode,
-  inventory: product.inventory,
-  availableToSell: product.availableToSell,
-  webQuantity: product.webQuantity,
-  posQuantity: product.posQuantity,
-  sellingPrice: product.sellingPrice,
-  costPrice: product.costPrice,
-  variants: product.variants,
-  status: product.status,
+  barcode: "---",
+  inventory: toNumber(product.totalQuantity),
+  availableToSell: toNumber(product.availableQuantity),
+  webQuantity: toNumber(product.websiteSoldQuantity),
+  posQuantity: toNumber(product.posSoldQuantity),
+  sellingPrice: formatPriceDisplay(product.sellingPrice),
+  costPrice: formatPriceDisplay(product.importPrice),
+  variants: (product.productDetails ?? []).map(mapVariant),
+  status: product.display === "ACTIVE" ? "active" : "inactive",
 });
 
 const AdminProducts: React.FC = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<ProductWithStatus[]>(() =>
-    adminMockProducts.map(mapDetailToProduct)
-  );
+  const [products, setProducts] = useState<ProductWithStatus[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [searchValue, setSearchValue] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
@@ -54,29 +104,126 @@ const AdminProducts: React.FC = () => {
   const [isIndeterminate, setIsIndeterminate] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [totalPages, setTotalPages] = useState(1);
+  const [productCounts, setProductCounts] = useState({
+    all: 0,
+    active: 0,
+    inactive: 0,
+  });
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
+  const latestRequestRef = useRef(0);
 
-  // Calculate product counts by status
-  const productCounts = useMemo(() => {
-    return products.reduce(
-      (counts, product) => {
-        counts.all += 1;
-        if (product.status === "active") {
-          counts.active += 1;
-        } else {
-          counts.inactive += 1;
-        }
-        return counts;
-      },
-      { all: 0, active: 0, inactive: 0 }
-    );
-  }, [products]);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchValue.trim());
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchValue]);
 
-  // Create tabs with badge counts
-  const tabsWithCounts: TabItemWithBadge[] = useMemo(() => [
-    { id: "all", label: "Tất cả", count: productCounts.all },
-    { id: "active", label: "Đang hoạt động", count: productCounts.active },
-    { id: "inactive", label: "Chưa được đăng", count: productCounts.inactive },
-  ], [productCounts]);
+  const fetchTabCounts = useCallback(async () => {
+    const params = {
+      keyword: debouncedSearch || undefined,
+      page: 0,
+      size: 1,
+    };
+    try {
+      const [allRes, activeRes, inactiveRes] = await Promise.all([
+        getAllProductsPrivate(params),
+        getActiveProductsPrivate(params),
+        getInactiveProductsPrivate(params),
+      ]);
+      setProductCounts({
+        all:
+          allRes?.totalProducts ??
+          allRes?.totalElements ??
+          allRes?.productResponseList?.length ??
+          0,
+        active:
+          activeRes?.totalProducts ??
+          activeRes?.totalElements ??
+          activeRes?.productResponseList?.length ??
+          0,
+        inactive:
+          inactiveRes?.totalProducts ??
+          inactiveRes?.totalElements ??
+          inactiveRes?.productResponseList?.length ??
+          0,
+      });
+    } catch (error) {
+      console.error("Không thể tải số lượng sản phẩm theo tab", error);
+    }
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    fetchTabCounts();
+  }, [fetchTabCounts]);
+
+  const fetchProducts = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    const params = {
+      keyword: debouncedSearch || undefined,
+      page: Math.max(currentPage - 1, 0),
+      size: itemsPerPage,
+    };
+
+    try {
+      let response;
+      if (activeTab === "active") {
+        response = await getActiveProductsPrivate(params);
+      } else if (activeTab === "inactive") {
+        response = await getInactiveProductsPrivate(params);
+      } else {
+        response = await getAllProductsPrivate(params);
+      }
+
+      const mappedProducts =
+        response?.productResponseList?.map(mapProductToUi) ?? [];
+
+      if (requestId === latestRequestRef.current) {
+        setProducts(mappedProducts);
+        setTotalPages(
+          response?.totalPages ??
+            response?.totalPage ??
+            Math.max(
+              1,
+              Math.ceil((response?.totalProducts ?? 1) / itemsPerPage)
+            )
+        );
+      }
+    } catch (error) {
+      if (requestId === latestRequestRef.current) {
+        console.error("Không thể tải danh sách sản phẩm", error);
+        setProducts([]);
+        setErrorMessage(
+          "Không thể tải danh sách sản phẩm. Vui lòng thử lại."
+        );
+      }
+    } finally {
+      if (requestId === latestRequestRef.current) {
+        setIsLoading(false);
+      }
+    }
+  }, [activeTab, currentPage, debouncedSearch, itemsPerPage]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const tabsWithCounts: TabItemWithBadge[] = useMemo(
+    () => [
+      { id: "all", label: "Tất cả", count: productCounts.all },
+      { id: "active", label: "Đang hoạt động", count: productCounts.active },
+      { id: "inactive", label: "Chưa được đăng", count: productCounts.inactive },
+    ],
+    [productCounts]
+  );
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -91,7 +238,7 @@ const AdminProducts: React.FC = () => {
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       // Select all filtered product IDs (only visible products)
-      const visibleIds = filteredProducts.map(p => p.id);
+      const visibleIds = products.map((p) => p.id);
       setSelectedProducts(new Set(visibleIds));
       setSelectAll(true);
       setIsIndeterminate(false);
@@ -113,7 +260,7 @@ const AdminProducts: React.FC = () => {
     setSelectedProducts(newSelected);
 
     // Update checkbox states based on selection
-    const totalVisible = filteredProducts.length;
+    const totalVisible = products.length;
     const selectedCount = newSelected.size;
 
     if (selectedCount === 0) {
@@ -139,7 +286,7 @@ const AdminProducts: React.FC = () => {
     if (selectedProducts.size === 0) return;
 
     const productNames = Array.from(selectedProducts)
-      .map(id => adminMockProducts.find(p => p.id === id)?.name)
+      .map((id) => products.find((p) => p.id === id)?.name)
       .filter(Boolean)
       .slice(0, 3) // Show first 3 names
       .join(', ');
@@ -157,13 +304,10 @@ const AdminProducts: React.FC = () => {
     }
   };
 
-  const handleBulkHide = () => {
-    if (selectedProducts.size === 0) return;
-
-    console.log('Hiding products:', Array.from(selectedProducts));
-    // TODO: Implement actual hiding
-    handleClearSelection();
-    alert(`Đã ẩn ${selectedProducts.size} sản phẩm thành công!`);
+  const buildSelectedIdPayload = (): number[] => {
+    return Array.from(selectedProducts)
+      .map((id) => Number(id))
+      .filter((id) => !Number.isNaN(id));
   };
 
   const handleBulkExport = () => {
@@ -173,32 +317,108 @@ const AdminProducts: React.FC = () => {
     // TODO: Implement actual export
     alert(`Đang xuất dữ liệu ${selectedProducts.size} sản phẩm...`);
   };
-
   const handleUpdate = (productId: string) => {
     navigate(`/admin/products/${productId}/edit`);
   };
 
-  const handleToggleStatus = (productId: string) => {
-    let nextStatus: ProductStatus | null = null;
+  const handleView = (productId: string) => {
+    navigate(`/admin/products/${productId}/view`);
+  };
 
-    setProducts((prev) =>
-      prev.map((product) => {
-        if (product.id !== productId) {
-          return product;
+  const handleBulkHide = async () => {
+    const ids = buildSelectedIdPayload();
+    if (ids.length === 0) return;
+
+    setIsActionLoading(true);
+    try {
+      await disableProductsPrivate({ getAll: ids });
+      toast.success("Ẩn sản phẩm thành công");
+      await fetchProducts();
+      await fetchTabCounts();
+      handleClearSelection();
+    } catch (error) {
+      console.error("Không thể ẩn sản phẩm", error);
+      toast.error("Ẩn sản phẩm thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleBulkShow = async () => {
+    const ids = buildSelectedIdPayload();
+    if (ids.length === 0) return;
+
+    setIsActionLoading(true);
+    try {
+      await enableProductsPrivate({ getAll: ids });
+      toast.success("Hiện sản phẩm thành công");
+      await fetchProducts();
+      await fetchTabCounts();
+      handleClearSelection();
+    } catch (error) {
+      console.error("Không thể hiện sản phẩm", error);
+      toast.error("Hiện sản phẩm thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleShowChannelModal = () => {
+    if (selectedProducts.size === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm");
+      return;
+    }
+    setIsChannelModalOpen(true);
+  };
+
+  const handleChannelModalConfirm = async (data: {
+    websiteEnabled: boolean;
+    websiteQuantity: number;
+    posEnabled: boolean;
+    posQuantity: number;
+  }) => {
+    setIsActionLoading(true);
+    setIsChannelModalOpen(false);
+
+    try {
+      // Lấy tất cả variants của các sản phẩm đã chọn
+      const selectedProductIds = Array.from(selectedProducts).map((id) => Number(id));
+      const selectedProductsData = products.filter((p) => selectedProductIds.includes(Number(p.id)));
+
+      // Thu thập tất cả variants từ các sản phẩm đã chọn
+      const allVariants: ProductVariant[] = [];
+      selectedProductsData.forEach((product) => {
+        if (product.variants && product.variants.length > 0) {
+          allVariants.push(...product.variants);
         }
+      });
 
-        const updatedStatus = product.status === "active" ? "inactive" : "active";
-        nextStatus = updatedStatus;
-        return {
-          ...product,
-          status: updatedStatus,
+      if (allVariants.length === 0) {
+        toast.error("Không tìm thấy biến thể nào để cập nhật");
+        setIsActionLoading(false);
+        return;
+      }
+
+      // Cập nhật từng variant
+      const updatePromises = allVariants.map((variant) => {
+        const request = {
+          id: Number(variant.id),
+          sellingQuantityWeb: data.websiteEnabled ? data.websiteQuantity : 0,
+          sellingQuantityPos: data.posEnabled ? data.posQuantity : 0,
         };
-      })
-    );
+        return updateSellingQuantityPrivate(request);
+      });
 
-    if (nextStatus) {
-      setActiveTab(nextStatus);
-      setCurrentPage(1);
+      await Promise.all(updatePromises);
+      toast.success(`Đã cập nhật số lượng bán cho ${allVariants.length} biến thể`);
+      await fetchProducts();
+      await fetchTabCounts();
+      handleClearSelection();
+    } catch (error) {
+      console.error("Không thể cập nhật số lượng bán", error);
+      toast.error("Cập nhật số lượng bán thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -230,30 +450,14 @@ const AdminProducts: React.FC = () => {
   }, [selectedProducts.size]);
 
   // Filter products based on search and tab
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch = product.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchValue.toLowerCase());
-
-      // Filter by tab status
-      const matchesTab = (() => {
-        if (activeTab === "all") return true;
-        return product.status === activeTab;
-      })();
-
-      return matchesSearch && matchesTab;
-    });
-  }, [products, searchValue, activeTab]);
+  const filteredProducts = products;
 
   // Reset selection when filters change
   React.useEffect(() => {
     handleClearSelection();
-  }, [searchValue, activeTab, currentPage]);
+  }, [searchValue, activeTab, currentPage, products]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedProducts = filteredProducts;
 
   return (
     <PageContainer>
@@ -320,33 +524,46 @@ const AdminProducts: React.FC = () => {
             onBulkHide={handleBulkHide}
             onBulkExport={handleBulkExport}
             showSelectionActions={selectedProducts.size > 0}
+            onBulkShow={handleBulkShow}
+            onShowChannelModal={handleShowChannelModal}
+            actionDisabled={isActionLoading}
           />          {/* Table Body */}
           <div className={`w-full transition-all duration-200 ${selectedProducts.size > 0 ? 'ring-2 ring-blue-200 ring-opacity-50 rounded-b-[16px]' : 'rounded-b-[16px]'} overflow-hidden`}>
-            {paginatedProducts.map((product) => (
-              <ProductItem
-                key={product.id}
-                product={product}
-                isSelected={selectedProducts.has(product.id)}
-                onSelect={handleProductSelect}
-                onUpdate={handleUpdate}
-                status={product.status}
-                onToggleStatus={handleToggleStatus}
-              />
-            ))}
+            {isLoading && (
+              <div className="flex items-center justify-center py-10 text-sm text-gray-500">
+                Đang tải danh sách sản phẩm...
+              </div>
+            )}
+            {!isLoading &&
+              paginatedProducts.map((product) => (
+                <ProductItem
+                  key={product.id}
+                  product={product}
+                  isSelected={selectedProducts.has(product.id)}
+                  onSelect={handleProductSelect}
+                  onUpdate={handleUpdate}
+                onView={handleView}
+                />
+              ))}
+            {!isLoading && paginatedProducts.length === 0 && !errorMessage && (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                <svg className="w-12 h-12 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <p className="text-lg font-medium">Không tìm thấy sản phẩm</p>
+                <p className="text-sm mt-1">
+                  {debouncedSearch ? `Không có sản phẩm nào khớp với "${debouncedSearch}"` : 'Danh sách sản phẩm trống'}
+                </p>
+              </div>
+            )}
+            {errorMessage && (
+              <div className="flex items-center justify-center py-6 text-red-500 text-sm">
+                {errorMessage}
+              </div>
+            )}
           </div>
 
           {/* No products message */}
-          {paginatedProducts.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-              <svg className="w-12 h-12 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-              <p className="text-lg font-medium">Không tìm thấy sản phẩm</p>
-              <p className="text-sm mt-1">
-                {searchValue ? `Không có sản phẩm nào khớp với "${searchValue}"` : 'Danh sách sản phẩm trống'}
-              </p>
-            </div>
-          )}
         </div>
         {/* Pagination - Full Width */}
         <Pagination
@@ -413,6 +630,14 @@ const AdminProducts: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Channel Display Modal */}
+      <ChannelDisplayModal
+        isOpen={isChannelModalOpen}
+        onClose={() => setIsChannelModalOpen(false)}
+        onConfirm={handleChannelModalConfirm}
+        selectedCount={selectedProducts.size}
+      />
     </PageContainer>
   );
 };

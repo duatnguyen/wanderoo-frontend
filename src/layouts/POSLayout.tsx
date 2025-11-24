@@ -23,6 +23,7 @@ const POSLayoutContent: React.FC = () => {
     setOrders,
     currentOrderId,
     setCurrentOrderId,
+    orderHandlers,
     user,
   } = usePOSContext();
 
@@ -53,20 +54,38 @@ const POSLayoutContent: React.FC = () => {
   ]);
 
   const handleAddOrder = () => {
-    const newOrderId = String(orders.length + 1);
-    const newOrder: OrderTab = { id: newOrderId, label: `Đơn ${newOrderId}` };
-    setOrders([...orders, newOrder]);
-    setCurrentOrderId(newOrderId);
+    if (orderHandlers.onOrderAdd) {
+      orderHandlers.onOrderAdd();
+    } else {
+      // Fallback: tạo order local (cho các page khác)
+      const newOrderId = String(orders.length + 1);
+      const newOrder: OrderTab = { id: newOrderId, label: `Đơn ${newOrderId}` };
+      setOrders([...orders, newOrder]);
+      setCurrentOrderId(newOrderId);
+    }
   };
 
   const handleCloseOrder = (orderId: string) => {
-    if (orders.length === 1) {
-      return;
+    if (orderHandlers.onOrderClose) {
+      orderHandlers.onOrderClose(orderId);
+    } else {
+      // Fallback: xóa order local (cho các page khác)
+      if (orders.length === 1) {
+        return;
+      }
+      const newOrders = orders.filter((o) => o.id !== orderId);
+      setOrders(newOrders);
+      if (currentOrderId === orderId) {
+        setCurrentOrderId(newOrders[0]?.id || "1");
+      }
     }
-    const newOrders = orders.filter((o) => o.id !== orderId);
-    setOrders(newOrders);
-    if (currentOrderId === orderId) {
-      setCurrentOrderId(newOrders[0]?.id || "1");
+  };
+
+  const handleOrderSelect = (orderId: string) => {
+    if (orderHandlers.onOrderSelect) {
+      orderHandlers.onOrderSelect(orderId);
+    } else {
+      setCurrentOrderId(orderId);
     }
   };
 
@@ -100,7 +119,7 @@ const POSLayoutContent: React.FC = () => {
         }
         orders={location.pathname.includes("/sales") ? orders : undefined}
         onOrderSelect={
-          location.pathname.includes("/sales") ? setCurrentOrderId : undefined
+          location.pathname.includes("/sales") ? handleOrderSelect : undefined
         }
         onOrderClose={
           location.pathname.includes("/sales") ? handleCloseOrder : undefined

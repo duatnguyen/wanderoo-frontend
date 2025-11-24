@@ -1,85 +1,51 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 import type { POSProduct } from "../../../../components/pos/POSProductList";
-import {
-  getPosOrderDetail,
-  createPosReturnOrder,
-  type ReturnTypeEnum,
-  type ReturnReasonEnum,
-} from "../../../../api/endpoints/posApi";
-import Loading from "../../../../components/common/Loading";
 
 const CreateReturnOrder: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
-  // Fetch order detail to get products
-  const {
-    data: orderDetailData,
-    isLoading: isLoadingOrder,
-    error: orderError,
-  } = useQuery({
-    queryKey: ["posOrderDetail", orderId],
-    queryFn: async () => {
-      if (!orderId) throw new Error("Order ID is required");
-      return await getPosOrderDetail(parseInt(orderId));
+  // Mock order data - in real app, this would come from API
+  const mockOrderProducts: POSProduct[] = [
+    {
+      id: "1",
+      name: "Giày leo núi The North Face Ultra Fastpack IV Futurelight.",
+      image:
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=150&h=150&fit=crop",
+      price: 100000,
+      quantity: 1,
+      variant: "Size 42",
     },
-    enabled: !!orderId,
-  });
-
-  // Convert order products to return products format
-  const orderProducts: POSProduct[] =
-    orderDetailData?.products.map((product) => ({
-      id: product.id.toString(),
-      name: product.productName,
-      image: product.productImage,
-      variant: product.category,
-      price: product.unitPrice || 0,
-      quantity: product.quantity || 0,
-    })) || [];
+  ];
 
   const [returnProducts, setReturnProducts] = useState<
     Array<{
       product: POSProduct;
-      orderDetailId: number; // Store order detail ID for API
       returnQuantity: number;
-      reason: ReturnReasonEnum;
+      reason: string;
     }>
-  >([]);
+  >(
+    mockOrderProducts.map((p) => ({
+      product: p,
+      returnQuantity: p.quantity,
+      reason: "Không xác định",
+    }))
+  );
 
   const [note, setNote] = useState("");
   const [refundMethod, setRefundMethod] = useState("Chuyển khoản");
   const [refundAmount, setRefundAmount] = useState(0);
 
-  // Initialize return products when order data is loaded
-  useEffect(() => {
-    if (orderDetailData?.products) {
-      setReturnProducts(
-        orderDetailData.products.map((product) => ({
-          product: {
-            id: product.id.toString(),
-            name: product.productName,
-            image: product.productImage,
-            variant: product.category,
-            price: product.unitPrice || 0,
-            quantity: product.quantity || 0,
-          },
-          orderDetailId: product.id,
-          returnQuantity: product.quantity || 0,
-          reason: "CUSTOMER_CHANGE_MIND" as ReturnReasonEnum,
-        }))
-      );
-    }
-  }, [orderDetailData]);
-
-  const returnReasons: Array<{ value: ReturnReasonEnum; label: string }> = [
-    { value: "PRODUCT_ERROR", label: "Sản phẩm lỗi" },
-    { value: "CUSTOMER_CHANGE_MIND", label: "Khách đổi ý" },
+  const returnReasons = [
+    "Không xác định",
+    "Sản phẩm lỗi",
+    "Không đúng mô tả",
+    "Không vừa",
+    "Thay đổi ý định",
   ];
 
   const refundMethods = ["Chuyển khoản", "Tiền mặt"];
@@ -88,24 +54,9 @@ const CreateReturnOrder: React.FC = () => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
-  // Calculate discounted price per unit
-  // If order has discount, calculate the actual price after discount
-  const calculateDiscountedPrice = (originalPrice: number): number => {
-    if (!orderDetailData?.paymentSummary) return originalPrice;
-    const { totalProductPrice, totalOrderPrice } = orderDetailData.paymentSummary;
-    if (totalProductPrice === 0) return originalPrice;
-    // Calculate discount ratio: actual paid / original total
-    const discountRatio = totalOrderPrice / totalProductPrice;
-    // Apply same ratio to unit price
-    return originalPrice * discountRatio;
-  };
-
-  // Calculate totals using discounted prices
+  // Calculate totals
   const totalAmount = returnProducts.reduce(
-    (sum, item) => {
-      const discountedPrice = calculateDiscountedPrice(item.product.price);
-      return sum + discountedPrice * item.returnQuantity;
-    },
+    (sum, item) => sum + item.product.price * item.returnQuantity,
     0
   );
   const discount = 0;
@@ -132,141 +83,25 @@ const CreateReturnOrder: React.FC = () => {
     );
   };
 
-  const handleReasonChange = (productId: string, reasonLabel: string) => {
-    // Map label back to enum value
-    const reasonValue = returnReasons.find((r) => r.label === reasonLabel)?.value || "CUSTOMER_CHANGE_MIND";
+  const handleReasonChange = (productId: string, reason: string) => {
     setReturnProducts(
       returnProducts.map((item) =>
-        item.product.id === productId
-          ? { ...item, reason: reasonValue }
-          : item
+        item.product.id === productId ? { ...item, reason } : item
       )
     );
   };
 
-  // Create return order mutation
-  const createReturnOrderMutation = useMutation({
-    mutationFn: async (data: {
-      orderId: number;
-      returnType: ReturnTypeEnum;
-      returnReason: ReturnReasonEnum;
-      notes?: string;
-      returnProducts: Array<{
-        orderDetailId: number;
-        returnQuantity: number;
-        returnPrice: number;
-      }>;
-    }) => {
-      return await createPosReturnOrder(data);
-    },
-    onSuccess: async () => {
-      // Invalidate return orders list to refresh
-      await queryClient.invalidateQueries({ queryKey: ["posReturnOrders"] });
-      // Refetch immediately to ensure data is up to date
-      await queryClient.refetchQueries({ queryKey: ["posReturnOrders"] });
-      // Navigate back to returns page after creation
-      navigate("/pos/returns");
-    },
-    onError: (error: any) => {
-      console.error("Error creating return order:", error);
-      alert(
-        error.response?.data?.message ||
-          error.message ||
-          "Không thể tạo đơn trả hàng"
-      );
-    },
-  });
-
   const handleCreateReturn = () => {
-    if (!orderId) {
-      alert("Không tìm thấy mã đơn hàng");
-      return;
-    }
-
-    // Check if at least one product is selected for return
-    const hasReturnProducts = returnProducts.some(
-      (item) => item.returnQuantity > 0
-    );
-    if (!hasReturnProducts) {
-      alert("Vui lòng chọn ít nhất một sản phẩm để trả hàng");
-      return;
-    }
-
-    // Determine return type (FULL or PARTIAL)
-    const totalOriginalQuantity = returnProducts.reduce(
-      (sum, item) => sum + item.product.quantity,
-      0
-    );
-    const totalReturnQuantity = returnProducts.reduce(
-      (sum, item) => sum + item.returnQuantity,
-      0
-    );
-    const returnType: ReturnTypeEnum =
-      totalReturnQuantity >= totalOriginalQuantity ? "FULL" : "PARTIAL";
-
-    // Get the first reason (assuming all products have the same reason, or use the first one)
-    const returnReason = returnProducts[0]?.reason || "CUSTOMER_CHANGE_MIND";
-
-    // Prepare return products for API with discounted prices
-    const returnProductsForApi = returnProducts
-      .filter((item) => item.returnQuantity > 0)
-      .map((item) => {
-        const discountedPrice = calculateDiscountedPrice(item.product.price);
-        return {
-          orderDetailId: item.orderDetailId,
-          returnQuantity: item.returnQuantity,
-          returnPrice: discountedPrice, // Use discounted price, not original price
-        };
-      });
-
-    createReturnOrderMutation.mutate({
-      orderId: parseInt(orderId),
-      returnType,
-      returnReason,
-      notes: note || undefined,
-      returnProducts: returnProductsForApi,
+    console.log("Creating return order:", {
+      orderId,
+      returnProducts,
+      note,
+      refundMethod,
+      refundAmount,
     });
+    // Navigate back to returns page after creation
+    navigate("/pos/returns");
   };
-
-  if (isLoadingOrder) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loading />
-      </div>
-    );
-  }
-
-  if (orderError) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">Lỗi khi tải thông tin đơn hàng</p>
-          <button
-            onClick={() => navigate("/pos/returns")}
-            className="px-4 py-2 bg-[#e04d30] text-white rounded hover:bg-[#d04327]"
-          >
-            Quay lại
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!orderDetailData) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">Không tìm thấy đơn hàng</p>
-          <button
-            onClick={() => navigate("/pos/returns")}
-            className="px-4 py-2 bg-[#e04d30] text-white rounded hover:bg-[#d04327]"
-          >
-            Quay lại
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-full flex overflow-hidden bg-gray-50">
@@ -283,9 +118,9 @@ const CreateReturnOrder: React.FC = () => {
             </div>
             {/* Body: Product list (một item demo như ảnh) */}
             <div className="px-4 pt-3 pb-4 space-y-4">
-              {orderDetailData.code && (
+              {orderId && (
                 <p className="text-lg font-semibold text-[#272424]">
-                  #{orderDetailData.code}
+                  #{orderId}
                 </p>
               )}
               {returnProducts.map((item) => (
@@ -310,7 +145,7 @@ const CreateReturnOrder: React.FC = () => {
                             {item.product.name}
                           </p>
                           <p className="text-sm text-[#272424]">
-                            {formatCurrency(calculateDiscountedPrice(item.product.price))}
+                            {formatCurrency(item.product.price)}
                           </p>
                         </div>
                         {/* Điều chỉnh số lượng theo style ảnh 2 */}
@@ -353,38 +188,36 @@ const CreateReturnOrder: React.FC = () => {
                           </button>
                         </div>
                         {/* Tổng tiền */}
-                              <div className="text-right min-w-[100px]">
-                                <p className="text-sm font-medium text-[#272424]">
-                                  {formatCurrency(
-                                    calculateDiscountedPrice(item.product.price) * item.returnQuantity
-                                  )}
-                                </p>
-                              </div>
+                        <div className="text-right min-w-[100px]">
+                          <p className="text-sm font-medium text-[#272424]">
+                            {formatCurrency(
+                              item.product.price * item.returnQuantity
+                            )}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
               {/* Lý do chọn trả hàng */}
-              {returnProducts.length > 0 && (
-                <div>
-                  <p className="text-[15px] font-semibold text-[#272424] mb-2">
-                    Lí do chọn trả hàng
-                  </p>
-                  <div className="bg-[#f5f5f5] rounded-md">
-                    <div className="p-2.5">
-                      <SimpleDropdown
-                        value={returnReasons.find((r) => r.value === returnProducts[0]?.reason)?.label || ""}
-                        onValueChange={(reasonLabel) =>
-                          handleReasonChange(returnProducts[0]?.product.id || "", reasonLabel)
-                        }
-                        options={returnReasons.map((r) => r.label)}
-                        placeholder="Chọn lý do"
-                      />
-                    </div>
+              <div>
+                <p className="text-[15px] font-semibold text-[#272424] mb-2">
+                  Lí do chọn trả hàng
+                </p>
+                <div className="bg-[#f5f5f5] rounded-md">
+                  <div className="p-2.5">
+                    <SimpleDropdown
+                      value={returnProducts[0]?.reason || ""}
+                      onValueChange={(reason) =>
+                        handleReasonChange(returnProducts[0]?.product.id || "", reason)
+                      }
+                      options={returnReasons}
+                      placeholder="Chọn lý do"
+                    />
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
           {/* Card 2: Ghi chú (theo ảnh 2) */}
@@ -482,12 +315,9 @@ const CreateReturnOrder: React.FC = () => {
         <div className="p-6 border-t border-[#e7e7e7]">
           <button
             onClick={handleCreateReturn}
-            disabled={createReturnOrderMutation.isPending}
-            className="w-full bg-[#e04d30] text-white px-4 py-3 rounded-lg font-medium hover:bg-[#d0442a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#e04d30] text-white px-4 py-3 rounded-lg font-medium hover:bg-[#d0442a] transition-colors"
           >
-            {createReturnOrderMutation.isPending
-              ? "Đang tạo..."
-              : "Tạo đơn hoàn trả"}
+            Tạo đơn hoàn trả
           </button>
         </div>
       </div>

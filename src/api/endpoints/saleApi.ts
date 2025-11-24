@@ -32,7 +32,21 @@ export const searchCustomers = async (keyword?: string): Promise<CustomerSearchL
 };
 
 export const getAvailableDiscounts = async (): Promise<DiscountResponse[]> => {
-  const response = await api.get<ApiResponse<DiscountResponse[]>>('/auth/v1/private/sale/pos/discounts/available');
+  const response = await api.get<ApiResponse<DiscountResponse[]>>('/auth/v1/private/sale/pos/discounts');
+  return response.data.data ?? [];
+};
+
+export const searchDiscountByCode = async (code: string): Promise<DiscountResponse> => {
+  const response = await api.get<ApiResponse<DiscountResponse>>('/auth/v1/private/sale/pos/discounts/search', {
+    params: { code }
+  });
+  return response.data.data;
+};
+
+export const searchDiscountsByKeyword = async (keyword?: string): Promise<DiscountResponse[]> => {
+  const response = await api.get<ApiResponse<DiscountResponse[]>>('/auth/v1/private/sale/pos/discounts/search-by-keyword', {
+    params: { keyword }
+  });
   return response.data.data ?? [];
 };
 
@@ -78,6 +92,18 @@ export const applyDiscountToOrder = async (orderId: number): Promise<ApiResponse
 
 export const removeOrderDiscount = async (orderId: number): Promise<ApiResponse<null>> => {
   const response = await api.delete<ApiResponse<null>>(`/auth/v1/private/sale/pos/orders/${orderId}/remove-order-discount`);
+  return response.data;
+};
+
+export const applyVoucherToOrder = async (orderId: number, discountId: number): Promise<ApiResponse<DraftOrderDetailResponse>> => {
+  const response = await api.put<ApiResponse<DraftOrderDetailResponse>>(`/auth/v1/private/sale/pos/orders/${orderId}/voucher`, {
+    discountId
+  });
+  return response.data;
+};
+
+export const removeVoucherFromOrder = async (orderId: number): Promise<ApiResponse<DraftOrderDetailResponse>> => {
+  const response = await api.delete<ApiResponse<DraftOrderDetailResponse>>(`/auth/v1/private/sale/pos/orders/${orderId}/voucher`);
   return response.data;
 };
 

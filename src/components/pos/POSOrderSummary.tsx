@@ -1,19 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Loader2, Plus, Trash2, User } from "lucide-react";
+import React, { useState } from "react";
+import { Trash2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import AddCustomerModal, { type CustomerFormData } from "./AddCustomerModal";
 import CheckoutModal from "./CheckoutModal";
-import { searchCustomers } from "@/api/endpoints/saleApi";
-import type { CustomerSearchResponse } from "@/types/api";
+import POSVoucherModal from "./POSVoucherModal";
 
 export type POSOrderSummaryProps = {
-  customerSearch: string;
-  onCustomerSearchChange: (value: string) => void;
-  onAddCustomer?: (data: CustomerFormData) => void;
   totalAmount: number;
-  discount: number;
   finalAmount: number;
+  orderDiscountAmount?: number;
   onCheckout?: (data: {
     paymentMethod: "cash" | "transfer";
     amountPaid: number;
@@ -23,53 +18,33 @@ export type POSOrderSummaryProps = {
     name?: string | null;
     phone?: string | null;
   };
-  onAssignCustomer?: (customer: CustomerSearchResponse) => Promise<void> | void;
   onClearAssignedCustomer?: () => void;
+  onApplyVoucher?: (voucherId: string | null) => Promise<void> | void;
+  draftOrderId?: number | null;
   className?: string;
 };
 
 export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
-  customerSearch,
-  onCustomerSearchChange,
-  onAddCustomer,
   totalAmount = 0,
-  discount = 0,
   finalAmount = 0,
+  orderDiscountAmount = 0,
   onCheckout,
   assignedCustomer,
-  onAssignCustomer,
   onClearAssignedCustomer,
+  onApplyVoucher,
+  draftOrderId,
   className,
 }) => {
-  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<CustomerSearchResponse[]>(
-    []
-  );
-  const [isSearching, setIsSearching] = useState(false);
-  const [isAssigningCustomer, setIsAssigningCustomer] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const searchContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+  const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
-  const handleAddCustomer = (data: CustomerFormData) => {
-    const newCustomer = {
-      ...data,
-      id: Date.now().toString(),
-    };
-    onAddCustomer?.(data);
-    onCustomerSearchChange(newCustomer.fullName ?? newCustomer.id);
-    setIsAddCustomerModalOpen(false);
-  };
-
   const handleRemoveCustomer = () => {
     onClearAssignedCustomer?.();
-    onCustomerSearchChange("");
-    setIsDropdownOpen(false);
   };
 
   const handleCheckoutClick = () => {
@@ -88,81 +63,6 @@ export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
     }
   };
 
-  const handleSelectCustomer = async (customer: CustomerSearchResponse) => {
-    if (!onAssignCustomer) {
-      onCustomerSearchChange(customer.name);
-      setIsDropdownOpen(false);
-      return;
-    }
-
-    setIsAssigningCustomer(true);
-    setSearchError(null);
-    try {
-      await onAssignCustomer(customer);
-      onCustomerSearchChange(customer.name);
-      setIsDropdownOpen(false);
-    } catch (error) {
-      console.error("Không thể gán khách hàng:", error);
-      setSearchError("Không thể gán khách hàng vào đơn");
-    } finally {
-      setIsAssigningCustomer(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!isDropdownOpen || !customerSearch.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      setSearchError(null);
-      return;
-    }
-
-    let isCancelled = false;
-    setIsSearching(true);
-    setSearchError(null);
-
-    const handler = setTimeout(async () => {
-      try {
-        const result = await searchCustomers(customerSearch.trim());
-        if (!isCancelled) {
-          setSearchResults(result ?? []);
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          console.error("Không thể tìm khách hàng:", error);
-          setSearchError("Không thể tải danh sách khách hàng");
-          setSearchResults([]);
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsSearching(false);
-        }
-      }
-    }, 300);
-
-    return () => {
-      isCancelled = true;
-      clearTimeout(handler);
-    };
-  }, [customerSearch, isDropdownOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    if (isDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isDropdownOpen]);
 
   return (
     <>
@@ -172,6 +72,36 @@ export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
           className
         )}
       >
+        {/* Assigned Customer Display */}
+        {assignedCustomer?.name && (
+          <div className="p-4 border-b border-[#e7e7e7]">
+            <div className="bg-[#F0F0F0] rounded-lg px-4 h-[42px] flex items-center gap-3 border border-[#E04D30]">
+              {/* User Icon */}
+              <div className="flex-shrink-0">
+                <User className="w-4 h-4 text-[#4A4A4A]" />
+              </div>
+              {/* Customer Info */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[#E04D30] font-medium truncate">
+                  {assignedCustomer.name}{" "}
+                  {assignedCustomer.phone ? `- ${assignedCustomer.phone}` : ""}
+                </p>
+              </div>
+              {/* Delete Button */}
+              {onClearAssignedCustomer && (
+                <button
+                  type="button"
+                  onClick={handleRemoveCustomer}
+                  className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-[#F0F0F0] rounded-full hover:bg-gray-200 transition-colors"
+                  aria-label="Remove customer"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-[#E04D30]" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Order Summary */}
         <div className="flex-1 p-4 flex flex-col">
           <div className="space-y-4 flex-1">
@@ -184,12 +114,17 @@ export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-[#e04d30] font-medium">
+              <button
+                onClick={() => setIsVoucherModalOpen(true)}
+                className="text-sm text-[#1B5CF0] hover:text-[#164aba] font-medium transition-colors cursor-pointer"
+              >
                 Giảm giá
-              </span>
-              <span className="text-sm text-[#e04d30] font-bold">
-                {formatCurrency(discount)}
-              </span>
+              </button>
+              {orderDiscountAmount > 0 && (
+                <span className="text-sm text-[#272424] font-bold text-[#E04D30]">
+                  -{formatCurrency(orderDiscountAmount)}
+                </span>
+              )}
             </div>
             <div className="border-t border-[#e7e7e7] pt-4 flex justify-between items-center">
               <span className="text-base text-[#272424] font-bold">
@@ -213,19 +148,30 @@ export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
         </div>
       </div>
 
-      {/* Add Customer Modal */}
-      <AddCustomerModal
-        isOpen={isAddCustomerModalOpen}
-        onClose={() => setIsAddCustomerModalOpen(false)}
-        onAdd={handleAddCustomer}
-      />
-
       {/* Checkout Modal */}
       <CheckoutModal
         isOpen={isCheckoutModalOpen}
         onClose={() => setIsCheckoutModalOpen(false)}
         finalAmount={finalAmount}
         onComplete={handleCompleteCheckout}
+      />
+
+      {/* Voucher Selection Modal */}
+      <POSVoucherModal
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
+        onApply={async (voucherId) => {
+          setSelectedVoucherId(voucherId);
+          if (onApplyVoucher) {
+            try {
+              await onApplyVoucher(voucherId);
+              setIsVoucherModalOpen(false);
+            } catch (error) {
+              console.error("Error applying voucher:", error);
+            }
+          }
+        }}
+        selectedVoucherId={selectedVoucherId}
       />
     </>
   );

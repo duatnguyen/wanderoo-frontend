@@ -52,41 +52,48 @@ export const VoucherCreationSection: React.FC<VoucherCreationSectionProps> = ({
         </div>
       </div>
 
-      {/* Target Customer Section */}
-      <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-6 flex-shrink-0">
-        <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
-          Tập trung vào nhóm khách hàng mục tiêu
-        </h3>
-      </div>
-      <div className="w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] w-full">
-          {voucherTypes.targetCustomer.map((voucher, index) => (
+      {/* Private Channel and Target Customer Sections - Same Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[20px] w-full mt-6">
+        {/* Private Channel Section */}
+        <div className="flex flex-col w-full">
+          <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full flex-shrink-0">
+            <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
+              Tập trung vào kênh hiển thị riêng tư
+            </h3>
+          </div>
+          <div className="w-full">
             <VoucherCreationCard
-              key={index}
-              icon={voucher.icon}
-              title={voucher.title}
-              description={voucher.description}
-              onClick={() => onCreateVoucher(voucher.title)}
+              icon={voucherTypes.privateChannel.icon}
+              title={voucherTypes.privateChannel.title}
+              description={voucherTypes.privateChannel.description}
+              onClick={() => onCreateVoucher(voucherTypes.privateChannel.title)}
               className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-full"
             />
-          ))}
+          </div>
         </div>
-      </div>
 
-      {/* Private Channel Section */}
-      <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full mt-6 flex-shrink-0">
-        <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
-          Tập trung vào kênh hiển thị riêng tư
-        </h3>
-      </div>
-      <div className="w-full">
-        <VoucherCreationCard
-          icon={voucherTypes.privateChannel.icon}
-          title={voucherTypes.privateChannel.title}
-          description={voucherTypes.privateChannel.description}
-          onClick={() => onCreateVoucher(voucherTypes.privateChannel.title)}
-          className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-full"
-        />
+        {/* Target Customer Section */}
+        <div className="flex flex-col w-full">
+          <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full flex-shrink-0">
+            <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
+              Tập trung vào nhóm khách hàng mục tiêu
+            </h3>
+          </div>
+          <div className="w-full">
+            <div className="grid grid-cols-1 gap-[20px] w-full">
+              {voucherTypes.targetCustomer.map((voucher, index) => (
+                <VoucherCreationCard
+                  key={index}
+                  icon={voucher.icon}
+                  title={voucher.title}
+                  description={voucher.description}
+                  onClick={() => onCreateVoucher(voucher.title)}
+                  className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-full"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

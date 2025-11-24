@@ -12,6 +12,8 @@ import type {
   CategoryStatus,
   CategoryPublicResponse,
   SimpleCategoryResponse,
+  BrandPageResponse,
+  BrandCreateRequest,
 } from '../../types';
 
 // Category Parent APIs
@@ -96,9 +98,26 @@ export const deleteCategory = async (categoryId: number): Promise<ApiResponse<nu
 export const getBrandList = async (params?: {
   page?: number;
   size?: number;
-}): Promise<any> => { // TODO: Define proper BrandPageResponse type
-  const response = await api.get<ApiResponse<any>>('/auth/v1/private/attribute/brand', { params });
-  return response.data.data;
+}): Promise<BrandPageResponse> => {
+  const response = await api.get<ApiResponse<BrandPageResponse>>('/auth/v1/private/attribute/brand', { params });
+  const data = response.data.data;
+  const content = data.content ?? data.brands ?? [];
+  return {
+    ...data,
+    content,
+  };
+};
+
+export const createBrand = async (brandData: BrandCreateRequest): Promise<ApiResponse<number>> => {
+  const response = await api.post<ApiResponse<number>>('/auth/v1/private/attribute/brand', brandData);
+  return response.data;
+};
+
+export const deleteBrand = async (brandId: number): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/attribute/brand', {
+    params: { id: brandId },
+  });
+  return response.data;
 };
 
 // Public Category APIs

@@ -195,9 +195,9 @@ title: "SP áp dụng",
               Đơn hàng
             </p>
           )}
-          {onEnd && (
+          {onEnd && voucher.status !== "Đã kết thúc" && (
             <p
-className="hover:opacity-70 cursor-pointer"
+              className="hover:opacity-70 cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 onEnd(voucher);
