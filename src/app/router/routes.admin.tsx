@@ -353,6 +353,14 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
+    path: "warehouse/exports/create",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseCreateImport />
+      </LazyWrapper>
+    ),
+  },
+  {
     path: "warehouse/returns/create",
     element: (
       <LazyWrapper>
