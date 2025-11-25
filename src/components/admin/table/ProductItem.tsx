@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight, Eye, EyeOff, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, Eye } from "lucide-react";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
-import type { Product } from "../../../types/types";
+import type { Product, ProductVariant } from "../../../types/types";
 
 interface ProductItemProps {
     product: Product;
     isSelected: boolean;
     onSelect: (productId: string) => void;
     onUpdate: (productId: string) => void;
-    status: "active" | "inactive";
-    onToggleStatus: (productId: string) => void;
+    onView?: (productId: string) => void;
+    onLoadVariants?: (productId: string) => Promise<ProductVariant[]>;
+    isVariantsLoading?: boolean;
 }
 
 const ProductItem: React.FC<ProductItemProps> = ({
@@ -17,14 +18,20 @@ const ProductItem: React.FC<ProductItemProps> = ({
     isSelected,
     onSelect,
     onUpdate,
-    status,
-    onToggleStatus,
+    onView,
+    onLoadVariants,
+    isVariantsLoading,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const hasVariants = product.variants && product.variants.length > 0;
+    const hasVariants = Boolean(product.variants && product.variants.length > 0);
+    const canExpand = Boolean(onLoadVariants) || hasVariants;
 
     const toggleExpanded = () => {
-        setIsExpanded(!isExpanded);
+        if (!canExpand) return;
+        if (!isExpanded && onLoadVariants) {
+            onLoadVariants(product.id).catch(() => undefined);
+        }
+        setIsExpanded((prev) => !prev);
     };
 
     return (
@@ -49,9 +56,9 @@ const ProductItem: React.FC<ProductItemProps> = ({
                         {/* Dropdown button positioned before image for better UX */}
                         <button
                             onClick={toggleExpanded}
-                            className={`flex-shrink-0 p-1 hover:bg-gray-200 rounded transition-colors ${!hasVariants ? 'opacity-50 cursor-default' : ''}`}
-                            title={hasVariants ? (isExpanded ? "Thu gọn variants" : "Mở rộng variants") : "Sản phẩm không có variants"}
-                            disabled={!hasVariants}
+                            className={`flex-shrink-0 p-1 hover:bg-gray-200 rounded transition-colors ${!canExpand ? 'opacity-50 cursor-default' : ''}`}
+                            title={canExpand ? (isExpanded ? "Thu gọn biến thể" : "Xem biến thể") : "Sản phẩm không có biến thể"}
+                            disabled={!canExpand}
                         >
                             {isExpanded ? (
                                 <ChevronDown className="w-3 h-3 text-gray-500" />
@@ -139,17 +146,15 @@ const ProductItem: React.FC<ProductItemProps> = ({
 
                     {/* Actions */}
                     <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
-                        <button
-                            onClick={() => onToggleStatus(product.id)}
-                            className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
-                            title={status === "active" ? "Ẩn sản phẩm" : "Hiển thị sản phẩm"}
-                        >
-                            {status === "active" ? (
-                                <EyeOff className="w-4 h-4 text-[#2B73F0] hover:text-[#1C57C0]" />
-                            ) : (
-                                <Eye className="w-4 h-4 text-[#2B73F0] hover:text-[#1C57C0]" />
-                            )}
-                        </button>
+                        {onView && (
+                            <button
+                                onClick={() => onView(product.id)}
+                                className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
+                                title="Xem chi tiết"
+                            >
+                                <Eye className="w-4 h-4 text-[#12A454] hover:text-[#0B7036]" />
+                            </button>
+                        )}
                         <button
                             onClick={() => onUpdate(product.id)}
                             className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
@@ -162,7 +167,21 @@ const ProductItem: React.FC<ProductItemProps> = ({
             </div>
 
             {/* Variant Rows */}
-            {hasVariants && isExpanded && product.variants?.map((variant) => (
+            {isExpanded && (
+                <>
+                    {isVariantsLoading && (
+                        <div className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center justify-center px-0 py-6 w-full text-sm text-gray-500">
+                            Đang tải biến thể...
+                        </div>
+                    )}
+                    {!isVariantsLoading && (!product.variants || product.variants.length === 0) && (
+                        <div className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center justify-center px-0 py-6 w-full text-sm text-gray-500">
+                            Sản phẩm này chưa có biến thể
+                        </div>
+                    )}
+                </>
+            )}
+            {isExpanded && !isVariantsLoading && product.variants?.map((variant) => (
                 <div key={variant.id} className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-100">
                     <div className="flex flex-row items-center w-full h-full">
                         {/* Variant Name */}

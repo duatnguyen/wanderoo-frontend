@@ -15,6 +15,7 @@ import {
   getAllProductsPrivate,
   getActiveProductsPrivate,
   getInactiveProductsPrivate,
+  getProductVariantsPrivate,
   disableProductsPrivate,
   enableProductsPrivate,
   updateSellingQuantityPrivate,
@@ -88,7 +89,6 @@ const mapProductToUi = (product: AdminProductResponse): ProductWithStatus => ({
   posQuantity: toNumber(product.posSoldQuantity),
   sellingPrice: formatPriceDisplay(product.sellingPrice),
   costPrice: formatPriceDisplay(product.importPrice),
-  variants: (product.productDetails ?? []).map(mapVariant),
   status: product.display === "ACTIVE" ? "active" : "inactive",
 });
 
@@ -116,6 +116,12 @@ const AdminProducts: React.FC = () => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const latestRequestRef = useRef(0);
+  const [variantLoadingMap, setVariantLoadingMap] = useState<Record<string, boolean>>({});
+  const productsRef = useRef<ProductWithStatus[]>([]);
+
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -383,15 +389,25 @@ const AdminProducts: React.FC = () => {
     try {
       // Lấy tất cả variants của các sản phẩm đã chọn
       const selectedProductIds = Array.from(selectedProducts).map((id) => Number(id));
-      const selectedProductsData = products.filter((p) => selectedProductIds.includes(Number(p.id)));
+      const selectedProductsData = products.filter((p) =>
+        selectedProductIds.includes(Number(p.id))
+      );
 
-      // Thu thập tất cả variants từ các sản phẩm đã chọn
-      const allVariants: ProductVariant[] = [];
-      selectedProductsData.forEach((product) => {
-        if (product.variants && product.variants.length > 0) {
-          allVariants.push(...product.variants);
+      const variantsByProduct: ProductVariant[][] = [];
+      for (const product of selectedProductsData) {
+        const existingVariants = product.variants;
+        if (existingVariants && existingVariants.length > 0) {
+          variantsByProduct.push(existingVariants);
+          continue;
         }
-      });
+
+        const loaded = await handleLoadVariants(product.id, true);
+        if (loaded.length > 0) {
+          variantsByProduct.push(loaded);
+        }
+      }
+
+      const allVariants: ProductVariant[] = variantsByProduct.flat();
 
       if (allVariants.length === 0) {
         toast.error("Không tìm thấy biến thể nào để cập nhật");
@@ -458,6 +474,56 @@ const AdminProducts: React.FC = () => {
   }, [searchValue, activeTab, currentPage, products]);
 
   const paginatedProducts = filteredProducts;
+
+  const handleLoadVariants = useCallback(
+    async (productId: string, forceReload = false): Promise<ProductVariant[]> => {
+      const currentProduct =
+        productsRef.current.find((p) => p.id === productId) || null;
+      if (!currentProduct) {
+        return [];
+      }
+
+      if (!forceReload && currentProduct.variants && currentProduct.variants.length > 0) {
+        return currentProduct.variants;
+      }
+
+      if (variantLoadingMap[productId]) {
+        return currentProduct.variants ?? [];
+      }
+
+      setVariantLoadingMap((prev) => ({ ...prev, [productId]: true }));
+      try {
+        const response = await getProductVariantsPrivate(Number(productId), {
+          page: 0,
+          size: 50,
+          sort: "asc",
+        });
+        const mappedVariants =
+          response?.variants?.map(mapVariant) ?? [];
+        setProducts((prev) =>
+          prev.map((product) =>
+            product.id === productId
+              ? {
+                  ...product,
+                  variants: mappedVariants,
+                }
+              : product
+          )
+        );
+        return mappedVariants;
+      } catch (error) {
+        console.error("Không thể tải biến thể sản phẩm", error);
+        toast.error("Không thể tải biến thể sản phẩm. Vui lòng thử lại.");
+        return [];
+      } finally {
+        setVariantLoadingMap((prev) => ({
+          ...prev,
+          [productId]: false,
+        }));
+      }
+    },
+    [variantLoadingMap]
+  );
 
   return (
     <PageContainer>
@@ -542,7 +608,9 @@ const AdminProducts: React.FC = () => {
                   isSelected={selectedProducts.has(product.id)}
                   onSelect={handleProductSelect}
                   onUpdate={handleUpdate}
-                onView={handleView}
+                  onView={handleView}
+                  onLoadVariants={handleLoadVariants}
+                  isVariantsLoading={variantLoadingMap[product.id]}
                 />
               ))}
             {!isLoading && paginatedProducts.length === 0 && !errorMessage && (

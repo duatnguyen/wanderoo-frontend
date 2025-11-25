@@ -275,12 +275,18 @@ export const deleteCustomer = async (id: number): Promise<ApiResponse<null>> => 
 };
 
 export const disableCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/customer/disable', selectData);
+  console.log("disableCustomerAccounts API call:", selectData);
+  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/account/customer/disable/all', {
+    data: selectData,
+  });
+  console.log("disableCustomerAccounts API response:", response.data);
   return response.data;
 };
 
 export const enableCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/customer/enable', selectData);
+  console.log("enableCustomerAccounts API call:", selectData);
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/customer/enable/all', selectData);
+  console.log("enableCustomerAccounts API response:", response.data);
   return response.data;
 };
 
