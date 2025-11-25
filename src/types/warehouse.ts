@@ -166,3 +166,28 @@ export interface PaymentRequest {
   paidAmount: number;
   referenceCode?: string;
 }
+
+export interface VariantAttributeSnapshot {
+  id: number;
+  name: string;
+  groupLevel?: number | null;
+  value?: string | null;
+}
+
+export interface ProductInvoiceResponse {
+  id: number;
+  imageUrl?: string | null;
+  productName: string;
+  totalQuantity?: number | null;
+  importPrice?: number | null;
+  sellingPrice?: number | null;
+  attribute?: VariantAttributeSnapshot[] | null;
+}
+
+export interface ProductInvoicePageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalElements: number;
+  productInvoices: ProductInvoiceResponse[];
+}

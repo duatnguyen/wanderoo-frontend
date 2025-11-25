@@ -1,71 +1,56 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/ui/search-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import Icon from "@/components/icons/Icon";
+import { Pagination } from "@/components/ui/pagination";
+import { searchInvoiceProducts } from "@/api/endpoints/warehouseApi";
+import type { ProductInvoiceResponse } from "@/types/warehouse";
 
 interface Product {
-  id: string;
+  id: number;
   name: string;
   quantity: number;
   price: number;
-  image?: string;
-  availableStock?: number;
+  image?: string | null;
+  availableStock?: number | null;
 }
-
-interface MockProduct {
-  id: string;
-  name: string;
-  image: string;
-  availableStock: number;
-}
-
-// Mock products data
-const mockProducts: MockProduct[] = [
-  {
-    id: "1",
-    name: "Áo Thun Nam Basic",
-    image: "/placeholder-product.jpg",
-    availableStock: 500,
-  },
-  {
-    id: "2",
-    name: "Quần Jean Nữ Skinny",
-    image: "/placeholder-product.jpg",
-    availableStock: 350,
-  },
-  {
-    id: "3",
-    name: "Giày Thể Thao Nam",
-    image: "/placeholder-product.jpg",
-    availableStock: 200,
-  },
-  {
-    id: "4",
-    name: "Túi Xách Nữ Mini",
-    image: "/placeholder-product.jpg",
-    availableStock: 150,
-  },
-];
 
 const AdminWarehouseCreateImport = () => {
   document.title = "Tạo đơn nhập hàng | Wanderoo";
+  const PRODUCT_PAGE_SIZE = 8;
 
   const navigate = useNavigate();
   const [supplierSearch, setSupplierSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productFormSearch, setProductFormSearch] = useState("");
+  const [debouncedProductSearch, setDebouncedProductSearch] = useState("");
+  const [productSearchPage, setProductSearchPage] = useState(1);
   const [note, setNote] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<
+    Record<number, ProductInvoiceResponse>
+  >({});
 
   const totalProducts = products.length;
   const totalAmount = products.reduce(
     (sum, product) => sum + product.quantity * product.price,
     0
   );
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedProductSearch(productFormSearch.trim());
+      setProductSearchPage(1);
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [productFormSearch]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -77,6 +62,111 @@ const AdminWarehouseCreateImport = () => {
       .replace(/₫/g, "đ");
   };
 
+  const buildAttributeText = (
+    attributes?: ProductInvoiceResponse["attribute"]
+  ) => {
+    if (!attributes || attributes.length === 0) {
+      return "";
+    }
+
+    return attributes
+      .map((attr) => {
+        if (!attr) return null;
+        const name = attr.name?.trim();
+        const value = attr.value?.trim();
+        if (name && value) {
+          return `${name}: ${value}`;
+        }
+        return name || value || null;
+      })
+      .filter((text): text is string => Boolean(text && text.trim().length))
+      .join(" • ");
+  };
+
+  const formatPriceDisplay = (value?: number | null) => {
+    if (value === null || value === undefined) {
+      return "—";
+    }
+    return formatCurrency(value);
+  };
+
+  const productQuery = useQuery({
+    queryKey: [
+      "invoice-products",
+      debouncedProductSearch,
+      productSearchPage,
+      PRODUCT_PAGE_SIZE,
+    ],
+    queryFn: () =>
+      searchInvoiceProducts(
+        debouncedProductSearch,
+        productSearchPage,
+        PRODUCT_PAGE_SIZE
+      ),
+    enabled: isProductFormOpen,
+    keepPreviousData: true,
+    staleTime: 0,
+    retry: 1,
+    onError: (error) => {
+      const message = isAxiosError(error)
+        ? error.response?.data?.message || "Không thể tải danh sách sản phẩm"
+        : "Không thể tải danh sách sản phẩm";
+      toast.error(message);
+    },
+  });
+
+  const productModalList = productQuery.data?.productInvoices ?? [];
+  const modalTotalPages = productQuery.data?.totalPages ?? 0;
+  const modalCurrentPage = productSearchPage;
+  const isModalLoading = productQuery.isLoading || productQuery.isFetching;
+  const hasModalError = productQuery.isError;
+  const isModalEmpty =
+    !isModalLoading && !hasModalError && productModalList.length === 0;
+
+  const selectedOnPageCount = useMemo(
+    () =>
+      productModalList.reduce(
+        (count, product) => count + (selectedProducts[product.id] ? 1 : 0),
+        0
+      ),
+    [productModalList, selectedProducts]
+  );
+
+  const isSelectAllChecked =
+    productModalList.length > 0 &&
+    selectedOnPageCount === productModalList.length;
+  const isSelectAllIndeterminate =
+    selectedOnPageCount > 0 && selectedOnPageCount < productModalList.length;
+  const selectAllState = isSelectAllChecked
+    ? true
+    : isSelectAllIndeterminate
+      ? "indeterminate"
+      : false;
+
+  const handleToggleSelectAllCurrentPage = (checked: boolean) => {
+    setSelectedProducts((prev) => {
+      const updated = { ...prev };
+      if (checked) {
+        productModalList.forEach((product) => {
+          updated[product.id] = product;
+        });
+      } else {
+        productModalList.forEach((product) => {
+          delete updated[product.id];
+        });
+      }
+      return updated;
+    });
+  };
+
+  const handleCloseProductModal = useCallback(() => {
+    setIsProductFormOpen(false);
+    setSelectedProducts({});
+    setProductFormSearch("");
+    setProductSearchPage(1);
+    setDebouncedProductSearch("");
+  }, []);
+
   const handleCancel = () => {
     navigate("/admin/warehouse/imports");
   };
@@ -86,33 +176,48 @@ const AdminWarehouseCreateImport = () => {
     console.log("Confirm import order");
   };
 
-  const toggleProductSelection = (productId: string) => {
-    setSelectedProductIds((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
+  const toggleProductSelection = (product: ProductInvoiceResponse) => {
+    setSelectedProducts((prev) => {
+      const updated = { ...prev };
+      if (updated[product.id]) {
+        delete updated[product.id];
+      } else {
+        updated[product.id] = product;
+      }
+      return updated;
+    });
   };
 
   const handleAddProducts = () => {
-    const newProducts = mockProducts
-      .filter((product) => selectedProductIds.includes(product.id))
+    const selectedList = Object.values(selectedProducts);
+
+    if (selectedList.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm");
+      return;
+    }
+
+    const newProducts = selectedList
+      .filter((product) => !products.some((p) => p.id === product.id))
       .map((product) => ({
         id: product.id,
-        name: product.name,
+        name: product.productName,
         quantity: 1,
-        price: 0,
-        image: product.image,
-        availableStock: product.availableStock,
-      }))
-      .filter((product) => !products.some((p) => p.id === product.id));
+        price: product.importPrice ?? 0,
+        image: product.imageUrl ?? null,
+        availableStock: product.totalQuantity ?? 0,
+      }));
 
-    setProducts((prev) => [...prev, ...newProducts]);
-    setIsProductFormOpen(false);
-    setSelectedProductIds([]);
+    if (newProducts.length === 0) {
+      toast.info("Tất cả sản phẩm đã có trong danh sách");
+    } else {
+      setProducts((prev) => [...prev, ...newProducts]);
+      toast.success("Đã thêm sản phẩm vào danh sách");
+    }
+
+    handleCloseProductModal();
   };
 
-  const handleUpdateQuantity = (productId: string, quantity: number) => {
+  const handleUpdateQuantity = (productId: number, quantity: number) => {
     setProducts((prev) =>
       prev.map((product) =>
         product.id === productId
@@ -122,7 +227,7 @@ const AdminWarehouseCreateImport = () => {
     );
   };
 
-  const handleUpdatePrice = (productId: string, price: number) => {
+  const handleUpdatePrice = (productId: number, price: number) => {
     setProducts((prev) =>
       prev.map((product) =>
         product.id === productId
@@ -132,24 +237,19 @@ const AdminWarehouseCreateImport = () => {
     );
   };
 
-  const handleRemoveProduct = (productId: string) => {
+  const handleRemoveProduct = (productId: number) => {
     setProducts((prev) => prev.filter((product) => product.id !== productId));
   };
-
-  const filteredMockProducts = mockProducts.filter((product) =>
-    product.name.toLowerCase().includes(productFormSearch.toLowerCase())
-  );
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isProductFormOpen) {
-        setIsProductFormOpen(false);
-        setSelectedProductIds([]);
+        handleCloseProductModal();
       }
     };
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
-  }, [isProductFormOpen]);
+  }, [handleCloseProductModal, isProductFormOpen]);
 
   return (
     <div className="box-border flex flex-col gap-[10px] items-start px-4 pt-0 pb-[32px] relative w-full max-w-[1130px] mx-auto overflow-x-auto overflow-y-auto table-scroll-container">
@@ -418,7 +518,7 @@ const AdminWarehouseCreateImport = () => {
       {isProductFormOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={() => setIsProductFormOpen(false)}
+          onClick={handleCloseProductModal}
         >
           <div className="absolute inset-0 bg-black/50" />
           <div
@@ -474,20 +574,11 @@ const AdminWarehouseCreateImport = () => {
               <div className="box-border flex items-center px-[15px] py-0 shrink-0 bg-white">
                 <div className="bg-white box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
                   <Checkbox
-                    checked={
-                      selectedProductIds.length ===
-                        filteredMockProducts.length &&
-                      filteredMockProducts.length > 0
+                    checked={selectAllState}
+                    onCheckedChange={(checked) =>
+                      handleToggleSelectAllCurrentPage(checked === true)
                     }
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedProductIds(
-                          filteredMockProducts.map((p) => p.id)
-                        );
-                      } else {
-                        setSelectedProductIds([]);
-                      }
-                    }}
+                    aria-label="Chọn tất cả sản phẩm trên trang"
                   />
                   <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#454545]">
                     Sản phẩm
@@ -495,47 +586,107 @@ const AdminWarehouseCreateImport = () => {
                 </div>
                 <div className="bg-white box-border flex gap-[4px] grow h-[50px] items-center justify-center p-[14px]">
                   <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
-                    Có thể bán
+                    Số lượng tồn kho
                   </p>
                 </div>
               </div>
 
               {/* Product List */}
               <div className="box-border flex flex-col max-h-[400px] items-start px-[15px] py-0 overflow-y-auto bg-white">
-                {filteredMockProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="border-b border-[#e7e7e7] box-border flex items-center w-full bg-white"
-                  >
-                    <div className="bg-white box-border flex gap-[8px] h-full items-start overflow-clip px-[5px] py-[14px] w-[450px]">
-                      <Checkbox
-                        checked={selectedProductIds.includes(product.id)}
-                        onCheckedChange={() =>
-                          toggleProductSelection(product.id)
-                        }
-                      />
-                      <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300"></div>
-                      <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-black">
-                        {product.name}
-                      </p>
-                    </div>
-                    <div className="bg-white box-border flex gap-[4px] grow h-full items-center justify-center p-[14px]">
-                      <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
-                        {product.availableStock}
-                      </p>
-                    </div>
+                {isModalLoading && (
+                  <div className="w-full py-10 text-center text-[14px] text-[#737373]">
+                    Đang tải danh sách sản phẩm...
                   </div>
-                ))}
+                )}
+
+                {hasModalError && !isModalLoading && (
+                  <div className="w-full py-10 text-center text-[14px] text-[#d92d20]">
+                    Không thể tải dữ liệu. Vui lòng thử lại.
+                  </div>
+                )}
+
+                {isModalEmpty && (
+                  <div className="w-full py-10 text-center text-[14px] text-[#737373]">
+                    Không tìm thấy sản phẩm phù hợp.
+                  </div>
+                )}
+
+                {!isModalLoading &&
+                  !hasModalError &&
+                  productModalList.map((product) => {
+                    const attributeText = buildAttributeText(product.attribute);
+                    const isChecked = Boolean(selectedProducts[product.id]);
+                    const availableStock = product.totalQuantity ?? 0;
+
+                    return (
+                      <div
+                        key={product.id}
+                        className="border-b border-[#e7e7e7] box-border flex items-center w-full bg-white"
+                      >
+                        <div className="bg-white box-border flex gap-[8px] h-full items-start overflow-clip px-[5px] py-[14px] w-[450px]">
+                          <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={() =>
+                              toggleProductSelection(product)
+                            }
+                            aria-label={`Chọn ${product.productName}`}
+                          />
+                          <div className="h-[38px] w-[38px] bg-gray-100 rounded flex items-center justify-center shrink-0 border border-gray-200 overflow-hidden">
+                            {product.imageUrl ? (
+                              <img
+                                src={product.imageUrl}
+                                alt={product.productName}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-[12px] text-[#737373]">
+                                N/A
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-[4px] min-w-0 pr-2">
+                            <p
+                              className="font-['Montserrat'] font-semibold leading-[1.4] text-[14px] text-black line-clamp-1"
+                              title={product.productName}
+                            >
+                              {product.productName}
+                            </p>
+                            {attributeText && (
+                              <p className="font-['Montserrat'] text-[12px] text-[#737373] line-clamp-1">
+                                {attributeText}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#6b7280]">
+                              <span>Mã: #{product.id}</span>
+                              <span>Giá nhập: {formatPriceDisplay(product.importPrice)}</span>
+                              <span>Giá bán: {formatPriceDisplay(product.sellingPrice)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white box-border flex gap-[4px] grow h-full items-center justify-center p-[14px]">
+                          <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
+                            {availableStock.toLocaleString("vi-VN")}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
+
+              {modalTotalPages > 1 && (
+                <Pagination
+                  current={modalCurrentPage}
+                  total={modalTotalPages}
+                  onChange={(page) => setProductSearchPage(page)}
+                  className="border-none shadow-none rounded-none px-[16px] py-[12px]"
+                />
+              )}
 
               {/* Footer Buttons */}
               <div className="box-border flex gap-[10px] items-center justify-end px-[16px] py-[12px] shrink-0 bg-white rounded-b-lg">
                 <Button
                   variant="secondary"
-                  onClick={() => {
-                    setIsProductFormOpen(false);
-                    setSelectedProductIds([]);
-                  }}
+                  onClick={handleCloseProductModal}
                   className="h-[36px] text-[14px]"
                 >
                   Huỷ

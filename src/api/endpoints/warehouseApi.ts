@@ -10,6 +10,7 @@ import type {
   InvoicePreviewResponse,
   InvoiceDetailResponse,
   PaymentRequest,
+  ProductInvoicePageResponse,
 } from '../../types/warehouse';
 import type { SelectAllRequest } from '../../types/auth';
 import type { ApiResponse } from '../../types/common';
@@ -260,6 +261,24 @@ export const confirmInvoiceProductStatus = async (
 ): Promise<InvoiceDetailResponse> => {
   const response = await apiClient.post<ApiResponse<InvoiceDetailResponse>>(
     `/auth/v1/private/invoice/${invoiceId}/confirm-product-status`
+  );
+  return response.data.data;
+};
+
+export const searchInvoiceProducts = async (
+  keyword?: string,
+  page: number = 1,
+  size: number = 10
+): Promise<ProductInvoicePageResponse> => {
+  const params = new URLSearchParams();
+  if (keyword && keyword.trim()) {
+    params.append("keyword", keyword.trim());
+  }
+  params.append("page", page.toString());
+  params.append("size", size.toString());
+
+  const response = await apiClient.get<ApiResponse<ProductInvoicePageResponse>>(
+    `/auth/v1/private/invoice/products?${params.toString()}`
   );
   return response.data.data;
 };
