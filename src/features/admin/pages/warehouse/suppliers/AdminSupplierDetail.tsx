@@ -1,7 +1,12 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import {
+  useQuery,
+  keepPreviousData,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
 import { Pagination } from "@/components/ui/pagination";
@@ -9,12 +14,17 @@ import EditSupplierModal from "@/components/admin/EditSupplierModal";
 import {
   getProviderDetail,
   getProviderStats,
+  updateProvider,
 } from "@/api/endpoints/warehouseApi";
+import { toast } from "sonner";
+import { AxiosError } from "axios";
 import type {
   ProviderDetailResponse,
   ProviderInvoiceHistoryItem,
   ProviderStatResponse,
+  ProviderUpdateRequest,
 } from "@/types";
+import type { ApiResponse } from "@/types/api";
 
 const HISTORY_PAGE_SIZE = 10;
 
@@ -81,6 +91,7 @@ const AdminSupplierDetail = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setCurrentPage(1);
@@ -140,11 +151,11 @@ const AdminSupplierDetail = () => {
       value: providerStats?.invoiceImportUnpaid ?? 0,
     },
     {
-      label: "Đơn trả\nđã tạo",
+      label: "Đơn xuất\nđã tạo",
       value: providerStats?.invoiceExportCreated ?? 0,
     },
     {
-      label: "Đơn trả\nchưa hoàn tiền",
+      label: "Đơn xuất\nchưa nhận",
       value: providerStats?.invoiceExportUnrefund ?? 0,
     },
   ];
@@ -159,17 +170,27 @@ const AdminSupplierDetail = () => {
     }
   };
 
-  const handleSaveSupplier = (updatedData: {
-    supplierName: string;
-    phone: string;
-    email: string;
-    street: string;
-    ward: string;
-    district: string;
-    city: string;
-  }) => {
-    // TODO: Implement API call to update supplier
-    console.log("Updating supplier:", updatedData);
+  const updateProviderMutation = useMutation({
+    mutationFn: updateProvider,
+    onSuccess: () => {
+      toast.success("Cập nhật nhà cung cấp thành công");
+      if (providerId) {
+        queryClient.invalidateQueries({ queryKey: ["provider-detail", providerId] });
+        queryClient.invalidateQueries({
+          queryKey: ["provider-stats", providerId, currentPage, startDate, endDate],
+        });
+      }
+      setIsEditModalOpen(false);
+    },
+    onError: (error: AxiosError<ApiResponse<unknown>>) => {
+      const message =
+        error.response?.data?.message || "Cập nhật nhà cung cấp thất bại";
+      toast.error(message);
+    },
+  });
+
+  const handleSaveSupplier = (updatedData: ProviderUpdateRequest) => {
+    updateProviderMutation.mutate(updatedData);
   };
 
   return (
@@ -195,13 +216,6 @@ const AdminSupplierDetail = () => {
               className="text-[14px]"
             >
               Huỷ
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => console.log("Save clicked")}
-              className="text-[14px]"
-            >
-              Lưu
             </Button>
           </div>
         </div>
@@ -437,15 +451,9 @@ const AdminSupplierDetail = () => {
         <EditSupplierModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          supplierData={{
-            id: supplierCode,
-            name: supplierName,
-            phone: supplierPhone,
-            email: supplierEmail,
-            address: supplierAddress,
-            note: supplierNote,
-          }}
+          supplierData={providerDetail}
           onSave={handleSaveSupplier}
+          isSubmitting={updateProviderMutation.isPending}
         />
       </div>
       <div className="h-[calc(100vh-100px)]"></div>
