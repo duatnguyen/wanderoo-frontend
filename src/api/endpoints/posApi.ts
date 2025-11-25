@@ -9,6 +9,7 @@ export interface PosOrderListParams {
   page?: number;
   size?: number;
   sort?: string; // e.g. createdAt,desc
+  paymentStatus?: string; // PAID, UNPAID, PARTIAL, REFUNDED
 }
 
 // POS Order List Item (matches backend OrderListResponse)
@@ -66,6 +67,7 @@ export const getPosOrderList = async (
   if (params.fromDate) queryParams.fromDate = params.fromDate;
   if (params.toDate) queryParams.toDate = params.toDate;
   if (params.sort) queryParams.sort = params.sort;
+  if (params.paymentStatus) queryParams.paymentStatus = params.paymentStatus;
 
   const resp = await apiClient.get<ApiResponse<PageResponse<PosOrderListItem>>>(
     '/api/v1/pos/orders',

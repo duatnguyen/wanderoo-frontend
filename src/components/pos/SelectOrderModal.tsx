@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SearchBar } from "@/components/ui/search-bar";
 import { DatePicker } from "@/components/ui/date-picker";
+import { useQuery } from "@tanstack/react-query";
+import { getPosOrderList } from "@/api/endpoints/posApi";
+import Loading from "@/components/common/Loading";
 
 export type Order = {
   id: string;
@@ -28,8 +31,53 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
-  const [startDate, setStartDate] = useState("2025-07-29");
-  const [endDate, setEndDate] = useState("2025-07-29");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    // reset pagination when filters change
+    setCurrentPage(1);
+  }, [searchValue, startDate, endDate]);
+
+  const {
+    data: ordersData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "selectOrderModal",
+      isOpen,
+      searchValue,
+      startDate,
+      endDate,
+      currentPage,
+    ],
+    queryFn: async () => {
+      if (!isOpen) return null;
+      return await getPosOrderList({
+        search: searchValue || undefined,
+        fromDate: startDate || undefined,
+        toDate: endDate || undefined,
+        page: currentPage - 1,
+        size: pageSize,
+        sort: "createdAt,desc",
+      });
+    },
+    enabled: isOpen,
+    refetchOnWindowFocus: false,
+  });
+
+  const orders = ordersData?.content ?? [];
+  const mappedOrders = orders.map((order) => ({
+    id: order.id,
+    displayCode: order.code || order.id?.toString() || "",
+    createdAt: order.createdAt,
+    totalAmount: order.totalOrderPrice || 0,
+  }));
+  const totalPages = ordersData?.totalPages ?? 1;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -44,42 +92,6 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
-
-  // Mock orders data
-  const mockOrders: Order[] = [
-    {
-      id: "1003",
-      createdAt: "2025-07-29T21:45:00",
-      totalAmount: 200000,
-      customerName: "Nguyễn Văn A",
-      customerPhone: "0123456789",
-    },
-    {
-      id: "1004",
-      createdAt: "2025-07-29T21:45:00",
-      totalAmount: 1000000,
-      customerName: "Trần Thị B",
-      customerPhone: "0987654321",
-    },
-  ];
-
-  // Filter orders based on search and date range
-  const filteredOrders = mockOrders.filter((order) => {
-    const matchesSearch =
-      !searchValue ||
-      order.id.toLowerCase().includes(searchValue.toLowerCase()) ||
-      order.customerName?.toLowerCase().includes(searchValue.toLowerCase()) ||
-      order.customerPhone?.includes(searchValue);
-
-    const orderDate = new Date(order.createdAt);
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999); // Include full end date
-
-    const matchesDate = orderDate >= start && orderDate <= end;
-
-    return matchesSearch && matchesDate;
-  });
 
   const handleOrderReturn = (orderId: string) => {
     onSelectOrder(orderId);
@@ -150,6 +162,25 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
 
         {/* Order List Table */}
         <div className="flex-1 overflow-y-auto">
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loading />
+            </div>
+          )}
+          {error && !isLoading && (
+            <div className="flex flex-col items-center justify-center py-8 gap-4">
+              <p className="text-sm text-red-500">
+                Lỗi khi tải danh sách đơn hàng
+              </p>
+              <button
+                onClick={() => refetch()}
+                className="px-4 py-2 bg-[#e04d30] text-white rounded hover:bg-[#c23e24] text-sm"
+              >
+                Thử lại
+              </button>
+            </div>
+          )}
+          {!isLoading && !error && (
           <table className="w-full">
             <thead className="bg-[#f6f6f6] sticky top-0">
               <tr>
@@ -168,7 +199,7 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e7e7e7] bg-white">
-              {filteredOrders.length === 0 ? (
+              {mappedOrders.length === 0 ? (
                 <tr>
                   <td
                     colSpan={4}
@@ -178,14 +209,16 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
+                mappedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => handleOrderReturn(order.id)}
+                        onClick={() =>
+                          handleOrderReturn(order.id?.toString() || "")
+                        }
                         className="text-sm font-medium text-[#007bff] hover:text-[#0056b3] hover:underline"
                       >
-                        #{order.id}
+                        #{order.displayCode}
                       </button>
                     </td>
                     <td className="px-4 py-3 text-sm text-[#272424]">
@@ -196,7 +229,9 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => handleOrderReturn(order.id)}
+                        onClick={() =>
+                          handleOrderReturn(order.id?.toString() || "")
+                        }
                         className="text-sm font-medium text-[#007bff] hover:text-[#0056b3] hover:underline"
                       >
                         Trả hàng
@@ -207,7 +242,35 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
               )}
             </tbody>
           </table>
+          )}
         </div>
+        {!isLoading && !error && mappedOrders.length > 0 && (
+          <div className="px-6 py-3 border-t border-[#e7e7e7] flex items-center justify-between text-sm">
+            <span>
+              Trang {currentPage} / {totalPages}
+            </span>
+            <div className="flex items-center gap-3">
+              <button
+                className="px-3 py-1 rounded border border-[#e7e7e7] disabled:opacity-50"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Trước
+              </button>
+              <button
+                className="px-3 py-1 rounded border border-[#e7e7e7] disabled:opacity-50"
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.min(totalPages, prev + 1)
+                  )
+                }
+                disabled={currentPage === totalPages}
+              >
+                Sau
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
