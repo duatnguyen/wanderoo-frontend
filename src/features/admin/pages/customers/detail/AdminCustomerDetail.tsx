@@ -39,6 +39,33 @@ type CustomerAddressFormState = {
   location: string;
 };
 
+const normalizeAddressPart = (value?: string | null) => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const lower = trimmed.toLowerCase();
+  if (lower === "null" || lower === "undefined") return "";
+  return trimmed;
+};
+
+const formatAddressText = (address?: AddressResponse | null) => {
+  if (!address) return "Chưa có địa chỉ";
+
+  const normalizedFull = normalizeAddressPart(address.fullAddress);
+  if (normalizedFull) {
+    return normalizedFull;
+  }
+
+  const parts = [
+    normalizeAddressPart(address.street) || normalizeAddressPart((address as any).location),
+    normalizeAddressPart(address.wardName) || normalizeAddressPart((address as any).ward),
+    normalizeAddressPart(address.districtName) || normalizeAddressPart((address as any).district),
+    normalizeAddressPart(address.provinceName) || normalizeAddressPart((address as any).province),
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(", ") : "Chưa có địa chỉ";
+};
+
 const AdminCustomerDetail = () => {
   const { customerId } = useParams();
   const navigate = useNavigate();
@@ -66,6 +93,10 @@ const AdminCustomerDetail = () => {
     location: "",
   });
   const [defaultAddress, setDefaultAddress] = useState<AddressResponse | null>(null);
+  const formattedDefaultAddress = useMemo(
+    () => formatAddressText(defaultAddress),
+    [defaultAddress]
+  );
 
   const shouldHideLocationName = (name: string) => {
     const normalized = name
@@ -383,8 +414,13 @@ const AdminCustomerDetail = () => {
   useEffect(() => {
     if (addressesData?.addresses && addressesData.addresses.length > 0) {
       // Find default address or use first address
-      const defaultAddr = addressesData.addresses.find(addr => addr.isDefault === "Địa chỉ mặc định") 
-        || addressesData.addresses[0];
+      const defaultAddr =
+        addressesData.addresses.find(
+          (addr) =>
+            addr.isDefault === true ||
+            addr.isDefault === "true" ||
+            addr.isDefault === "Địa chỉ mặc định"
+        ) || addressesData.addresses[0];
       setDefaultAddress(defaultAddr);
     } else {
       setDefaultAddress(null);
@@ -459,15 +495,19 @@ const AdminCustomerDetail = () => {
   const handleAddressEditClick = () => {
     if (defaultAddress) {
       // Edit existing address
+      const provinceName = normalizeAddressPart(defaultAddress.provinceName) || normalizeAddressPart((defaultAddress as any).province);
+      const districtName = normalizeAddressPart(defaultAddress.districtName) || normalizeAddressPart((defaultAddress as any).district);
+      const wardName = normalizeAddressPart(defaultAddress.wardName) || normalizeAddressPart((defaultAddress as any).ward);
+      const street = normalizeAddressPart(defaultAddress.street) || normalizeAddressPart((defaultAddress as any).location);
       setAddressData({
         id: defaultAddress.id,
-        name: defaultAddress.name || customer.name,
-        phone: defaultAddress.phone || customer.phone,
-        province: defaultAddress.province || "",
+        name: defaultAddress.receiverName || defaultAddress.name || customer.name,
+        phone: defaultAddress.receiverPhone || defaultAddress.phone || customer.phone,
+        province: provinceName,
         provinceId: null,
-        district: defaultAddress.district || "",
-        ward: defaultAddress.ward || "",
-        location: defaultAddress.location || "",
+        district: districtName,
+        ward: wardName,
+        location: street,
         wardCode: defaultAddress.wardCode || "",
         districtId: defaultAddress.districtId || null,
       });
@@ -535,32 +575,36 @@ const AdminCustomerDetail = () => {
     const finalWardCode = addressData.wardCode.trim();
     const finalDistrictId = addressData.districtId;
 
+    const street = addressData.location.trim();
+    const wardName = addressData.ward.trim();
+    const districtName = addressData.district.trim();
+    const provinceName = addressData.province.trim();
+    const payloadCommon = {
+      name: addressData.name.trim(),
+      phone: addressData.phone.trim(),
+      street,
+      wardCode: finalWardCode,
+      wardName,
+      districtId: finalDistrictId,
+      districtName,
+      provinceName,
+      fullAddress: [street, wardName, districtName, provinceName]
+        .filter(Boolean)
+        .join(", "),
+    };
+
     if (addressData.id) {
       // Update existing address
       const updateData: AddressUpdateRequest = {
         id: addressData.id,
-        name: addressData.name.trim(),
-        phone: addressData.phone.trim(),
-        province: addressData.province.trim(),
-        district: addressData.district.trim(),
-        ward: addressData.ward.trim(),
-        location: addressData.location.trim(),
-        wardCode: finalWardCode,
-        districtId: finalDistrictId,
+        ...payloadCommon,
       };
       console.log("Updating address with data:", updateData);
       updateAddressMutation.mutate(updateData);
     } else {
       // Create new address
       const createData: AddressCreationRequest = {
-        name: addressData.name.trim(),
-        phone: addressData.phone.trim(),
-        province: addressData.province.trim(),
-        district: addressData.district.trim(),
-        ward: addressData.ward.trim(),
-        location: addressData.location.trim(),
-        wardCode: finalWardCode,
-        districtId: finalDistrictId,
+        ...payloadCommon,
       };
       console.log("Creating address with data:", createData);
       createAddressMutation.mutate(createData);
@@ -917,7 +961,7 @@ const AdminCustomerDetail = () => {
                     Người nhận
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {defaultAddress?.name || customer.name}
+                    {defaultAddress?.receiverName || defaultAddress?.name || customer.name}
                   </p>
                 </div>
                 <div className="flex flex-col gap-[4px]">
@@ -925,7 +969,7 @@ const AdminCustomerDetail = () => {
                     Số điện thoại
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {defaultAddress?.phone || customer.phone}
+                    {defaultAddress?.receiverPhone || defaultAddress?.phone || customer.phone}
                   </p>
                 </div>
               </div>
@@ -935,9 +979,7 @@ const AdminCustomerDetail = () => {
                   Địa chỉ chi tiết
                 </p>
                 <p className="font-semibold text-[#272424] text-[15px] leading-[1.5] break-words">
-                  {defaultAddress 
-                    ? `${defaultAddress.location || ""}, ${defaultAddress.ward || ""}, ${defaultAddress.district || ""}, ${defaultAddress.province || ""}`.replace(/^,\s*|,\s*$/g, '').trim() || "Chưa có địa chỉ"
-                    : "Chưa có địa chỉ"}
+                  {formattedDefaultAddress}
                 </p>
               </div>
             </div>

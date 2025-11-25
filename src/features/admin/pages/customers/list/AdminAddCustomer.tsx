@@ -211,15 +211,22 @@ const AdminAddCustomer = () => {
           toast.warning("Không thể tạo địa chỉ vì thiếu thông tin tỉnh/thành hợp lệ");
         } else {
           try {
+            const street = formData.location.trim();
+            const wardName = formData.ward.trim();
+            const districtName = formData.district.trim();
+            const provinceName = formData.province.trim();
             const addressData: AddressCreationRequest = {
               name: formData.addressName.trim() || formData.name.trim(),
               phone: formData.addressPhone.trim() || formData.phone.trim(),
-              province: formData.province.trim(),
-              district: formData.district.trim(),
-              ward: formData.ward.trim(),
-              location: formData.location.trim(),
+              street,
               wardCode: formData.wardCode.trim(),
+              wardName,
               districtId: formData.districtId,
+              districtName,
+              provinceName,
+              fullAddress: [street, wardName, districtName, provinceName]
+                .filter(Boolean)
+                .join(", "),
             };
             await createCustomerAddress(customerId, addressData);
             console.log("Address created for customer:", customerId);

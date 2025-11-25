@@ -64,10 +64,20 @@ const toBooleanDefault = (value: AddressDetailResponse["isDefault"]) => {
   return normalized.includes("mặc định") || normalized.includes("mac dinh");
 };
 
-const formatAddress = (address: AddressDetailResponse) =>
-  [address.location, address.ward, address.district, address.province]
+const formatAddress = (address: AddressDetailResponse) => {
+  if (address.fullAddress && address.fullAddress.trim().length > 0) {
+    return address.fullAddress.trim();
+  }
+  return [
+    address.street || address.location || "",
+    address.wardName || address.ward || "",
+    address.districtName || address.district || "",
+    address.provinceName || address.province || "",
+  ]
+    .map((item) => item?.trim())
     .filter(Boolean)
     .join(", ");
+};
 
 const AddressTab: React.FC = () => {
   const queryClient = useQueryClient();
@@ -215,10 +225,10 @@ const AddressTab: React.FC = () => {
         setFormData({
           name: address.raw.name,
           phone: address.raw.phone,
-          province: address.raw.province,
-          district: address.raw.district,
-          ward: address.raw.ward,
-          detailAddress: address.raw.location,
+          province: address.raw.provinceName || address.raw.province || "",
+          district: address.raw.districtName || address.raw.district || "",
+          ward: address.raw.wardName || address.raw.ward || "",
+          detailAddress: address.raw.street || address.raw.location || "",
           isDefault: address.isDefault,
           provinceId: undefined,
           districtId: address.raw.districtId,
@@ -384,16 +394,25 @@ const AddressTab: React.FC = () => {
     return null;
   };
 
-  const buildPayload = (): AddressCreationRequest => ({
-    name: formData.name.trim(),
-    phone: formData.phone.trim(),
-    province: formData.province,
-    district: formData.district,
-    ward: formData.ward,
-    location: formData.detailAddress.trim(),
-    wardCode: formData.wardCode ?? "",
-    districtId: formData.districtId ?? 0,
-  });
+  const buildPayload = (): AddressCreationRequest => {
+    const street = formData.detailAddress.trim();
+    const wardName = formData.ward;
+    const districtName = formData.district;
+    const provinceName = formData.province;
+    return {
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      street,
+      wardCode: formData.wardCode ?? "",
+      wardName,
+      districtId: formData.districtId ?? 0,
+      districtName,
+      provinceName,
+      fullAddress: [street, wardName, districtName, provinceName]
+        .filter(Boolean)
+        .join(", "),
+    };
+  };
 
   const handleSave = async () => {
     const error = ensureFormValid();

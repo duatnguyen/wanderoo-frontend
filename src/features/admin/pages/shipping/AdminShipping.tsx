@@ -70,12 +70,27 @@ const AdminShipping: React.FC = () => {
     queryFn: () => getAdminAddresses(),
   });
 
+  const formatAddressText = (addr: AddressResponse) => {
+    if (addr.fullAddress && String(addr.fullAddress).trim().length > 0) {
+      return String(addr.fullAddress).trim();
+    }
+    return [
+      addr.street || addr.location || "",
+      addr.wardName || addr.ward || "",
+      addr.districtName || addr.district || "",
+      addr.provinceName || addr.province || "",
+    ]
+      .map((part) => (part ? String(part).trim() : ""))
+      .filter((part) => part)
+      .join(", ");
+  };
+
   // Convert API response to local Address format and sort: default address first
   const addresses: Address[] = (addressesData?.addresses?.map((addr: AddressResponse) => ({
     id: addr.id,
-    name: addr.name || "",
-    phone: addr.phone || "",
-    address: `${addr.location || ""}, ${addr.ward || ""}, ${addr.district || ""}, ${addr.province || ""}`.replace(/^,\s*|,\s*$/g, ""),
+    name: addr.receiverName || addr.name || "",
+    phone: addr.receiverPhone || addr.phone || "",
+    address: formatAddressText(addr),
     isDefault: typeof addr.isDefault === "string" 
       ? addr.isDefault === "Địa chỉ mặc định" || addr.isDefault === "true"
       : addr.isDefault === true,
@@ -201,9 +216,9 @@ const AdminShipping: React.FC = () => {
     if (originalAddress) {
       setEditingAddress({
         id: originalAddress.id,
-        name: originalAddress.name || "",
-        phone: originalAddress.phone || "",
-        address: `${originalAddress.location || ""}, ${originalAddress.ward || ""}, ${originalAddress.district || ""}, ${originalAddress.province || ""}`.replace(/^,\s*|,\s*$/g, ""),
+        name: originalAddress.receiverName || originalAddress.name || "",
+        phone: originalAddress.receiverPhone || originalAddress.phone || "",
+        address: formatAddressText(originalAddress),
         isDefault: typeof originalAddress.isDefault === "string" 
           ? originalAddress.isDefault === "Địa chỉ mặc định" || originalAddress.isDefault === "true"
           : originalAddress.isDefault === true,
@@ -234,31 +249,35 @@ const AdminShipping: React.FC = () => {
     const district = formData.district.trim();
     const province = formData.province.trim();
 
+    const street = location;
+    const wardName = ward;
+    const districtName = district;
+    const provinceName = province;
+    const commonPayload = {
+      name: formData.fullName.trim(),
+      phone: formData.phone.trim(),
+      street,
+      wardCode: formData.wardCode,
+      wardName,
+      districtId: formData.districtId,
+      districtName,
+      provinceName,
+      fullAddress: [street, wardName, districtName, provinceName]
+        .filter(Boolean)
+        .join(", "),
+    };
+
     if (editingAddress) {
       // Update existing address
       const updateData: AddressUpdateRequest = {
         id: editingAddress.id,
-        name: formData.fullName.trim(),
-        phone: formData.phone.trim(),
-        province: province,
-        district: district,
-        ward: ward,
-        location: location,
-        wardCode: formData.wardCode,
-        districtId: formData.districtId,
+        ...commonPayload,
       };
       updateMutation.mutate(updateData);
     } else {
       // Add new address
       const createData: AddressCreationRequest = {
-        name: formData.fullName.trim(),
-        phone: formData.phone.trim(),
-        province: province,
-        district: district,
-        ward: ward,
-        location: location,
-        wardCode: formData.wardCode,
-        districtId: formData.districtId,
+        ...commonPayload,
       };
       createMutation.mutate(createData);
     }
@@ -460,14 +479,14 @@ const AdminShipping: React.FC = () => {
                         const originalAddress = addressesData.addresses.find((addr: AddressResponse) => addr.id === editingAddress.id);
                         return originalAddress
                           ? {
-                              fullName: originalAddress.name || "",
-                              phone: originalAddress.phone || "",
-                              province: originalAddress.province || "",
-                              district: originalAddress.district || "",
-                              ward: originalAddress.ward || "",
-                              detailAddress: originalAddress.location || "",
-                              districtId: originalAddress.districtId,
-                              wardCode: originalAddress.wardCode,
+                              fullName: originalAddress.receiverName || originalAddress.name || "",
+                              phone: originalAddress.receiverPhone || originalAddress.phone || "",
+                              province: originalAddress.provinceName || originalAddress.province || "",
+                              district: originalAddress.districtName || originalAddress.district || "",
+                              ward: originalAddress.wardName || originalAddress.ward || "",
+                              detailAddress: originalAddress.street || originalAddress.location || "",
+                              districtId: originalAddress.districtId ?? undefined,
+                              wardCode: originalAddress.wardCode || "",
                               isDefault: typeof originalAddress.isDefault === "string" 
                                 ? originalAddress.isDefault === "Địa chỉ mặc định" || originalAddress.isDefault === "true"
                                 : originalAddress.isDefault === true,
