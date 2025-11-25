@@ -288,16 +288,24 @@ const AdminSupplierNew = () => {
       newErrors.street = "Địa chỉ đường là bắt buộc";
     }
 
-    if (!formData.ward.trim()) {
-      newErrors.ward = "Phường/Xã là bắt buộc";
+    if (!formData.city.trim()) {
+      newErrors.city = "Tỉnh/Thành phố là bắt buộc";
     }
 
     if (!formData.district.trim()) {
       newErrors.district = "Quận/Huyện là bắt buộc";
     }
 
-    if (!formData.city.trim()) {
-      newErrors.city = "Tỉnh/Thành phố là bắt buộc";
+    if (!formData.districtId) {
+      newErrors.district = "Vui lòng chọn quận/huyện";
+    }
+
+    if (!formData.ward.trim()) {
+      newErrors.ward = "Phường/Xã là bắt buộc";
+    }
+
+    if (!formData.wardCode) {
+      newErrors.ward = "Vui lòng chọn phường/xã";
     }
 
     setErrors(newErrors);
@@ -310,6 +318,22 @@ const AdminSupplierNew = () => {
     e.preventDefault();
 
     if (validateForm()) {
+      // Validate required fields that backend needs
+      if (!formData.districtId) {
+        setErrors((prev) => ({
+          ...prev,
+          district: "Vui lòng chọn quận/huyện",
+        }));
+        return;
+      }
+      if (!formData.wardCode) {
+        setErrors((prev) => ({
+          ...prev,
+          ward: "Vui lòng chọn phường/xã",
+        }));
+        return;
+      }
+
       try {
         setIsSubmitting(true);
         await createProvider({
@@ -317,10 +341,12 @@ const AdminSupplierNew = () => {
           phone: formData.phone.trim(),
           email: formData.email.trim(),
           note: formData.note?.trim() || "",
-          province: formData.city.trim(),
-          ward: formData.ward.trim(),
-          district: formData.district.trim(),
-          location: formData.street.trim(),
+          provinceName: formData.city.trim(),
+          districtName: formData.district.trim(),
+          districtId: formData.districtId,
+          wardName: formData.ward.trim(),
+          wardCode: formData.wardCode,
+          street: formData.street.trim(),
         });
         toast.success("Thêm nhà cung cấp thành công");
         navigate("/admin/warehouse/supplier", {

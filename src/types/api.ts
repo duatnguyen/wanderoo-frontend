@@ -1055,10 +1055,13 @@ export interface ProviderCreateRequest {
   phone: string;
   email: string;
   note?: string;
-  province: string;
-  ward: string;
-  district: string;
-  location: string;
+  provinceName: string;
+  districtName: string;
+  districtId: number;
+  wardName: string;
+  wardCode: string;
+  street: string;
+  fullAddress?: string;
 }
 
 export interface ProviderUpdateRequest extends ProviderCreateRequest {
