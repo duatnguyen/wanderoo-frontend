@@ -148,30 +148,46 @@ const AdminCustomers: React.FC = () => {
 
   // Enable/Disable customer mutations
   const enableMutation = useMutation({
-    mutationFn: (ids: number[]) => enableCustomerAccounts({ ids }),
+    mutationFn: async (ids: number[]) => {
+      const payload = { getAll: ids };
+      console.log("Enable customer request payload:", payload);
+      const response = await enableCustomerAccounts(payload);
+      console.log("Enable customer response:", response);
+      return response;
+    },
     onSuccess: () => {
       toast.success("Kích hoạt khách hàng thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-customers-all"] });
       setSelectedCustomers(new Set());
     },
     onError: (error: any) => {
-      toast.error(
-        error?.response?.data?.message || "Không thể kích hoạt khách hàng"
-      );
+      console.error("Enable customer error:", error);
+      console.error("Error response:", error?.response);
+      const errorMessage = error?.response?.data?.message || error?.message || "Không thể kích hoạt khách hàng";
+      toast.error(errorMessage);
     },
   });
 
   const disableMutation = useMutation({
-    mutationFn: (ids: number[]) => disableCustomerAccounts({ ids }),
+    mutationFn: async (ids: number[]) => {
+      const payload = { getAll: ids };
+      console.log("Disable customer request payload:", payload);
+      const response = await disableCustomerAccounts(payload);
+      console.log("Disable customer response:", response);
+      return response;
+    },
     onSuccess: () => {
       toast.success("Ngừng kích hoạt khách hàng thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-customers-all"] });
       setSelectedCustomers(new Set());
     },
     onError: (error: any) => {
-      toast.error(
-        error?.response?.data?.message || "Không thể ngừng kích hoạt khách hàng"
-      );
+      console.error("Disable customer error:", error);
+      console.error("Error response:", error?.response);
+      const errorMessage = error?.response?.data?.message || error?.message || "Không thể ngừng kích hoạt khách hàng";
+      toast.error(errorMessage);
     },
   });
 
