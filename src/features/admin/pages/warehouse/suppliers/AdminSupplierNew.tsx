@@ -288,24 +288,20 @@ const AdminSupplierNew = () => {
       newErrors.street = "Địa chỉ đường là bắt buộc";
     }
 
-    if (!formData.city.trim()) {
-      newErrors.city = "Tỉnh/Thành phố là bắt buộc";
+    if (!formData.ward.trim()) {
+      newErrors.ward = "Phường/Xã là bắt buộc";
+    } else if (!formData.wardCode) {
+      newErrors.ward = "Vui lòng chọn phường/xã hợp lệ";
     }
 
     if (!formData.district.trim()) {
       newErrors.district = "Quận/Huyện là bắt buộc";
+    } else if (typeof formData.districtId !== "number") {
+      newErrors.district = "Vui lòng chọn quận/huyện hợp lệ";
     }
 
-    if (!formData.districtId) {
-      newErrors.district = "Vui lòng chọn quận/huyện";
-    }
-
-    if (!formData.ward.trim()) {
-      newErrors.ward = "Phường/Xã là bắt buộc";
-    }
-
-    if (!formData.wardCode) {
-      newErrors.ward = "Vui lòng chọn phường/xã";
+    if (!formData.city.trim()) {
+      newErrors.city = "Tỉnh/Thành phố là bắt buộc";
     }
 
     setErrors(newErrors);
@@ -318,24 +314,13 @@ const AdminSupplierNew = () => {
     e.preventDefault();
 
     if (validateForm()) {
-      // Validate required fields that backend needs
-      if (!formData.districtId) {
-        setErrors((prev) => ({
-          ...prev,
-          district: "Vui lòng chọn quận/huyện",
-        }));
-        return;
-      }
-      if (!formData.wardCode) {
-        setErrors((prev) => ({
-          ...prev,
-          ward: "Vui lòng chọn phường/xã",
-        }));
-        return;
-      }
-
       try {
         setIsSubmitting(true);
+        if (!formData.districtId || !formData.wardCode) {
+          toast.error("Vui lòng chọn đầy đủ quận/huyện và phường/xã.");
+          return;
+        }
+
         await createProvider({
           name: formData.supplierName.trim(),
           phone: formData.phone.trim(),

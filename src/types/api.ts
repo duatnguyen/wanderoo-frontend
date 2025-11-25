@@ -384,11 +384,14 @@ export interface ProviderDetailResponse {
   name: string;
   phone: string;
   email: string;
-  note?: string;
-  province: string;
-  ward: string;
-  district: string;
-  location: string;
+  note?: string | null;
+  street?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  districtId?: number | null;
+  districtName?: string | null;
+  provinceName?: string | null;
+  fullAddress?: string | null;
 }
 
 export interface InvoiceResponse {
@@ -1068,10 +1071,26 @@ export interface ProviderUpdateRequest extends ProviderCreateRequest {
   id: number;
 }
 
+export interface ProviderInvoiceHistoryItem {
+  type: "IMPORT" | "EXPORT";
+  code: string;
+  updatedAt: string;
+  productStatus: "PENDING" | "DONE";
+  paymentStatus: "PENDING" | "DONE";
+}
+
 export interface ProviderStatResponse {
-  totalInvoices: number;
-  totalAmount: number;
-  lastOrderDate: string;
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  fromDate?: string | null;
+  toDate?: string | null;
+  invoiceImportCreated: number;
+  invoiceImportUnpaid: number;
+  invoiceExportCreated: number;
+  invoiceExportUnrefund: number;
+  invoiceHistory: ProviderInvoiceHistoryItem[];
 }
 
 export interface OrderHistoryResponse {
