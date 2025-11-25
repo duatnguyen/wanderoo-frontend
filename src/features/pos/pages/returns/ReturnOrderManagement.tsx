@@ -82,6 +82,53 @@ const ReturnOrderManagement: React.FC = () => {
   }, [returnOrdersData, selectedReturnOrderId]);
 
   // Convert API response to component types
+  const dedupeVariantText = (...sources: (string | undefined)[]): string | undefined => {
+    const parts = sources.flatMap((text) => {
+      if (!text) return [];
+      return text
+        .split("/")
+        .map((part) => part.trim())
+        .filter(Boolean);
+    });
+    const unique = Array.from(new Set(parts));
+    return unique.length ? unique.join(" / ") : undefined;
+  };
+
+  const normalizeProductInfo = (
+    productName?: string,
+    category?: string
+  ): { name: string; variant?: string } => {
+    if (!productName) {
+      return { name: "Sản phẩm", variant: dedupeVariantText(category) };
+    }
+
+    const trimmed = productName.trim();
+    // Case: name starts with "/" meaning only variant stored
+    if (trimmed.startsWith("/")) {
+      const variantText = trimmed.replace(/^\s*\/\s*/, "").replace(/\s*\/\s*$/, "");
+      const variantClean = variantText.replace(/\s*\/\s*$/, "");
+      return {
+        name: "Sản phẩm",
+        variant: dedupeVariantText(category, variantClean),
+      };
+    }
+
+    const [baseName, ...rest] = trimmed.split(/\s+-\s+/);
+    if (rest.length > 0) {
+      const variantText = rest.join(" - ").replace(/^\s*\/\s*/, "").trim();
+      const finalVariant = dedupeVariantText(category, variantText);
+      return {
+        name: baseName.trim(),
+        variant: finalVariant,
+      };
+    }
+
+    return {
+      name: trimmed,
+      variant: dedupeVariantText(category),
+    };
+  };
+
   const returnOrders: ReturnOrder[] =
     returnOrdersData?.content.map((order) => ({
       id: order.code || order.id.toString(),
@@ -103,17 +150,20 @@ const ReturnOrderManagement: React.FC = () => {
         createdAt: returnOrderDetailData.createdAt,
         customer: "---", // Backend doesn't provide customer info in return order
         note: returnOrderDetailData.notes || "",
-        receivedProducts: returnOrderDetailData.returnProducts.map((product) => ({
-          product: {
-            id: product.id.toString(),
-            name: product.productName,
-            image: product.productImage,
-            variant: product.category,
-            price: product.unitPrice || 0,
-            quantity: product.returnQuantity || 0,
-          },
-          reason: getReturnReasonText(returnOrderDetailData.returnReason),
-        })),
+        receivedProducts: returnOrderDetailData.returnProducts.map((product) => {
+          const normalized = normalizeProductInfo(product.productName, product.category);
+          return {
+            product: {
+              id: product.id.toString(),
+              name: normalized.name,
+              image: product.productImage,
+              variant: normalized.variant,
+              price: product.unitPrice || 0,
+              quantity: product.returnQuantity || 0,
+            },
+            reason: getReturnReasonText(returnOrderDetailData.returnReason),
+          };
+        }),
         isReceived: returnOrderDetailData.status === "COMPLETED" || returnOrderDetailData.status === "PENDING",
         returnedSummary: {
           totalAmount: returnOrderDetailData.returnProducts.reduce(
