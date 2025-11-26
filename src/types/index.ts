@@ -38,4 +38,6 @@ export type {
   BrandPageResponse,
   BrandCreateRequest,
   SellingQuantityRequest,
+  ProductCategoryItemResponse,
+  ProductCategoryPageResponse,
 } from "./api";

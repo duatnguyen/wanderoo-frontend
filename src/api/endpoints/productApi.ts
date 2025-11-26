@@ -23,6 +23,8 @@ import type {
   ProductVariantListResponse,
   ProductDetailsResponse,
   SellingQuantityRequest,
+  ProductCategoryPageResponse,
+  BrandResponse,
 } from '../../types';
 
 type ProductListQuery = {
@@ -38,6 +40,15 @@ type VariantListQuery = {
   sort?: string;
 };
 
+export type PublicProductListQuery = {
+  keyword?: string;
+  brandIds?: number[];
+  minPrice?: number;
+  maxPrice?: number;
+  page?: number;
+  size?: number;
+};
+
 // Public Product APIs
 export const getProductDetail = async (id: number): Promise<ProductResponse> => {
   const response = await api.get<ApiResponse<ProductResponse>>(`/auth/v1/public/product/${id}`);
@@ -47,6 +58,26 @@ export const getProductDetail = async (id: number): Promise<ProductResponse> => 
 export const getProductVariants = async (variantRequest: VariantDetailIdRequest): Promise<VariantResponse> => {
   const response = await api.post<ApiResponse<VariantResponse>>('/auth/v1/public/product/variants', variantRequest);
   return response.data.data;
+};
+
+export const getPublicProductsByCategory = async (
+  categoryId: number,
+  params?: PublicProductListQuery
+): Promise<ProductCategoryPageResponse> => {
+  const response = await api.get<ApiResponse<ProductCategoryPageResponse>>(
+    `/auth/v1/public/product/category/${categoryId}`,
+    {
+      params,
+    }
+  );
+  return response.data.data;
+};
+
+export const getPublicCategoryBrands = async (): Promise<BrandResponse[]> => {
+  const response = await api.get<ApiResponse<BrandResponse[]>>(
+    `/auth/v1/public/product/brands`
+  );
+  return response.data.data ?? [];
 };
 
 // Admin Product APIs (Private v1)

@@ -153,10 +153,19 @@ const Header: React.FC<HeaderProps> = ({
     [mainCategories, childLoadingState]
   );
 
-  const handleCategoryClick = (categoryId: string) => {
-    console.log("Category clicked:", categoryId);
-    // Navigate to category page or filter products
-    // navigate(`/shop/category/${categoryId}`);
+  const handleCategoryClick = (categoryId: string, mainCategoryId?: string) => {
+    if (mainCategoryId) {
+      navigate(`/shop/category/${mainCategoryId}/${categoryId}`);
+    } else {
+      const parent = mainCategories.find((cat) => cat.id === categoryId);
+      const firstChild = parent?.subcategories?.[0];
+      if (firstChild) {
+        navigate(`/shop/category/${categoryId}/${firstChild.id}`);
+      } else {
+        navigate(`/shop/category/${categoryId}`);
+      }
+    }
+    setIsCategoryDropdownOpen(false);
   };
 
   return (
