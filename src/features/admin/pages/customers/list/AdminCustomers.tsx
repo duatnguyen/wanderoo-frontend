@@ -55,6 +55,19 @@ const AdminCustomers: React.FC = () => {
     }
   }, [location, navigate]);
 
+  // Sync actual search term with input value (debounced) so user doesn't need Enter
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const normalizedValue = searchInputValue.trim();
+      if (normalizedValue !== searchTerm) {
+        setSearchTerm(normalizedValue);
+        setCurrentPage(1);
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchInputValue, searchTerm]);
+
   // Fetch customers from API
   const {
     data: customersData,
@@ -148,46 +161,30 @@ const AdminCustomers: React.FC = () => {
 
   // Enable/Disable customer mutations
   const enableMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
-      const payload = { getAll: ids };
-      console.log("Enable customer request payload:", payload);
-      const response = await enableCustomerAccounts(payload);
-      console.log("Enable customer response:", response);
-      return response;
-    },
+    mutationFn: (ids: number[]) => enableCustomerAccounts({ ids }),
     onSuccess: () => {
       toast.success("Kích hoạt khách hàng thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-customers-all"] });
       setSelectedCustomers(new Set());
     },
     onError: (error: any) => {
-      console.error("Enable customer error:", error);
-      console.error("Error response:", error?.response);
-      const errorMessage = error?.response?.data?.message || error?.message || "Không thể kích hoạt khách hàng";
-      toast.error(errorMessage);
+      toast.error(
+        error?.response?.data?.message || "Không thể kích hoạt khách hàng"
+      );
     },
   });
 
   const disableMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
-      const payload = { getAll: ids };
-      console.log("Disable customer request payload:", payload);
-      const response = await disableCustomerAccounts(payload);
-      console.log("Disable customer response:", response);
-      return response;
-    },
+    mutationFn: (ids: number[]) => disableCustomerAccounts({ ids }),
     onSuccess: () => {
       toast.success("Ngừng kích hoạt khách hàng thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-customers-all"] });
       setSelectedCustomers(new Set());
     },
     onError: (error: any) => {
-      console.error("Disable customer error:", error);
-      console.error("Error response:", error?.response);
-      const errorMessage = error?.response?.data?.message || error?.message || "Không thể ngừng kích hoạt khách hàng";
-      toast.error(errorMessage);
+      toast.error(
+        error?.response?.data?.message || "Không thể ngừng kích hoạt khách hàng"
+      );
     },
   });
 

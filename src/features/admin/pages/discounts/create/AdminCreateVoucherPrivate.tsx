@@ -231,7 +231,7 @@ const AdminCreateVoucherPrivate: React.FC = () => {
                   className="flex-shrink-0"
                 />
                 <span className="font-semibold text-[16px] sm:text-[20px] text-white leading-[1.4] whitespace-nowrap">
-                  Voucher riêng tư
+                  Voucher nhập mã
                 </span>
               </div>
             </div>
