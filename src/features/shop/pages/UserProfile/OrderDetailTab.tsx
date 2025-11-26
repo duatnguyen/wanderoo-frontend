@@ -8,6 +8,7 @@ import ActionButton from "../../../../components/shop/ActionButton";
 import ProductReviewModal from "../../../../components/shop/ProductReviewModal";
 import StarRating from "../../../../components/shop/StarRating";
 import { ChipStatus } from "../../../../components/ui/chip-status";
+import ReturnRefundModal from "../../../../components/shop/ReturnRefundModal";
 
 function formatCurrencyVND(value: number) {
   return `${value.toLocaleString("vi-VN")}đ`;
@@ -55,6 +56,7 @@ const OrderDetailTab: React.FC = () => {
   const [productReviews, setProductReviews] = useState<
     Map<string, { rating: number; comment: string }>
   >(new Map());
+  const [isReturnRefundModalOpen, setIsReturnRefundModalOpen] = useState(false);
 
   // Determine status from navigation state if available
   const currentStatus:
@@ -261,15 +263,7 @@ const OrderDetailTab: React.FC = () => {
                     id: "return-refund",
                     label: "Yêu cầu hoàn hàng/trả tiền",
                     onClick: () => {
-                      navigate("/user/profile/return-refund/products", {
-                        state: {
-                          order: {
-                            id: order.id,
-                            orderDate: order.orderDate,
-                            products: order.products,
-                          },
-                        },
-                      });
+                      setIsReturnRefundModalOpen(true);
                     },
                   },
                   {
@@ -456,6 +450,13 @@ const OrderDetailTab: React.FC = () => {
           }}
         />
       )}
+
+      <ReturnRefundModal
+        isOpen={isReturnRefundModalOpen}
+        onClose={() => setIsReturnRefundModalOpen(false)}
+        order={{ id: order.id, orderDate: order.orderDate }}
+        allProducts={order.products}
+      />
 
       {/* Success Modal */}
       {showSuccessModal && (
