@@ -9,7 +9,8 @@ type Voucher = {
   title: string;
   description: string;
   expiry: string;
-  minimumOrder: string;
+  minimumOrderLabel: string;
+  minimumOrderValue: number;
 };
 
 type VoucherSection = {
@@ -24,6 +25,7 @@ interface POSVoucherModalProps {
   onClose: () => void;
   onApply: (voucherId: string | null) => void;
   selectedVoucherId: string | null;
+  orderTotal: number;
 }
 
 const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
@@ -31,6 +33,7 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
   onClose,
   onApply,
   selectedVoucherId,
+  orderTotal,
 }) => {
   const [activeVoucher, setActiveVoucher] = useState<string | null>(
     selectedVoucherId
@@ -45,6 +48,7 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [allVouchers, setAllVouchers] = useState<Voucher[]>([]);
+  const [eligibilityMessage, setEligibilityMessage] = useState<string | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Format currency helper
@@ -69,9 +73,8 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       ? ` tối đa ${formatCurrency(discount.maxOrderValue)}`
       : "";
     const title = `Giảm ${discountValue}${discountType}${maxDiscount}`;
-    const minOrder = discount.minOrderValue
-      ? formatCurrency(discount.minOrderValue)
-      : "0đ";
+    const minOrderValue = discount.minOrderValue ?? 0;
+    const minOrderLabel = formatCurrency(minOrderValue);
     const description = discount.description || "";
 
     return {
@@ -80,14 +83,15 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       title,
       description,
       expiry: formatDate(discount.endDate),
-      minimumOrder: minOrder,
+      minimumOrderLabel: minOrderLabel,
+      minimumOrderValue: minOrderValue,
     };
   };
 
   // Fetch all discounts from API when modal opens
   useEffect(() => {
     if (isOpen) {
-      setActiveVoucher(selectedVoucherId);
+      setEligibilityMessage(null);
       setIsLoading(true);
       setError(null);
       setVoucherCode("");
@@ -96,6 +100,27 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       searchDiscountsByKeyword()
         .then((discounts: DiscountResponse[]) => {
           const vouchers = discounts.map(convertDiscountToVoucher);
+          setActiveVoucher((prev) => {
+            const selectedStillEligible =
+              selectedVoucherId &&
+              vouchers.some(
+                (voucher) =>
+                  voucher.id === selectedVoucherId &&
+                  isVoucherEligible(voucher)
+              )
+                ? selectedVoucherId
+                : null;
+            if (!prev) return selectedStillEligible;
+            const stillEligible = vouchers.some(
+              (voucher) =>
+                voucher.id === prev &&
+                isVoucherEligible(voucher)
+            );
+            if (stillEligible) {
+              return prev;
+            }
+            return null;
+          });
           setAllVouchers(vouchers);
           setSections([
             {
@@ -114,6 +139,18 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
         });
     }
   }, [isOpen, selectedVoucherId]);
+
+  const isVoucherEligible = (voucher: Voucher) =>
+    voucher.minimumOrderValue === 0 || orderTotal >= voucher.minimumOrderValue;
+
+  useEffect(() => {
+    if (!activeVoucher) return;
+    const voucher = allVouchers.find((item) => item.id === activeVoucher);
+    if (!voucher || !isVoucherEligible(voucher)) {
+      setActiveVoucher(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderTotal, allVouchers]);
 
   // Auto search when typing with debounce
   useEffect(() => {
@@ -146,14 +183,26 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       try {
         const discounts = await searchDiscountsByKeyword(voucherCode.trim());
         const vouchers = discounts.map(convertDiscountToVoucher);
+        setAllVouchers(vouchers);
+        const subtitle =
+          vouchers.length > 0
+            ? `Tìm thấy ${vouchers.length} voucher`
+            : "Có thể chọn 1 voucher";
+        if (
+          selectedVoucherId &&
+          !vouchers.some(
+            (voucher) =>
+              voucher.id === selectedVoucherId && isVoucherEligible(voucher)
+          )
+        ) {
+          setActiveVoucher(null);
+        }
         
         setSections([
           {
             id: "discount",
             title: "Voucher giảm giá",
-            subtitle: vouchers.length > 0 
-              ? `Tìm thấy ${vouchers.length} voucher` 
-              : "Có thể chọn 1 voucher",
+            subtitle,
             vouchers,
           },
         ]);
@@ -177,7 +226,23 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
   if (!isOpen) return null;
 
   const handleApply = () => {
-    onApply(activeVoucher);
+    if (activeVoucher) {
+      const selectedVoucher = allVouchers.find(
+        (voucher) => voucher.id === activeVoucher
+      );
+      if (!selectedVoucher || !isVoucherEligible(selectedVoucher)) {
+        setEligibilityMessage(
+          "Đơn hàng chưa đạt giá trị tối thiểu để dùng mã này."
+        );
+        return;
+      }
+      setEligibilityMessage(null);
+      onApply(activeVoucher);
+      onClose();
+      return;
+    }
+    setEligibilityMessage(null);
+    onApply(null);
     onClose();
   };
 
@@ -308,6 +373,7 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                     : section.vouchers.slice(0, 2)
                   ).map((voucher) => {
                     const isSelected = activeVoucher === voucher.id;
+                    const eligible = isVoucherEligible(voucher);
                     return (
                       <label
                         key={voucher.id}
@@ -315,7 +381,9 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                           isSelected
                             ? "border-[#E04D30] shadow-[0_8px_20px_rgba(224,77,48,0.12)]"
                             : "border-gray-200 hover:border-[#E04D30]/60"
-                        } bg-white transition-colors cursor-pointer`}
+                        } bg-white transition-colors ${
+                          eligible ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                        }`}
                       >
                         <div
                           className={`flex-1 px-4 py-3 text-[13px] ${
@@ -351,8 +419,13 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                                 isSelected ? "text-[#E04D30]" : "text-gray-600"
                               }`}
                             >
-                              Đơn tối thiểu {voucher.minimumOrder}
+                              Đơn tối thiểu {voucher.minimumOrderLabel}
                             </p>
+                            {!eligible && (
+                              <p className="text-xs text-[#E04D30]">
+                                Chưa đạt điều kiện sử dụng
+                              </p>
+                            )}
                             {voucher.description && (
                               <p
                                 className={`${
@@ -370,6 +443,7 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                             name="voucher"
                             className="h-5 w-5 text-[#E04D30] focus:ring-[#E04D30]"
                             checked={isSelected}
+                            disabled={!eligible}
                             onChange={() => setActiveVoucher(voucher.id)}
                           />
                         </div>
@@ -407,7 +481,11 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
         </div>
 
         {/* Footer Buttons */}
-        <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-3">
+        <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex flex-col gap-2">
+          {eligibilityMessage && (
+            <p className="text-xs text-[#E04D30]">{eligibilityMessage}</p>
+          )}
+          <div className="flex items-center justify-end gap-3">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors"
@@ -420,6 +498,7 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
           >
             OK
           </button>
+          </div>
         </div>
       </div>
     </div>

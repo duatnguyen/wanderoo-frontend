@@ -198,17 +198,16 @@ const POSPage: React.FC = () => {
     if (!draftOrderId) return;
     const productDetailId = Number(productId);
     if (Number.isNaN(productDetailId)) return;
+    const normalizedQuantity = Number.isFinite(quantity)
+      ? Math.max(1, Math.floor(quantity))
+      : 1;
 
     try {
       setIsRefreshing(true);
-      if (quantity <= 0) {
-        await removeItemFromDraftOrder(draftOrderId, { productDetailId });
-      } else {
-        await updateItemQuantity(draftOrderId, {
-          productDetailId,
-          quantity,
-        });
-      }
+      await updateItemQuantity(draftOrderId, {
+        productDetailId,
+        quantity: normalizedQuantity,
+      });
       await loadDraftOrderDetail(draftOrderId);
     } catch (err) {
       console.error("Không thể cập nhật số lượng", err);
