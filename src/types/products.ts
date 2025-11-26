@@ -124,3 +124,84 @@ export interface CategoryChildUpdateRequest {
   name: string;
   imageUrl?: string;
 }
+
+// Admin product list responses
+export interface AdminProductDetailResponse {
+  id: number;
+  imageUrl?: string;
+  nameDetail: string;
+  skuDetail: string;
+  barcode?: string;
+  totalQuantity: number;
+  availableQuantity: number;
+  websiteSoldQuantity: number;
+  posSoldQuantity: number;
+  sellingPrice: number | string;
+  importPrice: number | string;
+}
+
+export interface AdminProductResponse {
+  id: number;
+  imageUrl?: string;
+  name: string;
+  sku: string;
+  totalQuantity: number;
+  availableQuantity: number;
+  websiteSoldQuantity: number;
+  posSoldQuantity: number;
+  sellingPrice: number | string;
+  importPrice: number | string;
+  display?: string;
+  productDetails?: AdminProductDetailResponse[];
+}
+
+export interface AdminProductPageResponse {
+  totalProducts: number;
+  pageNumber?: number;
+  pageSize?: number;
+  page?: number;
+  size?: number;
+  totalPages?: number;
+  totalPage?: number;
+  totalElements?: number;
+  productResponseList: AdminProductResponse[];
+}
+
+export interface ProductVariantListResponse {
+  variants?: AdminProductDetailResponse[];
+  content?: AdminProductDetailResponse[];
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  totalElements?: number;
+}
+
+export interface ProductDetailAttributeValueResponse {
+  id: number;
+  value: string;
+}
+
+export interface ProductDetailAttributeResponse {
+  name: string;
+  values: ProductDetailAttributeValueResponse[];
+}
+
+export interface ProductDetailsResponse {
+  id: number;
+  images?: string[];
+  name: string;
+  categoryResponse?: { id: number; name: string } | null;
+  brandResponse?: { id: number; name: string } | null;
+  description?: string;
+  attributes?: ProductDetailAttributeResponse[];
+  quantity?: number;
+  totalQuantity?: number | null;
+  availableQuantity?: number | null;
+  sellingPrice?: number | string | null;
+  importPrice?: number | string | null;
+  price?: string | null;
+  packagedWeight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+}

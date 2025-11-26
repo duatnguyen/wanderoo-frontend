@@ -18,7 +18,7 @@ import type { AdminProductResponse } from "@/types";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createDiscount, getDiscountDetail, updateDiscount, applyDiscountToProducts, getProductDetailIdsByDiscountId, removeDiscountFromProducts } from "@/api/endpoints/discountApi";
-import type { AdminDiscountCreateRequest } from "@/types/discount";
+import type { AdminDiscountCreateRequest, AdminDiscountResponse } from "@/types/discount";
 
 // Date formatting utilities
 const formatDateTimeForInput = (dateString: string) => {
@@ -101,7 +101,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const [searchParams] = useSearchParams();
   const discountIdQuery = searchParams.get("id");
   const discountIdFromQuery = discountIdQuery ? Number(discountIdQuery) : undefined;
-  const { mode, voucher } = (location.state as EditLocationState | undefined) || {};
+  const { voucher } = (location.state as EditLocationState | undefined) || {};
   const editData = voucher?.editData;
   const stateDiscountId = voucher?.id ? Number(voucher.id) : undefined;
   const fetchDiscountId = useMemo(() => {

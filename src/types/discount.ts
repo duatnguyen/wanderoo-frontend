@@ -54,15 +54,15 @@ export interface AdminDiscountCreateRequest {
   applyTo: DiscountApplyToValue;
   applyOn: DiscountApplyOnValue;
   value: number;
-  minOrderValue?: number;
-  maxOrderValue?: number;
-  discountUsage?: number;
+  minOrderValue?: number | null;
+  maxOrderValue?: number | null;
+  discountUsage?: number | null;
   contextAllowed?: DiscountContextValue;
   startDate: string;
   endDate: string;
   quantity: number;
   status: DiscountStatusValue;
-  description?: string;
+  description?: string | null;
 }
 
 export type AdminDiscountUpdateRequest = AdminDiscountCreateRequest;
