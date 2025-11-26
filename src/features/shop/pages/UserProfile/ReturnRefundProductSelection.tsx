@@ -39,10 +39,8 @@ const ReturnRefundProductSelection: React.FC = () => {
       option?: "received-with-issue" | "not-received";
     }) || {};
 
-  const [requestType, setRequestType] = useState<
-    "received-with-issue" | "not-received"
-  >(option || "received-with-issue");
-  const isNotReceived = requestType === "not-received";
+  const requestType: "received-with-issue" | "not-received" =
+    option || "received-with-issue";
 
   // Default data if not passed via state
   const defaultOrder: OrderData = {
@@ -164,51 +162,6 @@ const ReturnRefundProductSelection: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          {/* Situation Section */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 space-y-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-              Tình huống bạn đang gặp?
-            </h2>
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setRequestType("received-with-issue")}
-                className={`w-full text-left rounded-xl border p-4 sm:p-5 transition-all ${
-                  requestType === "received-with-issue"
-                    ? "border-[#E04D30] bg-[#FFF2EC] shadow-[0_12px_30px_rgba(224,77,48,0.12)]"
-                    : "border-gray-200 hover:border-[#E04D30]/60"
-                }`}
-              >
-                <div className="text-base sm:text-lg font-semibold text-gray-800">
-                  Tôi đã nhận hàng nhưng hàng có vấn đề (bể vỡ, sai mẫu, hàng
-                  lỗi, khác mô tả...) - Miễn ship hoàn về
-                </div>
-                <div className="text-sm text-[#E04D30] mt-2">
-                  Lưu ý: Trường hợp yêu cầu trả hàng hoàn tiền của bạn được chấp
-                  nhận, voucher có thể không được hoàn lại
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setRequestType("not-received")}
-                className={`w-full text-left rounded-xl border p-4 sm:p-5 transition-all ${
-                  requestType === "not-received"
-                    ? "border-[#E04D30] bg-[#FFF2EC] shadow-[0_12px_30px_rgba(224,77,48,0.12)]"
-                    : "border-gray-200 hover:border-[#E04D30]/60"
-                }`}
-              >
-                <div className="text-base sm:text-lg font-semibold text-gray-800">
-                  Tôi chưa nhận hàng/thùng hàng rỗng
-                </div>
-                <div className="text-sm text-[#E04D30] mt-2">
-                  Lưu ý: Trường hợp yêu cầu trả hàng hoàn tiền của bạn được chấp
-                  nhận, voucher có thể không được hoàn lại
-                </div>
-              </button>
-            </div>
-          </div>
-
           {/* Product Selection Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
@@ -221,7 +174,7 @@ const ReturnRefundProductSelection: React.FC = () => {
 
             {/* Order Info */}
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mb-4 pb-4 border-b border-gray-200">
-              <span>Đơn hàng: #{orderData.code}</span>
+              <span>Đơn hàng: #{orderData.id}</span>
               <span>|</span>
               <span>Ngày đặt hàng: {orderData.orderDate}</span>
             </div>
@@ -243,6 +196,8 @@ const ReturnRefundProductSelection: React.FC = () => {
               {orderData.products.map((product) => {
                 const isSelected = selectedProducts.has(product.id);
                 const selectedProduct = selectedProducts.get(product.id);
+                const selectedReturnQuantity =
+                  selectedProduct?.returnQuantity ?? 1;
 
                 return (
                   <div
@@ -288,7 +243,7 @@ const ReturnRefundProductSelection: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleQuantityChange(product.id, -1)}
-                            disabled={selectedProduct?.returnQuantity <= 1}
+                            disabled={selectedReturnQuantity <= 1}
                             className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Giảm số lượng"
                           >
@@ -304,13 +259,12 @@ const ReturnRefundProductSelection: React.FC = () => {
                             </svg>
                           </button>
                           <span className="w-12 text-center font-semibold text-sm">
-                            {selectedProduct?.returnQuantity || 1}
+                            {selectedReturnQuantity}
                           </span>
                           <button
                             onClick={() => handleQuantityChange(product.id, 1)}
                             disabled={
-                              selectedProduct?.returnQuantity >=
-                              product.quantity
+                              selectedReturnQuantity >= product.quantity
                             }
                             className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Tăng số lượng"
