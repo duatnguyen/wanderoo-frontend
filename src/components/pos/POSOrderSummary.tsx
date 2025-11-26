@@ -172,6 +172,7 @@ export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
           }
         }}
         selectedVoucherId={selectedVoucherId}
+        orderTotal={totalAmount}
       />
     </>
   );

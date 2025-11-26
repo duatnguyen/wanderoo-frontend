@@ -1,10 +1,6 @@
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminProductsNew from "../create/AdminProductsNew";
-import {
-  adminMockProducts,
-  type AdminProductDetail,
-} from "../data/mockProducts";
 import type {
   ProductAttribute,
   ProductFormData,
@@ -12,85 +8,122 @@ import type {
   ProductVersion,
 } from "@/types/product";
 import { PageContainer, ContentCard } from "@/components/common";
+import { getProductDetailPrivate, getProductVariantsPrivate } from "@/api/endpoints/productApi";
+import type { ProductDetailsResponse, ProductVariantListResponse } from "@/types";
+
+const VARIANT_PAGE_SIZE = 20;
 
 const AdminProductsEdit: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [productDetail, setProductDetail] = useState<ProductDetailsResponse | null>(null);
+  const [variants, setVariants] = useState<ProductVariantListResponse | null>(null);
 
-  // Simulate API loading
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
+    const fetchProductData = async () => {
       if (!productId) {
         setError("Product ID is required");
-      } else if (!productDetail) {
-        setError("Product not found");
+        setIsLoading(false);
+        return;
       }
-    }, 500);
 
-    return () => clearTimeout(timer);
+      const numericId = parseInt(productId, 10);
+      if (isNaN(numericId)) {
+        setError("Invalid Product ID");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch product detail and variants in parallel
+        const [detailResponse, variantsResponse] = await Promise.all([
+          getProductDetailPrivate(numericId),
+          getProductVariantsPrivate(numericId, { page: 0, size: VARIANT_PAGE_SIZE, sort: "asc" }),
+        ]);
+
+        setProductDetail(detailResponse);
+        setVariants(variantsResponse);
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        setError("Không thể tải thông tin sản phẩm");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProductData();
   }, [productId]);
 
-  const productDetail = useMemo<AdminProductDetail | undefined>(
-    () => adminMockProducts.find((product) => product.id === productId),
-    [productId]
-  );
-
-  const stripCurrency = (value: string): string => {
-    if (!value) return "";
-    return value.replace(/[^\d]/g, "");
+  const stripCurrency = (value: string | number | undefined | null): string => {
+    if (value === undefined || value === null) return "";
+    return String(value).replace(/[^\d]/g, "");
   };
 
-  const initialFormData: Partial<ProductFormData> | undefined = useMemo(() => {
-    if (!productDetail) return undefined;
+  // Transform API response to form data
+  const initialFormData: Partial<ProductFormData> | undefined = productDetail
+    ? {
+        productName: productDetail.name || "",
+        barcode: productDetail.barcode || "",
+        category: productDetail.categoryResponse?.name || "",
+        categoryId: productDetail.categoryResponse?.id || null,
+        brand: productDetail.brandResponse?.name || "",
+        brandId: productDetail.brandResponse?.id || null,
+        description: productDetail.description || "",
+        costPrice: stripCurrency(productDetail.importPrice),
+        sellingPrice: stripCurrency(productDetail.sellingPrice ?? productDetail.price),
+        inventory: String(productDetail.totalQuantity ?? ""),
+        available: String(productDetail.availableQuantity ?? ""),
+        weight: String(productDetail.packagedWeight ?? ""),
+        length: String(productDetail.length ?? ""),
+        width: String(productDetail.width ?? ""),
+        height: String(productDetail.height ?? ""),
+      }
+    : undefined;
 
-    return {
-      productName: productDetail.name || "",
-      barcode: productDetail.barcode || "",
-      category: productDetail.categoryName || "",
-      brand: productDetail.brandName || "",
-      description: productDetail.description || "",
-      costPrice: stripCurrency(productDetail.costPrice || "0"),
-      sellingPrice: stripCurrency(productDetail.sellingPrice || "0"),
-      inventory: (productDetail.inventory || 0).toString(),
-      available: (productDetail.availableToSell || 0).toString(),
-      weight: productDetail.weight || "",
-      length: productDetail.length || "",
-      width: productDetail.width || "",
-      height: productDetail.height || "",
-    };
-  }, [productDetail]);
+  // Transform images
+  const initialImages: ProductImage[] = productDetail?.images?.length
+    ? productDetail.images.map((url, index) => ({
+        id: `img-${index}`,
+        url,
+      }))
+    : [];
 
-  const initialImages: ProductImage[] = useMemo(() => {
-    if (!productDetail) return [];
+  // Transform attributes - values từ API là object {id, value}, cần chuyển thành string[]
+  const initialAttributes: ProductAttribute[] = productDetail?.attributes?.map((attr) => ({
+    name: attr.name || "",
+    values: Array.isArray(attr.values) 
+      ? attr.values.map((v: { value?: string } | string) => typeof v === 'string' ? v : (v.value || ''))
+      : [],
+  })) || [];
 
-    if (productDetail.images?.length) {
-      return productDetail.images;
-    }
+  // Transform variants to versions
+  const initialVersions: ProductVersion[] = variants?.content?.map((variant) => ({
+    id: String(variant.id),
+    variantId: variant.id,
+    name: variant.nameDetail || "",
+    sku: variant.skuDetail || "",
+    barcode: variant.barcode || "",
+    image: variant.imageUrl || "",
+    costPrice: String(variant.importPrice || 0),
+    sellingPrice: String(variant.sellingPrice || 0),
+    inventory: variant.totalQuantity || 0,
+    available: variant.availableQuantity || 0,
+  })) || [];
 
-    if (productDetail.image) {
-      return [
-        {
-          id: `cover-${productDetail.id}`,
-          url: productDetail.image,
-        },
-      ];
-    }
-
-    return [];
-  }, [productDetail]);
-
-  const initialAttributes: ProductAttribute[] = useMemo(
-    () => productDetail?.attributes ?? [],
-    [productDetail]
-  );
-
-  const initialVersions: ProductVersion[] = useMemo(
-    () => productDetail?.versions ?? [],
-    [productDetail]
-  );
+  // Variant pagination
+  const initialVariantPagination = variants
+    ? {
+        page: variants.number || 0,
+        pageSize: variants.size || VARIANT_PAGE_SIZE,
+        total: variants.totalElements || 0,
+        totalPages: variants.totalPages || 0,
+      }
+    : undefined;
 
   const handleBack = () => {
     navigate("/admin/products");
@@ -124,13 +157,10 @@ const AdminProductsEdit: React.FC = () => {
               </svg>
             </div>
             <h2 className="text-[24px] font-['Montserrat'] font-bold text-[#1f2937] mb-4">
-              {error || "Không tìm thấy sản phẩm"}
+              Product not found
             </h2>
             <p className="text-[16px] text-[#6b7280] mb-6 max-w-md mx-auto">
-              {error
-                ? "Đã xảy ra lỗi khi tải thông tin sản phẩm. Vui lòng thử lại sau."
-                : `Sản phẩm với ID "${productId}" không tồn tại trong hệ thống.`
-              }
+              {error || "Đã xảy ra lỗi khi tải thông tin sản phẩm. Vui lòng thử lại sau."}
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
@@ -139,14 +169,12 @@ const AdminProductsEdit: React.FC = () => {
               >
                 Quay lại danh sách
               </button>
-              {error && (
-                <button
-                  onClick={() => window.location.reload()}
-                  className="bg-white hover:bg-[#f9fafb] text-[#374151] border border-[#d1d5db] px-[20px] py-[12px] rounded-[10px] text-[14px] font-['Montserrat'] font-semibold transition-colors"
-                >
-                  Thử lại
-                </button>
-              )}
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-white hover:bg-[#f9fafb] text-[#374151] border border-[#d1d5db] px-[20px] py-[12px] rounded-[10px] text-[14px] font-['Montserrat'] font-semibold transition-colors"
+              >
+                Thử lại
+              </button>
             </div>
           </div>
         </ContentCard>
@@ -163,10 +191,11 @@ const AdminProductsEdit: React.FC = () => {
       initialImages={initialImages}
       initialAttributes={initialAttributes}
       initialVersions={initialVersions}
+      initialVariantPagination={initialVariantPagination}
+      productId={parseInt(productId!, 10)}
       onBack={handleBack}
     />
   );
 };
 
 export default AdminProductsEdit;
-

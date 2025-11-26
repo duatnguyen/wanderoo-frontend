@@ -112,12 +112,12 @@ export const getVoucherHistory = async (
 
 export const claimVoucher = async (
     payload: ClaimVoucherRequest
-): Promise<ApiResponse<null>> => {
-    const response = await api.post<ApiResponse<null>>(
-        '/public/v1/discount/voucher/claim',
+): Promise<VoucherHistoryResponse> => {
+    const response = await api.post<ApiResponse<VoucherHistoryResponse>>(
+        '/public/v1/discount/claim',
         payload
     );
-    return response.data;
+    return response.data.data;
 };
 
 export const applyDiscountToProducts = async (

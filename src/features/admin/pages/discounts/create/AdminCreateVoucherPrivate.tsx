@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
@@ -13,6 +13,10 @@ import { CreditCardPercentIcon } from "@/components/icons/discount";
 import Icon from "@/components/icons/Icon";
 import CustomRadio from "@/components/ui/custom-radio";
 import type { VoucherEditData } from "@/types/voucher";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { createDiscount, getDiscountDetail, updateDiscount } from "@/api/endpoints/discountApi";
+import type { AdminDiscountCreateRequest, AdminDiscountResponse } from "@/types/discount";
 
 // Date formatting utilities
 const formatDateTimeForInput = (dateString: string) => {
@@ -74,9 +78,23 @@ const createDefaultFormData = (): VoucherFormData => ({
 const AdminCreateVoucherPrivate: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const { mode, voucher } = (location.state as EditLocationState | undefined) || {};
   const editData = voucher?.editData;
-  const isEditMode = mode === "edit" && !!editData;
+  const discountIdQuery = searchParams.get("id");
+  const discountIdFromQuery = discountIdQuery ? Number(discountIdQuery) : undefined;
+  const stateDiscountId = voucher?.id ? Number(voucher.id) : undefined;
+  const fetchDiscountId = useMemo(() => {
+    if (discountIdFromQuery && !Number.isNaN(discountIdFromQuery)) {
+      return discountIdFromQuery;
+    }
+    if (stateDiscountId && !Number.isNaN(stateDiscountId)) {
+      return stateDiscountId;
+    }
+    return undefined;
+  }, [discountIdFromQuery, stateDiscountId]);
+  const isEditMode = Boolean(fetchDiscountId || (mode === "edit" && editData));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
   const [minDateTime] = useState(() => formatDateTimeForInput(new Date().toISOString()));
@@ -89,6 +107,70 @@ const AdminCreateVoucherPrivate: React.FC = () => {
     "maxUsagePerCustomer",
   ];
   const sanitizeNumericInput = (value: string) => value.replace(/[^0-9]/g, "");
+  const displaySettingToApplyOn: Record<VoucherFormData["displaySetting"], AdminDiscountCreateRequest["applyOn"]> = {
+    pos: "POS",
+    website: "WEBSITE",
+    "pos-website": "BOTH",
+  };
+  const applyOnToDisplaySetting: Record<AdminDiscountCreateRequest["applyOn"], VoucherFormData["displaySetting"]> = {
+    POS: "pos",
+    WEBSITE: "website",
+    BOTH: "pos-website",
+  };
+  const discountTypeToEnum: Record<VoucherFormData["discountType"], AdminDiscountCreateRequest["type"]> = {
+    percentage: "PERCENT",
+    fixed: "FIXED",
+  };
+  const handleApiError = (error: unknown) => {
+    const message =
+      (error as any)?.response?.data?.message ||
+      "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+    toast.error(message);
+  };
+  const mapDetailToFormData = (detail: AdminDiscountResponse): VoucherFormData => ({
+    voucherName: detail.name ?? "",
+    voucherCode: detail.code ?? "",
+    description: detail.description ?? "",
+    startDate: detail.startDate ? new Date(detail.startDate).toISOString() : "",
+    endDate: detail.endDate ? new Date(detail.endDate).toISOString() : "",
+    discountType: detail.type === "PERCENT" ? "percentage" : "fixed",
+    discountValue: detail.value != null ? detail.value.toString() : "",
+    maxDiscountLimit: detail.maxOrderValue != null ? "limited" : "unlimited",
+    maxDiscountValue: detail.maxOrderValue != null ? detail.maxOrderValue.toString() : "",
+    minOrderAmount: detail.minOrderValue != null ? detail.minOrderValue.toString() : "",
+    maxUsage: detail.quantity != null ? detail.quantity.toString() : "",
+    maxUsagePerCustomer: detail.discountUsage != null ? detail.discountUsage.toString() : "",
+    displaySetting: applyOnToDisplaySetting[detail.applyOn] ?? "website",
+  });
+  const {
+    data: discountDetail,
+    error: discountDetailError,
+  } = useQuery<AdminDiscountResponse, Error>({
+    queryKey: ["admin-discount-detail", fetchDiscountId ?? "new"] as const,
+    queryFn: () => getDiscountDetail(fetchDiscountId!),
+    enabled: Boolean(fetchDiscountId),
+    staleTime: 30000,
+  });
+  const createDiscountMutation = useMutation({
+    mutationFn: (payload: AdminDiscountCreateRequest) => createDiscount(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
+      toast.success("Tạo mã giảm giá thành công");
+      navigate("/admin/discounts");
+    },
+    onError: handleApiError,
+  });
+  const updateDiscountMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: AdminDiscountCreateRequest }) =>
+      updateDiscount(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
+      toast.success("Cập nhật mã giảm giá thành công");
+      navigate("/admin/discounts");
+    },
+    onError: handleApiError,
+  });
+  const isSubmitting = createDiscountMutation.isPending || updateDiscountMutation.isPending;
 
   // Scroll to top when component mounts or route changes
   useEffect(() => {
@@ -147,7 +229,22 @@ const AdminCreateVoucherPrivate: React.FC = () => {
   }, [location.pathname, location.search]);
 
   useEffect(() => {
-    if (isEditMode && editData) {
+    if (discountDetail) {
+      setFormData(mapDetailToFormData(discountDetail));
+    }
+  }, [discountDetail]);
+
+  useEffect(() => {
+    if (discountDetailError) {
+      handleApiError(discountDetailError);
+    }
+  }, [discountDetailError]);
+
+  useEffect(() => {
+    if (discountDetail || fetchDiscountId) {
+      return;
+    }
+    if (mode === "edit" && editData) {
       setFormData({
         voucherName: editData.voucherName ?? "",
         voucherCode: editData.voucherCode ?? "",
@@ -163,10 +260,10 @@ const AdminCreateVoucherPrivate: React.FC = () => {
         maxUsagePerCustomer: editData.maxUsagePerCustomer ?? "",
         displaySetting: editData.displaySetting ?? "website",
       });
-    } else {
-      setFormData(createDefaultFormData());
+      return;
     }
-  }, [isEditMode, editData]);
+    setFormData(createDefaultFormData());
+  }, [discountDetail, fetchDiscountId, mode, editData]);
 
   const pageTitle = isEditMode ? "Chỉnh sửa mã giảm giá" : "Tạo mã giảm giá mới";
 
@@ -182,20 +279,109 @@ const AdminCreateVoucherPrivate: React.FC = () => {
     navigate("/admin/discounts");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const normalizeDateValue = (value: string) => {
+    if (!value) return "";
+    if (value.endsWith("Z") || value.length > 16) {
+      return value;
+    }
+    return value.length === 16 ? `${value}:00` : value;
+  };
+
+  const validateForm = () => {
+    if (!formData.voucherName.trim()) {
+      return "Vui lòng nhập tên chương trình giảm giá.";
+    }
+    if (!formData.voucherCode.trim()) {
+      return "Vui lòng nhập mã voucher.";
+    }
+    const discountValue = Number(formData.discountValue);
+    if (!formData.discountValue || Number.isNaN(discountValue) || discountValue <= 0) {
+      return "Mức giảm phải lớn hơn 0.";
+    }
+    if (!formData.startDate || !formData.endDate) {
+      return "Vui lòng chọn thời gian áp dụng.";
+    }
+    if (new Date(formData.startDate) >= new Date(formData.endDate)) {
+      return "Thời gian bắt đầu phải trước thời gian kết thúc.";
+    }
+    if (formData.maxDiscountLimit === "limited") {
+      const maxDiscount = Number(formData.maxDiscountValue);
+      if (!formData.maxDiscountValue || Number.isNaN(maxDiscount) || maxDiscount <= 0) {
+        return "Vui lòng nhập mức giảm tối đa hợp lệ.";
+      }
+    }
+    if (formData.minOrderAmount && Number.isNaN(Number(formData.minOrderAmount))) {
+      return "Giá trị đơn hàng tối thiểu không hợp lệ.";
+    }
+    if (formData.maxUsage && (Number.isNaN(Number(formData.maxUsage)) || Number(formData.maxUsage) <= 0)) {
+      return "Tổng lượt sử dụng tối đa phải lớn hơn 0.";
+    }
+    if (
+      formData.maxUsagePerCustomer &&
+      (Number.isNaN(Number(formData.maxUsagePerCustomer)) || Number(formData.maxUsagePerCustomer) <= 0)
+    ) {
+      return "Lượt sử dụng tối đa trên mỗi khách hàng phải lớn hơn 0.";
+    }
+    return null;
+  };
+
+  const parseOptionalNumber = (value: string) => {
+    if (!value) return undefined;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  };
+
+  const buildPayload = (): AdminDiscountCreateRequest => {
+    const quantity = formData.maxUsage ? Number(formData.maxUsage) : 1;
+    const discountUsage = parseOptionalNumber(formData.maxUsagePerCustomer);
+    return {
+      name: formData.voucherName.trim(),
+      code: formData.voucherCode.trim().toUpperCase(),
+      category: "ORDER_DISCOUNT",
+      type: discountTypeToEnum[formData.discountType],
+      applyTo: "ORDER",
+      applyOn: displaySettingToApplyOn[formData.displaySetting],
+      value: Number(formData.discountValue),
+      minOrderValue: parseOptionalNumber(formData.minOrderAmount),
+      maxOrderValue:
+        formData.maxDiscountLimit === "limited"
+          ? parseOptionalNumber(formData.maxDiscountValue)
+          : undefined,
+      discountUsage,
+      contextAllowed: "OTHER",
+      startDate: normalizeDateValue(formData.startDate),
+      endDate: normalizeDateValue(formData.endDate),
+      quantity,
+      status: "ENABLE",
+      description: formData.description?.trim() || undefined,
+    };
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(
-      isEditMode ? "Voucher form updated:" : "Voucher form submitted:",
-      formData
-    );
-    // Handle form submission logic here
+    if (isSubmitting) return;
+
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    const payload = buildPayload();
+
+    if (fetchDiscountId) {
+      await updateDiscountMutation.mutateAsync({ id: fetchDiscountId, payload });
+      return;
+    }
+
+    await createDiscountMutation.mutateAsync(payload);
   };
 
   return (
     <div className="w-full overflow-x-auto min-h-screen" ref={topElementRef}>
-      <div className="flex flex-col gap-[10px] items-start w-full max-w-[930px] mx-auto px-[24px] min-w-[925px]">
+      <div className="flex flex-col gap-[10px] items-start w-full max-w-[1200px] mx-auto px-[24px]">
         {/* Header with Back Button */}
-        <div className="flex flex-col gap-[8px] items-start justify-center w-full min-w-[925px]">
+        <div className="flex flex-col gap-[8px] items-start justify-center w-full">
           <div className="flex gap-[4px] items-center">
             <button
               onClick={handleBackClick}
@@ -211,10 +397,10 @@ const AdminCreateVoucherPrivate: React.FC = () => {
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-[16px] w-full min-w-[925px] flex-shrink-0"
+          className="flex flex-col gap-[16px] w-full flex-shrink-0"
         >
           {/* Basic Information Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
@@ -223,15 +409,15 @@ const AdminCreateVoucherPrivate: React.FC = () => {
             </div>
 
             {/* Voucher Type Indicator */}
-            <div className="flex justify-center sm:justify-start">
-              <div className="bg-[#e04d30] border border-white rounded-[12px] h-[52px] px-[12px] sm:px-[16px] flex items-center gap-[4px] w-full sm:w-auto">
+            <div className="w-full flex justify-center">
+              <div className="bg-[#e04d30] border border-white rounded-[12px] h-[52px] px-[16px] flex items-center gap-[4px]">
                 <CreditCardPercentIcon
                   size={24}
                   color="#FFFFFF"
                   className="flex-shrink-0"
                 />
-                <span className="font-semibold text-[16px] sm:text-[20px] text-white leading-[1.4] whitespace-nowrap">
-                  Voucher riêng tư
+                <span className="font-semibold text-[20px] text-white leading-[1.4] whitespace-nowrap">
+                  Voucher nhập mã
                 </span>
               </div>
             </div>
@@ -283,7 +469,7 @@ const AdminCreateVoucherPrivate: React.FC = () => {
 
               {/* Date Range Field */}
               <div className="flex flex-col sm:flex-row sm:items-start gap-[8px] sm:gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[200px] sm:w-[215px] flex-shrink-0 text-right">
+                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[215px] flex-shrink-0 sm:text-right">
                   Thời gian sử dụng mã
                 </label>
                 <div className="flex-1 w-full flex flex-col sm:flex-row gap-[4px] items-center">
@@ -327,7 +513,7 @@ const AdminCreateVoucherPrivate: React.FC = () => {
           </div>
 
           {/* Voucher Settings Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
@@ -508,7 +694,7 @@ const AdminCreateVoucherPrivate: React.FC = () => {
           </div>
 
           {/* Display Settings Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0 min-w-[925px]">
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[16px] sm:p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0">
             {/* Title Section */}
             <div className="flex flex-col gap-[8px]">
               <h2 className="font-montserrat font-bold text-[16px] text-[#272424] leading-[normal]">
@@ -582,6 +768,7 @@ const AdminCreateVoucherPrivate: React.FC = () => {
               type="submit"
               variant="default"
               className="text-[14px] w-full sm:w-auto"
+              disabled={isSubmitting}
             >
               {isEditMode ? "Lưu thay đổi" : "Xác nhận"}
             </Button>
