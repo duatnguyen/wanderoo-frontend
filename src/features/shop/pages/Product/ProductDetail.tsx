@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import { getRelatedProducts } from "../../data/productsData";
 import type { Product } from "../../data/productsData";
 import { useCart } from "../../../../context/CartContext";
+import { useAuth } from "../../../../context/AuthContext";
 import ProductImages from "../../../../components/shop/Product/ProductImages";
 import ProductInfo from "../../../../components/shop/Product/ProductInfo";
 import ProductDescription from "../../../../components/shop/Product/ProductDescription";
@@ -13,6 +15,7 @@ import CustomerReviews from "../../../../components/shop/Product/CustomerReviews
 import RelatedProducts from "../../../../components/shop/Product/RelatedProducts";
 import { getProductDetail, getProductVariants } from "../../../../api/endpoints/productApi";
 import { getSuggestionProducts, type HomepageProductResponse } from "../../../../api/endpoints/homepageApi";
+import { addToCart as addToCartRequest } from "../../../../api/endpoints/cartApi";
 import type { ProductDetailsResponse, VariantDetailIdResponse } from "../../../../types";
 
 type EnrichedProduct = Product & {
@@ -133,12 +136,14 @@ const ProductDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToCart, getCartCount } = useCart();
+  const { isAuthenticated } = useAuth();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>([]);
   const [variantData, setVariantData] = useState<VariantDetailIdResponse | null>(null);
   const [isLoadingVariant, setIsLoadingVariant] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const productFromState = (location.state as { product?: Product })?.product;
 
@@ -258,15 +263,58 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
-    const maxStock = product.stock || 999;
+    const maxStock = variantData?.productDetailQuantity ?? product.stock ?? 999;
     if (newQuantity >= 1 && newQuantity <= maxStock) {
       setQuantity(newQuantity);
     }
   };
 
-  const handleAddToCart = () => {
-    if (!variantData) return;
-    addToCart(product, quantity);
+  const extractErrorMessage = (error: unknown) => {
+    if (
+      error &&
+      typeof error === "object" &&
+      "response" in error &&
+      typeof (error as any).response?.data?.message === "string"
+    ) {
+      return (error as any).response.data.message as string;
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại.";
+  };
+
+  const handleAddToCart = async () => {
+    if (!productId) return;
+
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
+      navigate("/login", { state: { from: location.pathname } });
+      return;
+    }
+
+    const totalAttributes = productDetail?.attributes?.length || 0;
+
+    if (totalAttributes === 0) {
+      toast.error("Sản phẩm chưa được cấu hình phân loại. Vui lòng thử lại sau.");
+      return;
+    }
+
+    if (!variantData?.productDetailId) {
+      toast.error("Vui lòng chọn đầy đủ phân loại hàng");
+      return;
+    }
+
+    setIsAddingToCart(true);
+    try {
+      await addToCartRequest(variantData.productDetailId, quantity);
+      addToCart(product, quantity, variantData.productDetailId.toString());
+      toast.success("Đã thêm sản phẩm vào giỏ hàng");
+    } catch (error) {
+      toast.error(extractErrorMessage(error));
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   const handleAttributeSelect = (attributeIndex: number, valueId: number) => {
@@ -333,6 +381,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   onAttributeSelect={handleAttributeSelect}
                   variantData={variantData}
                   isLoadingVariant={isLoadingVariant}
+                  isAddingToCart={isAddingToCart}
                 />
               </div>
             </div>

@@ -7,7 +7,7 @@ interface ProductImagesProps {
   onImageSelect: (index: number) => void;
 }
 
-const FALLBACK_IMAGE = "https://via.placeholder.com/600x600?text=No+Image";
+const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
 
 const ProductImages: React.FC<ProductImagesProps> = ({
   product,
@@ -36,6 +36,16 @@ const ProductImages: React.FC<ProductImagesProps> = ({
   }, [selectedImageIndex, imagesToRender, onImageSelect]);
 
   const mainImage = imagesToRender[selectedImageIndex] || imagesToRender[0];
+  const handleImageError = (
+    event: React.SyntheticEvent<HTMLImageElement, Event>
+  ) => {
+    const target = event.currentTarget;
+    if (target.dataset.fallbackApplied === "true") {
+      return;
+    }
+    target.dataset.fallbackApplied = "true";
+    target.src = FALLBACK_IMAGE;
+  };
 
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -45,6 +55,7 @@ const ProductImages: React.FC<ProductImagesProps> = ({
           alt={product.name}
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
+          onError={handleImageError}
         />
         {product.discountPercent && (
           <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-[16px] rounded-[4px] px-3 py-1 flex items-center gap-1">
@@ -81,6 +92,7 @@ const ProductImages: React.FC<ProductImagesProps> = ({
               alt={`Ảnh sản phẩm ${index + 1}`}
               className="w-full h-full object-cover rounded-lg"
               loading="lazy"
+              onError={handleImageError}
             />
           </button>
         ))}

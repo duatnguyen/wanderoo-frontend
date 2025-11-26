@@ -14,226 +14,77 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
     setIsTimelineExpanded(!isTimelineExpanded);
   };
 
-  // Get complete timeline steps based on shipping log data
-  const getTimelineSteps = () => {
-    if (!orderData) return [];
-
-    // Base steps that are always present
-    const baseSteps = [
-      {
-        id: 1,
-        status: "Đơn hàng đã được đặt",
-        date: formatTimelineDate(orderData.createdAt),
-        isCompleted: true,
-        isCurrent: false,
-      },
-    ];
-
-    // Map GHN status to Vietnamese descriptions
-    const getStatusDescription = (status: string) => {
-      switch (status) {
-        case "ready_to_pick":
-          return "Chờ lấy hàng";
-        case "picking":
-          return "Đang lấy hàng";
-        case "money_collect_picking":
-          return "Đang tương tác với người gửi";
-        case "picked":
-          return "Lấy hàng thành công";
-        case "storing":
-          return "Nhập kho";
-        case "transporting":
-          return "Đang trung chuyển";
-        case "sorting":
-          return "Đang phân loại";
-        case "delivering":
-          return "Đang giao hàng";
-        case "delivered":
-          return "Giao hàng thành công";
-        case "money_collect_delivering":
-          return "Đang tương tác với người nhận";
-        case "delivery_fail":
-          return "Giao hàng không thành công";
-        case "waiting_to_return":
-          return "Chờ xác nhận giao lại";
-        case "return":
-          return "Chuyển hoàn";
-        case "return_transporting":
-          return "Đang trung chuyển hàng hoàn";
-        case "return_sorting":
-          return "Đang phân loại hàng hoàn";
-        case "returning":
-          return "Đang hoàn hàng";
-        case "return_fail":
-          return "Hoàn hàng không thành công";
-        case "returned":
-          return "Hoàn hàng thành công";
-        case "cancel":
-          return "Đơn huỷ";
-        case "exception":
-          return "Hàng ngoại lệ";
-        case "lost":
-          return "Hàng thất lạc";
-        case "damage":
-          return "Hàng hư hỏng";
-        default:
-          return `Trạng thái: ${status}`;
-      }
+  // Map shipping status to Vietnamese (supports both UPPERCASE and snake_case)
+  const mapShippingStatusToLabel = (status: string | null | undefined): string => {
+    if (!status) return "Chưa có thông tin";
+    
+    const normalizedStatus = status.toLowerCase();
+    const statusMap: Record<string, string> = {
+      "ready_to_pick": "Chờ lấy hàng",
+      "picking": "Đang lấy hàng",
+      "money_collect_picking": "Đang tương tác với người gửi",
+      "picked": "Lấy hàng thành công",
+      "storing": "Nhập kho",
+      "transporting": "Đang trung chuyển",
+      "sorting": "Đang phân loại",
+      "delivering": "Đang giao hàng",
+      "money_collect_delivering": "Đang tương tác với người nhận",
+      "delivered": "Giao hàng thành công",
+      "delivery_fail": "Giao hàng không thành công",
+      "waiting_to_return": "Chờ xác nhận giao lại",
+      "return": "Chuyển hoàn",
+      "return_transporting": "Đang trung chuyển hàng hoàn",
+      "return_sorting": "Đang phân loại hàng hoàn",
+      "returning": "Đang hoàn hàng",
+      "return_fail": "Hoàn hàng không thành công",
+      "returned": "Hoàn hàng thành công",
+      "cancel": "Đơn huỷ",
+      "exception": "Hàng ngoại lệ",
+      "lost": "Hàng thất lạc",
+      "damage": "Hàng hư hỏng",
     };
 
-    // Add steps from shipping log if available
-    // Sort log by updated_date to ensure chronological order
-    const rawLog = orderData.shippingDetail?.log || [];
+    return statusMap[normalizedStatus] || status;
+  };
+
+  // Get timeline steps from shippingDetail.log (only log entries, no header)
+  const getTimelineSteps = () => {
+    if (!orderData || !orderData.shippingDetail) return [];
+
+    const rawLog = orderData.shippingDetail.log || [];
+    if (!Array.isArray(rawLog) || rawLog.length === 0) return [];
+
+    // Sort log by updated_date (oldest first) to show chronological order
     const sortedLog = [...rawLog].sort((a: any, b: any) => {
       const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
       const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
-      return dateA - dateB; // Sort ascending (oldest first)
+      return dateA - dateB;
     });
 
-    // Debug: Log the raw and sorted log entries
-    if (rawLog.length > 0) {
-      console.log("Raw shipping log:", rawLog);
-      console.log("Sorted shipping log:", sortedLog);
-      console.log(
-        "Log statuses:",
-        sortedLog.map((entry: any) => ({
-          status: entry.status,
-          date: entry.updated_date,
-          description: getStatusDescription(entry.status),
-        }))
-      );
-    }
-
-    const logSteps = sortedLog.map((logEntry: any, index: number) => ({
-      id: baseSteps.length + index + 1,
-      status: getStatusDescription(logEntry.status),
-      date: formatTimelineDate(logEntry.updated_date),
+    // Map log entries to timeline steps
+    return sortedLog.map((logEntry: any, index: number) => ({
+      id: index + 1,
+      status: mapShippingStatusToLabel(logEntry.status),
+      date: logEntry.updated_date ? formatTimelineDate(logEntry.updated_date) : "",
       isCompleted: true,
       isCurrent: false,
-      rawStatus: logEntry.status, // Keep raw status for debugging
-    }));
-
-    // Combine base steps with log steps
-    const allSteps = [...baseSteps, ...logSteps];
-
-    // If we have log steps, use the last log step as the current status
-    // Don't add artificial steps based on order status
-    if (logSteps.length > 0) {
-      // Mark the last step as current
-      const stepsWithCurrent = allSteps.map((step, index) => ({
-        ...step,
-        isCurrent: index === allSteps.length - 1,
-      }));
-      return stepsWithCurrent;
-    }
-
-    // If no log steps, determine current step based on order status
-    const currentStatus = orderData.status;
-    if (currentStatus === "PENDING") {
-      return [
-        {
-          id: 1,
-          status: "Đơn hàng đã được đặt",
-          date: formatTimelineDate(orderData.createdAt),
-          isCompleted: true,
-          isCurrent: false,
-        },
-        {
-          id: 2,
-          status: "Chờ xác nhận đơn hàng",
-          date: "",
-          isCompleted: false,
-          isCurrent: true,
-        },
-      ];
-    } else if (currentStatus === "CONFIRMED") {
-      return [
-        ...baseSteps,
-        {
-          id: baseSteps.length + 1,
-          status: "Đơn hàng đang được chuẩn bị",
-          date: "",
-          isCompleted: false,
-          isCurrent: true,
-        },
-      ];
-    } else if (currentStatus === "SHIPPING") {
-      return [
-        ...allSteps,
-        {
-          id: allSteps.length + 1,
-          status: "Đang trong quá trình giao hàng",
-          date: formatTimelineDate(
-            orderData.shippingDetail?.leadtime_order?.to_estimate_date
-          ),
-          isCompleted: false,
-          isCurrent: true,
-        },
-      ];
-    } else if (currentStatus === "COMPLETE") {
-      return [
-        ...allSteps,
-        {
-          id: allSteps.length + 1,
-          status: "Giao hàng thành công",
-          date: formatTimelineDate(orderData.updatedAt),
-          isCompleted: true,
-          isCurrent: true,
-        },
-      ];
-    } else if (currentStatus === "CANCELED") {
-      return [
-        ...baseSteps,
-        {
-          id: baseSteps.length + 1,
-          status: "Đơn hàng đã bị hủy",
-          date: formatTimelineDate(orderData.updatedAt),
-          isCompleted: true,
-          isCurrent: true,
-        },
-      ];
-    }
-
-    // Default case - return all completed steps
-    return allSteps.map((step, index) => ({
-      ...step,
-      isCurrent: index === allSteps.length - 1,
     }));
   };
 
-  // Get timeline text based on shippingStatus or order status (for collapsed view)
+  // Get timeline text for header (displays shippingStatus)
   const getTimelineText = () => {
-    // If shippingStatus exists, use it; otherwise use order status
-    const statusToDisplay = orderData.shippingStatus || orderData.status;
+    // Header displays shippingStatus from orderData
+    const shippingStatus = orderData.shippingStatus;
     
-    // Map shippingStatus to Vietnamese
-    const getStatusLabel = (status: string) => {
-      switch (status?.toUpperCase()) {
-        case "PENDING":
-          return "Chờ xác nhận";
-        case "CONFIRMED":
-          return "Đã xác nhận";
-        case "SHIPPING":
-          return "Đang giao hàng";
-        case "COMPLETE":
-        case "DELIVERED":
-          return "Đã hoàn thành";
-        case "CANCELED":
-        case "CANCELLED":
-          return "Đã hủy";
-        case "REFUND":
-          return "Hoàn tiền";
-        default:
-          return status || "Chờ xác nhận";
-      }
-    };
-
+    // Get the date from updatedAt or the latest log entry
     const steps = getTimelineSteps();
-    const lastStep = steps[steps.length - 1];
+    const latestLogDate = steps.length > 0 
+      ? steps[steps.length - 1].date 
+      : undefined;
     
     return {
-      status: getStatusLabel(statusToDisplay),
-      date: lastStep.date || formatTimelineDate(orderData.updatedAt || orderData.createdAt),
+      status: mapShippingStatusToLabel(shippingStatus),
+      date: latestLogDate || (orderData.updatedAt ? formatTimelineDate(orderData.updatedAt) : ""),
     };
   };
 
@@ -496,87 +347,93 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                   </h3>
                 </div>
                 <div className="flex flex-col gap-[12px] pl-[6px]">
-                  {getTimelineSteps().map((step, index) => (
-                    <div
-                      key={step.id}
-                      className="flex items-start gap-[12px]"
-                    >
-                      {/* Timeline Icon */}
-                      <div className="flex flex-col items-center gap-[6px] shrink-0">
-                        <div
-                          className={`w-[12px] h-[12px] rounded-full border-2 flex items-center justify-center ${
-                            step.isCompleted
-                              ? step.isCurrent
-                                ? "bg-[#04910c] border-[#04910c]"
-                                : "bg-[#28a745] border-[#28a745]"
-                              : step.isCurrent
-                                ? "bg-[#ffc107] border-[#ffc107]"
-                                : "bg-white border-[#d1d1d1]"
-                          }`}
-                        >
-                          {step.isCompleted && (
-                            <svg
-                              width="8"
-                              height="6"
-                              viewBox="0 0 10 8"
-                              fill="none"
-                              className="text-white"
-                            >
-                              <path
-                                d="M1.5 4L3.5 6L8.5 1.5"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
+                  {getTimelineSteps().length > 0 ? (
+                    getTimelineSteps().map((step, index) => (
+                      <div
+                        key={step.id}
+                        className="flex items-start gap-[12px]"
+                      >
+                        {/* Timeline Icon */}
+                        <div className="flex flex-col items-center gap-[6px] shrink-0">
+                          <div
+                            className={`w-[12px] h-[12px] rounded-full border-2 flex items-center justify-center ${
+                              step.isCompleted
+                                ? step.isCurrent
+                                  ? "bg-[#04910c] border-[#04910c]"
+                                  : "bg-[#28a745] border-[#28a745]"
+                                : step.isCurrent
+                                  ? "bg-[#ffc107] border-[#ffc107]"
+                                  : "bg-white border-[#d1d1d1]"
+                            }`}
+                          >
+                            {step.isCompleted && (
+                              <svg
+                                width="8"
+                                height="6"
+                                viewBox="0 0 10 8"
+                                fill="none"
+                                className="text-white"
+                              >
+                                <path
+                                  d="M1.5 4L3.5 6L8.5 1.5"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          {index < getTimelineSteps().length - 1 && (
+                            <div
+                              className={`w-[2px] h-[20px] rounded-full ${
+                                step.isCompleted
+                                  ? "bg-[#28a745]"
+                                  : "bg-[#e7e7e7]"
+                              }`}
+                            />
                           )}
                         </div>
-                        {index < getTimelineSteps().length - 1 && (
-                          <div
-                            className={`w-[2px] h-[20px] rounded-full ${
-                              step.isCompleted
-                                ? "bg-[#28a745]"
-                                : "bg-[#e7e7e7]"
-                            }`}
-                          />
-                        )}
-                      </div>
 
-                      {/* Timeline Content */}
-                      <div className="flex flex-col gap-[4px] min-w-0 flex-1 pb-[4px]">
-                        <p
-                          className={`font-montserrat font-medium text-[14px] leading-[1.4] ${
-                            step.isCurrent
-                              ? "text-[#04910c] font-semibold"
-                              : step.isCompleted
-                                ? "text-[#272424]"
-                                : "text-[#888888]"
-                          }`}
-                        >
-                          {step.status}
-                        </p>
-                        {step.date && (
-                          <div className="flex items-center gap-[6px]">
-                            <svg
-                              className="w-3 h-3 text-[#737373]"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#737373]">
-                              {step.date}
-                            </p>
-                          </div>
-                        )}
+                        {/* Timeline Content */}
+                        <div className="flex flex-col gap-[4px] min-w-0 flex-1 pb-[4px]">
+                          <p
+                            className={`font-montserrat font-medium text-[14px] leading-[1.4] ${
+                              step.isCurrent
+                                ? "text-[#04910c] font-semibold"
+                                : step.isCompleted
+                                  ? "text-[#272424]"
+                                  : "text-[#888888]"
+                            }`}
+                          >
+                            {step.status}
+                          </p>
+                          {step.date && (
+                            <div className="flex items-center gap-[6px]">
+                              <svg
+                                className="w-3 h-3 text-[#737373]"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#737373]">
+                                {step.date}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="font-montserrat font-medium text-[13px] text-[#737373] italic pl-[6px]">
+                      Chưa có lịch sử cập nhật
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

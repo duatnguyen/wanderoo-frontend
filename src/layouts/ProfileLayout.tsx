@@ -8,7 +8,7 @@ const ProfileLayout: React.FC = () => {
 
   return (
     <div className="bg-gray-50 h-full">
-      <div className="w-full px-4 h-full flex flex-col">
+      <div className="w-full px-4 h-full flex flex-col max-w-305 mx-auto">
         {/* Mobile Menu Button */}
         <div className="lg:hidden py-4">
           <button
@@ -31,11 +31,10 @@ const ProfileLayout: React.FC = () => {
 
           {/* Left Sidebar - Menu */}
           <div
-            className={`fixed lg:static inset-y-0 left-0 z-50 lg:z-auto transform ${
-              isSidebarOpen
-                ? "translate-x-0"
-                : "-translate-x-full lg:translate-x-0"
-            } transition-transform duration-300 ease-in-out lg:transition-none`}
+            className={`fixed lg:static inset-y-0 left-0 z-50 lg:z-auto transform ${isSidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0"
+              } transition-transform duration-300 ease-in-out lg:transition-none`}
           >
             <ProfileSidebar onClose={() => setIsSidebarOpen(false)} />
           </div>

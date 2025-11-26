@@ -135,7 +135,7 @@ const CartPage: React.FC = () => {
 
       return {
         id,
-        productId: cartItem.productId || cartItem.productDetailId, // Use productId if available, fallback to productDetailId
+        productId: cartItem.productDetailId, // Use productDetailId for variant selection
         name: cartItem.productName,
         description: attributesString,
         imageUrl: cartItem.imageUrl || "",

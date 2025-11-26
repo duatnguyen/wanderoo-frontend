@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { useAuthCtx } from "../../app/providers/AuthProvider";
 import { authRegister } from "../../api/endpoints/authApi";
 import { getUserFromToken } from "../../utils/jwt";
 import type { LoginCredentials, UserCreationRequest } from "../../types/auth";
@@ -40,7 +39,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const { login } = useAuth();
-    const { login: loginCtx } = useAuthCtx();
     const navigate = useNavigate();
 
     const handleLoginChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,9 +132,44 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
 
             console.log("Sending registration payload:", payload);
 
-            const response = await authRegister(payload);
-            await loginCtx(response.accessToken);
-            navigate("/user/home");
+            await authRegister(payload);
+            setSuccess("Đăng ký thành công! Đang đăng nhập...");
+
+            // Tự động đăng nhập sau khi đăng ký thành công
+            try {
+                await login({
+                    username: trimmedUsername,
+                    password: formData.password,
+                });
+
+                setSuccess("Đăng ký và đăng nhập thành công! Đang chuyển hướng...");
+
+                // Chuyển hướng sau khi đăng nhập thành công
+                const token = localStorage.getItem("accessToken");
+                if (token) {
+                    try {
+                        const userFromToken = getUserFromToken(token);
+                        setTimeout(() => {
+                            if (userFromToken?.role === "ADMIN") {
+                                navigate("/admin");
+                            } else {
+                                navigate("/shop");
+                            }
+                        }, 1500);
+                    } catch (tokenError) {
+                        navigate("/shop");
+                    }
+                } else {
+                    navigate("/shop");
+                }
+            } catch (loginError) {
+                // Nếu đăng nhập tự động thất bại, chuyển đến trang đăng nhập
+                setSuccess("");
+                setError("Đăng ký thành công nhưng đăng nhập tự động thất bại. Vui lòng đăng nhập thủ công.");
+                setTimeout(() => {
+                    navigate("/login");
+                }, 2000);
+            }
         } catch (err: any) {
             console.error("Register failed", err);
 
@@ -168,7 +201,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
                     <div className="flex-1 space-y-4 self-end">
                         <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1 text-xs font-semibold uppercase tracking-wide">
                             <MapPin size={14} className="text-white" />
-                            <span>Số 40, Cầu Giấy, Hà Nội</span>
+                            <span>521 Đ. Hoàng Văn Thụ, Phường 4, Q. Tân Bình, HCM</span>
                         </div>
                         <div className="max-w-xs rounded-full bg-white/20 px-5 py-3 text-sm font-medium text-slate-700 shadow-lg backdrop-blur-sm">
                             Nhập hội khách hàng thành viên Wanderoo để không bỏ lỡ các ưu đãi hấp dẫn
@@ -228,7 +261,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
                             </div>
                         ) : null}
 
-                        {success && isLogin ? (
+                        {success ? (
                             <div className="rounded-xl border border-green-200 bg-green-50 text-green-700 p-3 text-sm">
                                 {success}
                             </div>

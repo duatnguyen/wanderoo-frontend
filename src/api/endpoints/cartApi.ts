@@ -1,6 +1,6 @@
 // src/api/endpoints/cartApi.ts - Cart management API calls
 import api from "../apiClient";
-import type { ApiResponse, CartPageResponse, SelectAllRequest, BackendCartResponse } from "../../types";
+import type { ApiResponse, CartPageResponse, SelectAllRequest, BackendCartResponse, SelectedCartWithShippingResponse } from "../../types";
 
 // Cart APIs
 export const getCart = async (params?: {
@@ -82,8 +82,8 @@ export const clearCart = async (
 
 export const getSelectedCartItems = async (
   request: SelectAllRequest
-): Promise<BackendCartResponse[]> => {
-  const response = await api.post<ApiResponse<BackendCartResponse[]>>(
+): Promise<SelectedCartWithShippingResponse> => {
+  const response = await api.post<ApiResponse<SelectedCartWithShippingResponse>>(
     "/auth/v1/private/checkout/cart/selected",
     request
   );

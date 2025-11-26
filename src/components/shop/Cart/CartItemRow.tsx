@@ -54,13 +54,13 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
 }) => {
   const isOutOfStock = item.websiteSoldQuantity === 0;
   const isQuantityExceedsStock = (item.websiteSoldQuantity || 0) < item.quantity;
-  
+
   // Disable checkbox if out of stock
   const isCheckboxDisabled = isOutOfStock;
-  
+
   // Disable quantity controls if out of stock or quantity exceeds stock
   const isQuantityDisabled = isOutOfStock || isQuantityExceedsStock;
-  
+
   return (
     <div
       className={`grid gap-4 px-5 py-4 items-center transition-colors ${isQuantityDisabled
@@ -74,19 +74,23 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
       {/* Product Info */}
       <div className="flex gap-3 items-center">
         <div className="flex items-center">
-          <Checkbox 
-            checked={isSelected} 
+          <Checkbox
+            checked={isSelected}
             onChange={onSelect}
             disabled={isCheckboxDisabled}
           />
         </div>
         <div className="w-16 h-16 rounded border border-gray-200 bg-gray-50 flex-shrink-0 overflow-hidden">
-          {item.imageUrl && (
+          {item.imageUrl ? (
             <img
               src={item.imageUrl}
               alt={item.name}
               className="w-full h-full object-cover"
             />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-medium">
+              No Image
+            </div>
           )}
         </div>
         <div className="flex-1 min-w-0">

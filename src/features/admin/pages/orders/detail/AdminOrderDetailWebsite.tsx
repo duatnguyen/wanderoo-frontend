@@ -102,8 +102,8 @@ const AdminOrderDetailWebsite: React.FC = () => {
     } catch (error: any) {
       console.error("Error confirming order:", error);
       // Extract error message from response
-      const errorMessage = error?.response?.data?.message 
-        || error?.message 
+      const errorMessage = error?.response?.data?.message
+        || error?.message
         || "Có lỗi xảy ra khi xác nhận đơn hàng";
       // Re-throw to let DeliveryConfirmationPopupWebsite handle the toast
       throw new Error(errorMessage);

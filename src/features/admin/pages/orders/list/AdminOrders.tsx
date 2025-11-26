@@ -25,6 +25,7 @@ import {
   getAdminCustomerOrdersByStatus,
   getAdminCustomerOrdersWithFilters,
   getOrderCounts,
+  syncShippingStatus,
 } from "@/api/endpoints/orderApi";
 import type { AdminOrderResponse, OrderCountResponse } from "@/types";
 import { toast } from "sonner";
@@ -55,6 +56,9 @@ const AdminOrders: React.FC = () => {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("ALL");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("ALL");
   const [sourceFilter, setSourceFilter] = useState<string>("ALL");
+  
+  // Sync state
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const navigate = useNavigate();
 
@@ -228,6 +232,32 @@ const AdminOrders: React.FC = () => {
     navigate(`/admin/orders/${orderId}`, {
       state: { status: orderStatus, source: orderSource },
     });
+  };
+
+  // Handle sync shipping status
+  const handleSyncShippingStatus = async () => {
+    try {
+      setIsSyncing(true);
+      const result = await syncShippingStatus();
+      
+      toast.success(
+        `Đồng bộ thành công! Đã cập nhật ${result.syncedCount} đơn hàng.`,
+        { duration: 3000 }
+      );
+      
+      // Refresh orders and counts after sync
+      const status = activeTab === "ALL" ? undefined : activeTab;
+      await fetchOrders(currentPage, status);
+      await fetchOrderCounts();
+    } catch (error: any) {
+      console.error("Error syncing shipping status:", error);
+      const errorMessage = error?.response?.data?.message 
+        || error?.message 
+        || "Không thể đồng bộ trạng thái vận chuyển";
+      toast.error(errorMessage);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Filter orders by search term only (other filters are handled server-side)
@@ -568,6 +598,40 @@ const AdminOrders: React.FC = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* Sync Shipping Status Button */}
+              <button
+                onClick={handleSyncShippingStatus}
+                disabled={isSyncing}
+                className="bg-[#e04d30] hover:bg-[#d63924] disabled:bg-gray-400 disabled:cursor-not-allowed text-white flex gap-[6px] items-center justify-center px-[16px] py-[8px] rounded-[8px] h-[40px] transition-colors whitespace-nowrap"
+              >
+                {isSyncing ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="text-[12px] font-semibold leading-[1.4]">
+                      Đang đồng bộ...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+                    </svg>
+                    <span className="text-[12px] font-semibold leading-[1.4]">
+                      Đồng bộ vận chuyển
+                    </span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Order Table */}

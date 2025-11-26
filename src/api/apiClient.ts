@@ -5,6 +5,42 @@ import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'a
 // Base API configuration
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+const PUBLIC_ENDPOINT_PREFIXES = [
+  '/auth/v1/public',
+  '/public/v1',
+  '/public/',
+  '/v1/public',
+];
+
+// Endpoints that require authentication even though they are under /auth/v1/public
+const AUTH_REQUIRED_PUBLIC_ENDPOINTS = [
+  '/auth/v1/public/orders',
+];
+
+function normalizePath(url?: string): string {
+  if (!url) return '';
+  try {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return new URL(url).pathname;
+    }
+  } catch {
+    return '';
+  }
+  return url.startsWith('/') ? url : `/${url}`;
+}
+
+function isPublicEndpoint(url?: string): boolean {
+  const path = normalizePath(url);
+
+  // Check if this endpoint requires authentication even though it's under public prefix
+  const requiresAuth = AUTH_REQUIRED_PUBLIC_ENDPOINTS.some((prefix) => path.startsWith(prefix));
+  if (requiresAuth) {
+    return false; // Not public, requires auth
+  }
+
+  return PUBLIC_ENDPOINT_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -20,15 +56,22 @@ api.interceptors.request.use(
     const token = localStorage.getItem("accessToken");
     console.log("API Request:", config.url, "Token exists:", !!token);
 
-    if (token && !config.url?.startsWith("/auth/v1/public/")) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log("Authorization header added for:", config.url);
+    const publicEndpoint = isPublicEndpoint(config.url);
+
+    // Always send token if available, even for public endpoints that require auth (like orders)
+    // Only skip token for truly public endpoints (login, register, etc.)
+    if (token) {
+      const path = normalizePath(config.url);
+      const requiresAuth = AUTH_REQUIRED_PUBLIC_ENDPOINTS.some((prefix) => path.startsWith(prefix));
+
+      if (!publicEndpoint || requiresAuth) {
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log("Authorization header added for:", config.url);
+      } else {
+        console.log("No authorization header for:", config.url, "Public endpoint");
+      }
     } else {
-      console.log(
-        "No authorization header for:",
-        config.url,
-        "Public endpoint or no token"
-      );
+      console.log("No authorization header for:", config.url, "No token");
     }
     return config;
   },

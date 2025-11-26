@@ -6,6 +6,40 @@ import type { AvailableServiceResponse } from "../../../types/api";
 import type { CustomerOrderResponse } from "../../../types/orders";
 import { toast } from "sonner";
 
+/**
+ * Props for DeliveryConfirmationPopupWebsite component
+ * 
+ * onConfirm callback receives:
+ * - pickShift: number[] - Array of pick shift IDs (required by backend @NotEmpty)
+ *   * For "self" method: [2] (default shift ID, backend will handle)
+ *   * For "pickup" method: [selectedShift.id] (selected shift from dropdown)
+ * 
+ * - requiredNote: string - Delivery instruction note
+ *   * For "self" method: "KHONGCHOXEMHANG" (default)
+ *   * For "pickup" method: Selected from options:
+ *     - "CHOTHUHANG" - Buyer can request to see and trial goods
+ *     - "CHOXEMHANGKHONGTHU" - Buyer can see goods but not trial
+ *     - "KHONGCHOXEMHANG" - Buyer not allow to see goods
+ * 
+ * - paymentTypeId: number - Who pays shipping fee
+ *   * 1: Shop/Seller pays (Sender pays shipping fee)
+ *   * 2: Buyer/Consignee pays (Receiver pays shipping fee) - Default
+ *   * For "self" method: Always 2 (Buyer pays)
+ *   * For "pickup" method: Selected from radio buttons
+ * 
+ * - serviceTypeId: number - Shipping service type ID
+ *   * For "self" method: 2 (default service type)
+ *   * For "pickup" method: selectedService.service_type_id ?? 2
+ * 
+ * This data is sent to: POST /auth/v1/private/orders/{orderId}/confirm
+ * Backend receives in snake_case format:
+ * {
+ *   pick_shift: number[],
+ *   required_note: string,
+ *   payment_type_id: number,
+ *   service_type_id: number
+ * }
+ */
 interface DeliveryConfirmationPopupWebsiteProps {
     isOpen: boolean;
     onClose: () => void;
@@ -169,20 +203,45 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
 
         setIsSubmitting(true);
         try {
-            // Build confirm data based on selected method
-            // Backend requires @NotEmpty for pickShift, so we always send at least one value
-            // For "self" method, we send default pickShift [2] (backend will handle it)
-            // For "pickup" method, we send the selected shift ID
+            /**
+             * Build confirm data based on selected delivery method
+             * 
+             * Request payload structure:
+             * {
+             *   pickShift: number[]        - Array of pick shift IDs (required by backend @NotEmpty)
+             *   requiredNote: string      - Delivery instruction note
+             *   paymentTypeId: number      - Who pays shipping fee (1: Shop, 2: Buyer)
+             *   serviceTypeId: number      - Shipping service type ID
+             * }
+             * 
+             * This will be transformed to snake_case and sent to:
+             * POST /auth/v1/private/orders/{orderId}/confirm
+             */
             const confirmData = {
+                // pickShift: Always send array (backend @NotEmpty requirement)
+                // - Self delivery: [2] (default, backend handles automatically)
+                // - Pickup: [selectedShift.id] (user selected shift)
                 pickShift: selectedMethod === "pickup" && selectedShift
                     ? [selectedShift.id]
-                    : [2], // Default shift ID for self delivery (backend will use this or determine automatically)
+                    : [2], // Default shift ID for self delivery
+
+                // requiredNote: Delivery instruction
+                // - Self delivery: "KHONGCHOXEMHANG" (default)
+                // - Pickup: User selected from options (CHOTHUHANG, CHOXEMHANGKHONGTHU, KHONGCHOXEMHANG)
                 requiredNote: selectedMethod === "pickup"
                     ? requiredNote
                     : "KHONGCHOXEMHANG",
+
+                // paymentTypeId: Who pays shipping fee
+                // - Self delivery: Always 2 (Buyer pays)
+                // - Pickup: User selected (1: Shop pays, 2: Buyer pays)
                 paymentTypeId: selectedMethod === "pickup"
                     ? paymentTypeId
-                    : 2, // Default: Buyer pays
+                    : 2, // Default: Buyer pays (2)
+
+                // serviceTypeId: Shipping service type
+                // - Self delivery: 2 (default service type)
+                // - Pickup: selectedService.service_type_id or 2 (fallback)
                 serviceTypeId: selectedMethod === "pickup" && selectedService
                     ? (selectedService.service_type_id ?? 2)
                     : 2, // Default service type

@@ -73,6 +73,9 @@ const PrivacyPolicy = lazy(
 const ShippingPolicy = lazy(
   () => import("../../features/shop/pages/Policies/ShippingPolicy")
 );
+const PaymentResult = lazy(
+  () => import("../../features/shop/pages/Payment/PaymentResult")
+);
 
 export const userRoutes: RouteObject[] = [
   {
@@ -140,6 +143,14 @@ export const userRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <ShippingPolicy />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "payment/result",
+    element: (
+      <LazyWrapper>
+        <PaymentResult />
       </LazyWrapper>
     ),
   },

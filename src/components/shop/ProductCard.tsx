@@ -46,8 +46,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const navigate = useNavigate();
   const stars = Array.from({ length: 5 }, (_, i) => i < Math.round(rating));
 
-  const FALLBACK_IMAGE = "https://via.placeholder.com/600x600?text=No+Image";
-  const displayImage = imageUrl && imageUrl.trim().length > 0 ? imageUrl : FALLBACK_IMAGE;
+  const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
+  const displayImage =
+    imageUrl && imageUrl.trim().length > 0 ? imageUrl : FALLBACK_IMAGE;
 
   const handleClick = () => {
     if (onClick) {
@@ -79,7 +80,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
             className="w-full h-full object-cover"
             loading="lazy"
             onError={(e) => {
-              const target = e.target as HTMLImageElement;
+              const target = e.currentTarget as HTMLImageElement;
+              if (target.dataset.fallbackApplied === "true") {
+                return;
+              }
+              target.dataset.fallbackApplied = "true";
               target.src = FALLBACK_IMAGE;
             }}
           />

@@ -116,9 +116,9 @@ const CartTable: React.FC<CartTableProps> = ({
             isSelected={selectedItems.has(item.id)}
             onSelect={() => onSelectItem(item.id)}
             onQuantityChange={(change) =>
-              onQuantityChange(item.productId, change)
+              onQuantityChange(item.id, change)
             }
-            onRemove={() => onRemoveItem(item.productId)}
+            onRemove={() => onRemoveItem(item.id)}
             onVariantChange={(cartId, newProductDetailId) =>
               onVariantChange(cartId, newProductDetailId)
             }

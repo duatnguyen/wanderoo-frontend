@@ -213,6 +213,13 @@ export interface CartPageResponse {
   carts: BackendCartResponse[];
 }
 
+export interface SelectedCartWithShippingResponse {
+  cartItems: BackendCartResponse[];
+  totalProductPrice: number;
+  estimatedShippingFee: number;
+  totalPrice: number;
+}
+
 // Review Types
 export interface ReviewResponse {
   id: number;
@@ -1212,10 +1219,16 @@ export interface CustomerCreationRequest {
   birthday?: string;
 }
 
-export interface CustomerUpdateRequest extends CustomerCreationRequest {
+export interface CustomerUpdateRequest {
   id: number;
+  username?: string;
+  email?: string;
+  password?: string;
+  name?: string;
+  phone?: string;
+  address?: string;
   gender?: "MALE" | "FEMALE" | "OTHER" | null;
-  birthday?: string | null; // ISO date string
+  birthday?: string | null;
 }
 
 export interface SelectAllRequest {

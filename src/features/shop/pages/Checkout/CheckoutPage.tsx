@@ -15,12 +15,13 @@ import {
   deleteAddress,
   setDefaultAddress
 } from "../../../../api/endpoints/userApi";
-import { getCart } from "../../../../api/endpoints/cartApi";
+import { getCart, removeCartItem } from "../../../../api/endpoints/cartApi";
 import { createOrder } from "../../../../api/endpoints/orderApi";
 import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
 import type { AddressResponse, AddressUpdateRequest } from "../../../../types/auth";
-import type { BackendCartResponse, CustomerOrderPublicCreateRequest } from "../../../../types/api";
+import type { BackendCartResponse, CustomerOrderPublicCreateRequest, SelectedCartWithShippingResponse } from "../../../../types/api";
 import { toast } from "sonner";
+
 type CheckoutItem = {
   id: string;
   name: string;
@@ -138,6 +139,9 @@ const CheckoutPage: React.FC = () => {
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
   const [addresses, setAddresses] = useState<AddressOption[]>([]);
   const [cartData, setCartData] = useState<BackendCartResponse[]>([]);
+  const [shippingFee, setShippingFee] = useState<number>(0);
+  const [totalProductPrice, setTotalProductPrice] = useState<number>(0);
+  const [totalPrice, setTotalPrice] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<number>(
@@ -309,15 +313,23 @@ const CheckoutPage: React.FC = () => {
         }
 
         // Check if we have selected items from CartPage
-        const locationState = location.state as { selectedCartItems?: BackendCartResponse[] } | null;
+        const locationState = location.state as { selectedCartItems?: SelectedCartWithShippingResponse } | null;
 
-        if (locationState?.selectedCartItems && locationState.selectedCartItems.length > 0) {
-          // Use selected items from CartPage
-          setCartData(locationState.selectedCartItems);
+        if (locationState?.selectedCartItems) {
+          // Use the data passed from CartPage directly
+          setCartData(locationState.selectedCartItems.cartItems);
+          setTotalProductPrice(locationState.selectedCartItems.totalProductPrice);
+          setShippingFee(locationState.selectedCartItems.estimatedShippingFee);
+          setTotalPrice(locationState.selectedCartItems.totalPrice);
         } else {
           // If no selected items, fetch all cart items
           const cartResponse = await getCart({ page: 1, size: 100 });
           setCartData(cartResponse.carts || []);
+          // For all cart items, calculate shipping manually (fallback)
+          const totalProduct = cartResponse.carts?.reduce((sum, item) => sum + item.totalPrice, 0) || 0;
+          setTotalProductPrice(totalProduct);
+          setShippingFee(30000); // Default shipping fee
+          setTotalPrice(totalProduct + 30000);
         }
       } catch (err: any) {
         console.error("Error fetching checkout data:", err);
@@ -376,9 +388,8 @@ const CheckoutPage: React.FC = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const shippingFee = 15000;
   const discountCode = 0;
-  const total = subtotal + shippingFee - discountCode;
+  const total = totalPrice > 0 ? totalPrice : (subtotal + shippingFee - discountCode);
   const selectedPaymentMethodInfo =
     PAYMENT_METHODS.find((method) => method.id === selectedPaymentMethod) ??
     PAYMENT_METHODS[0];
@@ -645,6 +656,25 @@ const CheckoutPage: React.FC = () => {
       // Create order
       const orderResponse = await createOrder(orderData);
       const orderId = orderResponse.order.id;
+      const orderCode = orderResponse.order.code;
+
+      // Remove selected cart items after successful order creation
+      try {
+        const cartIdsToDelete = checkoutItems
+          .map((item) => item.cartId)
+          .filter((id): id is number => id !== undefined);
+
+        // Delete all selected cart items in parallel
+        await Promise.all(
+          cartIdsToDelete.map((cartId) => removeCartItem(cartId))
+        );
+
+        console.log(`Đã xóa ${cartIdsToDelete.length} sản phẩm khỏi giỏ hàng`);
+      } catch (deleteError: any) {
+        console.error("Lỗi khi xóa cart items:", deleteError);
+        // Don't fail the order creation if cart deletion fails
+        // The order was already created successfully
+      }
 
       // If payment method is banking, redirect to VNPay
       if (selectedPaymentMethod === "BANKING") {
@@ -666,18 +696,12 @@ const CheckoutPage: React.FC = () => {
             description: "Đơn hàng đã được tạo nhưng không thể tạo URL thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
             duration: 5000,
           });
+          // Navigate to order detail even if payment URL creation fails
+          navigate(`/user/profile/orders/${orderCode}?newOrder=true`);
         }
       } else {
-        // CASH - Order created successfully
-        toast.success("Đặt hàng thành công!", {
-          description: "Đơn hàng của bạn đã được tạo và đang được xử lý.",
-          duration: 3000,
-        });
-        navigate("/shop/orders", {
-          state: {
-            orderId
-          }
-        });
+        // CASH - Order created successfully, navigate to order detail page
+        navigate(`/user/profile/orders/${orderCode}?newOrder=true`);
       }
     } catch (err: any) {
       console.error("Error placing order:", err);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { formatCurrencyVND } from "../../../features/shop/pages/Product/utils/formatCurrency";
 import type { Product } from "../../../features/shop/data/productsData";
 import type { ProductDetailsResponse, VariantDetailIdResponse } from "../../../types";
@@ -26,6 +26,7 @@ interface ProductInfoProps {
   onAttributeSelect?: (attributeIndex: number, valueId: number) => void;
   variantData?: VariantDetailIdResponse | null;
   isLoadingVariant?: boolean;
+  isAddingToCart?: boolean;
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({
@@ -38,6 +39,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   onAttributeSelect,
   variantData,
   isLoadingVariant = false,
+  isAddingToCart = false,
 }) => {
   const extendedProduct = product as ExtendedProduct;
   const attributes = productDetail?.attributes || [];
@@ -313,30 +315,44 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       <div className="flex flex-wrap gap-3 pt-2">
         <button
           onClick={onAddToCart}
-          disabled={(totalAttributes > 0 && !hasSelectedAllAttributes) || !isInStock || isLoadingVariant}
+          disabled={
+            (totalAttributes > 0 && !hasSelectedAllAttributes) ||
+            !isInStock ||
+            isLoadingVariant ||
+            isAddingToCart
+          }
           className={`!h-12 !border-2 !text-[14px] !font-semibold !px-6 rounded-md flex items-center justify-center gap-2 transition-colors ${
             hasSelectedAllAttributes && isInStock && !isLoadingVariant
               ? "!bg-[#fff2eb] !border-[#e9502c] !text-[#e9502c] hover:!bg-[#ffe8d9]"
               : "!bg-gray-200 !border-gray-300 !text-gray-400 cursor-not-allowed"
           }`}
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <path d="M16 10a4 4 0 0 1-8 0" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="10" y1="11" x2="14" y2="11" />
-          </svg>
-          <span>Thêm Vào Giỏ Hàng</span>
+          {isAddingToCart ? (
+            <>
+              <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Đang thêm...</span>
+            </>
+          ) : (
+            <>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="10" y1="11" x2="14" y2="11" />
+              </svg>
+              <span>Thêm Vào Giỏ Hàng</span>
+            </>
+          )}
         </button>
         <button
           onClick={() => {
@@ -344,7 +360,12 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
               console.log("Buy now", variantData);
             }
           }}
-          disabled={(totalAttributes > 0 && !hasSelectedAllAttributes) || !isInStock || isLoadingVariant}
+          disabled={
+            (totalAttributes > 0 && !hasSelectedAllAttributes) ||
+            !isInStock ||
+            isLoadingVariant ||
+            isAddingToCart
+          }
           className={`!h-12 !text-[14px] !font-semibold !px-6 rounded-md transition-colors ${
             hasSelectedAllAttributes && isInStock && !isLoadingVariant
               ? "!bg-[#e9502c] !border-[#e9502c] !text-white hover:!bg-[#d34221]"

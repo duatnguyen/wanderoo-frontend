@@ -11,7 +11,7 @@ export interface SimpleInventoryItemResponse {
   sellingPrice?: number | null;
 }
 
-export interface SimpleInventoryPageResponse extends PageResponse<SimpleInventoryItemResponse> {}
+export interface SimpleInventoryPageResponse extends PageResponse<SimpleInventoryItemResponse> { }
 
 export interface ProviderResponse {
   id: number;

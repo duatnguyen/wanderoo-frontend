@@ -50,8 +50,7 @@ export const getOrderMetadata =
     return response.data.data;
   };
 
-export const getCustomerOrders = async (params: {
-  userId: number;
+export const getCustomerOrders = async (params?: {
   page?: number;
   size?: number;
 }): Promise<CustomerOrderPageResponse> => {
@@ -63,14 +62,10 @@ export const getCustomerOrders = async (params: {
 };
 
 export const getCustomerOrderDetail = async (
-  orderId: number,
-  userId: number
+  orderCode: string
 ): Promise<CustomerOrderResponse> => {
   const response = await api.get<ApiResponse<CustomerOrderResponse>>(
-    `/auth/v1/public/orders/${orderId}`,
-    {
-      params: { userId },
-    }
+    `/auth/v1/public/orders/${orderCode}`
   );
   return response.data.data;
 };
@@ -86,15 +81,10 @@ export const createOrder = async (
 };
 
 export const cancelOrder = async (
-  orderId: number,
-  userId: number
+  orderId: number
 ): Promise<CustomerOrderCancelResponse> => {
   const response = await api.patch<ApiResponse<CustomerOrderCancelResponse>>(
-    `/auth/v1/public/orders/${orderId}/cancel`,
-    null,
-    {
-      params: { userId },
-    }
+    `/auth/v1/public/orders/${orderId}/cancel`
   );
   return response.data.data;
 };
@@ -358,6 +348,13 @@ export const cancelAdminOrder = async (
 export const getOrderCounts = async (): Promise<OrderCountResponse> => {
   const response = await api.get<ApiResponse<OrderCountResponse>>(
     "/auth/v1/private/orders/counts"
+  );
+  return response.data.data;
+};
+
+export const syncShippingStatus = async (): Promise<{ syncedCount: number }> => {
+  const response = await api.post<ApiResponse<{ syncedCount: number }>>(
+    "/auth/v1/private/orders/sync-shipping-status"
   );
   return response.data.data;
 };
