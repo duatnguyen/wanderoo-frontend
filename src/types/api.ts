@@ -1190,6 +1190,8 @@ export interface EmployeePageResponse extends PageResponse<EmployeeResponse> { }
 export interface CustomerResponse extends UserResponse {
   address: string;
   membershipLevel: string;
+  totalOrderAmount?: number;
+  totalOrders?: number;
 }
 
 export interface CustomerPageResponse extends PageResponse<CustomerResponse> { }

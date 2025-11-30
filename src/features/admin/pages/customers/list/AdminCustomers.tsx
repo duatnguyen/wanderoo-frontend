@@ -21,9 +21,9 @@ import {
   PageHeader,
 } from "@/components/common";
 import { ChipStatus } from "@/components/ui/chip-status";
-import { 
-  getCustomers, 
-  enableCustomerAccounts, 
+import {
+  getCustomers,
+  enableCustomerAccounts,
   disableCustomerAccounts
 } from "@/api/endpoints/userApi";
 import { toast } from "sonner";
@@ -89,14 +89,14 @@ const AdminCustomers: React.FC = () => {
     // Use all customers data when filtering, otherwise use paginated data
     const sourceData = statusFilter !== "all" ? allCustomersData : customersData;
     const allCustomers = sourceData?.content || [];
-    
+
     console.log("Customers from API:", allCustomers);
     console.log("Status filter:", statusFilter);
-    
+
     if (statusFilter === "all") {
       return allCustomers;
     }
-    
+
     const filtered = allCustomers.filter((c) => {
       const customerStatus = c.status?.toUpperCase();
       if (statusFilter === "active") {
@@ -106,7 +106,7 @@ const AdminCustomers: React.FC = () => {
       }
       return true;
     });
-    
+
     console.log("Filtered customers:", filtered);
     return filtered;
   }, [customersData?.content, allCustomersData?.content, statusFilter]);
@@ -148,7 +148,7 @@ const AdminCustomers: React.FC = () => {
 
   // Enable/Disable customer mutations
   const enableMutation = useMutation({
-    mutationFn: (ids: number[]) => enableCustomerAccounts({ ids }),
+    mutationFn: (ids: number[]) => enableCustomerAccounts({ getAll: ids }),
     onSuccess: () => {
       toast.success("Kích hoạt khách hàng thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
@@ -162,7 +162,7 @@ const AdminCustomers: React.FC = () => {
   });
 
   const disableMutation = useMutation({
-    mutationFn: (ids: number[]) => disableCustomerAccounts({ ids }),
+    mutationFn: (ids: number[]) => disableCustomerAccounts({ getAll: ids }),
     onSuccess: () => {
       toast.success("Ngừng kích hoạt khách hàng thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
@@ -464,7 +464,7 @@ const AdminCustomers: React.FC = () => {
                   {/* Total spent col */}
                   <div className="flex flex-col gap-[2px] items-start justify-center px-[4px]">
                     <span className="font-medium text-[#272424] text-[13px] leading-[1.4]">
-                      {c.totalOrderAmount ? `${parseFloat(c.totalOrderAmount).toLocaleString('vi-VN')}đ` : "0đ"}
+                      {c.totalOrderAmount ? `${parseFloat(String(c.totalOrderAmount)).toLocaleString('vi-VN')}đ` : "0đ"}
                     </span>
                     <span className="font-medium text-[#737373] text-[11px] leading-[1.3]">
                       {c.totalOrders || "0"} đơn hàng

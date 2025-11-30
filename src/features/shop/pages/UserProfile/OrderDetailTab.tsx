@@ -6,13 +6,15 @@ import ActionButton from "../../../../components/shop/ActionButton";
 import ProductReviewModal from "../../../../components/shop/ProductReviewModal";
 import OrderTimeline, { type TimelineStep } from "../../../../components/admin/order/OrderTimeline";
 import { ChipStatus } from "../../../../components/ui/chip-status";
-import { getCustomerOrderDetail, cancelOrder } from "../../../../api/endpoints/orderApi";
+import { getCustomerOrderDetail, cancelOrder } from "../../../../api/endpoints/websiteOrderApi";
 import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
 import { useAuth } from "../../../../context/AuthContext";
 import { formatTimelineDate, formatOrderDate } from "../../../../utils/dateUtils";
 import type { CustomerOrderResponse } from "../../../../types";
 import { toast } from "sonner";
 import { Truck, Package } from "lucide-react";
+import { useWebSocket } from "../../../../hooks/useWebSocket";
+import { useQueryClient } from "@tanstack/react-query";
 
 function formatCurrencyVND(value: number) {
   return `${value.toLocaleString("vi-VN")}đ`;
@@ -48,34 +50,38 @@ type ProductType = {
 
 const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
 
-// Map shipping status to Vietnamese
+// Map shipping status to Vietnamese (GHN status list)
 const mapShippingStatusToLabel = (status: string | null | undefined): string => {
   if (!status) return "Chưa có thông tin";
 
   const normalizedStatus = status.toLowerCase();
   const statusMap: Record<string, string> = {
-    "ready_to_pick": "Chờ lấy hàng",
-    "picking": "Đang lấy hàng",
-    "money_collect_picking": "Đang tương tác với người gửi",
-    "picked": "Lấy hàng thành công",
-    "storing": "Nhập kho",
-    "transporting": "Đang trung chuyển",
-    "sorting": "Đang phân loại",
-    "delivering": "Đang giao hàng",
-    "money_collect_delivering": "Đang tương tác với người nhận",
-    "delivered": "Giao hàng thành công",
-    "delivery_fail": "Giao hàng không thành công",
-    "waiting_to_return": "Chờ xác nhận giao lại",
-    "return": "Chuyển hoàn",
-    "return_transporting": "Đang trung chuyển hàng hoàn",
-    "return_sorting": "Đang phân loại hàng hoàn",
-    "returning": "Đang hoàn hàng",
-    "return_fail": "Hoàn hàng không thành công",
-    "returned": "Hoàn hàng thành công",
-    "cancel": "Đơn huỷ",
-    "exception": "Hàng ngoại lệ",
-    "lost": "Hàng thất lạc",
-    "damage": "Hàng hư hỏng",
+    // GHN official statuses
+    ready_to_pick: "Đơn hàng vừa được tạo, chờ lấy hàng",
+    picking: "Shipper đang đến lấy hàng",
+    cancel: "Đơn vận chuyển đã bị hủy",
+    money_collect_picking: "Shipper đang tương tác với người gửi",
+    picked: "Shipper đã lấy hàng",
+    storing: "Hàng đang ở kho phân loại GHN",
+    transporting: "Hàng đang luân chuyển",
+    sorting: "Hàng đang được phân loại tại kho",
+    delivering: "Shipper đang giao hàng cho khách",
+    money_collect_delivering: "Shipper đang tương tác với người nhận",
+    delivered: "Hàng đã giao thành công cho khách",
+    delivery_fail: "Giao hàng không thành công",
+    waiting_to_return: "Chờ giao lại / chờ chuyển hoàn",
+    return: "Chờ chuyển hoàn về cho người bán",
+    return_transporting: "Hàng hoàn đang luân chuyển",
+    return_sorting: "Hàng hoàn đang phân loại tại kho",
+    returning: "Shipper đang hoàn hàng cho người bán",
+    return_fail: "Chuyển hoàn thất bại",
+    returned: "Hàng đã được hoàn lại cho người bán",
+    exception: "Đơn hàng gặp ngoại lệ, cần xử lý thêm",
+    damage: "Hàng hóa bị hư hỏng",
+    lost: "Hàng hóa bị thất lạc",
+
+    // Internal/extra statuses (nếu GHN trả về)
+    created: "Đơn vận chuyển mới tạo",
   };
 
   return statusMap[normalizedStatus] || status;
@@ -90,14 +96,20 @@ const mapOrderStatusToChipStatus = (status?: string | null): "pending" | "confir
       return "pending";
     case "CONFIRMED":
       return "confirmed";
+    case "PROCESSING":
+      return "confirmed"; // Processing is similar to confirmed
     case "SHIPPING":
       return "shipping";
     case "COMPLETE":
       return "delivered";
-    case "CANCELED":
-      return "cancelled";
+    case "SHIPPING_FAILED":
+      return "return"; // Shipping failed maps to return status
+    case "RETURNED":
+      return "return";
     case "REFUND":
       return "return";
+    case "CANCELED":
+      return "cancelled";
     default:
       return "default";
   }
@@ -109,6 +121,7 @@ const OrderDetailTab: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<ProductType[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -132,6 +145,38 @@ const OrderDetailTab: React.FC = () => {
 
   // Use orderId from URL params as orderCode (it's actually the code, not id)
   const orderCode = orderId?.trim() || null;
+
+  // WebSocket subscription for real-time order updates
+  useWebSocket({
+    autoConnect: isAuthenticated,
+    topics: [
+      "/topic/customer/orders/updates",
+      orderCode ? `/topic/orders/detail/${orderCode}` : "",
+    ].filter(Boolean) as string[],
+    onMessage: (message: CustomerOrderResponse) => {
+      // Only update if this is the current order
+      if (message.code === orderCode) {
+        // Invalidate and refetch order data
+        queryClient.setQueryData(["customerOrderDetail", orderCode], message);
+        toast.success("Đơn hàng đã được cập nhật", {
+          description: `Trạng thái: ${message.status === "COMPLETE" ? "Đã giao hàng" :
+              message.status === "SHIPPING" ? "Đang vận chuyển" :
+                message.status === "PROCESSING" ? "Đang xử lý" :
+                  message.status === "CONFIRMED" ? "Đã xác nhận" :
+                    message.status === "SHIPPING_FAILED" ? "Giao hàng thất bại" :
+                      message.status === "RETURNED" ? "Đã trả hàng" :
+                        message.status === "REFUND" ? "Hoàn trả" :
+                          message.status === "CANCELED" ? "Đã hủy" :
+                            "Chờ xác nhận"
+            }`,
+          duration: 3000,
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("[OrderDetailTab] WebSocket error:", error);
+    },
+  });
 
   // Fetch order detail from API
   const {
@@ -159,9 +204,12 @@ const OrderDetailTab: React.FC = () => {
     const statusLabel = incomingOrder?.statusLabel ||
       (orderData.status === "COMPLETE" ? "Đã giao hàng" :
         orderData.status === "SHIPPING" ? "Đang vận chuyển" :
-          orderData.status === "CONFIRMED" ? "Đã xác nhận" :
-            orderData.status === "CANCELED" ? "Đã hủy" :
-              orderData.status === "REFUND" ? "Hoàn trả" : "Chờ xác nhận");
+          orderData.status === "PROCESSING" ? "Đang xử lý" :
+            orderData.status === "CONFIRMED" ? "Đã xác nhận" :
+              orderData.status === "SHIPPING_FAILED" ? "Giao hàng thất bại" :
+                orderData.status === "RETURNED" ? "Đã trả hàng" :
+                  orderData.status === "REFUND" ? "Hoàn trả" :
+                    orderData.status === "CANCELED" ? "Đã hủy" : "Chờ xác nhận");
 
     const products: ProductType[] = (orderData.orderDetails || []).map((detail: any, idx: number) => ({
       id: detail.id?.toString() || detail.productDetailId?.toString() || String(idx + 1),
@@ -245,12 +293,12 @@ const OrderDetailTab: React.FC = () => {
     steps[0].completed = true;
     steps[0].date = createdAt;
 
-    if (status === "CONFIRMED" || status === "SHIPPING" || status === "COMPLETE") {
+    if (status === "CONFIRMED" || status === "PROCESSING" || status === "SHIPPING" || status === "COMPLETE") {
       steps[1].completed = true;
       steps[1].date = updatedAt || createdAt;
     }
 
-    if (status === "SHIPPING" || status === "COMPLETE") {
+    if (status === "SHIPPING" || status === "COMPLETE" || status === "SHIPPING_FAILED" || status === "RETURNED") {
       steps[2].completed = true;
       // Use shipping detail date if available, otherwise use updatedAt
       if (order.shippingDetail && order.shippingDetail.log && Array.isArray(order.shippingDetail.log) && order.shippingDetail.log.length > 0) {
@@ -750,16 +798,20 @@ const OrderDetailTab: React.FC = () => {
                     ? "bg-blue-50 border-blue-200"
                     : order.shippingStatus === "COMPLETE" || order.statusKey === "COMPLETE"
                       ? "bg-green-50 border-green-200"
-                      : order.shippingStatus === "PENDING" || order.statusKey === "PENDING"
-                        ? "bg-amber-50 border-amber-200"
-                        : order.shippingStatus === "CONFIRMED" || order.statusKey === "CONFIRMED"
-                          ? "bg-emerald-50 border-emerald-200"
-                          : "bg-gray-50 border-gray-200"
+                      : order.shippingStatus === "SHIPPING_FAILED" || order.statusKey === "SHIPPING_FAILED" || order.statusKey === "RETURNED"
+                        ? "bg-red-50 border-red-200"
+                        : order.shippingStatus === "PENDING" || order.statusKey === "PENDING"
+                          ? "bg-amber-50 border-amber-200"
+                          : order.shippingStatus === "CONFIRMED" || order.shippingStatus === "PROCESSING" || order.statusKey === "CONFIRMED" || order.statusKey === "PROCESSING"
+                            ? "bg-emerald-50 border-emerald-200"
+                            : "bg-gray-50 border-gray-200"
                   }`}>
                   {order.shippingStatus === "SHIPPING" || order.statusKey === "SHIPPING" ? (
                     <Truck className="w-5 h-5 text-blue-600" />
                   ) : order.shippingStatus === "COMPLETE" || order.statusKey === "COMPLETE" ? (
                     <Package className="w-5 h-5 text-green-600" />
+                  ) : order.shippingStatus === "SHIPPING_FAILED" || order.statusKey === "SHIPPING_FAILED" || order.statusKey === "RETURNED" ? (
+                    <Package className="w-5 h-5 text-red-600" />
                   ) : (
                     <Package className="w-5 h-5 text-gray-600" />
                   )}
@@ -1079,8 +1131,8 @@ const OrderDetailTab: React.FC = () => {
               <div className="flex justify-center mb-4">
                 <div
                   className={`w-20 h-20 rounded-full flex items-center justify-center ${paymentResult.status === "success"
-                      ? "bg-green-100"
-                      : "bg-red-100"
+                    ? "bg-green-100"
+                    : "bg-red-100"
                     }`}
                 >
                   {paymentResult.status === "success" ? (
@@ -1118,8 +1170,8 @@ const OrderDetailTab: React.FC = () => {
               {/* Title */}
               <h2
                 className={`text-2xl font-bold mb-4 ${paymentResult.status === "success"
-                    ? "text-green-700"
-                    : "text-red-700"
+                  ? "text-green-700"
+                  : "text-red-700"
                   }`}
               >
                 {paymentResult.status === "success"
@@ -1158,8 +1210,8 @@ const OrderDetailTab: React.FC = () => {
                     setPaymentResultCountdown(PAYMENT_RESULT_POPUP_AUTO_CLOSE_SECONDS);
                   }}
                   className={`px-8 ${paymentResult.status === "success"
-                      ? "!bg-green-600 hover:!bg-green-700"
-                      : "!bg-[#E04D30] hover:!bg-[#c93d24]"
+                    ? "!bg-green-600 hover:!bg-green-700"
+                    : "!bg-[#E04D30] hover:!bg-[#c93d24]"
                     } !border-transparent`}
                 >
                   Đóng

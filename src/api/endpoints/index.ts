@@ -95,23 +95,19 @@ export {
 
 // Order API exports
 export {
-  getOrderMetadata,
-  getCustomerOrders,
-  getCustomerOrderDetail,
-  createOrder,
-  cancelOrder,
-  getAdminCustomerOrders,
-  getAdminCustomerOrderDetail,
-  createAdminCustomerOrder,
-  updateAdminCustomerOrder,
-  confirmOrderAndCreateShipping,
-  cancelAdminOrder,
-  getOrderDetailsByOrderId,
-  getOrderDetailItem,
-  createOrderDetail,
-  updateOrderDetail,
-  getOrderHistoriesByOrderId,
-  getOrderHistoryByOrderAndHistoryId,
+  getAllOrders,
+  updateOrderStatus,
+  getOrderDetails,
+  getOrderDetailById,
+  getOrderHistory,
+  getOrderHistoryDetail,
+  createOrderHistory,
+  updateOrderHistory,
+  deleteOrderHistory,
+  getPOSOrders,
+  getWebsiteOrders,
+  getPOSOrdersWithFilters,
+  getWebsiteOrdersWithFilters,
 } from './orderApi';
 
 // Review API exports

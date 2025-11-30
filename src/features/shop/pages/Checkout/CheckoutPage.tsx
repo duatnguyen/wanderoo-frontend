@@ -13,10 +13,25 @@ import {
   getUserAddresses,
   updateAddress,
   deleteAddress,
-  setDefaultAddress
+  setDefaultAddress,
+  addAddress
 } from "../../../../api/endpoints/userApi";
+import {
+  getProvinces,
+  getDistrictsByPath,
+  getWardsByPath,
+} from "../../../../api/endpoints/shippingApi";
+import type { AddressCreationRequest } from "../../../../types/auth";
+import type {
+  ProvinceResponse,
+  DistrictResponse,
+  WardResponse,
+} from "../../../../types/shipping";
+import { Select } from "antd";
+import { Input } from "../../../../components/shop/Input";
+import Checkbox from "../../../../components/shop/Checkbox";
 import { getCart, removeCartItem } from "../../../../api/endpoints/cartApi";
-import { createOrder } from "../../../../api/endpoints/orderApi";
+import { createOrder } from "../../../../api/endpoints/websiteOrderApi";
 import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
 import type { AddressResponse, AddressUpdateRequest } from "../../../../types/auth";
 import type { BackendCartResponse, CustomerOrderPublicCreateRequest, SelectedCartWithShippingResponse } from "../../../../types/api";
@@ -174,6 +189,30 @@ const CheckoutPage: React.FC = () => {
     PaymentMethod["id"]
   >(PAYMENT_METHODS[0].id);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isAddAddressModalOpen, setIsAddAddressModalOpen] = useState(false);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
+
+  // Location data for address form
+  const [provinces, setProvinces] = useState<
+    Array<{ label: string; value: number }>
+  >([]);
+  const [districts, setDistricts] = useState<
+    Array<{ label: string; value: number; provinceId: number }>
+  >([]);
+  const [wards, setWards] = useState<
+    Array<{ label: string; value: string; districtId: number }>
+  >([]);
+
+  // Address form data
+  const [addressFormData, setAddressFormData] = useState({
+    name: "",
+    phone: "",
+    province: "",
+    district: "",
+    ward: "",
+    detailAddress: "",
+    isDefault: false,
+  });
 
   const voucherSections = useMemo(
     () => [
@@ -259,6 +298,81 @@ const CheckoutPage: React.FC = () => {
     []
   );
 
+  // Fetch provinces
+  const fetchProvinces = async () => {
+    try {
+      setIsLoadingLocations(true);
+      const provincesData = await getProvinces();
+      const mappedProvinces = provincesData.map((p: ProvinceResponse) => ({
+        label: p.provinceName,
+        value: p.provinceId,
+      }));
+      setProvinces(mappedProvinces);
+    } catch (error: any) {
+      console.error("Error fetching provinces:", error);
+      toast.error("Không thể tải danh sách tỉnh/thành phố");
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
+
+  // Fetch districts
+  const fetchDistricts = async (provinceId: number) => {
+    try {
+      setIsLoadingLocations(true);
+      const districtsData = await getDistrictsByPath(provinceId);
+      const mappedDistricts = districtsData.map((d: DistrictResponse) => ({
+        label: d.districtName,
+        value: d.districtId,
+        provinceId: d.provinceId,
+      }));
+      setDistricts(mappedDistricts);
+      setWards([]);
+      setAddressFormData((prev) => ({ ...prev, district: "", ward: "" }));
+    } catch (error: any) {
+      console.error("Error fetching districts:", error);
+      toast.error("Không thể tải danh sách quận/huyện");
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
+
+  // Fetch wards
+  const fetchWards = async (districtId: number) => {
+    try {
+      setIsLoadingLocations(true);
+      const wardsData = await getWardsByPath(districtId);
+      const mappedWards = wardsData.map((w: WardResponse) => ({
+        label: w.wardName,
+        value: w.wardCode,
+        districtId: w.districtId,
+      }));
+      setWards(mappedWards);
+      setAddressFormData((prev) => ({ ...prev, ward: "" }));
+    } catch (error: any) {
+      console.error("Error fetching wards:", error);
+      toast.error("Không thể tải danh sách phường/xã");
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
+
+  // Helper functions
+  const getProvinceName = (provinceId: number): string => {
+    const province = provinces.find((p) => p.value === provinceId);
+    return province ? province.label : "";
+  };
+
+  const getDistrictName = (districtId: number): string => {
+    const district = districts.find((d) => d.value === districtId);
+    return district ? district.label : "";
+  };
+
+  const getWardName = (wardCode: string): string => {
+    const ward = wards.find((w) => w.value === wardCode);
+    return ward ? ward.label : "";
+  };
+
   // Fetch addresses and cart data
   useEffect(() => {
     if (!isAuthenticated) {
@@ -270,6 +384,9 @@ const CheckoutPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch provinces for address form
+        await fetchProvinces();
 
         // Fetch addresses
         const addressResponse = await getUserAddresses();
@@ -388,11 +505,52 @@ const CheckoutPage: React.FC = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const discountCode = 0;
-  const total = totalPrice > 0 ? totalPrice : (subtotal + shippingFee - discountCode);
+
+  // Calculate discount based on selected voucher
+  const selectedVoucher = useMemo(() => {
+    if (!selectedVoucherId) return null;
+    for (const section of voucherSections) {
+      const voucher = section.vouchers.find(v => v.id === selectedVoucherId);
+      if (voucher) return voucher;
+    }
+    return null;
+  }, [selectedVoucherId, voucherSections]);
+
+  // Calculate discount amount (simplified calculation - should be done by backend)
+  const discountAmount = useMemo(() => {
+    if (!selectedVoucher) return 0;
+
+    // Parse discount from voucher title (simplified - should use actual discount data)
+    const title = selectedVoucher.title;
+    if (title.includes("Miễn phí vận chuyển")) {
+      // Free shipping voucher - discount shipping fee
+      return Math.min(shippingFee, 30000); // Max 30k based on voucher description
+    } else if (title.includes("Giảm")) {
+      // Discount voucher - parse percentage or fixed amount
+      const percentMatch = title.match(/(\d+)%/);
+      const fixedMatch = title.match(/(\d+\.?\d*)\s*k/i);
+
+      if (percentMatch) {
+        const percent = parseInt(percentMatch[1]);
+        const maxDiscount = title.includes("250.000") ? 250000 :
+          title.includes("100.000") ? 100000 :
+            title.includes("30.000") ? 30000 : 0;
+        return Math.min((subtotal * percent) / 100, maxDiscount);
+      } else if (fixedMatch) {
+        const amount = parseFloat(fixedMatch[1]) * 1000;
+        return Math.min(amount, subtotal);
+      }
+    }
+    return 0;
+  }, [selectedVoucher, subtotal, shippingFee]);
+
+  const total = totalPrice > 0 ? totalPrice : (subtotal + shippingFee - discountAmount);
   const selectedPaymentMethodInfo =
     PAYMENT_METHODS.find((method) => method.id === selectedPaymentMethod) ??
     PAYMENT_METHODS[0];
+
+  // Calculate total items count
+  const totalItemsCount = checkoutItems.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
     if (isPaymentMethodModalOpen) {
@@ -401,8 +559,158 @@ const CheckoutPage: React.FC = () => {
   }, [isPaymentMethodModalOpen, selectedPaymentMethod]);
 
   const handleOpenAddressModal = () => {
+    if (addresses.length === 0) {
+      setIsAddAddressModalOpen(true);
+      return;
+    }
     setPendingAddressId(selectedAddressId);
     setIsAddressModalOpen(true);
+  };
+
+  const handleOpenAddAddressModal = () => {
+    setIsAddAddressModalOpen(true);
+    setAddressFormData({
+      name: "",
+      phone: "",
+      province: "",
+      district: "",
+      ward: "",
+      detailAddress: "",
+      isDefault: false,
+    });
+    setDistricts([]);
+    setWards([]);
+  };
+
+  const handleCloseAddAddressModal = () => {
+    setIsAddAddressModalOpen(false);
+    setAddressFormData({
+      name: "",
+      phone: "",
+      province: "",
+      district: "",
+      ward: "",
+      detailAddress: "",
+      isDefault: false,
+    });
+    setDistricts([]);
+    setWards([]);
+  };
+
+  const handleProvinceChange = async (provinceId: number) => {
+    setAddressFormData((prev) => ({
+      ...prev,
+      province: provinceId.toString(),
+      district: "",
+      ward: "",
+    }));
+    setDistricts([]);
+    setWards([]);
+    await fetchDistricts(provinceId);
+  };
+
+  const handleDistrictChange = async (districtId: number) => {
+    setAddressFormData((prev) => ({
+      ...prev,
+      district: districtId.toString(),
+      ward: "",
+    }));
+    setWards([]);
+    await fetchWards(districtId);
+  };
+
+  const handleSaveNewAddress = async () => {
+    // Validate form
+    if (!addressFormData.name.trim()) {
+      toast.error("Vui lòng nhập họ và tên");
+      return;
+    }
+    if (!addressFormData.phone.trim()) {
+      toast.error("Vui lòng nhập số điện thoại");
+      return;
+    }
+    if (!addressFormData.province || !addressFormData.district || !addressFormData.ward) {
+      toast.error("Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện, Phường/Xã");
+      return;
+    }
+    if (!addressFormData.detailAddress.trim()) {
+      toast.error("Vui lòng nhập địa chỉ chi tiết");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const provinceId = parseInt(addressFormData.province);
+      const districtId = parseInt(addressFormData.district);
+      const wardCode = addressFormData.ward;
+
+      const provinceName = getProvinceName(provinceId);
+      const districtName = getDistrictName(districtId);
+      const wardName = getWardName(wardCode);
+
+      const createRequest: AddressCreationRequest = {
+        street: addressFormData.detailAddress.trim(),
+        wardCode: wardCode,
+        wardName: wardName,
+        districtId: districtId,
+        districtName: districtName,
+        provinceName: provinceName,
+        fullAddress: `${addressFormData.detailAddress.trim()}, ${wardName}, ${districtName}, ${provinceName}, Vietnam`,
+        name: addressFormData.name.trim(),
+        phone: addressFormData.phone.trim().replace(/[()]/g, "").replace("+84 ", "").replace(/\s/g, ""),
+      };
+
+      const response = await addAddress(createRequest);
+      toast.success("Đã thêm địa chỉ mới");
+
+      // If setting as default, call setDefaultAddress
+      if (addressFormData.isDefault && response.data) {
+        await setDefaultAddress(response.data);
+      }
+
+      // Refresh addresses
+      const addressResponse = await getUserAddresses();
+      const addressList = addressResponse.addresses || [];
+      const mappedAddresses: AddressOption[] = addressList.map((addr: AddressResponse) => {
+        const region = [
+          addr.wardName,
+          addr.districtName,
+          addr.provinceName
+        ].filter(Boolean).join(", ");
+        const fullAddress = addr.fullAddress || `${addr.street}, ${region}`;
+        const displayName = addr.receiverName || addr.name;
+        const displayPhone = addr.receiverPhone || addr.phone;
+        return {
+          id: addr.id,
+          name: displayName,
+          phone: displayPhone,
+          detailAddress: addr.street,
+          region: region,
+          address: fullAddress,
+          isDefault: addr.isDefault === true || addr.isDefault === "Địa chỉ mặc định",
+        };
+      });
+      setAddresses(mappedAddresses);
+
+      // Select the new address
+      const newAddress = mappedAddresses.find(addr => addr.id === response.data);
+      if (newAddress) {
+        setSelectedAddressId(newAddress.id);
+        setPendingAddressId(newAddress.id);
+      } else if (mappedAddresses.length > 0) {
+        const defaultAddr = mappedAddresses.find(addr => addr.isDefault) || mappedAddresses[0];
+        setSelectedAddressId(defaultAddr.id);
+        setPendingAddressId(defaultAddr.id);
+      }
+
+      handleCloseAddAddressModal();
+    } catch (error: any) {
+      console.error("Error saving address:", error);
+      toast.error(error?.response?.data?.message || "Không thể lưu địa chỉ");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmAddress = async () => {
@@ -725,16 +1033,16 @@ const CheckoutPage: React.FC = () => {
 
       <main className="flex-1">
         {/* Checkout Content */}
-        <section className="w-full bg-gray-50 py-8">
-          <div className="max-w-[1200px] mx-auto px-4">
-            <div className="mb-6">
+        <section className="w-full bg-gradient-to-b from-gray-50 to-white py-8 md:py-12">
+          <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Header Section */}
+            <div className="mb-8">
               <button
                 onClick={() => navigate("/shop/cart")}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+                className="flex items-center gap-2 text-gray-600 hover:text-[#E04D30] transition-all duration-200 mb-6 group"
               >
                 <svg
-                  width="16"
-                  height="16"
+                  className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -744,84 +1052,171 @@ const CheckoutPage: React.FC = () => {
                 >
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
-                <span className="text-sm">Quay lại giỏ hàng</span>
+                <span className="text-sm font-medium">Quay lại giỏ hàng</span>
               </button>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                Thanh toán
-              </h1>
+              <div className="flex items-center gap-3">
+                <div className="h-1 w-12 bg-[#E04D30] rounded-full"></div>
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                  Thanh toán
+                </h1>
+              </div>
+              <p className="mt-2 text-gray-600 text-sm md:text-base">
+                Vui lòng kiểm tra lại thông tin đơn hàng trước khi thanh toán
+              </p>
             </div>
 
             {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-600 text-sm">{error}</p>
+              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm animate-in slide-in-from-top-2">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-red-700 text-sm font-medium">{error}</p>
+                </div>
               </div>
             )}
 
             {loading ? (
-              <div className="text-center py-16">
-                <p className="text-gray-600 text-lg">Đang tải dữ liệu...</p>
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#E04D30]/10 mb-4">
+                  <svg className="w-8 h-8 text-[#E04D30] animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+                <p className="text-gray-600 text-lg font-medium">Đang tải dữ liệu...</p>
               </div>
             ) : checkoutItems.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-gray-600 text-lg mb-4">
+              <div className="text-center py-20">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
+                  <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   Giỏ hàng của bạn đang trống
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Hãy thêm sản phẩm vào giỏ hàng để tiếp tục
                 </p>
                 <Button
                   variant="primary"
                   size="lg"
-                  onClick={() => window.location.href = "/shop/cart"}
+                  onClick={() => navigate("/shop/cart")}
+                  className="bg-[#E04D30] hover:bg-[#c53b1d] text-white px-8"
                 >
                   Quay lại giỏ hàng
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 {/* Left Column - Main Content */}
-                <div className="lg:col-span-2 space-y-4">
+                <div className="lg:col-span-2 space-y-6">
                   <ShippingAddress
                     name={selectedAddress?.name || ""}
                     phone={selectedAddress?.phone || ""}
                     address={selectedAddress?.address || ""}
                     isDefault={Boolean(selectedAddress?.isDefault)}
                     onChange={handleOpenAddressModal}
+                    isEmpty={addresses.length === 0}
+                    onAddNew={handleOpenAddAddressModal}
                   />
 
                   <ProductsTable items={checkoutItems} />
 
                   {/* Notes and Voucher */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-5 hover:shadow-md transition-shadow duration-200">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Lời nhắn
+                      <label className="block text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Lời nhắn cho shop
                       </label>
                       <Textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Lưu ý cho shop (tùy chọn)"
+                        placeholder="Nhập lưu ý cho shop (tùy chọn)..."
                         rows={4}
-                        className="w-full"
+                        className="w-full border-gray-300 focus:border-[#E04D30] focus:ring-[#E04D30] rounded-lg transition-colors"
                       />
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                      <span className="text-sm text-gray-700">Mã giảm giá</span>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm font-semibold text-gray-900">Mã giảm giá</span>
+                      </div>
                       <button
                         onClick={handleOpenVoucherModal}
-                        className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                        className="text-sm text-[#E04D30] hover:text-[#c53b1d] transition-colors font-semibold flex items-center gap-1 group"
                       >
-                        Chọn mã giảm giá
+                        {selectedVoucher ? (
+                          <>
+                            <span className="px-3 py-1 bg-[#E04D30]/10 text-[#E04D30] rounded-md font-medium">
+                              {selectedVoucher.code}
+                            </span>
+                            <span className="group-hover:underline">Thay đổi</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Chọn mã giảm giá</span>
+                            <svg className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </>
+                        )}
                       </button>
                     </div>
+                    {selectedVoucher && (
+                      <div className="mt-3 p-3 bg-gradient-to-r from-[#E04D30]/5 to-orange-50 border border-[#E04D30]/20 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-semibold text-gray-900">{selectedVoucher.code}</span>
+                          </div>
+                          <button
+                            onClick={() => setSelectedVoucherId(null)}
+                            className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"
+                            title="Xóa mã giảm giá"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="mt-2 text-sm text-gray-700">{selectedVoucher.title}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Right Column - Order Summary */}
                 <div className="lg:col-span-1">
-                  <div className="bg-white border border-gray-200 rounded-lg p-5 sticky top-4">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      Tóm tắt đơn hàng
-                    </h2>
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-6 sticky top-6">
+                    <div className="flex items-center gap-2 mb-6">
+                      <div className="h-1 w-8 bg-[#E04D30] rounded-full"></div>
+                      <h2 className="text-xl font-bold text-gray-900">
+                        Tóm tắt đơn hàng
+                      </h2>
+                    </div>
 
-                    <div className="space-y-3 mb-4">
+                    {/* Product count */}
+                    <div className="mb-5 pb-5 border-b border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">
+                          Sản phẩm <span className="font-medium text-gray-900">({totalItemsCount})</span>
+                        </span>
+                        <span className="text-gray-900 font-semibold text-base">
+                          {formatCurrencyVND(subtotal)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 mb-5">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Tổng tiền hàng</span>
                         <span className="text-gray-900 font-semibold">
@@ -834,52 +1229,83 @@ const CheckoutPage: React.FC = () => {
                           {formatCurrencyVND(shippingFee)}
                         </span>
                       </div>
-                      {discountCode > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Giảm giá</span>
-                          <span className="text-[#E04D30] font-semibold">
-                            -{formatCurrencyVND(discountCode)}
-                          </span>
+                      {selectedVoucher && (
+                        <div className="space-y-2 pt-2 border-t border-gray-100">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Giảm giá</span>
+                            <span className="text-[#E04D30] font-bold text-base">
+                              -{formatCurrencyVND(discountAmount)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-600 bg-gradient-to-r from-[#E04D30]/5 to-orange-50 px-3 py-2 rounded-lg border border-[#E04D30]/10">
+                            <svg className="w-4 h-4 text-[#E04D30] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="flex-1 truncate font-medium">{selectedVoucher.code}</span>
+                          </div>
                         </div>
                       )}
                     </div>
 
-                    <div className="border-t border-gray-200 pt-3 mb-4">
+                    <div className="border-t-2 border-gray-300 pt-4 mb-5">
                       <div className="flex justify-between items-center">
-                        <span className="text-base font-semibold text-gray-900">
+                        <span className="text-lg font-bold text-gray-900">
                           Tổng thanh toán
                         </span>
-                        <span className="text-xl font-bold text-[#E04D30]">
+                        <span className="text-2xl font-extrabold text-[#E04D30]">
                           {formatCurrencyVND(total)}
                         </span>
                       </div>
                     </div>
 
                     {/* Payment Method */}
-                    <div className="border-t border-gray-200 pt-4 mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">Thanh toán</span>
+                    <div className="border-t border-gray-200 pt-5 mb-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-semibold text-gray-700">Phương thức thanh toán</span>
                         <button
                           onClick={() => setIsPaymentMethodModalOpen(true)}
-                          className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                          className="text-sm text-[#E04D30] hover:text-[#c53b1d] transition-colors font-medium"
                         >
                           Thay đổi
                         </button>
                       </div>
-                      <p className="text-sm text-gray-900">
-                        {selectedPaymentMethodInfo.title}
-                      </p>
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-8 h-8 rounded-full bg-[#E04D30]/10 flex items-center justify-center">
+                          {selectedPaymentMethod === "BANKING" ? (
+                            <svg className="w-5 h-5 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 flex-1">
+                          {selectedPaymentMethodInfo.title}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Place Order Button */}
                     <Button
                       variant="primary"
                       size="lg"
-                      className="w-full bg-[#E04D30] hover:bg-[#c53b1d] text-white disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-[#E04D30] to-[#c53b1d] hover:from-[#c53b1d] hover:to-[#b0351a] text-white font-bold py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:shadow-none"
                       onClick={handlePlaceOrder}
                       disabled={isPlacingOrder || !selectedAddress || checkoutItems.length === 0}
                     >
-                      {isPlacingOrder ? "Đang xử lý..." : "Đặt hàng"}
+                      {isPlacingOrder ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Đang xử lý...
+                        </span>
+                      ) : (
+                        "Đặt hàng ngay"
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -891,87 +1317,177 @@ const CheckoutPage: React.FC = () => {
 
       {/* Address Selection Modal */}
       {isAddressModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={handleCloseAddressModal}
           />
-          <div className="relative w-full max-w-[520px] bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Địa chỉ của tôi
-              </h3>
-            </div>
-            <div className="max-h-[420px] overflow-y-auto">
-              {addresses.map((address) => (
-                <label
-                  key={address.id}
-                  className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors text-[14px]"
+          <div className="relative w-full max-w-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#E04D30]/10 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Địa chỉ giao hàng
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Chọn địa chỉ nhận hàng của bạn
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseAddressModal}
+                  className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
                 >
-                  <input
-                    type="radio"
-                    name="address"
-                    className="mt-1 h-4 w-4 text-[#E04D30] border-gray-300"
-                    checked={pendingAddressId === address.id}
-                    onChange={() => setPendingAddressId(address.id)}
-                  />
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-3 text-[14px] text-gray-900">
-                      <span className="font-semibold">{address.name}</span>
-                      <span className="-mx-1 text-gray-400">|</span>
-                      <span className="text-gray-900">{address.phone}</span>
-                      {address.isDefault && (
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
-                          Mặc định
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-2 text-gray-700 text-[14px] whitespace-pre-line leading-relaxed">
-                      {address.address}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="text-blue-600 hover:text-blue-700 text-[14px] font-medium whitespace-nowrap"
-                      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        handleOpenEditModal(address);
-                      }}
-                    >
-                      Cập nhật
-                    </button>
-                    <button
-                      type="button"
-                      className="text-red-600 hover:text-red-700 text-[14px] font-medium whitespace-nowrap"
-                      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        handleDeleteAddress(address.id);
-                      }}
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                </label>
-              ))}
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={handleCloseAddressModal}
-                className="px-4 py-2 text-[14px] text-gray-700 font-medium hover:text-gray-900 transition-colors"
-              >
-                Hủy
-              </button>
-              <Button
-                variant="primary"
-                onClick={handleConfirmAddress}
-                className="px-6"
-              >
-                Xác nhận
-              </Button>
+
+            {/* Content */}
+            <div className="max-h-[500px] overflow-y-auto">
+              {addresses.length === 0 ? (
+                <div className="px-6 py-16 text-center">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-4">
+                    <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                    Chưa có địa chỉ
+                  </h4>
+                  <p className="text-gray-600 text-sm mb-6 max-w-sm mx-auto">
+                    Bạn cần thêm địa chỉ giao hàng để tiếp tục đặt hàng
+                  </p>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      handleCloseAddressModal();
+                      navigate("/user/profile?tab=addresses");
+                    }}
+                    className="bg-[#E04D30] hover:bg-[#c53b1d] text-white px-6"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Thêm địa chỉ mới
+                  </Button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {addresses.map((address) => (
+                    <label
+                      key={address.id}
+                      className={`flex items-start gap-4 px-6 py-5 cursor-pointer transition-all duration-200 ${pendingAddressId === address.id
+                        ? "bg-[#E04D30]/5 border-l-4 border-[#E04D30]"
+                        : "hover:bg-gray-50"
+                        }`}
+                    >
+                      <div className="mt-1">
+                        <input
+                          type="radio"
+                          name="address"
+                          className="w-5 h-5 text-[#E04D30] border-gray-300 focus:ring-[#E04D30] focus:ring-2"
+                          checked={pendingAddressId === address.id}
+                          onChange={() => setPendingAddressId(address.id)}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="font-bold text-gray-900 text-base">
+                            {address.name}
+                          </span>
+                          <span className="text-gray-400">•</span>
+                          <span className="text-gray-700">{address.phone}</span>
+                          {address.isDefault && (
+                            <span className="ml-2 px-2.5 py-1 bg-[#E04D30]/10 text-[#E04D30] text-xs font-semibold rounded-full">
+                              Mặc định
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                          {address.address}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            handleOpenEditModal(address);
+                          }}
+                          title="Cập nhật địa chỉ"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                          onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            handleDeleteAddress(address.id);
+                          }}
+                          title="Xóa địa chỉ"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Footer */}
+            {addresses.length > 0 && (
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    handleCloseAddressModal();
+                    navigate("/user/profile?tab=addresses");
+                  }}
+                  className="text-sm text-[#E04D30] hover:text-[#c53b1d] font-medium flex items-center gap-2 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Thêm địa chỉ mới
+                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCloseAddressModal}
+                    className="px-5 py-2 text-sm text-gray-700 font-medium hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <Button
+                    variant="primary"
+                    onClick={handleConfirmAddress}
+                    className="px-6 bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                    disabled={!pendingAddressId || pendingAddressId === 0}
+                  >
+                    Xác nhận
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1175,26 +1691,45 @@ const CheckoutPage: React.FC = () => {
       )}
 
       {isPaymentMethodModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={handleClosePaymentMethodModal}
           />
-          <div className="relative w-full max-w-[520px] bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Phương thức thanh toán
-              </h3>
-              <button
-                type="button"
-                onClick={handleClosePaymentMethodModal}
-                className="text-2xl leading-none text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                ×
-              </button>
+          <div className="relative w-full max-w-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#E04D30]/10 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Phương thức thanh toán
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Chọn phương thức thanh toán cho đơn hàng
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClosePaymentMethodModal}
+                  className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="px-6 py-5 space-y-5">
-              <div className="grid gap-3">
+
+            {/* Content */}
+            <div className="px-6 py-6">
+              <div className="space-y-3">
                 {PAYMENT_METHODS.map((method) => {
                   const isActive = pendingPaymentMethod === method.id;
                   return (
@@ -1202,42 +1737,321 @@ const CheckoutPage: React.FC = () => {
                       key={method.id}
                       type="button"
                       onClick={() => setPendingPaymentMethod(method.id)}
-                      className={`relative text-left px-4 py-3 border rounded-lg transition-all ${isActive
-                        ? "border-gray-900 bg-gray-50"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                        }`}
+                      className={`relative w-full text-left px-5 py-4 border-2 rounded-xl transition-all duration-200 ${
+                        isActive
+                          ? "border-[#E04D30] bg-[#E04D30]/5 shadow-md"
+                          : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                      }`}
                     >
-                      <span
-                        className={`absolute top-3 right-3 text-sm ${isActive ? "text-gray-900" : "text-transparent"
-                          }`}
-                      >
-                        ✓
-                      </span>
-                      <div className="text-sm font-medium text-gray-900 pr-6">
-                        {method.title}
+                      {/* Check Icon */}
+                      <div className={`absolute top-4 right-4 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                        isActive
+                          ? "bg-[#E04D30] text-white scale-100"
+                          : "bg-gray-200 text-transparent scale-0"
+                      }`}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
                       </div>
-                      <div className="mt-1 text-xs text-gray-600">
-                        {method.description}
+
+                      {/* Payment Method Icon */}
+                      <div className="flex items-start gap-4 pr-8">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                          isActive
+                            ? "bg-[#E04D30]/10"
+                            : "bg-gray-100"
+                        }`}>
+                          {method.id === "BANKING" ? (
+                            <svg className={`w-6 h-6 ${isActive ? "text-[#E04D30]" : "text-gray-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          ) : (
+                            <svg className={`w-6 h-6 ${isActive ? "text-[#E04D30]" : "text-gray-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-base font-bold mb-1.5 transition-colors ${
+                            isActive ? "text-[#E04D30]" : "text-gray-900"
+                          }`}>
+                            {method.title}
+                          </div>
+                          <div className="text-sm text-gray-600 leading-relaxed">
+                            {method.description}
+                          </div>
+                        </div>
                       </div>
                     </button>
                   );
                 })}
               </div>
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleClosePaymentMethodModal}
-                >
-                  Hủy
-                </Button>
-                <Button
-                  variant="primary"
-                  className="bg-[#E04D30] hover:bg-[#c53b1d]"
-                  onClick={handleConfirmPaymentMethod}
-                >
-                  Xác nhận
-                </Button>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-5 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={handleClosePaymentMethodModal}
+                className="w-full sm:w-auto !bg-white !border-gray-300 !text-gray-700 hover:!bg-gray-50 hover:!border-gray-400"
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                className="w-full sm:w-auto px-8 !bg-[#E04D30] !border-[#E04D30] hover:!bg-[#c53b1d] hover:!border-[#c53b1d] shadow-md hover:shadow-lg transition-all"
+                onClick={handleConfirmPaymentMethod}
+              >
+                Xác nhận
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Address Modal */}
+      {isAddAddressModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleCloseAddAddressModal}
+          />
+          <div className="relative w-full max-w-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#E04D30]/10 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Thêm địa chỉ mới
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Điền thông tin địa chỉ nhận hàng
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={handleCloseAddAddressModal}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Form Content - Scrollable */}
+            <div className="px-6 py-6 space-y-5 overflow-y-auto flex-1">
+              {/* Personal Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-4 h-4 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Thông tin người nhận
+                  </h3>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Họ và tên <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={addressFormData.name}
+                      onChange={(e) => setAddressFormData(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Nhập họ và tên người nhận"
+                      className="hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Số điện thoại <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="tel"
+                      value={addressFormData.phone}
+                      onChange={(e) => setAddressFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="Nhập số điện thoại (ví dụ: 0912345678)"
+                      className="hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30]"
+                    />
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      Số điện thoại để liên hệ khi giao hàng
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-200 my-2"></div>
+
+              {/* Address Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-4 h-4 text-[#E04D30]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Địa chỉ nhận hàng
+                  </h3>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Province */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tỉnh/Thành Phố <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={addressFormData.province ? parseInt(addressFormData.province) : undefined}
+                      onChange={(value: number) => handleProvinceChange(value)}
+                      placeholder="Chọn Tỉnh/Thành Phố"
+                      loading={isLoadingLocations}
+                      disabled={isLoadingLocations}
+                      size="large"
+                      className="w-full [&_.ant-select-selector]:!h-11 [&_.ant-select-selector]:!rounded-lg [&_.ant-select-selector:hover]:!border-[#E04D30] [&.ant-select-focused_.ant-select-selector]:!border-[#E04D30]"
+                      options={provinces.map((p) => ({
+                        label: p.label,
+                        value: p.value,
+                      }))}
+                    />
+                  </div>
+
+                  {/* District */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Quận/Huyện <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={addressFormData.district ? parseInt(addressFormData.district) : undefined}
+                      onChange={(value: number) => handleDistrictChange(value)}
+                      placeholder="Chọn Quận/Huyện"
+                      loading={isLoadingLocations}
+                      disabled={!addressFormData.province || isLoadingLocations}
+                      size="large"
+                      className="w-full [&_.ant-select-selector]:!h-11 [&_.ant-select-selector]:!rounded-lg [&_.ant-select-selector:hover]:!border-[#E04D30] [&.ant-select-focused_.ant-select-selector]:!border-[#E04D30]"
+                      options={districts.map((d) => ({
+                        label: d.label,
+                        value: d.value,
+                      }))}
+                      notFoundContent={
+                        !addressFormData.province ? (
+                          <div className="py-4 text-center text-gray-400">
+                            Vui lòng chọn Tỉnh/Thành phố trước
+                          </div>
+                        ) : "Không có dữ liệu"
+                      }
+                    />
+                  </div>
+
+                  {/* Ward */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phường/Xã <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={addressFormData.ward}
+                      onChange={(value: string) => setAddressFormData(prev => ({ ...prev, ward: value }))}
+                      placeholder="Chọn Phường/Xã"
+                      loading={isLoadingLocations}
+                      disabled={!addressFormData.district || isLoadingLocations}
+                      size="large"
+                      className="w-full [&_.ant-select-selector]:!h-11 [&_.ant-select-selector]:!rounded-lg [&_.ant-select-selector:hover]:!border-[#E04D30] [&.ant-select-focused_.ant-select-selector]:!border-[#E04D30]"
+                      options={wards.map((w) => ({
+                        label: w.label,
+                        value: w.value,
+                      }))}
+                      notFoundContent={
+                        !addressFormData.district ? (
+                          <div className="py-4 text-center text-gray-400">
+                            Vui lòng chọn Quận/Huyện trước
+                          </div>
+                        ) : "Không có dữ liệu"
+                      }
+                    />
+                  </div>
+
+                  {/* Detail Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Địa chỉ chi tiết <span className="text-red-500">*</span>
+                    </label>
+                    <Textarea
+                      value={addressFormData.detailAddress}
+                      onChange={(e) => setAddressFormData(prev => ({ ...prev, detailAddress: e.target.value }))}
+                      placeholder="Nhập số nhà, tên đường, tòa nhà..."
+                      rows={3}
+                      className="hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30]"
+                    />
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      Ví dụ: Số 123, Đường ABC, Tòa nhà XYZ
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-200 my-2"></div>
+
+              {/* Default Address Checkbox */}
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="isDefaultNew"
+                    checked={addressFormData.isDefault}
+                    onChange={(e) => setAddressFormData(prev => ({ ...prev, isDefault: e.target.checked }))}
+                    label=""
+                  />
+                  <div className="flex-1">
+                    <label
+                      htmlFor="isDefaultNew"
+                      className="text-sm font-medium text-gray-700 cursor-pointer block"
+                    >
+                      Đặt làm địa chỉ mặc định
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      Địa chỉ này sẽ được sử dụng mặc định khi đặt hàng
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="px-6 py-5 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={handleCloseAddAddressModal}
+                disabled={loading}
+                className="w-full sm:w-auto !bg-white !border-gray-300 !text-gray-700 hover:!bg-gray-50"
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleSaveNewAddress}
+                disabled={loading}
+                className="w-full sm:w-auto px-8 !bg-[#E04D30] !border-[#E04D30] hover:!bg-[#c53b1d] disabled:!opacity-50"
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Đang lưu...
+                  </span>
+                ) : (
+                  "Lưu địa chỉ"
+                )}
+              </Button>
             </div>
           </div>
         </div>

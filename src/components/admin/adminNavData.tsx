@@ -325,13 +325,19 @@ export const adminNavSections: AdminNavSection[] = [
       {
         label: "Đơn hàng",
         icon: icons.orders,
-        activeMatch: "/admin/orders/all",
+        activeMatch: "/admin/orders",
         submenu: [
           {
-            label: "Tất cả đơn hàng",
-            path: "/admin/orders/all",
+            label: "Đơn hàng POS",
+            path: "/admin/orders/pos",
             icon: icons.orders,
-            activeMatch: "/admin/orders/all",
+            activeMatch: "/admin/orders/pos",
+          },
+          {
+            label: "Đơn hàng Website",
+            path: "/admin/orders/website",
+            icon: icons.orders,
+            activeMatch: "/admin/orders/website",
           },
           {
             label: "Trả hàng/Hoàn tiền/Hủy",

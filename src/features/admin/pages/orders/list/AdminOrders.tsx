@@ -1,6 +1,7 @@
 // src/pages/admin/AdminOrders.tsx
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import type { DateRange } from "react-day-picker";
 import {
   PageContainer,
   ContentCard,
@@ -19,27 +20,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import CaretDown from "@/components/ui/caret-down";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, XCircle } from "lucide-react";
+import { format } from "date-fns";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
 import {
   getAdminCustomerOrders,
-  getAdminCustomerOrdersByStatus,
   getAdminCustomerOrdersWithFilters,
-  getOrderCounts,
-  syncShippingStatus,
+  getPOSOrders,
+  getWebsiteOrders,
+  getPOSOrdersWithFilters,
+  getWebsiteOrdersWithFilters,
 } from "@/api/endpoints/orderApi";
-import type { AdminOrderResponse, OrderCountResponse } from "@/types";
+import type { CustomerOrderResponse, OrderCountResponse } from "@/types";
 import { toast } from "sonner";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 const AdminOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [orders, setOrders] = useState<AdminOrderResponse[]>([]);
+  const [orders, setOrders] = useState<CustomerOrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
-  
+
   // Order counts state
   const [orderCounts, setOrderCounts] = useState<OrderCountResponse>({
     all: 0,
@@ -51,16 +57,25 @@ const AdminOrders: React.FC = () => {
     refund: 0,
     shippingFailed: 0,
   });
-  
+
   // Filter states
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("ALL");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("ALL");
-  const [sourceFilter, setSourceFilter] = useState<string>("ALL");
-  
-  // Sync state
-  const [isSyncing, setIsSyncing] = useState(false);
-  
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine order source from path
+  const getOrderSource = () => {
+    const path = location.pathname;
+    if (path.includes('/orders/pos')) {
+      return 'POS';
+    } else if (path.includes('/orders/website')) {
+      return 'WEBSITE';
+    }
+    return 'ALL';
+  };
 
   // Fetch orders from API
   const fetchOrders = async (page = 1, status?: string) => {
@@ -73,31 +88,56 @@ const AdminOrders: React.FC = () => {
         size: 10,
       };
 
-      // Use the new filter endpoint if any filters are active
-      const hasFilters = 
-        paymentStatusFilter !== "ALL" ||
-        paymentMethodFilter !== "ALL" ||
-        sourceFilter !== "ALL";
-
+      const orderSource = getOrderSource();
+      const hasDateFilter = dateRange?.from || dateRange?.to;
+      const hasFilters = paymentStatusFilter !== "ALL" || paymentMethodFilter !== "ALL" || (status && status !== "ALL") || hasDateFilter;
       let response;
-      if (hasFilters) {
-        // Use the new filter endpoint with all filters
-        params.status = status && status !== "ALL" ? status : undefined;
-        params.paymentStatus = paymentStatusFilter !== "ALL" ? paymentStatusFilter : undefined;
-        params.method = paymentMethodFilter !== "ALL" ? paymentMethodFilter : undefined;
-        params.source = sourceFilter !== "ALL" ? sourceFilter : undefined;
-        response = await getAdminCustomerOrdersWithFilters(params);
-      } else if (status && status !== "ALL") {
-        // Use the status-specific endpoint
-        response = await getAdminCustomerOrdersByStatus(status, params);
-      } else {
-        // Use the general endpoint for all orders
-        response = await getAdminCustomerOrders(params);
+
+      // Add date filters if provided
+      if (dateRange?.from) {
+        params.fromDate = format(dateRange.from, "yyyy-MM-dd");
+      }
+      if (dateRange?.to) {
+        params.toDate = format(dateRange.to, "yyyy-MM-dd");
       }
 
-      // Debug: Log first order to check structure
-      if (response.data.orders && response.data.orders.length > 0) {
-        const firstOrder = response.data.orders[0];
+      // Determine which API to use based on order source
+      if (orderSource === 'POS') {
+        // For POS orders, use POS-specific APIs
+        if (hasFilters) {
+          params.status = status && status !== "ALL" ? status : undefined;
+          params.paymentStatus = paymentStatusFilter !== "ALL" ? paymentStatusFilter : undefined;
+          params.method = paymentMethodFilter !== "ALL" ? paymentMethodFilter : undefined;
+          response = await getPOSOrdersWithFilters(params);
+        } else {
+          response = await getPOSOrders(params);
+        }
+      } else if (orderSource === 'WEBSITE') {
+        // For WEBSITE orders, use WEBSITE-specific APIs
+        if (hasFilters) {
+          params.status = status && status !== "ALL" ? status : undefined;
+          params.paymentStatus = paymentStatusFilter !== "ALL" ? paymentStatusFilter : undefined;
+          params.method = paymentMethodFilter !== "ALL" ? paymentMethodFilter : undefined;
+          response = await getWebsiteOrdersWithFilters(params);
+        } else {
+          response = await getWebsiteOrders(params);
+        }
+      } else {
+        // For ALL orders, use general Customer Order API
+        if (hasFilters) {
+          params.status = status && status !== "ALL" ? status : undefined;
+          params.paymentStatus = paymentStatusFilter !== "ALL" ? paymentStatusFilter : undefined;
+          params.method = paymentMethodFilter !== "ALL" ? paymentMethodFilter : undefined;
+          response = await getAdminCustomerOrdersWithFilters(params);
+        } else {
+          response = await getAdminCustomerOrders(params);
+        }
+      }
+
+      // CustomerOrderPageResponse structure: { pageNumber, pageSize, totalElements, totalPages, orders: [...] }
+      const ordersData = response.orders || [];
+      if (ordersData && ordersData.length > 0) {
+        const firstOrder = ordersData[0];
         console.log("First order structure:", {
           id: firstOrder.id,
           hasOrderDetails: !!firstOrder.orderDetails,
@@ -109,9 +149,8 @@ const AdminOrders: React.FC = () => {
         });
       }
 
-      setOrders(response.data.orders);
-      setTotalPages(response.data.totalPages);
-      setTotalElements(response.data.totalElements);
+      setOrders(ordersData);
+      setTotalPages(response.totalPages || 1);
     } catch (err) {
       console.error("Error fetching orders:", err);
       setError("Không thể tải danh sách đơn hàng. Vui lòng thử lại.");
@@ -122,33 +161,57 @@ const AdminOrders: React.FC = () => {
   };
 
   // Fetch order counts from API
-  const fetchOrderCounts = async () => {
-    try {
-      const counts = await getOrderCounts();
-      setOrderCounts(counts);
-    } catch (err) {
-      console.error("Error fetching order counts:", err);
-      // Don't show error toast for counts, just log it
-    }
-  };
+  // const fetchOrderCounts = async () => {
+  //   try {
+  //     const counts = await getOrderCounts();
+  //     setOrderCounts(counts);
+  //   } catch (err) {
+  //     console.error("Error fetching order counts:", err);
+  //     // Don't show error toast for counts, just log it
+  //   }
+  // };
 
   // Fetch order counts on mount and when orders change
-  useEffect(() => {
-    fetchOrderCounts();
-  }, []);
+  // useEffect(() => {
+  //   fetchOrderCounts();
+  // }, []);
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when filters or location change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, paymentStatusFilter, paymentMethodFilter, sourceFilter]);
+  }, [activeTab, paymentStatusFilter, paymentMethodFilter, dateRange, location.pathname]);
 
-  // Fetch orders when page or filters change
+  // Fetch orders when page, filters, or location changes
   useEffect(() => {
     const status = activeTab === "ALL" ? undefined : activeTab;
     fetchOrders(currentPage, status);
     // Refresh counts after fetching orders
-    fetchOrderCounts();
-  }, [activeTab, currentPage, paymentStatusFilter, paymentMethodFilter, sourceFilter]);
+    // fetchOrderCounts();
+  }, [activeTab, currentPage, paymentStatusFilter, paymentMethodFilter, dateRange, location.pathname]);
+
+  // WebSocket subscription for real-time order updates
+  useWebSocket({
+    autoConnect: true,
+    topics: ["/topic/orders/updates"],
+    onMessage: (message: CustomerOrderResponse) => {
+      // Update order in the list if it exists
+      setOrders((prevOrders) => {
+        const orderIndex = prevOrders.findIndex((o) => o.code === message.code || o.id === message.id);
+        if (orderIndex >= 0) {
+          // Update existing order
+          const updatedOrders = [...prevOrders];
+          updatedOrders[orderIndex] = message;
+          return updatedOrders;
+        }
+        // If order not in current page, just refresh the list
+        // This handles cases where the order might be on a different page
+        return prevOrders;
+      });
+    },
+    onError: (error) => {
+      console.error("[AdminOrders] WebSocket error:", error);
+    },
+  });
 
   // Create order tabs with counts from API
   const orderTabsWithCounts: TabItemWithBadge[] = useMemo(
@@ -223,42 +286,17 @@ const AdminOrders: React.FC = () => {
     return "default";
   };
 
-  // Handle view order detail
+  // Handle view order detail - uses order code (not numeric id)
   const handleViewOrderDetail = (
-    orderId: string,
+    orderCode: string,
     orderStatus: string,
     orderSource: string
   ) => {
-    navigate(`/admin/orders/${orderId}`, {
+    navigate(`/admin/orders/${orderCode}`, {
       state: { status: orderStatus, source: orderSource },
     });
   };
 
-  // Handle sync shipping status
-  const handleSyncShippingStatus = async () => {
-    try {
-      setIsSyncing(true);
-      const result = await syncShippingStatus();
-      
-      toast.success(
-        `Đồng bộ thành công! Đã cập nhật ${result.syncedCount} đơn hàng.`,
-        { duration: 3000 }
-      );
-      
-      // Refresh orders and counts after sync
-      const status = activeTab === "ALL" ? undefined : activeTab;
-      await fetchOrders(currentPage, status);
-      await fetchOrderCounts();
-    } catch (error: any) {
-      console.error("Error syncing shipping status:", error);
-      const errorMessage = error?.response?.data?.message 
-        || error?.message 
-        || "Không thể đồng bộ trạng thái vận chuyển";
-      toast.error(errorMessage);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   // Filter orders by search term only (other filters are handled server-side)
   const filteredOrders = useMemo(() => {
@@ -282,7 +320,8 @@ const AdminOrders: React.FC = () => {
   // Transform API response to match OrderTable component expectations
   const transformedOrders = useMemo(() => {
     return (filteredOrders || []).map((order) => ({
-      id: String(order.id),
+      // Sử dụng order code làm id cho bảng, để khi xem chi tiết truyền code thay vì numeric id
+      id: order.code || String(order.id),
       customer: {
         name: order.userInfo?.name || "N/A",
         username: order.userInfo?.username || "N/A",
@@ -391,23 +430,12 @@ const AdminOrders: React.FC = () => {
     { value: "BANKING", label: "Chuyển khoản" },
   ];
 
-  // Source filter options
-  const sourceOptions = [
-    { value: "ALL", label: "Tất cả nguồn" },
-    { value: "WEBSITE", label: "Website" },
-    { value: "POS", label: "POS" },
-  ];
-
   const getPaymentStatusFilterLabel = (value: string) => {
     return paymentStatusOptions.find((opt) => opt.value === value)?.label || "Tất cả trạng thái thanh toán";
   };
 
   const getPaymentMethodFilterLabel = (value: string) => {
     return paymentMethodOptions.find((opt) => opt.value === value)?.label || "Tất cả phương thức";
-  };
-
-  const getSourceFilterLabel = (value: string) => {
-    return sourceOptions.find((opt) => opt.value === value)?.label || "Tất cả nguồn";
   };
 
   // Order table columns definition
@@ -460,7 +488,7 @@ const AdminOrders: React.FC = () => {
     <PageContainer>
       {/* Page Header with Order Count */}
       <PageHeader
-        title={`Danh sách đơn hàng${totalElements > 0 ? ` (${totalElements.toLocaleString("vi-VN")} đơn)` : ""}`}
+        title={"Danh sách đơn hàng"}
       />
 
       {/* Tab Menu with Badge Counts */}
@@ -577,61 +605,48 @@ const AdminOrders: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Source Filter */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              {/* Date Range Filter */}
+              <Popover>
+                <PopoverTrigger asChild>
                   <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
+                    <CalendarIcon className="h-4 w-4 text-[#e04d30]" />
                     <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
-                      {getSourceFilterLabel(sourceFilter)}
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "dd/MM/yyyy")} - {format(dateRange.to, "dd/MM/yyyy")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "dd/MM/yyyy")
+                        )
+                      ) : (
+                        "Chọn ngày"
+                      )}
                     </span>
-                    <CaretDown className="text-[#e04d30]" />
+                    {dateRange?.from && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDateRange(undefined);
+                        }}
+                        className="ml-1 text-[#e04d30] hover:text-[#d63924]"
+                      >
+                        <XCircle className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {sourceOptions.map((option) => (
-                    <DropdownMenuItem
-                      key={option.value}
-                      onClick={() => setSourceFilter(option.value)}
-                    >
-                      {option.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Sync Shipping Status Button */}
-              <button
-                onClick={handleSyncShippingStatus}
-                disabled={isSyncing}
-                className="bg-[#e04d30] hover:bg-[#d63924] disabled:bg-gray-400 disabled:cursor-not-allowed text-white flex gap-[6px] items-center justify-center px-[16px] py-[8px] rounded-[8px] h-[40px] transition-colors whitespace-nowrap"
-              >
-                {isSyncing ? (
-                  <>
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[12px] font-semibold leading-[1.4]">
-                      Đang đồng bộ...
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-                    </svg>
-                    <span className="text-[12px] font-semibold leading-[1.4]">
-                      Đồng bộ vận chuyển
-                    </span>
-                  </>
-                )}
-              </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    className="rounded-md border"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Order Table */}

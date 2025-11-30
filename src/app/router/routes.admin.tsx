@@ -216,7 +216,23 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "orders/all",
+    path: "orders",
+    element: (
+      <LazyWrapper>
+        <AdminOrders />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "orders/pos",
+    element: (
+      <LazyWrapper>
+        <AdminOrders />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "orders/website",
     element: (
       <LazyWrapper>
         <AdminOrders />

@@ -31,13 +31,14 @@ import { toast } from "sonner";
  *   * For "self" method: 2 (default service type)
  *   * For "pickup" method: selectedService.service_type_id ?? 2
  * 
- * This data is sent to: POST /auth/v1/private/orders/{orderId}/confirm
+ * This data is sent to: POST /auth/v1/private/orders/{orderId}/shipping
  * Backend receives in snake_case format:
  * {
  *   pick_shift: number[],
  *   required_note: string,
  *   payment_type_id: number,
- *   service_type_id: number
+ *   service_type_id: number,
+ *   note?: string
  * }
  */
 interface DeliveryConfirmationPopupWebsiteProps {
@@ -48,6 +49,7 @@ interface DeliveryConfirmationPopupWebsiteProps {
         requiredNote: string;
         paymentTypeId: number;
         serviceTypeId: number;
+        note?: string;
     }) => void;
     orderData: CustomerOrderResponse;
 }
@@ -71,6 +73,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
     const [isLoadingServices, setIsLoadingServices] = useState(false);
     const [servicesError, setServicesError] = useState<string | null>(null);
     const [paymentTypeId, setPaymentTypeId] = useState<number>(2); // 1: Người gửi, 2: Người nhận
+    const [note, setNote] = useState<string>(""); // Ghi chú thêm
 
     const DEFAULT_FROM_DISTRICT = Number(import.meta.env.VITE_GHN_FROM_DISTRICT_ID ?? 1447);
 
@@ -204,7 +207,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
         setIsSubmitting(true);
         try {
             /**
-             * Build confirm data based on selected delivery method
+             * Build shipping order data based on selected delivery method
              * 
              * Request payload structure:
              * {
@@ -212,12 +215,13 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
              *   requiredNote: string      - Delivery instruction note
              *   paymentTypeId: number      - Who pays shipping fee (1: Shop, 2: Buyer)
              *   serviceTypeId: number      - Shipping service type ID
+             *   note?: string              - Additional note (optional)
              * }
              * 
              * This will be transformed to snake_case and sent to:
-             * POST /auth/v1/private/orders/{orderId}/confirm
+             * POST /auth/v1/private/orders/{orderId}/shipping
              */
-            const confirmData = {
+            const shippingData = {
                 // pickShift: Always send array (backend @NotEmpty requirement)
                 // - Self delivery: [2] (default, backend handles automatically)
                 // - Pickup: [selectedShift.id] (user selected shift)
@@ -245,10 +249,13 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                 serviceTypeId: selectedMethod === "pickup" && selectedService
                     ? (selectedService.service_type_id ?? 2)
                     : 2, // Default service type
+
+                // note: Additional note (optional)
+                note: note.trim() || undefined,
             };
-            await onConfirm(confirmData);
+            await onConfirm(shippingData);
             // Show success toast
-            toast.success("Xác nhận giao hàng thành công!");
+            toast.success("Tạo vận đơn thành công!");
             // Reset form
             setSelectedMethod(null);
             setSelectedShift(pickShifts.length > 0 ? pickShifts[0] : null);
@@ -256,13 +263,14 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             setShowShiftDropdown(false);
             setShowServiceDropdown(false);
             setPaymentTypeId(2);
+            setNote("");
             onClose();
         } catch (error: any) {
-            console.error("Error confirming delivery:", error);
+            console.error("Error creating shipping order:", error);
             // Extract error message from response
             const errorMessage = error?.response?.data?.message
                 || error?.message
-                || "Có lỗi xảy ra khi xác nhận đơn hàng";
+                || "Có lỗi xảy ra khi tạo vận đơn";
             toast.error(errorMessage);
         } finally {
             setIsSubmitting(false);
@@ -277,6 +285,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             setShowShiftDropdown(false);
             setShowServiceDropdown(false);
             setPaymentTypeId(2);
+            setNote("");
             onClose();
         }
     };
@@ -320,10 +329,10 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                             </div>
                             <div>
                                 <h2 className="font-montserrat font-bold text-[20px] text-white leading-tight">
-                                    Xác nhận giao hàng
+                                    Tạo vận đơn
                                 </h2>
                                 <p className="font-montserrat font-medium text-[12px] text-white/80">
-                                    Chọn phương thức giao hàng cho đơn hàng
+                                    Chọn phương thức giao hàng để tạo vận đơn
                                 </p>
                             </div>
                         </div>
@@ -957,6 +966,36 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                         </div>
                     )}
 
+                    {/* Note Input Section */}
+                    <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center gap-2">
+                            <div className="w-1 h-5 bg-[#e04d30] rounded-full"></div>
+                            <h3 className="font-montserrat font-semibold text-[16px] text-gray-900">
+                                Ghi chú
+                            </h3>
+                        </div>
+                        <div className="relative">
+                            <textarea
+                                value={note}
+                                onChange={(e) => {
+                                    if (e.target.value.length <= 500) {
+                                        setNote(e.target.value);
+                                    }
+                                }}
+                                disabled={isSubmitting}
+                                placeholder="Nhập ghi chú cho đơn vận chuyển (tùy chọn)..."
+                                className="w-full p-4 bg-white border-2 border-gray-200 rounded-[12px] font-montserrat text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#e04d30] focus:border-[#e04d30] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed resize-none min-h-[100px]"
+                                rows={4}
+                                maxLength={500}
+                            />
+                            <div className="absolute bottom-3 right-3">
+                                <p className="font-montserrat font-medium text-[11px] text-gray-400">
+                                    {note.length} / 500
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Action Buttons */}
                     <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
                         <button
@@ -992,7 +1031,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                                             d="M5 13l4 4L19 7"
                                         />
                                     </svg>
-                                    <span>Xác nhận giao hàng</span>
+                                    <span>Tạo vận đơn</span>
                                 </>
                             )}
                         </button>

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { useMemo, useState } from "react";
 import FormInput from "@/components/ui/form-input";
 import CustomRadio from "@/components/ui/custom-radio";
+import DatePicker from "@/components/ui/date-picker";
 import { createCustomer, createCustomerAddress } from "@/api/endpoints/userApi";
 import {
   DropdownMenu,
@@ -141,16 +142,16 @@ const AdminAddCustomer = () => {
     // Support both API response formats: {districtId, districtName} or {id, name}
     const districtId = (district as any).districtId ?? (district as any).id;
     const districtName = (district as any).districtName ?? (district as any).name;
-    
+
     console.log("Selected district:", district);
     console.log("Extracted districtId:", districtId, "type:", typeof districtId, "districtName:", districtName);
-    
+
     if (districtId === null || districtId === undefined) {
       console.error("District missing districtId:", district);
       toast.error("Không thể lấy mã quận/huyện. Vui lòng thử lại.");
       return;
     }
-    
+
     // Ensure districtId is a number
     const numericDistrictId = typeof districtId === 'number' ? districtId : Number(districtId);
     if (isNaN(numericDistrictId)) {
@@ -158,7 +159,7 @@ const AdminAddCustomer = () => {
       toast.error("Mã quận/huyện không hợp lệ. Vui lòng thử lại.");
       return;
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       district: districtName || "",
@@ -172,16 +173,16 @@ const AdminAddCustomer = () => {
     // Support both API response formats: {wardCode, wardName} or {code, name}
     const wardCode = (ward as any).wardCode ?? (ward as any).code;
     const wardName = (ward as any).wardName ?? (ward as any).name;
-    
+
     console.log("Selected ward:", ward);
     console.log("Extracted wardCode:", wardCode, "type:", typeof wardCode, "wardName:", wardName);
-    
+
     if (!wardCode || wardCode === null || wardCode === undefined) {
       console.error("Ward missing wardCode:", ward);
       toast.error("Không thể lấy mã phường/xã. Vui lòng thử lại.");
       return;
     }
-    
+
     // Ensure wardCode is a string
     const stringWardCode = String(wardCode).trim();
     if (!stringWardCode) {
@@ -189,7 +190,7 @@ const AdminAddCustomer = () => {
       toast.error("Mã phường/xã không hợp lệ. Vui lòng thử lại.");
       return;
     }
-    
+
     setFormData((prev) => ({
       ...prev,
       ward: wardName || "",
@@ -278,7 +279,7 @@ const AdminAddCustomer = () => {
           district: formData.district,
           ward: formData.ward,
         });
-        
+
         if (!formData.provinceId || !formData.districtId || !formData.wardCode || !formData.wardCode.trim()) {
           console.error("Missing address data:", {
             provinceId: formData.provinceId,
@@ -418,31 +419,15 @@ const AdminAddCustomer = () => {
               <label className="font-semibold text-[#272424] text-[14px]">
                 Ngày sinh
               </label>
-              <div className="bg-white border-2 border-[#e04d30] flex items-center h-[36px] px-[12px] py-0 rounded-[12px] w-full relative">
-                <input
-                  type="date"
-                  value={formData.birthdate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, birthdate: e.target.value })
-                  }
-                  placeholder="20 / 10 / 1997"
-                  className={`hide-native-picker border-0 outline-none bg-transparent text-[14px] font-semibold placeholder:text-[#888888] ${formData.birthdate ? "text-[#272424]" : "text-[#888888]"} flex-1 w-full`}
-                />
-                <svg
-                  className="w-5 h-5 text-[#272424] opacity-40 absolute right-3 pointer-events-none"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
+              <DatePicker
+                type="date"
+                value={formData.birthdate}
+                onChange={(e) =>
+                  setFormData({ ...formData, birthdate: e.target.value })
+                }
+                placeholder="20 / 10 / 1997"
+                containerClassName="gap-0"
+              />
             </div>
             <div className="flex flex-col gap-[4px]">
               <label className="font-semibold text-[#272424] text-[14px]">

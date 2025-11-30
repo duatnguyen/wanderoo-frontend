@@ -5,43 +5,48 @@ import { formatTimelineDate, formatOrderDate } from "@/utils/dateUtils";
 
 interface WebsiteOrderInfoProps {
   orderData: CustomerOrderResponse;
+  onCreateShipping?: () => void;
 }
 
-const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
+const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData, onCreateShipping }) => {
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
 
   const handleToggleTimeline = () => {
     setIsTimelineExpanded(!isTimelineExpanded);
   };
 
-  // Map shipping status to Vietnamese (supports both UPPERCASE and snake_case)
+  // Map shipping status to Vietnamese (GHN status list, supports snake_case / UPPERCASE)
   const mapShippingStatusToLabel = (status: string | null | undefined): string => {
     if (!status) return "Chưa có thông tin";
-    
+
     const normalizedStatus = status.toLowerCase();
     const statusMap: Record<string, string> = {
-      "ready_to_pick": "Chờ lấy hàng",
-      "picking": "Đang lấy hàng",
-      "money_collect_picking": "Đang tương tác với người gửi",
-      "picked": "Lấy hàng thành công",
-      "storing": "Nhập kho",
-      "transporting": "Đang trung chuyển",
-      "sorting": "Đang phân loại",
-      "delivering": "Đang giao hàng",
-      "money_collect_delivering": "Đang tương tác với người nhận",
-      "delivered": "Giao hàng thành công",
-      "delivery_fail": "Giao hàng không thành công",
-      "waiting_to_return": "Chờ xác nhận giao lại",
-      "return": "Chuyển hoàn",
-      "return_transporting": "Đang trung chuyển hàng hoàn",
-      "return_sorting": "Đang phân loại hàng hoàn",
-      "returning": "Đang hoàn hàng",
-      "return_fail": "Hoàn hàng không thành công",
-      "returned": "Hoàn hàng thành công",
-      "cancel": "Đơn huỷ",
-      "exception": "Hàng ngoại lệ",
-      "lost": "Hàng thất lạc",
-      "damage": "Hàng hư hỏng",
+      // GHN official statuses
+      ready_to_pick: "Đơn hàng vừa được tạo, chờ lấy hàng",
+      picking: "Shipper đang đến lấy hàng",
+      cancel: "Đơn vận chuyển đã bị hủy",
+      money_collect_picking: "Shipper đang tương tác với người gửi",
+      picked: "Shipper đã lấy hàng",
+      storing: "Hàng đang ở kho phân loại GHN",
+      transporting: "Hàng đang luân chuyển",
+      sorting: "Hàng đang được phân loại tại kho",
+      delivering: "Shipper đang giao hàng cho khách",
+      money_collect_delivering: "Shipper đang tương tác với người nhận",
+      delivered: "Hàng đã giao thành công cho khách",
+      delivery_fail: "Giao hàng không thành công",
+      waiting_to_return: "Chờ giao lại / chờ chuyển hoàn",
+      return: "Chờ chuyển hoàn về cho người bán",
+      return_transporting: "Hàng hoàn đang luân chuyển",
+      return_sorting: "Hàng hoàn đang phân loại tại kho",
+      returning: "Shipper đang hoàn hàng cho người bán",
+      return_fail: "Chuyển hoàn thất bại",
+      returned: "Hàng đã được hoàn lại cho người bán",
+      exception: "Đơn hàng gặp ngoại lệ, cần xử lý thêm",
+      damage: "Hàng hóa bị hư hỏng",
+      lost: "Hàng hóa bị thất lạc",
+
+      // Internal/extra statuses (nếu GHN/BE trả về)
+      created: "Đơn vận chuyển mới tạo",
     };
 
     return statusMap[normalizedStatus] || status;
@@ -172,14 +177,33 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
           <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
             Phương thức vận chuyển
           </p>
-          <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
-            {(orderData as any).shippingProvider
-              ? `${(orderData as any).shippingProvider} (Dịch vụ ${(orderData as any).shippingDetail?.service_type_id || "N/A"})`
-              : "Chưa có thông tin phương thức vận chuyển"}
-          </p>
-          {(orderData as any).shippingOrderCode && (
-            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
-              Mã vận chuyển: {(orderData as any).shippingOrderCode}
+          {(orderData as any).shippingOrderCode ? (
+            <>
+              <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+                {(orderData as any).shippingProvider
+                  ? `${(orderData as any).shippingProvider} (Dịch vụ ${(orderData as any).shippingDetail?.service_type_id || "N/A"})`
+                  : "Chưa có thông tin phương thức vận chuyển"}
+              </p>
+              <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+                Mã vận chuyển: {(orderData as any).shippingOrderCode}
+              </p>
+            </>
+          ) : orderData.status === "CONFIRMED" && onCreateShipping ? (
+            <div className="flex flex-col gap-2 w-full">
+              <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+                Chưa có mã vận đơn
+              </p>
+              <button
+                onClick={onCreateShipping}
+                className="px-4 py-2 bg-[#e04d30] hover:bg-[#d63924] text-white font-montserrat font-semibold text-[13px] rounded-[8px] transition-colors flex items-center gap-2 w-fit"
+              >
+                <Truck className="h-4 w-4" />
+                Tạo mã vận đơn
+              </button>
+            </div>
+          ) : (
+            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+              Chưa có thông tin phương thức vận chuyển
             </p>
           )}
         </div>

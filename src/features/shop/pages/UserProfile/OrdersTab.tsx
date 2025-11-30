@@ -16,6 +16,8 @@ import type {
   VariantAttribute,
 } from "../../../../types";
 import type { Order, OrderProduct, OrderStatus } from "./ordersData";
+import { useWebSocket } from "../../../../hooks/useWebSocket";
+import { useQueryClient } from "@tanstack/react-query";
 
 const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
 
@@ -147,6 +149,7 @@ const OrdersTab: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
   const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
 
   // Fetch all orders from backend with pagination
   // We'll fetch all pages to enable frontend filtering
@@ -190,6 +193,23 @@ const OrdersTab: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab, startDate, endDate]);
+
+  // WebSocket subscription for real-time order updates
+  useWebSocket({
+    autoConnect: isAuthenticated,
+    topics: ["/topic/customer/orders/updates"],
+    onMessage: (message: CustomerOrderResponse) => {
+      // Invalidate orders query to refetch updated data
+      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+      toast.success("Đơn hàng đã được cập nhật", {
+        description: `Đơn hàng #${message.code} đã được cập nhật`,
+        duration: 3000,
+      });
+    },
+    onError: (error) => {
+      console.error("[OrdersTab] WebSocket error:", error);
+    },
+  });
 
   // Note: Filtering is done on frontend, but pagination is server-side
   // This means filters only apply to the current page's orders

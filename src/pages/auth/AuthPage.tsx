@@ -66,8 +66,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
         setSuccess("");
         setIsLoading(true);
 
+        // Chuẩn hóa input: trim khoảng trắng để hỗ trợ login bằng số điện thoại / username
+        const trimmedUsername = credentials.username.trim();
+        const normalizedCredentials: LoginCredentials = {
+            username: trimmedUsername,
+            password: credentials.password,
+        };
+
         try {
-            await login(credentials);
+            await login(normalizedCredentials);
             setSuccess("Đăng nhập thành công! Đang chuyển hướng...");
 
             const token = localStorage.getItem("accessToken");

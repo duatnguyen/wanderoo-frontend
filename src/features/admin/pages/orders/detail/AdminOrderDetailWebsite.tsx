@@ -9,29 +9,77 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PageContainer, ContentCard } from "@/components/common";
-import { getAdminCustomerOrderDetail, confirmOrderAndCreateShipping, cancelAdminOrder } from "@/api/endpoints/orderApi";
+import { getAdminCustomerOrderDetail, confirmOrder, createShippingOrder, cancelAdminOrder, updateShippingStatus } from "@/api/endpoints/websiteOrderApi";
 import type { CustomerOrderResponse } from "@/types/orders";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import PaymentTableHeader from '../../../../../components/admin/order/PaymentTableHeader';
 import PaymentTableItem from '../../../../../components/admin/order/PaymentTableItem';
 import PaymentSummaryWebsite from '../../../../../components/admin/order/PaymentSummaryWebsite';
 import PaymentInformationWebsite from '../../../../../components/admin/order/PaymentInformationWebsite';
 import DeliveryConfirmationPopupWebsite from '../../../../../components/admin/order/DeliveryConfirmationPopupWebsite';
-import CancelOrderConfirmationPopupWebsite from '../../../../../components/admin/order/CancelOrderConfirmationPopupWebsite';
 import ActionButtonsWebsite from '../../../../../components/admin/order/ActionButtonsWebsite';
 import WebsiteOrderInfo from '../../../../../components/admin/order/WebsiteOrderInfo';
+import { toast } from "sonner";
+import { useWebSocket } from "@/hooks/useWebSocket";
+// Map shipping status (GHN) to Vietnamese for admin view
+const mapShippingStatusToLabel = (status?: string | null): string => {
+  if (!status) return "Chưa có thông tin";
+  const normalized = status.toLowerCase();
+  const map: Record<string, string> = {
+    ready_to_pick: "Chờ lấy hàng",
+    picking: "Đang lấy hàng",
+    cancel: "Đã hủy vận chuyển",
+    money_collect_picking: "Shipper tương tác với người gửi",
+    picked: "Đã lấy hàng",
+    storing: "Đang ở kho GHN",
+    transporting: "Đang trung chuyển",
+    sorting: "Đang phân loại tại kho",
+    delivering: "Đang giao hàng",
+    money_collect_delivering: "Shipper tương tác với người nhận",
+    delivered: "Giao hàng thành công",
+    delivery_fail: "Giao hàng thất bại",
+    waiting_to_return: "Chờ giao lại / chuyển hoàn",
+    return: "Chờ chuyển hoàn",
+    return_transporting: "Hàng hoàn đang trung chuyển",
+    return_sorting: "Hàng hoàn đang phân loại",
+    returning: "Đang hoàn hàng",
+    return_fail: "Chuyển hoàn thất bại",
+    returned: "Đã hoàn hàng cho người bán",
+    exception: "Đơn hàng ngoại lệ",
+    damage: "Hàng hư hỏng",
+    lost: "Hàng thất lạc",
+  };
+  return map[normalized] || status;
+};
 
 const AdminOrderDetailWebsite: React.FC = () => {
   const navigate = useNavigate();
+  // URL param hiện đang giữ tên orderId nhưng giá trị thực là order code (string)
   const { orderId } = useParams<{ orderId: string }>();
+  const orderCode = (orderId || "").trim();
 
   const [showDeliveryPopup, setShowDeliveryPopup] = useState(false);
-  const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [showConfirmOrderDialog, setShowConfirmOrderDialog] = useState(false);
+  const [showCancelOrderDialog, setShowCancelOrderDialog] = useState(false);
+  const [confirmingOrder, setConfirmingOrder] = useState(false);
   const [orderData, setOrderData] = useState<CustomerOrderResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditingShippingStatus, setIsEditingShippingStatus] = useState(false);
+  const [selectedShippingStatus, setSelectedShippingStatus] = useState<string>("");
+  const [updatingShippingStatus, setUpdatingShippingStatus] = useState(false);
+  const [showUpdateShippingStatusDialog, setShowUpdateShippingStatusDialog] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
@@ -43,30 +91,59 @@ const AdminOrderDetailWebsite: React.FC = () => {
         return "Chờ xác nhận";
       case "CONFIRMED":
         return "Đã xác nhận";
+      case "PROCESSING":
+        return "Đang xử lý";
       case "SHIPPING":
         return "Đang giao";
       case "COMPLETE":
         return "Đã hoàn thành";
-      case "CANCELED":
-        return "Đã hủy";
+      case "SHIPPING_FAILED":
+        return "Giao hàng thất bại";
+      case "RETURNED":
+        return "Đã trả hàng";
       case "REFUND":
         return "Hoàn tiền";
+      case "CANCELED":
+        return "Đã hủy";
       default:
         return status;
     }
   };
 
   useEffect(() => {
-    if (orderId) {
-      loadOrderDetail();
+    if (orderCode) {
+      loadOrderDetail(orderCode);
     }
-  }, [orderId]);
+  }, [orderCode]);
 
-  const loadOrderDetail = async () => {
+  // WebSocket subscription for real-time order updates
+  useWebSocket({
+    autoConnect: true,
+    topics: [
+      "/topic/orders/updates",
+      `/topic/orders/detail/${orderCode}`,
+    ],
+    onMessage: (message: CustomerOrderResponse) => {
+      // Only update if this is the current order
+      if (message.code === orderCode || message.code === orderData?.code) {
+        setOrderData(message);
+        toast.success("Đơn hàng đã được cập nhật", {
+          description: `Trạng thái: ${getStatusDisplayName(message.status || "")}`,
+          duration: 3000,
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("[AdminOrderDetailWebsite] WebSocket error:", error);
+    },
+  });
+
+  const loadOrderDetail = async (code: string) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getAdminCustomerOrderDetail(parseInt(orderId!));
+      const trimmedCode = code.trim();
+      const response = await getAdminCustomerOrderDetail(trimmedCode);
       setOrderData(response);
     } catch (err) {
       console.error('Error loading order detail:', err);
@@ -82,8 +159,34 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
 
   const handleConfirmOrder = () => {
-    // Mở popup xác nhận giao hàng
+    // Nếu trạng thái là PENDING, chỉ xác nhận đơn hàng (không tạo vận đơn)
+    if (orderData?.status === "PENDING") {
+      setShowConfirmOrderDialog(true);
+    } else {
+      // Nếu trạng thái là CONFIRMED, mở popup xác nhận giao hàng và tạo vận đơn
     setShowDeliveryPopup(true);
+    }
+  };
+
+  const handleConfirmOrderConfirm = async () => {
+    if (!orderData?.id) return;
+
+    try {
+      setConfirmingOrder(true);
+      await confirmOrder(orderData.id);
+      // Reload order data after confirmation
+      await loadOrderDetail(orderData.code || orderCode);
+      setShowConfirmOrderDialog(false);
+      toast.success("Đơn hàng đã được xác nhận thành công!");
+    } catch (error: any) {
+      console.error("Error confirming order:", error);
+      const errorMessage = error?.response?.data?.message
+        || error?.message
+        || "Có lỗi xảy ra khi xác nhận đơn hàng";
+      toast.error(errorMessage);
+    } finally {
+      setConfirmingOrder(false);
+    }
   };
 
   const handleDeliveryConfirm = async (data: {
@@ -91,13 +194,15 @@ const AdminOrderDetailWebsite: React.FC = () => {
     requiredNote: string;
     paymentTypeId: number;
     serviceTypeId: number;
+    note?: string;
   }) => {
-    if (!orderId) return;
+    if (!orderData?.id) return;
 
     try {
-      await confirmOrderAndCreateShipping(parseInt(orderId), data);
-      // Reload order data after confirmation
-      await loadOrderDetail();
+      // API create shipping dùng numeric id từ orderData
+      await createShippingOrder(orderData.id, data);
+      // Reload order data after confirmation theo order code
+      await loadOrderDetail(orderData.code || orderCode);
       // Toast success is already shown in DeliveryConfirmationPopupWebsite
     } catch (error: any) {
       console.error("Error confirming order:", error);
@@ -111,37 +216,74 @@ const AdminOrderDetailWebsite: React.FC = () => {
   };
 
   const handleCancelOrder = () => {
-    // Mở popup xác nhận hủy đơn hàng
-    setShowCancelPopup(true);
+    // Hiển thị dialog xác nhận hủy đơn hàng
+    setShowCancelOrderDialog(true);
   };
 
   const handleCancelConfirm = async () => {
-    if (!orderId) return;
+    if (!orderData?.id) return;
 
     try {
-      await cancelAdminOrder(parseInt(orderId));
+      setConfirmingOrder(true);
+      await cancelAdminOrder(orderData.id);
       // Reload order data after cancellation
-      await loadOrderDetail();
-      alert(`Đơn hàng đã được hủy thành công!`);
-    } catch (error) {
+      await loadOrderDetail(orderData.code || orderCode);
+      setShowCancelOrderDialog(false);
+      toast.success("Đơn hàng đã được hủy thành công!");
+    } catch (error: any) {
       console.error("Error canceling order:", error);
-      alert("Có lỗi xảy ra khi hủy đơn hàng!");
+      const errorMessage = error?.response?.data?.message
+        || error?.message
+        || "Có lỗi xảy ra khi hủy đơn hàng";
+      toast.error(errorMessage);
+    } finally {
+      setConfirmingOrder(false);
+    }
+  };
+
+  const handleEditShippingStatus = () => {
+    setIsEditingShippingStatus(true);
+    // Ensure the status is in uppercase to match enum values
+    setSelectedShippingStatus((orderData?.shippingStatus || "").toUpperCase());
+  };
+
+  const handleCancelEditShippingStatus = () => {
+    setIsEditingShippingStatus(false);
+    setSelectedShippingStatus("");
+  };
+
+  const handleUpdateShippingStatus = () => {
+    if (!orderData?.id || !selectedShippingStatus) return;
+    // Show confirmation dialog
+    setShowUpdateShippingStatusDialog(true);
+  };
+
+  const handleConfirmUpdateShippingStatus = async () => {
+    if (!orderData?.id || !selectedShippingStatus) return;
+
+    try {
+      setUpdatingShippingStatus(true);
+      setShowUpdateShippingStatusDialog(false);
+      await updateShippingStatus(orderData.id, selectedShippingStatus);
+      // Reload order data after update
+      await loadOrderDetail(orderData.code || orderCode);
+      setIsEditingShippingStatus(false);
+      setSelectedShippingStatus("");
+      toast.success("Cập nhật trạng thái vận chuyển thành công!");
+    } catch (error: any) {
+      console.error("Error updating shipping status:", error);
+      const errorMessage = error?.response?.data?.message
+        || error?.message
+        || "Có lỗi xảy ra khi cập nhật trạng thái vận chuyển";
+      toast.error(errorMessage);
+    } finally {
+      setUpdatingShippingStatus(false);
     }
   };
 
   // Get status card styling based on order status
   const getStatusCardStyle = () => {
     switch (orderData!.status) {
-      case "SHIPPING":
-        return {
-          bg: "bg-[#cce5ff]",
-          text: "text-[#004085]",
-        };
-      case "COMPLETE":
-        return {
-          bg: "bg-[#b2ffb4]",
-          text: "text-[#04910c]",
-        };
       case "PENDING":
         return {
           bg: "bg-[#e7e7e7]",
@@ -152,6 +294,36 @@ const AdminOrderDetailWebsite: React.FC = () => {
           bg: "bg-[#D1E7DD]",
           text: "text-[#28A745]",
         };
+      case "PROCESSING":
+        return {
+          bg: "bg-[#D1E7DD]",
+          text: "text-[#28A745]",
+        };
+      case "SHIPPING":
+        return {
+          bg: "bg-[#cce5ff]",
+          text: "text-[#004085]",
+        };
+      case "COMPLETE":
+        return {
+          bg: "bg-[#b2ffb4]",
+          text: "text-[#04910c]",
+        };
+      case "SHIPPING_FAILED":
+        return {
+          bg: "bg-[#f8d7da]",
+          text: "text-[#721c24]",
+        };
+      case "RETURNED":
+        return {
+          bg: "bg-[#fff3cd]",
+          text: "text-[#856404]",
+        };
+      case "REFUND":
+        return {
+          bg: "bg-[#d1ecf1]",
+          text: "text-[#0c5460]",
+        };
       case "CANCELED":
         return {
           bg: "bg-[#ffdcdc]",
@@ -159,8 +331,8 @@ const AdminOrderDetailWebsite: React.FC = () => {
         };
       default:
         return {
-          bg: "bg-[#b2ffb4]",
-          text: "text-[#04910c]",
+          bg: "bg-[#e7e7e7]",
+          text: "text-[#737373]",
         };
     }
   };
@@ -189,7 +361,11 @@ const AdminOrderDetailWebsite: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Lỗi tải dữ liệu</h3>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
-              onClick={loadOrderDetail}
+              onClick={() => {
+                if (orderCode) {
+                  loadOrderDetail(orderCode);
+                }
+              }}
               className="px-4 py-2 bg-[#e04d30] text-white rounded-lg hover:bg-[#d63924] transition-colors"
             >
               Thử lại
@@ -245,11 +421,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
                 className={`${statusCardStyle.bg} border-2 border-opacity-20 box-border flex gap-[10px] items-center p-[12px] relative rounded-[10px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200`}
               >
                 <div className="flex items-center justify-center w-[36px] h-[36px] bg-white bg-opacity-80 rounded-full shrink-0">
-                  {orderData.status === "SHIPPING" ? (
-                    <Truck className="w-[18px] h-[18px] text-[#004085]" />
-                  ) : orderData.status === "COMPLETE" ? (
-                    <Package className="w-[18px] h-[18px] text-[#04910c]" />
-                  ) : orderData.status === "PENDING" ? (
+                  {orderData.status === "PENDING" ? (
                     <svg
                       className="w-[18px] h-[18px] text-[#737373]"
                       fill="currentColor"
@@ -261,7 +433,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
                         clipRule="evenodd"
                       />
                     </svg>
-                  ) : orderData.status === "CONFIRMED" ? (
+                  ) : orderData.status === "CONFIRMED" || orderData.status === "PROCESSING" ? (
                     <svg
                       className="w-[18px] h-[18px] text-[#28A745]"
                       fill="currentColor"
@@ -273,7 +445,48 @@ const AdminOrderDetailWebsite: React.FC = () => {
                         clipRule="evenodd"
                       />
                     </svg>
-                  ) : (
+                  ) : orderData.status === "SHIPPING" ? (
+                    <Truck className="w-[18px] h-[18px] text-[#004085]" />
+                  ) : orderData.status === "COMPLETE" ? (
+                    <Package className="w-[18px] h-[18px] text-[#04910c]" />
+                  ) : orderData.status === "SHIPPING_FAILED" ? (
+                    <svg
+                      className="w-[18px] h-[18px] text-[#721c24]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : orderData.status === "RETURNED" ? (
+                    <svg
+                      className="w-[18px] h-[18px] text-[#856404]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : orderData.status === "REFUND" ? (
+                    <svg
+                      className="w-[18px] h-[18px] text-[#0c5460]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.177 1.2V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.177-1.2V5z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : orderData.status === "CANCELED" ? (
                     <svg
                       className="w-[18px] h-[18px] text-[#eb2b0b]"
                       fill="currentColor"
@@ -285,6 +498,8 @@ const AdminOrderDetailWebsite: React.FC = () => {
                         clipRule="evenodd"
                       />
                     </svg>
+                  ) : (
+                    <Package className="w-[18px] h-[18px] text-gray-600" />
                   )}
                 </div>
                 <div className="flex flex-col gap-[2px] flex-1 min-w-0">
@@ -357,33 +572,10 @@ const AdminOrderDetailWebsite: React.FC = () => {
           </div>
 
           {/* Website Order Info */}
-          <WebsiteOrderInfo orderData={orderData!} />
-
-          {/* Customer */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex gap-[8px] items-center px-[16px] sm:px-[24px] py-[8px] relative rounded-[8px] w-full overflow-hidden min-w-0">
-            <div className="basis-0 box-border flex gap-[6px] grow items-center min-h-px min-w-px px-[6px] py-[4px] relative shrink-0 min-w-0">
-              <div className="flex gap-[10px] items-center relative shrink-0 min-w-0">
-                <Avatar className="relative rounded-full size-[54px]">
-                  <AvatarFallback className="bg-gray-200 rounded-full">
-                    {orderData.userInfo?.name?.charAt(0).toUpperCase() || "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col gap-[4px] relative shrink-0 min-w-0">
-                  <span className="font-montserrat font-bold text-[#2a2a2a] text-[14px] leading-[1.5] truncate">
-                    {orderData.userInfo?.name || "Unknown"}
-                  </span>
-                  <span className="font-montserrat font-medium text-[#666666] text-[12px] leading-[1.4] truncate">
-                    @{orderData.userInfo?.username || "unknown"}
-                  </span>
-                  {orderData.userInfo?.phone && (
-                    <span className="font-montserrat font-medium text-[#666666] text-[12px] leading-[1.4] truncate">
-                      📞 {orderData.userInfo.phone}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          <WebsiteOrderInfo
+            orderData={orderData!}
+            onCreateShipping={handleConfirmOrder}
+          />
 
           {/* Payment Table */}
           <div
@@ -434,13 +626,85 @@ const AdminOrderDetailWebsite: React.FC = () => {
         orderData={orderData!}
       />
 
-      {/* Cancel Order Confirmation Popup */}
-      <CancelOrderConfirmationPopupWebsite
-        isOpen={showCancelPopup}
-        onClose={() => setShowCancelPopup(false)}
-        onConfirm={handleCancelConfirm}
-        orderData={orderData!}
-      />
+      {/* Confirm Order Dialog */}
+      <AlertDialog open={showConfirmOrderDialog} onOpenChange={setShowConfirmOrderDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận đơn hàng</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xác nhận đơn hàng <strong>#{orderData?.code}</strong> không?
+              <br />
+              <br />
+              Sau khi xác nhận, đơn hàng sẽ chuyển sang trạng thái "Đã xác nhận" và bạn có thể tạo mã vận đơn sau.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmingOrder}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmOrderConfirm}
+              disabled={confirmingOrder}
+              className="bg-[#28a745] hover:bg-[#218838]"
+            >
+              {confirmingOrder ? "Đang xác nhận..." : "Xác nhận"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Order Dialog */}
+      <AlertDialog open={showCancelOrderDialog} onOpenChange={setShowCancelOrderDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hủy đơn hàng</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn hủy đơn hàng <strong>#{orderData?.code}</strong> không?
+              <br />
+              <br />
+              Hành động này không thể hoàn tác. Đơn hàng sẽ chuyển sang trạng thái "Đã hủy".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={confirmingOrder}>
+              Không hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelConfirm}
+              disabled={confirmingOrder}
+              className="bg-[#dc3545] hover:bg-[#c82333]"
+            >
+              {confirmingOrder ? "Đang hủy..." : "Xác nhận hủy"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Update Shipping Status Confirmation Dialog */}
+      <AlertDialog open={showUpdateShippingStatusDialog} onOpenChange={setShowUpdateShippingStatusDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận cập nhật trạng thái vận chuyển</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn cập nhật trạng thái vận chuyển từ{" "}
+              <strong>{mapShippingStatusToLabel(orderData?.shippingStatus || "")}</strong> sang{" "}
+              <strong>{mapShippingStatusToLabel(selectedShippingStatus)}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updatingShippingStatus}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmUpdateShippingStatus}
+              disabled={updatingShippingStatus}
+              className="bg-[#28a745] hover:bg-[#218838]"
+            >
+              {updatingShippingStatus ? "Đang cập nhật..." : "Xác nhận"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   );
 };

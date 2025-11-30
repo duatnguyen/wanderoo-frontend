@@ -7,6 +7,7 @@ import {
   TabMenuWithBadge,
   PageContainer,
   ContentCard,
+  PageHeader,
   type TabItemWithBadge,
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
@@ -190,11 +191,11 @@ const AdminProducts: React.FC = () => {
         setProducts(mappedProducts);
         setTotalPages(
           response?.totalPages ??
-            response?.totalPage ??
-            Math.max(
-              1,
-              Math.ceil((response?.totalProducts ?? 1) / itemsPerPage)
-            )
+          response?.totalPage ??
+          Math.max(
+            1,
+            Math.ceil((response?.totalProducts ?? 1) / itemsPerPage)
+          )
         );
       }
     } catch (error) {
@@ -542,7 +543,7 @@ const AdminProducts: React.FC = () => {
                   isSelected={selectedProducts.has(product.id)}
                   onSelect={handleProductSelect}
                   onUpdate={handleUpdate}
-                onView={handleView}
+                  onView={handleView}
                 />
               ))}
             {!isLoading && paginatedProducts.length === 0 && !errorMessage && (
