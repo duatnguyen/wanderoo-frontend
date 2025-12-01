@@ -1044,18 +1044,18 @@ export interface EmployeeUpdateRequest extends EmployeeCreationRequest {
 }
 
 export interface CustomerCreationRequest {
-  username: string;
-  email: string;
-  password: string;
+  username?: string;
+  email?: string;
+  password?: string;
   name: string;
   phone: string;
-  address: string;
+  address?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null;
 }
 
 export interface CustomerUpdateRequest extends CustomerCreationRequest {
   id: number;
-  gender?: "MALE" | "FEMALE" | "OTHER" | null;
-  birthday?: string | null; // ISO date string
 }
 
 export interface SelectAllRequest {

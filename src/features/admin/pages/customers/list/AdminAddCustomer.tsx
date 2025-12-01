@@ -23,10 +23,35 @@ import type {
   WardResponse,
 } from "@/types";
 
+type CustomerField = "name" | "phone" | "birthdate" | "email" | "username";
+type FormErrors = Partial<Record<CustomerField, string>>;
+type CustomerFormData = {
+  name: string;
+  phone: string;
+  birthdate: string;
+  gender: "Nam" | "Nữ";
+  email: string;
+  username: string;
+  password: string;
+  addressName: string;
+  addressPhone: string;
+  province: string;
+  provinceId: number | null;
+  district: string;
+  districtId: number | null;
+  ward: string;
+  location: string;
+  wardCode: string;
+};
+
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{4,30}$/;
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 const AdminAddCustomer = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CustomerFormData>({
     name: "",
     phone: "",
     birthdate: "",
@@ -44,6 +69,104 @@ const AdminAddCustomer = () => {
     location: "",
     wardCode: "",
   });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const setFieldError = (field: CustomerField, error?: string) => {
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (error) {
+        next[field] = error;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  const validateField = (field: CustomerField, value: string) => {
+    let error: string | undefined;
+    const trimmedValue = value.trim();
+
+    switch (field) {
+      case "name":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập họ tên.";
+        } else if (trimmedValue.length < 3) {
+          error = "Họ tên phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const digits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (digits.length < 10 || digits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (trimmedValue) {
+          if (trimmedValue.length < 6 || trimmedValue.length > 30) {
+            error = "Email phải từ 6 đến 30 ký tự.";
+          } else if (!EMAIL_REGEX.test(trimmedValue)) {
+            error = "Email không hợp lệ.";
+          }
+        }
+        break;
+      case "username":
+        if (trimmedValue && !USERNAME_REGEX.test(trimmedValue)) {
+          error =
+            "Tên đăng nhập phải từ 4-30 ký tự và chỉ gồm chữ, số, dấu gạch dưới.";
+        }
+        break;
+      case "birthdate":
+        if (trimmedValue) {
+          const inputDate = new Date(trimmedValue);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (Number.isNaN(inputDate.getTime())) {
+            error = "Ngày sinh không hợp lệ.";
+          } else if (inputDate > today) {
+            error = "Ngày sinh không được lớn hơn hiện tại.";
+          }
+        }
+        break;
+      default:
+        break;
+    }
+
+    setFieldError(field, error);
+    return error;
+  };
+
+  const handleFieldChange = (field: CustomerField, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    setApiError(null);
+    validateField(field, value);
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    (["name", "phone", "email", "username", "birthdate"] as CustomerField[]).forEach(
+      (field) => {
+        const error = validateField(field, formData[field]);
+        if (error) {
+          isValid = false;
+        }
+      }
+    );
+    return isValid;
+  };
 
   const shouldHideLocationName = (name: string) => {
     const normalized = name
@@ -197,6 +320,8 @@ const AdminAddCustomer = () => {
   const createCustomerMutation = useMutation({
     mutationFn: (data: CustomerCreationRequest) => createCustomer(data),
     onSuccess: async (response) => {
+      setFormErrors({});
+      setApiError(null);
       const customerId = response.data;
       console.log("Customer created with ID:", customerId);
       
@@ -250,24 +375,61 @@ const AdminAddCustomer = () => {
         error?.response?.data?.message ||
         error?.message ||
         "Không thể tạo khách hàng";
-      toast.error(errorMessage);
+      const lowerMessage = errorMessage.toLowerCase();
+
+      const fieldErrorTranslations: Array<{
+        field: CustomerField;
+        keywords: string[];
+        translatedMessage: string;
+      }> = [
+        {
+          field: "phone",
+          keywords: [
+            "phone number must contain only digits",
+            "phone number must be between 10 and 13 digits",
+          ],
+          translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
+        },
+        {
+          field: "phone",
+          keywords: ["phone number already exists", "duplicate entry", "constraint `phone`"],
+          translatedMessage: "Số điện thoại đã tồn tại.",
+        },
+        {
+          field: "email",
+          keywords: ["email already exists"],
+          translatedMessage: "Email đã tồn tại.",
+        },
+        {
+          field: "username",
+          keywords: ["username already exists"],
+          translatedMessage: "Tên đăng nhập đã tồn tại.",
+        },
+        {
+          field: "birthdate",
+          keywords: ["birthday must be in the past"],
+          translatedMessage: "Ngày sinh không được lớn hơn hiện tại.",
+        },
+      ];
+
+      const matchedFieldError = fieldErrorTranslations.find(({ keywords }) =>
+        keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+      );
+
+      if (matchedFieldError) {
+        setFieldError(matchedFieldError.field, matchedFieldError.translatedMessage);
+        toast.error(matchedFieldError.translatedMessage);
+      } else {
+        setApiError(errorMessage);
+        toast.error(errorMessage);
+      }
     },
   });
 
   const handleSubmit = () => {
-    // Validation - Only name and phone are required
-    if (!formData.name.trim()) {
-      toast.error("Vui lòng nhập họ và tên");
-      return;
-    }
-    if (!formData.phone.trim()) {
-      toast.error("Vui lòng nhập số điện thoại");
-      return;
-    }
-
-    // Validate email format if provided
-    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      toast.error("Email không hợp lệ");
+    setApiError(null);
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin.");
       return;
     }
 
@@ -319,12 +481,13 @@ const AdminAddCustomer = () => {
               </label>
               <FormInput
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={(e) => handleFieldChange("name", e.target.value)}
                 placeholder="Nhập họ và tên"
                 containerClassName="h-[36px] px-[12px] py-0"
               />
+              {formErrors.name && (
+                <p className="text-sm text-red-500">{formErrors.name}</p>
+              )}
             </div>
             <div className="flex flex-col gap-[8px]">
               <label className="font-semibold text-[#272424] text-[14px]">
@@ -332,12 +495,13 @@ const AdminAddCustomer = () => {
               </label>
               <FormInput
                 value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
+                onChange={(e) => handleFieldChange("phone", e.target.value)}
                 placeholder="Nhập số điện thoại"
                 containerClassName="h-[36px] px-[12px] py-0"
               />
+              {formErrors.phone && (
+                <p className="text-sm text-red-500">{formErrors.phone}</p>
+              )}
             </div>
           </div>
 
@@ -351,9 +515,7 @@ const AdminAddCustomer = () => {
                 <input
                   type="date"
                   value={formData.birthdate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, birthdate: e.target.value })
-                  }
+                  onChange={(e) => handleFieldChange("birthdate", e.target.value)}
                   placeholder="20 / 10 / 1997"
                   className={`hide-native-picker border-0 outline-none bg-transparent text-[14px] font-semibold placeholder:text-[#888888] ${formData.birthdate ? "text-[#272424]" : "text-[#888888]"} flex-1 w-full`}
                 />
@@ -372,6 +534,9 @@ const AdminAddCustomer = () => {
                   />
                 </svg>
               </div>
+              {formErrors.birthdate && (
+                <p className="text-sm text-red-500">{formErrors.birthdate}</p>
+              )}
             </div>
             <div className="flex flex-col gap-[4px]">
               <label className="font-semibold text-[#272424] text-[14px]">
@@ -400,12 +565,13 @@ const AdminAddCustomer = () => {
             <FormInput
               type="email"
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={(e) => handleFieldChange("email", e.target.value)}
               placeholder="Nhập email (không bắt buộc)"
               containerClassName="h-[36px] px-[12px] py-0"
             />
+            {formErrors.email && (
+              <p className="text-sm text-red-500">{formErrors.email}</p>
+            )}
           </div>
 
           {/* Username */}
@@ -415,12 +581,13 @@ const AdminAddCustomer = () => {
             </label>
             <FormInput
               value={formData.username}
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
+              onChange={(e) => handleFieldChange("username", e.target.value)}
               placeholder="Nhập tên đăng nhập (không bắt buộc - tự động tạo nếu để trống)"
               containerClassName="h-[36px] px-[12px] py-0"
             />
+            {formErrors.username && (
+              <p className="text-sm text-red-500">{formErrors.username}</p>
+            )}
           </div>
 
           {/* Password */}
@@ -602,6 +769,12 @@ const AdminAddCustomer = () => {
           </div>
         </div>
       </div>
+
+      {apiError && (
+        <div className="w-full rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {apiError}
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-[12px] justify-end py-[16px] w-full">
