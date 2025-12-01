@@ -25,10 +25,6 @@ export const productValidationRules: ValidationRules = {
     { required: true, message: "Tồn kho là bắt buộc" },
     { pattern: /^\d+$/, message: "Tồn kho phải là số nguyên" }
   ],
-  available: [
-    { required: true, message: "Số lượng có thể bán là bắt buộc" },
-    { pattern: /^\d+$/, message: "Số lượng có thể bán phải là số nguyên" }
-  ],
   weight: [
     { required: true, message: "Cân nặng là bắt buộc" },
     { pattern: /^\d+(\.\d+)?$/, message: "Cân nặng phải là số" }

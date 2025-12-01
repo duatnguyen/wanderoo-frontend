@@ -69,14 +69,21 @@ const mapVariants = (
       variant.sellingPrice !== undefined && variant.sellingPrice !== null
         ? String(variant.sellingPrice)
         : "",
+    // inventory mapping với totalQuantity (tồn kho)
     inventory:
-      variant.totalQuantity !== undefined && variant.totalQuantity !== null
+      variant.totalQuantity !== undefined &&
+      variant.totalQuantity !== null
         ? String(variant.totalQuantity)
         : "",
-    available:
-      variant.availableQuantity !== undefined &&
-      variant.availableQuantity !== null
-        ? String(variant.availableQuantity)
+    webQuantity:
+      variant.websiteSoldQuantity !== undefined &&
+      variant.websiteSoldQuantity !== null
+        ? String(variant.websiteSoldQuantity)
+        : "",
+    posQuantity:
+      variant.posSoldQuantity !== undefined &&
+      variant.posSoldQuantity !== null
+        ? String(variant.posSoldQuantity)
         : "",
     image: variant.imageUrl ?? null,
     sku: variant.skuDetail ?? "",

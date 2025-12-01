@@ -1021,7 +1021,8 @@ export interface VariantUpdateRequest {
   sellingPrice?: number;
   importPrice?: number;
   totalQuantity?: number;
-  availableQuantity?: number;
+  websiteSoldQuantity?: number;
+  posSoldQuantity?: number;
 }
 
 export interface ProductStatusRequest {
