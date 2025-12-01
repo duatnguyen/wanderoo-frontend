@@ -76,7 +76,22 @@ const createDefaultFormData = (): VoucherFormData => ({
   displaySetting: "website",
 });
 
-const AdminCreateVoucherShopWide: React.FC = () => {
+// Format number with thousand separators for VND inputs
+const formatNumber = (value: string) => {
+  if (!value) return "";
+  const num = value.replace(/\D/g, "");
+  return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+interface AdminCreateVoucherShopWideProps {
+  voucherTypeLabel?: string;
+  variant?: "shop-wide" | "private";
+}
+
+const AdminCreateVoucherShopWide: React.FC<AdminCreateVoucherShopWideProps> = ({
+  voucherTypeLabel = "Voucher toàn shop",
+  variant = "shop-wide",
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -96,10 +111,16 @@ const AdminCreateVoucherShopWide: React.FC = () => {
     return undefined;
   }, [discountIdFromQuery, stateDiscountId]);
   const isEditMode = Boolean(fetchDiscountId);
+  const isPrivateVoucher = variant === "private";
+  const resolvedVoucherTypeLabel = voucherTypeLabel ?? (isPrivateVoucher ? "Voucher nhập mã" : "Voucher toàn shop");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [discountValueError, setDiscountValueError] = useState<string>("");
+  const [maxUsagePerCustomerError, setMaxUsagePerCustomerError] = useState<string>("");
+  const [dateRangeError, setDateRangeError] = useState<string>("");
   const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
   const [minDateTime] = useState(() => formatDateTimeForInput(new Date().toISOString()));
   const topElementRef = useRef<HTMLDivElement>(null);
+  const dateRangeSectionRef = useRef<HTMLDivElement>(null);
 
   const displaySettingToApplyOn: Record<VoucherFormData["displaySetting"], AdminDiscountCreateRequest["applyOn"]> = {
     pos: "POS",
@@ -278,16 +299,78 @@ const AdminCreateVoucherShopWide: React.FC = () => {
 
   const sanitizeNumericInput = (value: string) => value.replace(/[^0-9]/g, "");
 
+  const validateDiscountValue = (value: string, discountType: "percentage" | "fixed") => {
+    if (!value) {
+      setDiscountValueError("");
+      return;
+    }
+    const numValue = Number(value);
+    if (Number.isNaN(numValue) || numValue <= 0) {
+      if (discountType === "percentage") {
+        setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      } else {
+        setDiscountValueError("");
+      }
+      return;
+    }
+    if (discountType === "percentage" && numValue > 99) {
+      setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      return;
+    }
+    setDiscountValueError("");
+  };
+
+  const validateMaxUsagePerCustomer = (maxUsagePerCustomer: string, maxUsage: string) => {
+    if (!maxUsagePerCustomer || !maxUsage) {
+      setMaxUsagePerCustomerError("");
+      return;
+    }
+    const numMaxUsagePerCustomer = Number(maxUsagePerCustomer);
+    const numMaxUsage = Number(maxUsage);
+    if (Number.isNaN(numMaxUsagePerCustomer) || Number.isNaN(numMaxUsage)) {
+      setMaxUsagePerCustomerError("");
+      return;
+    }
+    if (numMaxUsagePerCustomer > numMaxUsage) {
+      setMaxUsagePerCustomerError("Lượt sử dụng tối đa mỗi Người mua không được lớn hơn tổng lượt sử dụng tối đa của voucher");
+      return;
+    }
+    setMaxUsagePerCustomerError("");
+  };
+
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
     const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
-    setFormData((prev) => ({
-      ...prev,
-      [field]: processedValue,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [field]: processedValue,
+      };
+      if (field === "discountValue") {
+        validateDiscountValue(processedValue, updated.discountType);
+      } else if (field === "discountType") {
+        validateDiscountValue(prev.discountValue, value as "percentage" | "fixed");
+      } else if (field === "maxUsagePerCustomer") {
+        validateMaxUsagePerCustomer(processedValue, updated.maxUsage);
+      } else if (field === "maxUsage") {
+        validateMaxUsagePerCustomer(updated.maxUsagePerCustomer, processedValue);
+      } else if ((field === "startDate" || field === "endDate") && updated.startDate && updated.endDate) {
+        setDateRangeError("");
+      }
+      return updated;
+    });
   };
 
   const handleBackClick = () => {
     navigate("/admin/discounts");
+  };
+
+  const scrollToDateRange = () => {
+    if (!dateRangeSectionRef.current) return;
+    dateRangeSectionRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    const firstInput = dateRangeSectionRef.current.querySelector("input");
+    if (firstInput instanceof HTMLInputElement) {
+      firstInput.focus();
+    }
   };
 
   const normalizeDateValue = (value: string) => {
@@ -299,6 +382,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
   };
 
   const validateForm = () => {
+    setDateRangeError("");
     if (!formData.voucherName.trim()) {
       return "Vui lòng nhập tên chương trình giảm giá.";
     }
@@ -307,13 +391,23 @@ const AdminCreateVoucherShopWide: React.FC = () => {
     }
     const discountValue = Number(formData.discountValue);
     if (!formData.discountValue || Number.isNaN(discountValue) || discountValue <= 0) {
+      if (formData.discountType === "percentage") {
+        return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
+      }
       return "Mức giảm phải lớn hơn 0.";
     }
+    if (formData.discountType === "percentage" && discountValue > 99) {
+      return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
+    }
     if (!formData.startDate || !formData.endDate) {
-      return "Vui lòng chọn thời gian áp dụng.";
+      scrollToDateRange();
+      setDateRangeError("Vui lòng chọn thời gian áp dụng");
+      return "Vui lòng chọn thời gian áp dụng";
     }
     if (new Date(formData.startDate) >= new Date(formData.endDate)) {
-      return "Thời gian bắt đầu phải trước thời gian kết thúc.";
+      scrollToDateRange();
+      setDateRangeError("Thời gian bắt đầu phải trước thời gian kết thúc");
+      return "Thời gian bắt đầu phải trước thời gian kết thúc";
     }
     if (formData.maxDiscountLimit === "limited") {
       const maxDiscount = Number(formData.maxDiscountValue);
@@ -327,6 +421,13 @@ const AdminCreateVoucherShopWide: React.FC = () => {
     if (formData.maxUsage && (Number.isNaN(Number(formData.maxUsage)) || Number(formData.maxUsage) <= 0)) {
       return "Tổng lượt sử dụng tối đa phải lớn hơn 0.";
     }
+    if (formData.maxUsagePerCustomer && formData.maxUsage) {
+      const numMaxUsagePerCustomer = Number(formData.maxUsagePerCustomer);
+      const numMaxUsage = Number(formData.maxUsage);
+      if (!Number.isNaN(numMaxUsagePerCustomer) && !Number.isNaN(numMaxUsage) && numMaxUsagePerCustomer > numMaxUsage) {
+        return "Lượt sử dụng tối đa mỗi Người mua không được lớn hơn tổng lượt sử dụng tối đa của voucher";
+      }
+    }
     return null;
   };
 
@@ -339,6 +440,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
   const buildPayload = (): AdminDiscountCreateRequest => {
     const quantity = formData.maxUsage ? Number(formData.maxUsage) : 1;
     const discountUsage = parseOptionalNumber(formData.maxUsagePerCustomer);
+    const contextAllowed: AdminDiscountCreateRequest["contextAllowed"] = isPrivateVoucher ? "EVENT" : "OTHER";
     return {
       name: formData.voucherName.trim(),
       code: formData.voucherCode.trim().toUpperCase(),
@@ -353,7 +455,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
           ? parseOptionalNumber(formData.maxDiscountValue)
           : undefined,
       discountUsage: discountUsage,
-      contextAllowed: "OTHER",
+      contextAllowed,
       startDate: normalizeDateValue(formData.startDate),
       endDate: normalizeDateValue(formData.endDate),
       quantity: quantity,
@@ -426,7 +528,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                   className="flex-shrink-0"
                 />
                 <span className="font-semibold text-[20px] text-white leading-[1.4] whitespace-nowrap">
-                  Voucher toàn shop
+                  {resolvedVoucherTypeLabel}
                 </span>
               </div>
             </div>
@@ -447,6 +549,12 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={100}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherName.length}/100
+                      </span>
+                    }
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
                     Tên voucher sẽ không được hiển thị cho người mua
@@ -468,16 +576,18 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={10}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherCode.length}/10
+                      </span>
+                    }
                   />
-                  <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
-                    Vui lòng nhập các kí tự chữ cái A - Z, số 0 - 9, tối đa 5 kí
-                    tự
-                  </p>
                 </div>
               </div>
 
               {/* Date Range Field */}
-              <div className="flex flex-row items-start gap-[16px]">
+              <div className="flex flex-row items-start gap-[16px]" ref={dateRangeSectionRef}>
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
                   Thời gian sử dụng mã
                 </label>
@@ -518,6 +628,11 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                   </div>
                 </div>
               </div>
+              {dateRangeError && (
+                <p className="ml-[231px] mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                  {dateRangeError}
+                </p>
+              )}
             </div>
           </div>
 
@@ -537,7 +652,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
                   Loại giảm giá | Mức giảm
                 </label>
-                <div className="flex-1 flex flex-row gap-[16px] items-center flex-shrink-0 w-[873px]">
+                <div className="flex-1 flex flex-row gap-[16px] items-start flex-shrink-0 w-[873px]">
                   {/* Discount Type Dropdown */}
                   <div className="w-[164px] flex-shrink-0">
                     <DropdownMenu
@@ -587,15 +702,24 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                   <div className="flex-1">
                     <FormInput
                       placeholder={
-                        formData.discountType === "percentage" ? "%" : "đ"
+                        formData.discountType === "percentage" ? "Nhập giá trị lớn hơn 1%" : "đ"
                       }
-                      value={formData.discountValue}
+                      value={
+                        formData.discountType === "percentage"
+                          ? formData.discountValue
+                          : formatNumber(formData.discountValue)
+                      }
                       onChange={(e) =>
                         handleInputChange("discountValue", e.target.value)
                       }
                       containerClassName="h-[36px] w-full"
                       required
                     />
+                    {discountValueError && (
+                      <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                        {discountValueError}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -631,7 +755,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                       <div>
                         <FormInput
                           placeholder="đ"
-                          value={formData.maxDiscountValue}
+                          value={formatNumber(formData.maxDiscountValue)}
                           onChange={(e) =>
                             handleInputChange(
                               "maxDiscountValue",
@@ -654,7 +778,7 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                 <div className="flex-1 flex-shrink-0">
                   <FormInput
                     placeholder="đ"
-                    value={formData.minOrderAmount}
+                    value={formatNumber(formData.minOrderAmount)}
                     onChange={(e) =>
                       handleInputChange("minOrderAmount", e.target.value)
                     }
@@ -697,6 +821,11 @@ const AdminCreateVoucherShopWide: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                   />
+                  {maxUsagePerCustomerError && (
+                    <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                      {maxUsagePerCustomerError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

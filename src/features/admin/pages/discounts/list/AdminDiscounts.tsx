@@ -8,7 +8,6 @@ import type { TabItem } from "@/components/ui/tab-menu-account";
 import { PageHeader } from "@/components/admin/table/PageHeader";
 import { PageContainer } from "@/components/admin/table/PageLayout";
 import { TableFilters } from "@/components/admin/table/TableFilters";
-import { TableActions } from "@/components/admin/table/TableActions";
 import { DiscountTable } from "@/components/admin/table/DiscountTable";
 import { VoucherCreationSection } from "@/components/admin/voucher/VoucherCreationSection";
 import {
@@ -20,6 +19,7 @@ import type {
   Voucher,
   VoucherOrder,
   VoucherOrderSummary,
+  VoucherEditData,
 } from "@/types/voucher";
 import VoucherOrdersModal from "@/components/admin/voucher/VoucherOrdersModal";
 import { getDiscounts, getDiscountDetail, updateDiscount } from "@/api/endpoints/discountApi";
@@ -27,6 +27,7 @@ import type {
   AdminDiscountResponse,
   AdminDiscountCreateRequest,
   DiscountStateValue,
+  AdminDiscountPageResponse,
 } from "@/types/discount";
 
 const formatDisplayDate = (iso: string) => {
@@ -272,7 +273,7 @@ const voucherTypes = {
   ],
   privateChannel: {
     icon: <CreditCardPercentIcon size={24} color="#292D32" />,
-    title: "Voucher riêng tư",
+    title: "Voucher nhập mã",
     description:
       "Voucher áp dụng cho nhóm khách hàng shop thông qua mã voucher",
   },
@@ -282,7 +283,7 @@ const voucherRouteMap: Record<string, string> = {
   "Voucher toàn shop": "/admin/discounts/new/shop-wide",
   "Voucher sản phẩm": "/admin/discounts/new/product",
   "Voucher khách hàng mới": "/admin/discounts/new/new-customer",
-  "Voucher riêng tư": "/admin/discounts/new/private",
+  "Voucher nhập mã": "/admin/discounts/new/private",
 };
 
 const tabToStateMap: Record<string, DiscountStateValue | undefined> = {
@@ -312,8 +313,9 @@ const formatCurrency = (value?: number | null) => {
 const mapDiscountTypeLabel = (discount: AdminDiscountResponse) => {
   if (discount.applyTo === "PRODUCT") return "Voucher sản phẩm";
   if (discount.contextAllowed === "SIGNUP") return "Voucher khách hàng mới";
+  if (discount.contextAllowed === "EVENT") return "Voucher nhập mã";
   if (discount.applyOn === "POS" && discount.contextAllowed === "OTHER") {
-    return "Voucher riêng tư";
+    return "Voucher nhập mã";
   }
   return "Voucher toàn shop";
 };
@@ -341,7 +343,7 @@ const mapDiscountToVoucher = (discount: AdminDiscountResponse): Voucher => {
 
   const applyOnLabel = applyOnLabelMap[discount.applyOn] || discount.applyOn || "-";
 
-  const editData = {
+  const editData: VoucherEditData = {
     voucherName: discount.name ?? "",
     voucherCode: discount.code ?? "",
     description: discount.description ?? "",
@@ -359,8 +361,10 @@ const mapDiscountToVoucher = (discount: AdminDiscountResponse): Voucher => {
     spendingDays: "",
   };
 
+  const voucherId = discount.id != null ? String(discount.id) : discount.code ?? "";
+
   return {
-    id: discount.id ?? discount.code,
+    id: voucherId,
     code: discount.code ?? "",
     name: discount.name ?? "",
     type: typeLabel,
@@ -383,33 +387,80 @@ const AdminDiscounts: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [selectedRows, setSelectedRows] = useState<Set<string | number>>(new Set());
   const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery<AdminDiscountPageResponse, Error>({
     queryKey: ["admin-discounts", activeTab, searchTerm],
-    queryFn: () =>
-      getDiscounts({
+    queryFn: async (): Promise<AdminDiscountPageResponse> => {
+      // Nếu tab là "all", gọi API với tất cả các state và merge kết quả
+      if (activeTab === "all") {
+        const [ongoingData, upcomingData, endedData] = await Promise.all([
+          getDiscounts({
+            keyword: searchTerm.trim() || undefined,
+            state: "ONGOING",
+            page: 1,
+            size: 100,
+          }),
+          getDiscounts({
+            keyword: searchTerm.trim() || undefined,
+            state: "UPCOMING",
+            page: 1,
+            size: 100,
+          }),
+          getDiscounts({
+            keyword: searchTerm.trim() || undefined,
+            state: "ENDED",
+            page: 1,
+            size: 100,
+          }),
+        ]);
+        
+        // Merge tất cả discounts và loại bỏ duplicate dựa trên ID
+        const allDiscounts = [
+          ...(ongoingData.discounts ?? []),
+          ...(upcomingData.discounts ?? []),
+          ...(endedData.discounts ?? []),
+        ];
+        
+        // Loại bỏ duplicate dựa trên ID
+        const uniqueDiscounts = Array.from(
+          new Map(allDiscounts.map((discount) => [discount.id, discount])).values()
+        );
+        
+        return {
+          pageNumber: 1,
+          pageSize: uniqueDiscounts.length,
+          totalElements: uniqueDiscounts.length,
+          totalPages: 1,
+          discounts: uniqueDiscounts,
+        };
+      }
+      
+      // Các tab khác giữ nguyên logic cũ
+      return getDiscounts({
         keyword: searchTerm.trim() || undefined,
         state: tabToStateMap[activeTab],
         page: 1,
         size: 100,
-      }),
-    staleTime: 30_000,
-    onError: (error: unknown) => {
-      const message =
-        (error as any)?.response?.data?.message ?? "Không thể tải danh sách mã giảm giá.";
-      toast.error(message);
+      });
     },
+    staleTime: 30_000,
   });
 
-  const vouchers = useMemo(() => {
+  useEffect(() => {
+    if (!error) return;
+    const message =
+      (error as any)?.response?.data?.message ?? "Không thể tải danh sách mã giảm giá.";
+    toast.error(message);
+  }, [error]);
+
+  const vouchers: Voucher[] = useMemo(() => {
     const discounts = data?.discounts ?? [];
     return discounts.map(mapDiscountToVoucher);
   }, [data]);
 
-  const filteredVouchers = useMemo(() => {
+  const filteredVouchers: Voucher[] = useMemo(() => {
     if (!searchTerm.trim()) return vouchers;
     const lower = searchTerm.trim().toLowerCase();
     return vouchers.filter(
@@ -418,30 +469,6 @@ const AdminDiscounts: React.FC = () => {
         voucher.code.toLowerCase().includes(lower)
     );
   }, [vouchers, searchTerm]);
-
-  useEffect(() => {
-    setSelectedRows(new Set());
-  }, [activeTab, searchTerm, vouchers]);
-
-  // Selection handlers
-  const handleSelectRow = (id: string | number, checked: boolean) => {
-    const newSelected = new Set(selectedRows);
-    if (checked) {
-      newSelected.add(id);
-    } else {
-      newSelected.delete(id);
-    }
-    setSelectedRows(newSelected);
-  };
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allIds = new Set(filteredVouchers.map((v) => v.id));
-      setSelectedRows(allIds);
-    } else {
-      setSelectedRows(new Set());
-    }
-  };
 
   // Action handlers
   const handleEdit = (voucher: Voucher) => {
@@ -525,17 +552,6 @@ const AdminDiscounts: React.FC = () => {
     }
   };
 
-  const handleBulkDelete = () => {
-    console.log("Delete selected vouchers:", Array.from(selectedRows));
-    // Bulk delete logic
-    setSelectedRows(new Set());
-  };
-
-  const handleBulkEdit = () => {
-    console.log("Edit selected vouchers:", Array.from(selectedRows));
-    // Bulk edit logic
-  };
-
   const handleCreateVoucher = (type: string) => {
     console.log("Creating voucher of type:", type);
     const route = voucherRouteMap[type] || "/admin/discounts/new";
@@ -575,24 +591,6 @@ const AdminDiscounts: React.FC = () => {
             onSearchChange={setSearchTerm}
             searchPlaceholder="Tìm kiếm mã giảm giá"
             searchClassName="flex-1 min-w-0 max-w-md"
-            actions={selectedRows.size > 0 ? (
-              <TableActions
-                selectedCount={selectedRows.size}
-                itemName="voucher"
-                actions={[
-                  {
-                    label: "Chỉnh sửa",
-                    onClick: handleBulkEdit,
-                    variant: "secondary"
-                  },
-                  {
-                    label: "Xóa",
-                    onClick: handleBulkDelete,
-                    variant: "danger"
-                  }
-                ]}
-              />
-            ) : undefined}
           />
         </div>
 
@@ -600,9 +598,6 @@ const AdminDiscounts: React.FC = () => {
         <DiscountTable
           vouchers={filteredVouchers}
           loading={isLoading}
-          selectedRows={selectedRows}
-          onSelectRow={handleSelectRow}
-          onSelectAll={handleSelectAll}
           onEdit={handleEdit}
           onViewOrders={handleViewOrders}
           onEnd={handleEnd}

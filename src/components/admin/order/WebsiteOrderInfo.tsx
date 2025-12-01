@@ -5,9 +5,19 @@ import { formatTimelineDate, formatOrderDate } from "@/utils/dateUtils";
 
 interface WebsiteOrderInfoProps {
     orderData: CustomerOrderResponse;
+    hideReceiverInfo?: boolean;
+    buyerReasonTitle?: string;
+    buyerReasonText?: string;
+    hideBuyerMediaPlaceholders?: boolean;
 }
 
-const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
+const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({
+    orderData,
+    hideReceiverInfo = false,
+    buyerReasonTitle,
+    buyerReasonText,
+    hideBuyerMediaPlaceholders = false,
+}) => {
     const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
 
     const handleToggleTimeline = () => {
@@ -219,45 +229,109 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
             </div>
 
             {/* Customer Order Information Section */}
-            <div className="flex gap-[14px] items-start w-full">
-                <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f0f4ff] rounded-[8px] shrink-0">
-                    <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <path
-                            d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
-                            stroke="#4f46e5"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                        <path
-                            d="M20.5899 22C20.5899 18.13 16.7399 15 11.9999 15C7.25991 15 3.40991 18.13 3.40991 22"
-                            stroke="#4f46e5"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    </svg>
-                </div>
-                <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
-                    <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
-                        Thông tin người nhận hàng
-                    </p>
-                    <div className="flex flex-col gap-[2px]">
-                        <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
-                            {orderData.receiverName || orderData.userInfo?.name || "Chưa có thông tin tên"}
+            {!hideReceiverInfo && (
+                <div className="flex gap-[14px] items-start w-full">
+                    <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f0f4ff] rounded-[8px] shrink-0">
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
+                                stroke="#4f46e5"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                            <path
+                                d="M20.5899 22C20.5899 18.13 16.7399 15 11.9999 15C7.25991 15 3.40991 18.13 3.40991 22"
+                                stroke="#4f46e5"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </div>
+                    <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
+                        <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+                            Thông tin người nhận hàng
                         </p>
-                        <p className="font-montserrat font-medium text-[13px] leading-[1.3] text-[#666666]">
-                            📞 {orderData.receiverPhone || orderData.userInfo?.phone || "Chưa có thông tin số điện thoại"}
-                        </p>
+                        <div className="flex flex-col gap-[2px]">
+                            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+                                {orderData.receiverName || orderData.userInfo?.name || "Chưa có thông tin tên"}
+                            </p>
+                            <p className="font-montserrat font-medium text-[13px] leading-[1.3] text-[#666666]">
+                                📞 {orderData.receiverPhone || orderData.userInfo?.phone || "Chưa có thông tin số điện thoại"}
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {/* Buyer Reason Section (optional – for return/refund flows) */}
+            {buyerReasonTitle && (
+                <div className="flex flex-col gap-[8px] w-full border border-[#ffe1cf] bg-[#fff6f0] rounded-[10px] px-[14px] py-[12px]">
+                    <div className="flex items-center gap-[8px]">
+                        <div className="flex items-center justify-center w-[24px] h-[24px] rounded-full bg-white border border-[#ffb592] text-[#e66a37]">
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M12 3C7.58889 3 4 6.15176 4 9.88889C4 11.9778 5.13333 13.8222 6.93333 14.9778L6 18.6667L9.88889 16.9333C10.5778 17.0889 11.2778 17.2222 12 17.2222C16.4111 17.2222 20 14.0704 20 10.3333C20 6.59623 16.4111 3 12 3Z"
+                                    stroke="currentColor"
+                                    strokeWidth="1.6"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </div>
+                        <p className="font-montserrat font-semibold text-[14px] text-[#cf4d1a]">
+                            {buyerReasonTitle}
+                        </p>
+                    </div>
+
+                    {/* Media thumbnails – có thể ẩn trong một số case đặc biệt */}
+                    {!hideBuyerMediaPlaceholders && (
+                        <div className="mt-[4px] flex flex-wrap gap-[10px]">
+                            {Array.from({ length: 5 }).map((_, idx) => (
+                                <div
+                                    // eslint-disable-next-line react/no-array-index-key
+                                    key={idx}
+                                    className={`w-[110px] h-[110px] rounded-[6px] bg-white border border-dashed border-[#ffc9a3] flex items-center justify-center text-[11px] text-[#e08a4a] ${
+                                        idx === 0 ? "relative overflow-hidden" : ""
+                                    }`}
+                                >
+                                    {idx === 0 ? (
+                                        <span className="px-2 text-center leading-snug">
+                                            Hình ảnh / video<br />người mua
+                                        </span>
+                                    ) : (
+                                        <span>Hình ảnh</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {buyerReasonText && (
+                        <div className="mt-[4px] flex flex-col gap-[2px] text-[13px] text-[#5c4336]">
+                            {buyerReasonText.split("\n").map((line, idx) => (
+                                // eslint-disable-next-line react/no-array-index-key
+                                <p key={idx} className="font-montserrat">
+                                    {line}
+                                </p>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Shipping Address Section */}
             <div className="flex gap-[14px] items-start w-full">
@@ -303,14 +377,14 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData }) => {
                 </div>
             </div>
 
-            {/* Shipping Method Section */}
+            {/* Return Address Section (đổi label theo yêu cầu) */}
             <div className="flex gap-[14px] items-start w-full">
                 <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f0f9ff] rounded-[8px] shrink-0">
                     <Truck className="h-[20px] w-[20px] text-[#0284c7]" />
                 </div>
                 <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
                     <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
-                        Phương thức vận chuyển
+                        Địa chỉ trả hàng
                     </p>
                     <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
                         {(orderData as any).shippingProvider ? `${(orderData as any).shippingProvider} (Dịch vụ ${(orderData as any).shippingDetail?.service_type_id || 'N/A'})` : "Chưa có thông tin phương thức vận chuyển"}

@@ -78,6 +78,13 @@ const createDefaultFormData = (): VoucherFormData => ({
   displaySetting: "website",
 });
 
+// Format number with thousand separators for VND inputs
+const formatNumber = (value: string) => {
+  if (!value) return "";
+  const num = value.replace(/\D/g, "");
+  return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
 const discountTypeToEnum = {
   percentage: "PERCENT" as const,
   fixed: "FIXED" as const,
@@ -116,6 +123,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const isEditMode = Boolean(fetchDiscountId);
   const queryClient = useQueryClient();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [discountValueError, setDiscountValueError] = useState<string>("");
+  const [maxUsagePerCustomerError, setMaxUsagePerCustomerError] = useState<string>("");
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [selectedVariants, setSelectedVariants] = useState<Set<string>>(new Set());
@@ -134,6 +143,22 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const topElementRef = useRef<HTMLDivElement>(null);
   const [variantLoadingMap, setVariantLoadingMap] = useState<Record<string, boolean>>({});
   const [productVariantsMap, setProductVariantsMap] = useState<Record<string, Array<{ id: number; nameDetail?: string; sellingPrice?: number | string }>>>({});
+
+  const appliedVariantIds = useMemo(() => {
+    const ids = new Set<string>();
+    confirmedProducts.forEach((product) => {
+      if (product.variantId) {
+        ids.add(String(product.variantId));
+        return;
+      }
+      const parts = product.id?.split("-") ?? [];
+      const lastPart = parts[parts.length - 1];
+      if (lastPart) {
+        ids.add(lastPart);
+      }
+    });
+    return ids;
+  }, [confirmedProducts]);
 
   const numericFields: Array<keyof VoucherFormData> = [
     "discountValue",
@@ -318,40 +343,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
     return products.map(mapProductToDisplay);
   }, [products]);
 
-  const handleProductToggle = (productId: string) => {
-    const shouldSelect = !selectedProducts.has(productId);
-    const variants = productVariantsMap[productId] ?? [];
-
-    setSelectedProducts((prev) => {
-      const newSet = new Set(prev);
-      if (shouldSelect) {
-        newSet.add(productId);
-      } else {
-        newSet.delete(productId);
-      }
-      return newSet;
-    });
-
-    // Also select/deselect all variants if loaded
-    if (variants.length > 0) {
-      setSelectedVariants((prev) => {
-        const newSet = new Set(prev);
-        variants.forEach((variant) => {
-          const variantId = String(variant.id);
-          if (shouldSelect) {
-            newSet.add(variantId);
-          } else {
-            newSet.delete(variantId);
-          }
-        });
-        return newSet;
-      });
-    }
-  };
-
   const handleVariantToggle = (variantId: string, productId: string) => {
+    if (appliedVariantIds.has(variantId)) {
+      return;
+    }
     const variants = productVariantsMap[productId] ?? [];
     const variantIds = variants.map((variant) => String(variant.id));
+    const selectableVariantIds = variantIds.filter((id) => !appliedVariantIds.has(id));
 
     setSelectedVariants((prev) => {
       const newSet = new Set(prev);
@@ -363,7 +361,10 @@ const AdminCreateVoucherProduct: React.FC = () => {
 
       setSelectedProducts((prevProducts) => {
         const productSet = new Set(prevProducts);
-        if (variantIds.length > 0 && variantIds.every((id) => newSet.has(id))) {
+        if (
+          selectableVariantIds.length > 0 &&
+          selectableVariantIds.every((id) => newSet.has(id))
+        ) {
           productSet.add(productId);
         } else {
           productSet.delete(productId);
@@ -413,21 +414,39 @@ const AdminCreateVoucherProduct: React.FC = () => {
     });
   };
 
+  const getSelectableVariantIds = useCallback(
+    (productId: string) => {
+      const variants = productVariantsMap[productId] ?? [];
+      return variants
+        .map((variant) => String(variant.id))
+        .filter((variantId) => !appliedVariantIds.has(variantId));
+    },
+    [productVariantsMap, appliedVariantIds],
+  );
+
   const handleSelectAll = () => {
     if (displayProducts.length === 0) return;
 
-    const allProductIds = new Set(displayProducts.map((p) => p.id));
+    const selectableProductIds: string[] = [];
     const allVariantIds = new Set<string>();
 
     displayProducts.forEach((product) => {
-      const variants = productVariantsMap[product.id] ?? [];
-      variants.forEach((variant) => {
-        allVariantIds.add(String(variant.id));
-      });
+      const selectableVariants = getSelectableVariantIds(product.id);
+      if (selectableVariants.length > 0) {
+        selectableProductIds.push(product.id);
+        selectableVariants.forEach((variantId) => allVariantIds.add(variantId));
+      }
     });
 
-    const shouldDeselectAll =
-      displayProducts.every((product) => selectedProducts.has(product.id));
+    if (selectableProductIds.length === 0) {
+      setSelectedProducts(new Set());
+      setSelectedVariants(new Set());
+      return;
+    }
+
+    const shouldDeselectAll = selectableProductIds.every((productId) =>
+      selectedProducts.has(productId),
+    );
 
     if (shouldDeselectAll) {
       setSelectedProducts(new Set());
@@ -435,14 +454,29 @@ const AdminCreateVoucherProduct: React.FC = () => {
       return;
     }
 
-    setSelectedProducts(allProductIds);
+    setSelectedProducts(new Set(selectableProductIds));
     setSelectedVariants(allVariantIds);
   };
 
   const isAllSelected = useMemo(() => {
     if (displayProducts.length === 0) return false;
-    return displayProducts.every((product) => selectedProducts.has(product.id));
-  }, [displayProducts, selectedProducts]);
+
+    const selectableProducts = displayProducts
+      .map((product) => ({
+        id: product.id,
+        variants: getSelectableVariantIds(product.id),
+      }))
+      .filter(({ variants }) => variants.length > 0);
+
+    if (selectableProducts.length === 0) return false;
+
+    return selectableProducts.every(({ id, variants }) => {
+      if (!selectedProducts.has(id)) {
+        return false;
+      }
+      return variants.every((variantId) => selectedVariants.has(variantId));
+    });
+  }, [displayProducts, selectedProducts, selectedVariants, getSelectableVariantIds]);
 
   // Calculate page numbers to display
   const getPageNumbers = () => {
@@ -485,18 +519,27 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const CustomCheckbox = ({
     checked,
     onChange,
+    disabled = false,
   }: {
     checked: boolean;
     onChange: () => void;
+    disabled?: boolean;
   }) => {
     return (
       <div
-        onClick={onChange}
-        className={`w-[16px] h-[16px] border-2 rounded cursor-pointer flex items-center justify-center transition-colors ${
+        onClick={() => {
+          if (!disabled) {
+            onChange();
+          }
+        }}
+        className={`w-[16px] h-[16px] border-2 rounded flex items-center justify-center transition-colors ${
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+        } ${
           checked
             ? "bg-[#e04d30] border-[#e04d30]"
             : "bg-white border-[#d1d5db]"
         }`}
+        aria-disabled={disabled}
       >
         {checked && (
           <svg
@@ -520,12 +563,63 @@ const AdminCreateVoucherProduct: React.FC = () => {
   };
 
 
+  const validateDiscountValue = (value: string, discountType: "percentage" | "fixed") => {
+    if (!value) {
+      setDiscountValueError("");
+      return;
+    }
+    const numValue = Number(value);
+    if (Number.isNaN(numValue) || numValue <= 0) {
+      if (discountType === "percentage") {
+        setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      } else {
+        setDiscountValueError("");
+      }
+      return;
+    }
+    if (discountType === "percentage" && numValue > 99) {
+      setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      return;
+    }
+    setDiscountValueError("");
+  };
+
+  const validateMaxUsagePerCustomer = (maxUsagePerCustomer: string, maxUsage: string) => {
+    if (!maxUsagePerCustomer || !maxUsage) {
+      setMaxUsagePerCustomerError("");
+      return;
+    }
+    const numMaxUsagePerCustomer = Number(maxUsagePerCustomer);
+    const numMaxUsage = Number(maxUsage);
+    if (Number.isNaN(numMaxUsagePerCustomer) || Number.isNaN(numMaxUsage)) {
+      setMaxUsagePerCustomerError("");
+      return;
+    }
+    if (numMaxUsagePerCustomer > numMaxUsage) {
+      setMaxUsagePerCustomerError("Lượt sử dụng tối đa mỗi Người mua không được lớn hơn tổng lượt sử dụng tối đa của voucher");
+      return;
+    }
+    setMaxUsagePerCustomerError("");
+  };
+
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
     const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
-    setFormData((prev) => ({
-      ...prev,
-      [field]: processedValue,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [field]: processedValue,
+      };
+      if (field === "discountValue") {
+        validateDiscountValue(processedValue, updated.discountType);
+      } else if (field === "discountType") {
+        validateDiscountValue(prev.discountValue, value as "percentage" | "fixed");
+      } else if (field === "maxUsagePerCustomer") {
+        validateMaxUsagePerCustomer(processedValue, updated.maxUsage);
+      } else if (field === "maxUsage") {
+        validateMaxUsagePerCustomer(updated.maxUsagePerCustomer, processedValue);
+      }
+      return updated;
+    });
   };
 
   const handleBackClick = () => {
@@ -648,17 +742,30 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     console.log(`Loaded product: ${product.name} - ${variant.nameDetail || variant.id}`);
                   }
                 } else {
-                  // If product not found, use variant detail directly
+                  // If product not found, use variant detail directly with product name from backend.
+                  const variantImage = Array.isArray(variantDetail.imageUrl)
+                    ? variantDetail.imageUrl[0] ?? ""
+                    : variantDetail.imageUrl || "";
+                  const variantName =
+                    variantDetail.productName
+                      ? `${variantDetail.productName}${
+                          variantDetail.nameDetail ? ` - ${variantDetail.nameDetail}` : ""
+                        }`
+                      : variantDetail.nameDetail || `Product Detail ${productDetailId}`;
+
                   productDetails.push({
                     id: String(productDetailId),
-                    name: variantDetail.nameDetail || `Product Detail ${productDetailId}`,
-                    image: variantDetail.imageUrl || "",
+                    name: variantName,
+                    image: variantImage,
                     barcode: variantDetail.barcode || "",
-                    price: typeof variantDetail.sellingPrice === 'number' ? variantDetail.sellingPrice : Number(variantDetail.sellingPrice) || 0,
+                    price:
+                      typeof variantDetail.sellingPrice === "number"
+                        ? variantDetail.sellingPrice
+                        : Number(variantDetail.sellingPrice) || 0,
                     available: variantDetail.availableQuantity || 0,
                     variantId: String(productDetailId),
                   });
-                  console.log(`Loaded variant directly: ${variantDetail.nameDetail || productDetailId}`);
+                  console.log(`Loaded variant directly: ${variantName}`);
                 }
               }
             } catch (error) {
@@ -865,7 +972,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
     }
     const discountValue = Number(formData.discountValue);
     if (!formData.discountValue || Number.isNaN(discountValue) || discountValue <= 0) {
+      if (formData.discountType === "percentage") {
+        return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
+      }
       return "Mức giảm phải lớn hơn 0.";
+    }
+    if (formData.discountType === "percentage" && discountValue > 99) {
+      return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
     }
     if (!formData.startDate || !formData.endDate) {
       return "Vui lòng chọn thời gian áp dụng.";
@@ -884,6 +997,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
     }
     if (formData.maxUsage && (Number.isNaN(Number(formData.maxUsage)) || Number(formData.maxUsage) <= 0)) {
       return "Tổng lượt sử dụng tối đa phải lớn hơn 0.";
+    }
+    if (formData.maxUsagePerCustomer && formData.maxUsage) {
+      const numMaxUsagePerCustomer = Number(formData.maxUsagePerCustomer);
+      const numMaxUsage = Number(formData.maxUsage);
+      if (!Number.isNaN(numMaxUsagePerCustomer) && !Number.isNaN(numMaxUsage) && numMaxUsagePerCustomer > numMaxUsage) {
+        return "Lượt sử dụng tối đa mỗi Người mua không được lớn hơn tổng lượt sử dụng tối đa của voucher";
+      }
     }
     if (confirmedProducts.length === 0) {
       return "Vui lòng chọn ít nhất một sản phẩm.";
@@ -1025,6 +1145,12 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={100}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherName.length}/100
+                      </span>
+                    }
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4]">
                     Tên voucher sẽ không được hiển thị cho người mua
@@ -1046,11 +1172,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={10}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherCode.length}/10
+                      </span>
+                    }
                   />
-                  <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4]">
-                    Vui lòng nhập các kí tự chữ cái A - Z, số 0 - 9, tối đa 5 kí
-                    tự
-                  </p>
                 </div>
               </div>
 
@@ -1115,7 +1243,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
                   Loại giảm giá | Mức giảm
                 </label>
-                <div className="flex-1 flex flex-row gap-[16px] items-center flex-shrink-0 w-[873px]">
+                <div className="flex-1 flex flex-row gap-[16px] items-start flex-shrink-0 w-[873px]">
                   {/* Discount Type Dropdown */}
                   <div className="w-[164px] flex-shrink-0">
                     <DropdownMenu
@@ -1165,15 +1293,24 @@ const AdminCreateVoucherProduct: React.FC = () => {
                   <div className="flex-1">
                     <FormInput
                       placeholder={
-                        formData.discountType === "percentage" ? "%" : "đ"
+                        formData.discountType === "percentage" ? "Nhập giá trị lớn hơn 1%" : "đ"
                       }
-                      value={formData.discountValue}
+                      value={
+                        formData.discountType === "percentage"
+                          ? formData.discountValue
+                          : formatNumber(formData.discountValue)
+                      }
                       onChange={(e) =>
                         handleInputChange("discountValue", e.target.value)
                       }
                       containerClassName="h-[36px] w-full"
                       required
                     />
+                    {discountValueError && (
+                      <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                        {discountValueError}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1209,7 +1346,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                       <div>
                         <FormInput
                           placeholder="đ"
-                          value={formData.maxDiscountValue}
+                          value={formatNumber(formData.maxDiscountValue)}
                           onChange={(e) =>
                             handleInputChange(
                               "maxDiscountValue",
@@ -1232,7 +1369,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                 <div className="flex-1">
                   <FormInput
                     placeholder="đ"
-                    value={formData.minOrderAmount}
+                    value={formatNumber(formData.minOrderAmount)}
                     onChange={(e) =>
                       handleInputChange("minOrderAmount", e.target.value)
                     }
@@ -1275,6 +1412,11 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                   />
+                  {maxUsagePerCustomerError && (
+                    <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                      {maxUsagePerCustomerError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1644,21 +1786,27 @@ const AdminCreateVoucherProduct: React.FC = () => {
                             
                             {/* Variant Rows */}
                             {isExpanded && !isLoadingVariants && variants.map((variant) => {
-                              const isVariantSelected = selectedVariants.has(String(variant.id));
+                              const variantIdStr = String(variant.id);
+                              const isVariantApplied = appliedVariantIds.has(variantIdStr);
+                              const isVariantSelected = selectedVariants.has(variantIdStr);
                               const variantPrice = formatPrice(variant.sellingPrice);
+                              const checkboxChecked = isVariantApplied || isVariantSelected;
                               
                               return (
                                 <tr
                                   key={variant.id}
-                                  className="bg-[#f6f6f6] border-b border-[#e7e7e7] hover:bg-gray-100"
+                                  className={`bg-[#f6f6f6] border-b border-[#e7e7e7] ${
+                                    isVariantApplied ? "opacity-60" : "hover:bg-gray-100"
+                                  }`}
                                 >
                                   <td className="pl-[10px] pr-[2px] py-[8px]">
                                     <div className="flex items-center gap-[8px]">
                                       <div className="w-[16px] h-[16px] flex-shrink-0"></div>
                                       <div className="w-5 h-5 flex-shrink-0"></div>
                                       <CustomCheckbox
-                                        checked={isVariantSelected}
-                                        onChange={() => handleVariantToggle(String(variant.id), product.id)}
+                                        checked={checkboxChecked}
+                                        onChange={() => handleVariantToggle(variantIdStr, product.id)}
+                                        disabled={isVariantApplied}
                                       />
                                       <div className="w-[40px] h-[40px] flex-shrink-0 flex items-center justify-center">
                                         <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center">

@@ -8,7 +8,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PageContainer, ContentCard } from "@/components/common";
 import { getAdminCustomerOrderDetail, confirmOrderAndCreateShipping, cancelAdminOrder } from "@/api/endpoints/orderApi";
@@ -23,9 +23,128 @@ import CancelOrderConfirmationPopupWebsite from '../../../../../components/admin
 import ActionButtonsWebsite from '../../../../../components/admin/order/ActionButtonsWebsite';
 import WebsiteOrderInfo from '../../../../../components/admin/order/WebsiteOrderInfo';
 
+interface ReturnToState {
+  pathname?: string;
+  activePrimaryTab?: string;
+  activeStatusTab?: string;
+  activeCancelSubTab?: string;
+  activeFailedSubTab?: string;
+  searchTerm?: string;
+}
+
+const buildFakeOrderFromOtherStatus = (fakeOrder: any, orderId?: string): CustomerOrderResponse => {
+  const parsedCustomerId =
+    typeof fakeOrder?.customerId === "string"
+      ? Number.parseInt(fakeOrder.customerId.replace(/\D/g, ""), 10) || 0
+      : Number(fakeOrder?.customerId ?? 0);
+  const fallbackId =
+    typeof orderId === "string" && orderId.length > 0
+      ? Number.parseInt(orderId.replace(/\D/g, ""), 10) || Date.now()
+      : Date.now();
+  const totalAmount = fakeOrder?.totalAmount ?? 0;
+  const productName = fakeOrder?.productName ?? "Sản phẩm demo";
+  const orderCode = fakeOrder?.orderCode ?? `RET-${fallbackId}`;
+
+  // Thiết lập trạng thái/thanh toán hiển thị trong card "Thanh toán của người mua"
+  // - Đơn hủy chuyển khoản (WEB-0156): Đã thanh toán + Chuyển khoản
+  // - Đơn hủy tiền mặt (WEB-0160): Chờ thanh toán + Tiền mặt
+  let paymentStatusCode = "WAITING";
+  let paymentMethodCode = "CASH";
+
+  if (fakeOrder?.category === "CANCEL") {
+    if (fakeOrder.paymentMethod === "Chuyển khoản") {
+      paymentStatusCode = "PAID";
+      paymentMethodCode = "BANKING";
+    } else if (fakeOrder.paymentMethod === "Tiền mặt") {
+      paymentStatusCode = "WAITING";
+      paymentMethodCode = "CASH";
+    }
+  }
+
+  // Map trạng thái hiển thị cho card "Trạng thái đơn hàng" trên màn chi tiết
+  // 1. Đơn huỷ (CANCEL):
+  //    - refundStatus === "WAITING" → Đã hủy - Đang chờ xét duyệt
+  //    - refundStatus === "DONE"    → Đã hủy - Đã xử lý
+  // 2. Đơn Trả hàng/Hoàn tiền (RETURN):
+  //    - statusKey === "COMPLETED" hoặc refundStatus === "DONE"
+  //        → coi như đã hoàn tất xử lý → map sang "COMPLETE" để hiển thị màu xanh
+  //    - statusKey === "UNDER_REVIEW" → "PENDING"
+  //    - statusKey === "RETURNING"    → "SHIPPING" (đang xử lý / đang giao trả hàng)
+  //    - statusKey === "INVALID"      → "CANCELED_PENDING" (yêu cầu không hợp lệ)
+  const isCancelCategory = fakeOrder?.category === "CANCEL";
+  const isReturnCategory = fakeOrder?.category === "RETURN";
+  const isCancelProcessed = isCancelCategory && fakeOrder?.refundStatus === "DONE";
+
+  let statusCode: CustomerOrderResponse["status"] = "PENDING";
+
+  if (isCancelCategory) {
+    statusCode = isCancelProcessed ? "CANCELED" : "CANCELED_PENDING";
+  } else if (isReturnCategory) {
+    const statusKey = fakeOrder?.statusKey;
+    if (statusKey === "COMPLETED" || fakeOrder?.refundStatus === "DONE") {
+      statusCode = "COMPLETE";
+    } else if (statusKey === "RETURNING") {
+      statusCode = "SHIPPING";
+    } else if (statusKey === "INVALID") {
+      statusCode = "CANCELED_PENDING";
+    } else {
+      statusCode = "PENDING";
+    }
+  }
+
+  // Đơn WEB-0043: hiển thị trạng thái màu xám "Đang chờ kiểm hàng" trên card trạng thái
+  if (fakeOrder?.orderCode === "WEB-0043") {
+    statusCode = "PENDING";
+  }
+
+  return {
+    id: fallbackId,
+    code: orderCode,
+    customerId: parsedCustomerId,
+    totalAmount,
+    status: statusCode,
+    paymentStatus: paymentStatusCode,
+    createdAt: fakeOrder?.createdAt ?? new Date().toISOString(),
+    updatedAt: fakeOrder?.createdAt ?? new Date().toISOString(),
+    userInfo: {
+      id: parsedCustomerId,
+      name: fakeOrder?.customerName ?? "Khách hàng demo",
+      image: "",
+      username: fakeOrder?.customerUsername ?? "user_demo",
+      phone: fakeOrder?.customerUsername,
+    },
+    items: [
+      {
+        id: 1,
+        productId: 0,
+        quantity: 1,
+        price: totalAmount,
+        total: totalAmount,
+        name: productName,
+        image: fakeOrder?.productImage,
+      },
+    ],
+    source: (fakeOrder?.source || "WEBSITE").toUpperCase(),
+    method: paymentMethodCode,
+    shippingFee: 0,
+    totalProductPrice: totalAmount,
+    totalOrderPrice: totalAmount,
+    notes: fakeOrder?.reason ?? "Thông tin đơn hàng bị hủy.",
+    shippingStatus: fakeOrder?.forwardShippingStatus ?? "Đang xử lý",
+    receiverName: fakeOrder?.customerName ?? "Khách hàng demo",
+    receiverPhone: fakeOrder?.customerUsername ?? "",
+    receiverAddress: fakeOrder?.sourceNote ?? "Địa chỉ cập nhật sau",
+  };
+};
+
 const AdminOrderDetailWebsite: React.FC = () => {
   const navigate = useNavigate();
   const { orderId } = useParams<{ orderId: string }>();
+  const location = useLocation();
+  const navigationState =
+    (location.state as { fakeOrder?: any; returnTo?: ReturnToState } | null) || null;
+  const fakeOrderFromOtherStatus = navigationState?.fakeOrder;
+  const returnToState = navigationState?.returnTo;
 
   const [showDeliveryPopup, setShowDeliveryPopup] = useState(false);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
@@ -38,6 +157,12 @@ const AdminOrderDetailWebsite: React.FC = () => {
   };
 
   const getStatusDisplayName = (status: string) => {
+    // Nếu điều hướng từ màn Trả hàng/Hoàn tiền/Huỷ và là nhóm RETURN
+    // thì ưu tiên dùng nhãn trạng thái chi tiết từ mock (ví dụ WEB-0001)
+    if (fakeOrderFromOtherStatus?.category === "RETURN" && fakeOrderFromOtherStatus?.statusLabel) {
+      return fakeOrderFromOtherStatus.statusLabel;
+    }
+
     switch (status) {
       case "PENDING":
         return "Chờ xác nhận";
@@ -48,7 +173,9 @@ const AdminOrderDetailWebsite: React.FC = () => {
       case "COMPLETE":
         return "Đã hoàn thành";
       case "CANCELED":
-        return "Đã hủy";
+        return "Đã hủy - Đã xử lý";
+      case "CANCELED_PENDING":
+        return "Đã hủy - Đang chờ xét duyệt";
       case "REFUND":
         return "Hoàn tiền";
       default:
@@ -57,10 +184,18 @@ const AdminOrderDetailWebsite: React.FC = () => {
   };
 
   useEffect(() => {
+    if (fakeOrderFromOtherStatus) {
+      const fakeData = buildFakeOrderFromOtherStatus(fakeOrderFromOtherStatus, orderId);
+      setOrderData(fakeData);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     if (orderId) {
       loadOrderDetail();
     }
-  }, [orderId]);
+  }, [fakeOrderFromOtherStatus, orderId]);
 
   const loadOrderDetail = async () => {
     try {
@@ -77,7 +212,11 @@ const AdminOrderDetailWebsite: React.FC = () => {
   };
 
   const handleBackClick = () => {
-    navigate(-1);
+    if (returnToState?.pathname) {
+      navigate(returnToState.pathname, { state: returnToState });
+    } else {
+      navigate(-1);
+    }
   };
 
 
@@ -153,6 +292,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
           text: "text-[#28A745]",
         };
       case "CANCELED":
+      case "CANCELED_PENDING":
         return {
           bg: "bg-[#ffdcdc]",
           text: "text-[#eb2b0b]",
@@ -217,6 +357,26 @@ const AdminOrderDetailWebsite: React.FC = () => {
   }
 
   const statusCardStyle = getStatusCardStyle();
+  const actionButtonsStatus =
+    orderData.status === "CANCELED_PENDING" ? "PENDING" : orderData.status;
+
+  // Trạng thái truyền xuống component ActionButtonsWebsite cho card "Thao tác với đơn hàng"
+  // - Với các đơn RETURN (bao gồm POS-1205) ta luôn dùng "PENDING" để hiển thị nút thao tác
+  //   bất kể status nội bộ đang là PENDING hay SHIPPING...
+  // - Các loại đơn khác giữ nguyên logic cũ.
+  const actionsComponentStatus =
+    fakeOrderFromOtherStatus?.category === "RETURN" ? "PENDING" : actionButtonsStatus;
+
+  // Ẩn card "Thao tác với đơn hàng" cho một số case đặc biệt khi đi từ màn Trả hàng/Hoàn tiền/Huỷ
+  // - Đơn huỷ đã xử lý (ví dụ WEB-0160)
+  // - Đơn RETURN cụ thể WEB-0042 (đã hoàn tiền đủ cho người mua)
+  // - Đơn RETURN cụ thể WEB-0099 (yêu cầu không hợp lệ, chỉ xem thông tin)
+  const shouldHideActionsFromOtherStatus =
+    !!fakeOrderFromOtherStatus &&
+    ((fakeOrderFromOtherStatus.orderCode === "WEB-0042" ||
+      fakeOrderFromOtherStatus.orderCode === "WEB-0099") ||
+      (fakeOrderFromOtherStatus.category === "CANCEL" &&
+        fakeOrderFromOtherStatus.refundStatus === "DONE"));
 
   return (
     <PageContainer>
@@ -238,6 +398,30 @@ const AdminOrderDetailWebsite: React.FC = () => {
 
         {/* Status Cards */}
         <ContentCard>
+          {/* Banner cho các yêu cầu Trả hàng/Hoàn tiền (RETURN) – ví dụ WEB-0001 */}
+          {fakeOrderFromOtherStatus?.category === "RETURN" && (
+            <div className="w-full mb-[12px] rounded-[10px] border border-green-200 bg-green-50 px-4 py-3 flex flex-col gap-1">
+              <p className="font-montserrat font-semibold text-[14px] text-green-800">
+                {fakeOrderFromOtherStatus.statusLabel || "Yêu cầu đang chờ xét duyệt"}
+              </p>
+              {fakeOrderFromOtherStatus.orderCode === "WEB-0099" ? (
+                <p className="font-montserrat text-[12px] text-green-900">
+                  <span className="font-semibold">Lý do huỷ yêu cầu: </span>
+                  Khách không thật thà
+                </p>
+              ) : (
+                fakeOrderFromOtherStatus.buyerOptions &&
+                Array.isArray(fakeOrderFromOtherStatus.buyerOptions) &&
+                fakeOrderFromOtherStatus.buyerOptions.length > 0 && (
+                  <p className="font-montserrat text-[12px] text-green-900">
+                    <span className="font-semibold">Phương án cho người mua: </span>
+                    {fakeOrderFromOtherStatus.buyerOptions.join(" · ")}
+                  </p>
+                )
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col lg:flex-row gap-[12px] w-full">
             {/* Order Status Card */}
             <div className="flex-1 min-w-0">
@@ -357,7 +541,20 @@ const AdminOrderDetailWebsite: React.FC = () => {
           </div>
 
           {/* Website Order Info */}
-          <WebsiteOrderInfo orderData={orderData!} />
+          <WebsiteOrderInfo
+            orderData={orderData!}
+            hideReceiverInfo={!!fakeOrderFromOtherStatus}
+            buyerReasonTitle={
+              fakeOrderFromOtherStatus?.category === "RETURN" ? "Lý do từ Người mua" : undefined
+            }
+            buyerReasonText={
+              fakeOrderFromOtherStatus?.category === "RETURN"
+                ? (fakeOrderFromOtherStatus.reason || "")
+                : undefined
+            }
+            // Với đơn POS-2211: ẩn placeholder hình ảnh trong box "Lý do từ Người mua"
+            hideBuyerMediaPlaceholders={fakeOrderFromOtherStatus?.orderCode === "POS-2211"}
+          />
 
           {/* Customer */}
           <div className="bg-white border-2 border-[#e7e7e7] box-border flex gap-[8px] items-center px-[16px] sm:px-[24px] py-[8px] relative rounded-[8px] w-full overflow-hidden min-w-0">
@@ -394,7 +591,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
               <div className="box-border flex gap-[6px] items-center px-[6px] py-0 mb-4 relative shrink-0 w-full">
                 <Wallet className="relative shrink-0 size-[24px]" />
                 <h2 className="font-montserrat font-semibold text-[#272424] text-[18px] leading-[1.4]">
-                  Thông tin thanh toán
+                  {fakeOrderFromOtherStatus?.category === "RETURN" ? "Sản phẩm hoàn trả" : "Thông tin thanh toán"}
                 </h2>
               </div>
               <div className="w-full overflow-x-auto">
@@ -410,19 +607,50 @@ const AdminOrderDetailWebsite: React.FC = () => {
             </div>
           </div>
 
-          {/* Payment Information Card */}
-          <PaymentInformationWebsite
-            orderData={orderData!}
-            disabled={orderData!.status === "CANCELED"}
-          />
+          {/* Payment Information Card – ẩn với nhóm RETURN (ví dụ WEB-0001), giữ nguyên cho đơn khác */}
+          {(!fakeOrderFromOtherStatus || fakeOrderFromOtherStatus.category !== "RETURN") && (
+            <PaymentInformationWebsite
+              orderData={orderData!}
+              disabled={orderData!.status === "CANCELED"}
+            />
+          )}
 
-          {/* Action Buttons */}
-          <ActionButtonsWebsite
-            status={orderData!.status}
-            source={orderData!.source || "WEBSITE"}
-            onConfirm={handleConfirmOrder}
-            onCancel={handleCancelOrder}
-          />
+          {/* Với đơn RETURN (ví dụ WEB-0001, WEB-0042): luôn hiển thị card thông tin tài khoản hoàn tiền */}
+          {fakeOrderFromOtherStatus?.category === "RETURN" && (
+            <ActionButtonsWebsite
+              // Card "Thông tin tài khoản hoàn tiền" không phụ thuộc vào trạng thái xử lý backend,
+              // nên luôn truyền "PENDING" để component hiển thị, kể cả với đơn đã hoàn tất (ví dụ WEB-0042)
+              status="PENDING"
+              source={(orderData!.source || "WEBSITE").toUpperCase()}
+              onConfirm={handleConfirmOrder}
+              onCancel={handleCancelOrder}
+              variant="refundAccount"
+            />
+          )}
+
+          {/* Card "Thao tác với đơn hàng" – ẩn với đơn đã hoàn tiền đủ khi đi từ màn khác (ví dụ WEB-0160, WEB-0042) */}
+          {!shouldHideActionsFromOtherStatus && (
+            <ActionButtonsWebsite
+              status={actionsComponentStatus}
+              source={(orderData!.source || "WEBSITE").toUpperCase()}
+              onConfirm={handleConfirmOrder}
+              onCancel={handleCancelOrder}
+              variant="actions"
+              // Tuỳ chỉnh label nút thao tác cho một số đơn mock
+              customActionLabels={
+                fakeOrderFromOtherStatus?.orderCode === "POS-1205"
+                  ? {
+                      reject: "Giao hàng không thành công",
+                      confirm: "Giao hàng thành công",
+                    }
+                  : fakeOrderFromOtherStatus?.orderCode === "WEB-0043"
+                  ? {
+                      confirm: "Xác nhận hoàn tiền",
+                    }
+                  : undefined
+              }
+            />
+          )}
         </ContentCard>
       </div>
 

@@ -1,6 +1,6 @@
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   PageContainer,
   ContentCard,
@@ -15,6 +15,7 @@ import { Pagination } from "@/components/ui/pagination";
 
 type ReturnOrderCategory = "RETURN" | "CANCEL" | "FAILED";
 type ReturnOrderStatus = "UNDER_REVIEW" | "RETURNING" | "COMPLETED" | "INVALID";
+type ReturnStatusFilter = ReturnOrderStatus | "DELIVERED";
 type RefundStatus = "WAITING" | "PARTIAL" | "DONE";
 
 const defaultReturnShippingChipClass =
@@ -126,7 +127,8 @@ const mockReturnOrders: ReturnOrder[] = [
     returnShippingStatus: "Đang giao",
     refundStatus: "PARTIAL",
     refundStatusLabel: "Đã hoàn tiền 1 phần",
-    source: "POS",
+    // Đơn POS-1205 hiển thị như đơn từ Website theo yêu cầu UI
+    source: "Website",
     category: "RETURN",
     sourceNote: "Tạo từ POS · Giao cùng ngày",
   },
@@ -156,6 +158,31 @@ const mockReturnOrders: ReturnOrder[] = [
     category: "RETURN",
     sourceNote: "Đã gửi thông báo qua email",
   },
+  // Đơn giao thành công (hàng hoàn đã về, chưa hoàn tiền) – tách riêng mã với WEB-0042
+  {
+    id: "RET-202411-003B",
+    orderCode: "WEB-0043",
+    createdAt: "23/11/2025 10:25",
+    customerId: "KH-007815",
+    customerName: "Nguyễn Minh Đức",
+    customerUsername: "minhduc",
+    productName: "Balo phượt 40L TrailMate",
+    productVariant: "Màu xanh rêu",
+    totalAmount: 1250000,
+    paymentMethod: "Chuyển khoản",
+    reason: "Lý do trả hàng: Không ưng màu, muốn đổi sang mẫu khác",
+    buyerOptions: ["Trả hàng & hoàn tiền"],
+    statusLabel: "Đang chờ kiểm hàng",
+    statusKey: "RETURNING",
+    resolutionNote: "Kho đã nhận hàng hoàn, đang chờ bộ phận kế toán xử lý hoàn tiền",
+    forwardShippingStatus: "Đã hoàn thành",
+    returnShippingStatus: "Đã trả hàng cho người bán",
+    refundStatus: "WAITING",
+    refundStatusLabel: "Chưa hoàn tiền",
+    source: "Website",
+    category: "RETURN",
+    sourceNote: "Đã gửi email xác nhận giao hàng hoàn thành cho khách",
+  },
   {
     id: "RET-202411-004",
     orderCode: "WEB-0099",
@@ -167,7 +194,7 @@ const mockReturnOrders: ReturnOrder[] = [
     productVariant: "Size L · Combo 2 sản phẩm",
     totalAmount: 980000,
     paymentMethod: "Chuyển khoản",
-    reason: "Yêu cầu bị huỷ: Không cung cấp đủ hình ảnh lỗi sản phẩm",
+    reason: "Lý do trả hàng: Rộng, không giống hình ảnh",
     buyerOptions: [
       "Trả hàng & hoàn tiền",
       "Hoàn tiền ngay",
@@ -198,13 +225,14 @@ const mockReturnOrders: ReturnOrder[] = [
     buyerOptions: [
       "Hoàn tiền ngay",
     ],
-    statusLabel: "Đã hoàn tiền cho người mua",
-    statusKey: "COMPLETED",
-    resolutionNote: "Đơn huỷ, không phát sinh trả hàng",
+    // Đơn huỷ thanh toán chuyển khoản – vẫn đang chờ duyệt hoàn tiền
+    statusLabel: "Đang chờ xét duyệt",
+    statusKey: "UNDER_REVIEW",
+    resolutionNote: "Đã ghi nhận yêu cầu hủy, đang chờ duyệt hoàn tiền cho người mua",
     forwardShippingStatus: "Chưa giao · Đã khóa trên hệ thống",
     returnShippingStatus: "Không áp dụng",
-    refundStatus: "DONE",
-    refundStatusLabel: "Đã hoàn tiền đủ",
+    refundStatus: "WAITING",
+    refundStatusLabel: "Chưa hoàn tiền",
     source: "Website",
     category: "CANCEL",
     sourceNote: "Đã gửi thông báo qua email",
@@ -305,6 +333,31 @@ const mockReturnOrders: ReturnOrder[] = [
     category: "FAILED",
     sourceNote: "Wanderoo Express · Đã chốt biên bản hoàn hàng",
   },
+  // Đơn trả hàng hoàn tiền đã hoàn tiền cho người mua – nguồn POS
+  {
+    id: "RET-202411-009",
+    orderCode: "POS-2211",
+    createdAt: "24/11/2025 19:05",
+    customerId: "KH-003999",
+    customerName: "Ngô Minh Khoa",
+    customerUsername: "minhkhoa",
+    productName: "Giày leo núi Nam Summit Pro",
+    productVariant: "Màu đen · Size 42",
+    totalAmount: 2350000,
+    paymentMethod: "Tiền mặt",
+    reason: "Lý do trả hàng: Bị rộng, khách muốn đổi size khác",
+    buyerOptions: ["Trả hàng & hoàn tiền"],
+    statusLabel: "Đã hoàn tiền cho người mua",
+    statusKey: "COMPLETED",
+    resolutionNote: "Đã trả hàng về kho và hoàn đủ tiền cho khách tại quầy POS",
+    forwardShippingStatus: "Đã hoàn thành",
+    returnShippingStatus: "Đã trả hàng cho người bán",
+    refundStatus: "DONE",
+    refundStatusLabel: "Đã hoàn tiền đủ",
+    source: "POS",
+    category: "RETURN",
+    sourceNote: "Tạo từ POS · Đã xử lý hoàn tất",
+  },
 ];
 
 const primaryTabs: TabItemWithBadge[] = [
@@ -318,6 +371,7 @@ const statusTabs: TabItem[] = [
   { id: "ALL", label: "Tất cả" },
   { id: "UNDER_REVIEW", label: "Đang chờ xét duyệt" },
   { id: "RETURNING", label: "Đang trả hàng" },
+  { id: "DELIVERED", label: "Giao thành công" },
   { id: "COMPLETED", label: "Đã hoàn tiền cho người mua" },
   { id: "INVALID", label: "Yêu cầu bị huỷ/không hợp lệ" },
 ];
@@ -411,16 +465,58 @@ const stripReasonPrefix = (reason: string) => {
   );
 };
 
+interface OtherStatusNavigationState {
+  pathname?: string;
+  activePrimaryTab?: ReturnOrderCategory | "ALL";
+  activeStatusTab?: "ALL" | ReturnOrderStatus;
+  activeCancelSubTab?: "ALL" | "PROCESSING" | "PROCESSED";
+  activeFailedSubTab?:
+    | "ALL"
+    | "RETURNING_TO_SELLER"
+    | "RETURNED_TO_SELLER"
+    | "FAILED_RETURN";
+  searchTerm?: string;
+}
+
 const AdminOrderOtherStatus = () => {
   document.title = "Trả hàng/Hoàn tiền/Huỷ | Wanderoo";
 
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [activePrimaryTab, setActivePrimaryTab] = useState("ALL");
-  const [activeStatusTab, setActiveStatusTab] = useState("ALL");
-  const [activeCancelSubTab, setActiveCancelSubTab] = useState("ALL");
-  const [activeFailedSubTab, setActiveFailedSubTab] = useState("ALL");
+  const [activePrimaryTab, setActivePrimaryTab] = useState<ReturnOrderCategory | "ALL">("ALL");
+  const [activeStatusTab, setActiveStatusTab] = useState<"ALL" | ReturnStatusFilter>("ALL");
+  const [activeCancelSubTab, setActiveCancelSubTab] = useState<"ALL" | "PROCESSING" | "PROCESSED">(
+    "ALL"
+  );
+  const [activeFailedSubTab, setActiveFailedSubTab] = useState<
+    "ALL" | "RETURNING_TO_SELLER" | "RETURNED_TO_SELLER" | "FAILED_RETURN"
+  >("ALL");
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const preservedState = (location.state as { returnTo?: OtherStatusNavigationState } | null)
+      ?.returnTo;
+    if (preservedState) {
+      if (preservedState.activePrimaryTab) {
+        setActivePrimaryTab(preservedState.activePrimaryTab);
+      }
+      if (preservedState.activeStatusTab) {
+        setActiveStatusTab(preservedState.activeStatusTab);
+      }
+      if (preservedState.activeCancelSubTab) {
+        setActiveCancelSubTab(preservedState.activeCancelSubTab);
+      }
+      if (preservedState.activeFailedSubTab) {
+        setActiveFailedSubTab(preservedState.activeFailedSubTab);
+      }
+      if (typeof preservedState.searchTerm === "string") {
+        setSearchTerm(preservedState.searchTerm);
+      }
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const tabCounts = useMemo(() => {
     return mockReturnOrders.reduce(
@@ -464,6 +560,10 @@ const AdminOrderOtherStatus = () => {
     if (activePrimaryTab !== "FAILED") {
       setActiveFailedSubTab("ALL");
     }
+    // Khi ở tab "Tất cả" (top-level), luôn reset filter trạng thái con về "ALL"
+    if (activePrimaryTab === "ALL" && activeStatusTab !== "ALL") {
+      setActiveStatusTab("ALL");
+    }
   }, [activePrimaryTab]);
 
   const filteredOrders = useMemo(() => {
@@ -500,8 +600,22 @@ const AdminOrderOtherStatus = () => {
           matchStatus = true; // "ALL"
         }
       } else {
-        matchStatus =
-          activeStatusTab === "ALL" || order.statusKey === activeStatusTab;
+        if (activeStatusTab === "ALL") {
+          matchStatus = true;
+        } else if (activeStatusTab === "DELIVERED") {
+          // Tab "Giao thành công": ưu tiên lọc theo trạng thái vận chuyển hàng hoàn
+          // Các đơn có trạng thái trả hàng bắt đầu bằng "Đã" (đã trả hàng/đã hoàn thành)
+          // Loại trừ đơn đã hoàn tiền đủ (WEB-0042) và đơn POS-2211 theo yêu cầu mock
+          matchStatus =
+            order.orderCode !== "WEB-0042" &&
+            order.orderCode !== "POS-2211" &&
+            order.returnShippingStatus.trim().startsWith("Đã");
+        } else if (activeStatusTab === "RETURNING") {
+          // Tab "Đang trả hàng": loại trừ đơn WEB-0043 (chỉ hiển thị ở tab Giao thành công)
+          matchStatus = order.statusKey === "RETURNING" && order.orderCode !== "WEB-0043";
+        } else {
+          matchStatus = order.statusKey === activeStatusTab;
+        }
       }
       
       const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -530,7 +644,17 @@ const AdminOrderOtherStatus = () => {
 
   const handleViewDetail = (order: ReturnOrder) => {
     navigate(`/admin/orders/${order.orderCode}`, {
-      state: { status: order.statusLabel, source: order.source },
+      state: {
+        fakeOrder: order,
+        returnTo: {
+          pathname: "/admin/orders/otherstatus",
+          activePrimaryTab,
+          activeStatusTab,
+          activeCancelSubTab,
+          activeFailedSubTab,
+          searchTerm,
+        },
+      },
     });
   };
 
@@ -573,7 +697,12 @@ const AdminOrderOtherStatus = () => {
               />
             ) : (
               <TabMenu
-                tabs={statusTabs}
+                // Ở top-level "Tất cả": chỉ hiển thị 1 tab "Tất cả"
+                tabs={
+                  activePrimaryTab === "ALL"
+                    ? [{ id: "ALL", label: "Tất cả" }]
+                    : statusTabs
+                }
                 activeTab={activeStatusTab}
                 onTabChange={setActiveStatusTab}
                 variant="underline"
@@ -615,6 +744,12 @@ const AdminOrderOtherStatus = () => {
                       ? "Website"
                       : order.source;
                   const paymentBadge = getPaymentBadge(order.paymentMethod);
+
+                  // Hiển thị trạng thái "Đã xử lý" cho các đơn hủy đã hoàn tiền
+                  const statusLabelForDisplay =
+                    order.category === "CANCEL" && order.refundStatus === "DONE"
+                      ? "Đã xử lý"
+                      : order.statusLabel;
 
                   return (
                     <div
@@ -662,12 +797,16 @@ const AdminOrderOtherStatus = () => {
                       </div>
 
                       <div className="flex items-center">
-                        {order.category === "FAILED" ? (
+                        {order.orderCode === "WEB-0043" ? (
+                          <span className="inline-flex items-center rounded-full bg-[#ebebeb] text-[#6f6f6f] px-4 py-[6px] text-[12px] font-semibold whitespace-nowrap border border-[#dadada]">
+                            Đang chờ kiểm hàng
+                          </span>
+                        ) : order.category === "FAILED" ? (
                           <span className="inline-flex items-center rounded-full bg-[#f4f4f4] text-[#575757] px-4 py-[6px] text-[12px] font-semibold border border-[#e0e0e0]">
                             Chờ hoàn tiền
                           </span>
                         ) : (
-                          <StatusBadge label={order.statusLabel} status={order.statusKey} />
+                          <StatusBadge label={statusLabelForDisplay} status={order.statusKey} />
                         )}
                       </div>
 
@@ -677,6 +816,10 @@ const AdminOrderOtherStatus = () => {
                             <span>Giao hàng</span>
                             <span className="whitespace-nowrap">không thành công</span>
                           </span>
+                        ) : order.category === "CANCEL" ? (
+                          <span className="inline-flex items-center rounded-full bg-red-50 text-red-600 border border-red-200 px-4 py-[6px] font-semibold whitespace-nowrap">
+                            Đã huỷ
+                          </span>
                         ) : (
                           <span className="inline-flex items-center rounded-full bg-[#b7f5b0] px-3 py-1 font-semibold text-[12px] text-[#0d8f1a] shadow-[0_2px_6px_rgba(16,185,129,0.25)] whitespace-nowrap">
                             Đã hoàn thành
@@ -685,7 +828,9 @@ const AdminOrderOtherStatus = () => {
                       </div>
 
                       <div className="flex items-center text-[12px] text-[#272424]">
-                        {isReturnShippingFailure ? (
+                        {order.category === "CANCEL" ? (
+                          <span className="text-[#737373] font-medium">---</span>
+                        ) : isReturnShippingFailure ? (
                           <span className="inline-flex flex-col items-center rounded-full bg-red-50 text-red-600 border border-red-200 px-4 py-2 font-semibold text-[12px] leading-tight text-center">
                             <span>Giao hàng</span>
                             <span className="whitespace-nowrap">không thành công</span>

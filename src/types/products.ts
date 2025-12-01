@@ -22,6 +22,15 @@ export interface VariantResponse {
   price: number;
   quantity: number;
   status: string;
+  // Optional fields returned by admin/private APIs
+  productName?: string;
+  nameDetail?: string;
+  imageUrl?: string | string[];
+  barcode?: string;
+  totalQuantity?: number;
+  availableQuantity?: number;
+  sellingPrice?: number | string;
+  importPrice?: number | string;
 }
 
 export interface VariantPageResponse extends PageResponse<VariantResponse> {}

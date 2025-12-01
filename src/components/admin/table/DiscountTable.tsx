@@ -14,6 +14,7 @@ export interface DiscountTableProps {
   onViewOrders?: (voucher: Voucher) => void;
   onEnd?: (voucher: Voucher) => void;
   className?: string;
+  selectable?: boolean;
 }
 
 const getStatusBadgeClass = (status: string) => {
@@ -39,6 +40,7 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
   onViewOrders,
   onEnd,
   className,
+  selectable = false,
 }) => {
   const columns: TableColumn[] = [
     {
@@ -218,7 +220,7 @@ title: "SP áp dụng",
           columns={columns}
           data={vouchers}
           loading={loading}
-          selectable={true}
+          selectable={selectable}
           selectedRows={selectedRows}
           onSelectRow={onSelectRow}
           onSelectAll={onSelectAll}

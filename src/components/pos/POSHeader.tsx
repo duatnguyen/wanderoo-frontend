@@ -57,6 +57,8 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   const [isSearchingProducts, setIsSearchingProducts] = useState(false);
   const [productSearchError, setProductSearchError] = useState<string | null>(null);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
+  const productSearchCacheRef = useRef<Map<string, SaleProductResponse[]>>(new Map());
+  const latestSearchIdRef = useRef(0);
   const { productSelectHandler } = usePOSContext();
 
   useEffect(() => {
@@ -84,38 +86,44 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     }
 
     const keyword = searchValue?.trim() ?? "";
-    if (!keyword) {
-      setProductResults([]);
+    const cacheKey = keyword.toLowerCase();
+
+    const cachedResults = productSearchCacheRef.current.get(cacheKey);
+    if (cachedResults) {
+      setProductResults(cachedResults);
       setProductSearchError(null);
       setIsSearchingProducts(false);
       return;
     }
 
-    let isCancelled = false;
+    const currentSearchId = ++latestSearchIdRef.current;
     setIsSearchingProducts(true);
     setProductSearchError(null);
 
     const handler = window.setTimeout(async () => {
       try {
-        const results = await searchProducts(keyword);
-        if (!isCancelled) {
-          setProductResults(results);
+        const results = await searchProducts(keyword || undefined);
+
+        if (currentSearchId !== latestSearchIdRef.current) {
+          return;
         }
+
+        productSearchCacheRef.current.set(cacheKey, results);
+        setProductResults(results);
       } catch (error) {
         console.error("Không thể tìm sản phẩm:", error);
-        if (!isCancelled) {
+        if (currentSearchId === latestSearchIdRef.current) {
           setProductResults([]);
           setProductSearchError("Không thể tải danh sách sản phẩm");
         }
       } finally {
-        if (!isCancelled) {
+        if (currentSearchId === latestSearchIdRef.current) {
           setIsSearchingProducts(false);
         }
       }
-    }, 350);
+    }, 250);
 
     return () => {
-      isCancelled = true;
       clearTimeout(handler);
     };
   }, [isSalesPage, searchValue]);
@@ -140,7 +148,10 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     return (
       <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-40 overflow-hidden">
         <div className="max-h-80 overflow-y-auto divide-y divide-[#f0f0f0]">
-          {!hasKeyword && !isSearchingProducts && (
+          {!hasKeyword &&
+            !isSearchingProducts &&
+            !productSearchError &&
+            productResults.length === 0 && (
             <p className="px-4 py-3 text-sm text-[#6F6F6F]">
               Nhập tên hoặc mã barcode để tìm sản phẩm
             </p>
