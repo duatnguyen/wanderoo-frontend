@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
 } from "react";
@@ -25,6 +26,23 @@ import type {
   BrandResponse,
   ProductCategoryItemResponse,
 } from "../../../../types";
+
+// Hook để debounce giá trị
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 const PAGE_SIZE = 12;
 
@@ -58,50 +76,56 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   onBrandToggle,
 }) => {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      {/* Khoảng giá */}
       <section>
-        <p className="text-sm font-semibold text-slate-900 mb-3">
+        <h4 className="text-sm font-semibold text-[#0b1f3a] mb-3">
           Khoảng giá (VNĐ)
-        </p>
+        </h4>
         <div className="flex items-center gap-3">
           <input
             type="number"
             value={filters.minPrice}
             onChange={(e) => onPriceChange("minPrice", e.target.value)}
             placeholder="Từ"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f97316]"
+            className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm text-[#454545] placeholder:text-gray-400 focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-colors"
           />
-          <span className="text-gray-400 text-sm">-</span>
+          <span className="text-gray-400 text-sm font-medium">-</span>
           <input
             type="number"
             value={filters.maxPrice}
             onChange={(e) => onPriceChange("maxPrice", e.target.value)}
             placeholder="Đến"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f97316]"
+            className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm text-[#454545] placeholder:text-gray-400 focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-colors"
           />
         </div>
       </section>
 
+      {/* Thương hiệu */}
       <section>
-        <p className="text-sm font-semibold text-slate-900 mb-3">Thương hiệu</p>
+        <h4 className="text-sm font-semibold text-[#0b1f3a] mb-3">Thương hiệu</h4>
         {isBrandLoading ? (
-          <p className="text-xs text-gray-400">Đang tải...</p>
+          <div className="flex items-center justify-center py-4">
+            <p className="text-xs text-gray-400">Đang tải...</p>
+          </div>
         ) : brands.length === 0 ? (
-          <p className="text-xs text-gray-400">Chưa có thương hiệu</p>
+          <div className="flex items-center justify-center py-4">
+            <p className="text-xs text-gray-400">Chưa có thương hiệu</p>
+          </div>
         ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
             {brands.map((brand) => (
               <label
                 key={brand.id}
-                className="flex cursor-pointer items-center gap-2 text-sm text-slate-600"
+                className="flex cursor-pointer items-center gap-3 text-sm text-[#454545] hover:text-[#1c3b6c] transition-colors group"
               >
                 <input
                   type="checkbox"
                   checked={filters.brandIds.includes(brand.id)}
                   onChange={() => onBrandToggle(brand.id)}
-                  className="size-4 rounded border-gray-300 text-[#f97316] focus:ring-[#f97316]"
+                  className="size-5 rounded border-2 border-gray-300 text-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 focus:ring-offset-0 cursor-pointer transition-all group-hover:border-[#f97316]"
                 />
-                <span>{brand.name}</span>
+                <span className="flex-1">{brand.name}</span>
               </label>
             ))}
           </div>
@@ -118,6 +142,108 @@ const getDiscountPercent = (discountValue?: string | null) => {
   return Number(match[1]);
 };
 
+type SortOption = {
+  value: string;
+  label: string;
+};
+
+const SORT_OPTIONS: SortOption[] = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "PRICE_ASC", label: "Giá tăng dần" },
+  { value: "PRICE_DESC", label: "Giá giảm dần" },
+  { value: "IN_STOCK", label: "Còn hàng" },
+  { value: "RATING", label: "Đánh giá cao" },
+];
+
+type SortDropdownProps = {
+  value: string;
+  options: SortOption[];
+  onChange: (value: string) => void;
+};
+
+const SortDropdown: React.FC<SortDropdownProps> = ({
+  value,
+  options,
+  onChange,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find((opt) => opt.value === value) || options[0];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center justify-between gap-2 rounded-2xl border-2 px-4 py-2 text-sm font-medium transition-all ${
+          isOpen
+            ? "border-[#f97316] bg-white shadow-sm"
+            : "border-gray-200 bg-white hover:border-gray-300"
+        }`}
+      >
+        <span className="text-[#454545]">{selectedOption.label}</span>
+        <svg
+          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 z-50 mt-2 w-full min-w-[180px] rounded-xl border border-gray-200 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+          <div className="py-1">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-4 py-2.5 text-left text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${
+                  option.value === value
+                    ? "bg-blue-500 text-white font-medium"
+                    : "text-[#454545] hover:bg-gray-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ProductCategoryListing: React.FC = () => {
   const { getCartCount } = useCart();
   const { user } = useAuth();
@@ -127,6 +253,9 @@ const ProductCategoryListing: React.FC = () => {
   const [sortOption, setSortOption] = useState<string>("ALL");
   const [page, setPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  // Debounce keyword để tránh gọi API quá nhiều
+  const debouncedKeyword = useDebounce(filters.keyword, 500);
 
   const { data: parentCategories = [] } = useQuery({
     queryKey: ["publicCategoryParents"],
@@ -157,16 +286,39 @@ const ProductCategoryListing: React.FC = () => {
 
   const brandOptions = brandQuery.data ?? [];
 
+  // Chuyển đổi sort option thành format API
+  const getSortParam = useCallback((sortOption: string): string | undefined => {
+    switch (sortOption) {
+      case "PRICE_ASC":
+        return "price_asc";
+      case "PRICE_DESC":
+        return "price_desc";
+      case "RATING":
+        return "rating_desc";
+      case "IN_STOCK":
+        return "in_stock";
+      case "ALL":
+      default:
+        return undefined;
+    }
+  }, []);
+
+  // Tạo filter object với debounced keyword và sort
+  const apiFilters = useMemo(() => ({
+    keyword: debouncedKeyword || undefined,
+    brandIds: filters.brandIds.length ? filters.brandIds : undefined,
+    minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
+    maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+    sort: getSortParam(sortOption),
+  }), [debouncedKeyword, filters.brandIds, filters.minPrice, filters.maxPrice, sortOption, getSortParam]);
+
   const productQuery = useQuery({
-    queryKey: ["publicCategoryProducts", resolvedCategoryId, filters, page],
+    queryKey: ["publicCategoryProducts", resolvedCategoryId, apiFilters, page],
     enabled: resolvedCategoryId > 0,
     keepPreviousData: true,
     queryFn: () =>
       getPublicProductsByCategory(resolvedCategoryId, {
-        keyword: filters.keyword || undefined,
-        brandIds: filters.brandIds.length ? filters.brandIds : undefined,
-        minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
-        maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
+        ...apiFilters,
         page: Math.max(page - 1, 0),
         size: PAGE_SIZE,
       }),
@@ -174,8 +326,18 @@ const ProductCategoryListing: React.FC = () => {
 
   const products = productQuery.data?.productCategoryResponseList ?? [];
 
+  // Sort ở client-side như fallback (nếu API chưa hỗ trợ sort hoặc cần xử lý thêm)
+  // Nếu API đã xử lý sort đúng, có thể bỏ qua phần này
   const sortedProducts = useMemo(() => {
-    const list = [...products];
+    let list = [...products];
+    
+    // Xử lý filter "Còn hàng"
+    if (sortOption === "IN_STOCK") {
+      list = list.filter((p) => p.minSellingPrice > 0);
+    }
+    
+    // Client-side sort như fallback (nếu API chưa sort đúng)
+    // Nếu API đã sort, có thể comment phần này
     switch (sortOption) {
       case "PRICE_ASC":
         return list.sort(
@@ -187,6 +349,9 @@ const ProductCategoryListing: React.FC = () => {
         );
       case "RATING":
         return list.sort((a, b) => b.rating - a.rating);
+      case "IN_STOCK":
+        // Đã filter ở trên, giữ nguyên thứ tự
+        return list;
       default:
         return list;
     }
@@ -213,7 +378,7 @@ const ProductCategoryListing: React.FC = () => {
 
   const totalPages = productQuery.data?.totalPages ?? 1;
 
-  // Đếm số bộ lọc đang áp dụng
+  // Đếm số bộ lọc đang áp dụng (không tính keyword vì nó là search)
   const appliedFilterCount = useMemo(() => {
     return (
       filters.brandIds.length +
@@ -221,10 +386,18 @@ const ProductCategoryListing: React.FC = () => {
       (filters.maxPrice ? 1 : 0)
     );
   }, [filters]);
+  
 
   const handleKeywordChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     setFilters((prev) => ({ ...prev, keyword: value }));
+    // Reset page khi keyword thay đổi (debounce sẽ xử lý việc gọi API)
+    setPage(1);
+  };
+  
+  const handleSortChange = (value: string) => {
+    setSortOption(value);
+    // Reset page khi sort thay đổi
     setPage(1);
   };
 
@@ -271,25 +444,19 @@ const ProductCategoryListing: React.FC = () => {
               onChange={handleKeywordChange}
               className="flex-1 rounded-2xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f97316]"
             />
-            <select
+            <SortDropdown
               value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-              className="rounded-2xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f97316]"
-            >
-              <option value="ALL">Tất cả</option>
-              <option value="PRICE_ASC">Giá tăng dần</option>
-              <option value="PRICE_DESC">Giá giảm dần</option>
-              <option value="IN_STOCK">Còn hàng</option>
-              <option value="RATING">Đánh giá cao</option>
-            </select>
+              options={SORT_OPTIONS}
+              onChange={handleSortChange}
+            />
             <button
               type="button"
               onClick={() => setIsFilterOpen(true)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[#1c3b6c] px-4 py-2 text-sm font-semibold text-[#1c3b6c] transition hover:bg-[#1c3b6c] hover:text-white"
+              className="inline-flex items-center gap-2 rounded-2xl border-2 border-[#1c3b6c] bg-white px-4 py-2 text-sm font-semibold text-[#1c3b6c] transition-all hover:bg-[#1c3b6c] hover:text-white hover:shadow-md"
             >
               <span>Bộ lọc</span>
               {appliedFilterCount > 0 && (
-                <span className="rounded-full bg-[#f97316] px-2 py-0.5 text-xs font-semibold text-white">
+                <span className="flex items-center justify-center min-w-[20px] h-5 rounded-full bg-[#f97316] px-2 text-xs font-semibold text-white">
                   {appliedFilterCount}
                 </span>
               )}
@@ -363,44 +530,73 @@ const ProductCategoryListing: React.FC = () => {
       {isFilterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setIsFilterOpen(false)}
           />
-          <div className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-6 shadow-[0_30px_80px_rgba(4,12,24,0.45)]">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[#0b1f3a]">Bộ lọc</h3>
-              <button
-                type="button"
-                className="text-sm font-medium text-[#1c3b6c] hover:underline"
-                onClick={resetFilters}
-              >
-                Đặt lại
-              </button>
+          <div className="relative max-h-[90vh] w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-[0_30px_80px_rgba(4,12,24,0.45)]">
+            {/* Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
+              <h3 className="text-xl font-bold text-[#0b1f3a]">Bộ lọc</h3>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  className="text-sm font-medium text-[#1c3b6c] hover:text-[#f97316] hover:underline transition-colors"
+                  onClick={resetFilters}
+                >
+                  Đặt lại
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsFilterOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+                  aria-label="Đóng"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            <FilterPanel
-              filters={filters}
-              brands={brandOptions}
-              isBrandLoading={brandQuery.isLoading}
-              onPriceChange={handlePriceChange}
-              onBrandToggle={handleBrandToggle}
-            />
+            {/* Content */}
+            <div className="overflow-y-auto max-h-[calc(90vh-180px)] px-6 py-6">
+              <FilterPanel
+                filters={filters}
+                brands={brandOptions}
+                isBrandLoading={brandQuery.isLoading}
+                onPriceChange={handlePriceChange}
+                onBrandToggle={handleBrandToggle}
+              />
+            </div>
 
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                className="flex-1 rounded-2xl border border-[#1c3b6c] py-2 text-sm font-semibold text-[#1c3b6c] hover:bg-gray-50"
-                onClick={resetFilters}
-              >
-                Xóa bộ lọc
-              </button>
-              <button
-                type="button"
-                className="flex-1 rounded-2xl bg-[#f97316] py-2 text-sm font-semibold text-white hover:bg-[#ea580c]"
-                onClick={() => setIsFilterOpen(false)}
-              >
-                Áp dụng
-              </button>
+            {/* Footer */}
+            <div className="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4">
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  className="flex-1 rounded-2xl border-2 border-[#1c3b6c] py-3 text-sm font-semibold text-[#1c3b6c] hover:bg-[#1c3b6c] hover:text-white transition-colors"
+                  onClick={resetFilters}
+                >
+                  Xóa bộ lọc
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-2xl bg-[#f97316] py-3 text-sm font-semibold text-white hover:bg-[#ea580c] transition-colors shadow-md"
+                  onClick={() => setIsFilterOpen(false)}
+                >
+                  Áp dụng
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -45,6 +45,7 @@ export type PublicProductListQuery = {
   brandIds?: number[];
   minPrice?: number;
   maxPrice?: number;
+  sort?: string;
   page?: number;
   size?: number;
 };
