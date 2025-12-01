@@ -71,8 +71,11 @@ const buildFakeOrderFromOtherStatus = (fakeOrder: any, orderId?: string): Custom
   //    - statusKey === "UNDER_REVIEW" → "PENDING"
   //    - statusKey === "RETURNING"    → "SHIPPING" (đang xử lý / đang giao trả hàng)
   //    - statusKey === "INVALID"      → "CANCELED_PENDING" (yêu cầu không hợp lệ)
+  // 3. Đơn Giao hàng không thành công (FAILED):
+  //    - hiển thị như một trạng thái riêng "DELIVERY_FAILED" để card trên cùng luôn màu đỏ
   const isCancelCategory = fakeOrder?.category === "CANCEL";
   const isReturnCategory = fakeOrder?.category === "RETURN";
+  const isFailedCategory = fakeOrder?.category === "FAILED";
   const isCancelProcessed = isCancelCategory && fakeOrder?.refundStatus === "DONE";
 
   let statusCode: CustomerOrderResponse["status"] = "PENDING";
@@ -90,6 +93,8 @@ const buildFakeOrderFromOtherStatus = (fakeOrder: any, orderId?: string): Custom
     } else {
       statusCode = "PENDING";
     }
+  } else if (isFailedCategory) {
+    statusCode = "DELIVERY_FAILED";
   }
 
   // Đơn WEB-0043: hiển thị trạng thái màu xám "Đang chờ kiểm hàng" trên card trạng thái
@@ -157,10 +162,14 @@ const AdminOrderDetailWebsite: React.FC = () => {
   };
 
   const getStatusDisplayName = (status: string) => {
-    // Nếu điều hướng từ màn Trả hàng/Hoàn tiền/Huỷ và là nhóm RETURN
-    // thì ưu tiên dùng nhãn trạng thái chi tiết từ mock (ví dụ WEB-0001)
+    // Nếu điều hướng từ màn Trả hàng/Hoàn tiền/Huỷ:
+    // - Nhóm RETURN: ưu tiên dùng nhãn trạng thái chi tiết từ mock (ví dụ WEB-0001)
+    // - Nhóm FAILED: luôn hiển thị "Giao hàng không thành công" màu đỏ
     if (fakeOrderFromOtherStatus?.category === "RETURN" && fakeOrderFromOtherStatus?.statusLabel) {
       return fakeOrderFromOtherStatus.statusLabel;
+    }
+    if (fakeOrderFromOtherStatus?.category === "FAILED") {
+      return "Giao hàng không thành công";
     }
 
     switch (status) {
@@ -293,6 +302,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
         };
       case "CANCELED":
       case "CANCELED_PENDING":
+      case "DELIVERY_FAILED":
         return {
           bg: "bg-[#ffdcdc]",
           text: "text-[#eb2b0b]",

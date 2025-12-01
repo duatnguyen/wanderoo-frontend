@@ -333,6 +333,32 @@ const mockReturnOrders: ReturnOrder[] = [
     category: "FAILED",
     sourceNote: "Wanderoo Express · Đã chốt biên bản hoàn hàng",
   },
+  // Đơn giao thất bại đang chờ trả hàng (hiển thị ở tab \"Chờ trả hàng\")
+  {
+    id: "RET-202411-010",
+    orderCode: "WEB-0202",
+    createdAt: "24/11/2025 16:10",
+    customerId: "KH-010010",
+    customerName: "Nguyễn Hải Nam",
+    customerUsername: "hainam_92",
+    productName: "Áo phao trekking X-Therm",
+    productVariant: "Màu xanh navy · Size M",
+    totalAmount: 1650000,
+    paymentMethod: "Chuyển khoản",
+    reason: "Đơn giao thất bại: Khách yêu cầu trả lại hàng khi bưu tá giao",
+    buyerOptions: ["Trả hàng & hoàn tiền"],
+    statusLabel: "Đang trả hàng cho người bán",
+    statusKey: "RETURNING",
+    resolutionNote:
+      "Đơn đang chờ bưu tá mang hàng hoàn về kho trung tâm để xử lý hoàn tiền",
+    forwardShippingStatus: "Đang giao lần 2 · Chờ xác nhận khách nhận",
+    returnShippingStatus: "Đang chờ trả hàng về kho",
+    refundStatus: "WAITING",
+    refundStatusLabel: "Chưa hoàn tiền",
+    source: "Website",
+    category: "FAILED",
+    sourceNote: "Giao bởi Wanderoo Express · Đang chờ hàng hoàn",
+  },
   // Đơn trả hàng hoàn tiền đã hoàn tiền cho người mua – nguồn POS
   {
     id: "RET-202411-009",
@@ -382,12 +408,7 @@ const cancelSubTabs: TabItem[] = [
   { id: "PROCESSED", label: "Đã xử lý" },
 ];
 
-const failedSubTabs: TabItem[] = [
-  { id: "ALL", label: "Tất cả" },
-  { id: "RETURNING_TO_SELLER", label: "Đang trả hàng cho người bán" },
-  { id: "RETURNED_TO_SELLER", label: "Đã trả hàng cho người bán" },
-  { id: "FAILED_RETURN", label: "Trả hàng không thành công" },
-];
+// Với nhóm \"Đơn Giao hàng không thành công\" hiện tại chỉ dùng 1 tab \"Tất cả\"
 
 const statusBadgeClasses: Record<ReturnOrderStatus, string> = {
   UNDER_REVIEW: "bg-yellow-50 text-yellow-800 border-yellow-200",
@@ -472,6 +493,7 @@ interface OtherStatusNavigationState {
   activeCancelSubTab?: "ALL" | "PROCESSING" | "PROCESSED";
   activeFailedSubTab?:
     | "ALL"
+    | "WAITING_FOR_RETURN"
     | "RETURNING_TO_SELLER"
     | "RETURNED_TO_SELLER"
     | "FAILED_RETURN";
@@ -487,11 +509,11 @@ const AdminOrderOtherStatus = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activePrimaryTab, setActivePrimaryTab] = useState<ReturnOrderCategory | "ALL">("ALL");
   const [activeStatusTab, setActiveStatusTab] = useState<"ALL" | ReturnStatusFilter>("ALL");
-  const [activeCancelSubTab, setActiveCancelSubTab] = useState<"ALL" | "PROCESSING" | "PROCESSED">(
-    "ALL"
-  );
+  const [activeCancelSubTab, setActiveCancelSubTab] = useState<
+    "ALL" | "PROCESSING" | "PROCESSED"
+  >("ALL");
   const [activeFailedSubTab, setActiveFailedSubTab] = useState<
-    "ALL" | "RETURNING_TO_SELLER" | "RETURNED_TO_SELLER" | "FAILED_RETURN"
+    "ALL"
   >("ALL");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -557,6 +579,7 @@ const AdminOrderOtherStatus = () => {
     if (activePrimaryTab !== "CANCEL") {
       setActiveCancelSubTab("ALL");
     }
+    // Nhóm FAILED hiện tại chỉ dùng 1 tab \"Tất cả\", luôn reset về ALL cho chắc chắn
     if (activePrimaryTab !== "FAILED") {
       setActiveFailedSubTab("ALL");
     }
@@ -583,22 +606,9 @@ const AdminOrderOtherStatus = () => {
           matchStatus = true; // "ALL"
         }
       } else if (activePrimaryTab === "FAILED") {
-        // Xử lý tab con cho "Đơn Giao hàng không thành công"
-        if (activeFailedSubTab === "RETURNING_TO_SELLER") {
-          matchStatus = order.returnShippingStatus.includes(
-            "Đang trả hàng cho người bán"
-          );
-        } else if (activeFailedSubTab === "RETURNED_TO_SELLER") {
-          matchStatus = order.returnShippingStatus.includes(
-            "Đã trả hàng cho người bán"
-          );
-        } else if (activeFailedSubTab === "FAILED_RETURN") {
-          matchStatus = order.returnShippingStatus.includes(
-            "Trả hàng không thành công"
-          );
-        } else {
-          matchStatus = true; // "ALL"
-        }
+        // Nhóm "Đơn Giao hàng không thành công" hiện chỉ dùng 1 tab "Tất cả"
+        // => không lọc thêm theo trạng thái con, chỉ cần đúng category FAILED
+        matchStatus = true;
       } else {
         if (activeStatusTab === "ALL") {
           matchStatus = true;
@@ -687,19 +697,11 @@ const AdminOrderOtherStatus = () => {
                 variant="underline"
                 className="overflow-x-auto"
               />
-            ) : activePrimaryTab === "FAILED" ? (
-              <TabMenu
-                tabs={failedSubTabs}
-                activeTab={activeFailedSubTab}
-                onTabChange={setActiveFailedSubTab}
-                variant="underline"
-                className="overflow-x-auto"
-              />
             ) : (
               <TabMenu
-                // Ở top-level "Tất cả": chỉ hiển thị 1 tab "Tất cả"
+                // Ở top-level "Tất cả" và nhóm FAILED: chỉ hiển thị 1 tab "Tất cả"
                 tabs={
-                  activePrimaryTab === "ALL"
+                  activePrimaryTab === "ALL" || activePrimaryTab === "FAILED"
                     ? [{ id: "ALL", label: "Tất cả" }]
                     : statusTabs
                 }
@@ -802,9 +804,7 @@ const AdminOrderOtherStatus = () => {
                             Đang chờ kiểm hàng
                           </span>
                         ) : order.category === "FAILED" ? (
-                          <span className="inline-flex items-center rounded-full bg-[#f4f4f4] text-[#575757] px-4 py-[6px] text-[12px] font-semibold border border-[#e0e0e0]">
-                            Chờ hoàn tiền
-                          </span>
+                          <span className="text-[12px] text-[#737373] font-medium">---</span>
                         ) : (
                           <StatusBadge label={statusLabelForDisplay} status={order.statusKey} />
                         )}
@@ -828,7 +828,7 @@ const AdminOrderOtherStatus = () => {
                       </div>
 
                       <div className="flex items-center text-[12px] text-[#272424]">
-                        {order.category === "CANCEL" ? (
+                        {order.category === "CANCEL" || order.category === "FAILED" ? (
                           <span className="text-[#737373] font-medium">---</span>
                         ) : isReturnShippingFailure ? (
                           <span className="inline-flex flex-col items-center rounded-full bg-red-50 text-red-600 border border-red-200 px-4 py-2 font-semibold text-[12px] leading-tight text-center">
