@@ -91,11 +91,12 @@ const OrderManagement: React.FC = () => {
           name: product.productName,
           image: product.productImage,
           variant: product.category,
-          price: product.unitPrice || 0,
+          price: product.unitPrice || 0, // Giá sau giảm
+          originalPrice: product.originalPrice, // Giá gốc (để hiển thị gạch ngang)
           quantity: product.quantity || 0,
         })),
         totalAmount: orderDetailData.paymentSummary?.totalProductPrice || 0,
-        discount: orderDetailData.paymentSummary?.discountAmount || 0,
+        discount: orderDetailData.paymentSummary?.orderDiscountAmount || 0, // Chỉ hiển thị order discount
         finalAmount: orderDetailData.paymentSummary?.totalOrderPrice || 0,
         amountPaid: orderDetailData.paymentSummary?.cashReceived || 0,
         change: orderDetailData.paymentSummary?.change || 0,

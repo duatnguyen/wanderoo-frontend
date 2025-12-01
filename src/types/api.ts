@@ -560,6 +560,8 @@ export interface CustomerOrderResponse extends OrderResponse {
   shopDistrictName?: string | null;
   shopWardCode?: string | null;
   shopWardName?: string | null;
+  orderDiscountAmount?: number;
+  productDiscountAmount?: number;
 }
 
 export interface CustomerOrderPageResponse extends PageResponse<CustomerOrderResponse> {}

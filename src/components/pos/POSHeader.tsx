@@ -179,11 +179,14 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
           {!isSearchingProducts &&
             !productSearchError &&
-            productResults.map((product) => (
+            productResults.map((product) => {
+              const isOutOfStock = (product.posSoldQuantity ?? 0) <= 0;
+              return (
               <button
                 key={product.id}
                 type="button"
                 onClick={() => {
+                  if (isOutOfStock) return;
                   effectiveProductSelect?.({
                     id: product.id?.toString() ?? "",
                     name: product.productName,
@@ -194,7 +197,12 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                   });
                   setIsDropdownOpen(false);
                 }}
-                className="w-full text-left px-4 py-3 hover:bg-[#f8f9ff] transition-colors"
+                disabled={isOutOfStock}
+                className={`w-full text-left px-4 py-3 transition-colors ${
+                  isOutOfStock 
+                    ? "opacity-50 cursor-not-allowed bg-gray-100" 
+                    : "hover:bg-[#f8f9ff]"
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg bg-gray-100 border border-[#e7e7e7] flex items-center justify-center text-xs text-[#6F6F6F] overflow-hidden">
@@ -217,21 +225,28 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                         {formatCurrency(product.sellingPrice)}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-[#737373] mt-1">
-                      <span className="line-clamp-1">
+                    <div className="flex items-center justify-between text-xs mt-1">
+                      <span className={`line-clamp-1 ${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
                         {product.attributes || "—"}
                       </span>
-                      <span className="font-medium whitespace-nowrap">
-                        Có thể bán:{" "}
-                        {product.posSoldQuantity != null
-                          ? product.posSoldQuantity.toLocaleString("vi-VN")
-                          : "—"}
+                      <span className={`font-medium whitespace-nowrap ${
+                        isOutOfStock ? "text-red-500" : "text-[#737373]"
+                      }`}>
+                        {isOutOfStock 
+                          ? "Hết hàng" 
+                          : `Có thể bán: ${
+                              product.posSoldQuantity != null
+                                ? product.posSoldQuantity.toLocaleString("vi-VN")
+                                : "—"
+                            }`
+                        }
                       </span>
                     </div>
                   </div>
                 </div>
               </button>
-            ))}
+              );
+            })}
         </div>
       </div>
     );

@@ -153,9 +153,22 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
                 </div>
               </div>
               <div className="w-32 px-6 text-center">
-                <span className="text-sm text-[#272424] font-medium">
-                  {formatCurrency(product.price)}
-                </span>
+                {product.originalPrice != null && 
+                 product.originalPrice > product.price && 
+                 Math.abs(product.originalPrice - product.price) > 0.01 ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-sm text-gray-400 line-through">
+                      {formatCurrency(product.originalPrice)}
+                    </span>
+                    <span className="text-sm text-[#272424] font-medium">
+                      {formatCurrency(product.price)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-sm text-[#272424] font-medium">
+                    {formatCurrency(product.price)}
+                  </span>
+                )}
               </div>
               <div className="w-28 px-6 text-center">
                 <span className="text-sm text-[#272424] font-medium">

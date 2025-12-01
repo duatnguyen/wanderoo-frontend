@@ -70,8 +70,15 @@ export const updateItemQuantity = async (orderId: number, request: UpdateItemQua
   return response.data;
 };
 
-export const addItemToOrder = async (orderId: number, request: AddItemToOrderRequest): Promise<ApiResponse<null>> => {
-  const response = await api.post<ApiResponse<null>>(`/auth/v1/private/sale/orders/${orderId}/items`, request);
+// BE trả về DraftOrderDetailResponse sau khi thêm sản phẩm
+export const addItemToOrder = async (
+  orderId: number,
+  request: AddItemToOrderRequest
+): Promise<ApiResponse<DraftOrderDetailResponse>> => {
+  const response = await api.post<ApiResponse<DraftOrderDetailResponse>>(
+    `/auth/v1/private/sale/orders/${orderId}/items`,
+    request
+  );
   return response.data;
 };
 

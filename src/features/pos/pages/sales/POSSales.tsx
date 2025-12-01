@@ -91,17 +91,18 @@ const POSPage: React.FC = () => {
     try {
       const draftOrders = await loadAllDraftOrders();
 
-      // Nếu backend đã có các hóa đơn chờ → map thành tabs
+      // Nếu backend đã có các hóa đơn chờ → chỉ dùng hóa đơn đầu tiên để khởi tạo UI
       if (draftOrders.length > 0) {
-        const orderTabs = draftOrders.map((order: DraftOrderResponse, index: number) => ({
-          id: order.id.toString(),
-          label: `Đơn ${index + 1}`,
-        }));
-
-        const firstId = draftOrders[0]?.id ?? null;
+        const firstOrder = draftOrders[0] as DraftOrderResponse | undefined;
+        const firstId = firstOrder?.id ?? null;
         if (!firstId) {
           throw new Error("Không thể khởi tạo hóa đơn chờ");
         }
+
+        // Chỉ hiển thị một tab duy nhất tương ứng với hóa đơn đầu tiên
+        const orderTabs: { id: string; label: string }[] = [
+          { id: firstId.toString(), label: "Đơn 1" },
+        ];
 
         setDraftOrderId(firstId);
         setOrders(orderTabs);
@@ -187,32 +188,37 @@ const POSPage: React.FC = () => {
   const products: POSProduct[] = useMemo(() => {
     if (!orderDetail) return [];
     return orderDetail.items.map((item) => {
-      // Lấy giá sau giảm (nếu có) hoặc giá gốc
-      const discountedPrice = item.discountedPrice;
-      const originalPrice = item.unitPrice;
-      // Kiểm tra có giảm giá không: có discountedPrice và nhỏ hơn originalPrice
-      const hasDiscount = discountedPrice != null 
-        && originalPrice != null
-        && discountedPrice < originalPrice
-        && Math.abs(discountedPrice - originalPrice) > 0.01; // Tránh sai số floating point
-      
-      const finalPrice = hasDiscount ? discountedPrice : originalPrice;
-      
+      // BE luôn trả:
+      // - unitPrice: giá gốc
+      // - discountedPrice: giá sau khi đã áp dụng tất cả discount SẢN PHẨM (nếu có),
+      //   còn nếu không có product-discount thì discountedPrice == unitPrice.
+      const originalPrice = item.unitPrice ?? 0;
+      const discountedPrice = item.discountedPrice ?? originalPrice;
+
+      // Chỉ coi là "có giảm giá" khi discountedPrice < unitPrice một cách đáng kể
+      const hasDiscount =
+        discountedPrice != null &&
+        originalPrice != null &&
+        discountedPrice < originalPrice &&
+        Math.abs(discountedPrice - originalPrice) > 0.01;
+
       return {
         id: item.id.toString(),
         name: item.productName,
         image: item.imageUrl,
         variant: item.attributes,
-        price: finalPrice ?? 0, // Giá sau giảm (hiển thị chính)
-        originalPrice: hasDiscount ? originalPrice : undefined, // Giá gốc (hiển thị gạch ngang nếu có giảm)
+        // Luôn hiển thị đúng giá sau giảm mà BE đã tính
+        price: discountedPrice ?? originalPrice ?? 0,
+        // Giá gốc chỉ hiển thị gạch ngang khi thực sự có giảm
+        originalPrice: hasDiscount ? originalPrice ?? undefined : undefined,
         quantity: item.quantity,
       };
     });
   }, [orderDetail]);
 
-  // Tổng tiền hàng = tổng giá sau giảm (vì đã giảm ở từng sản phẩm)
+  // Tổng tiền hàng & khách phải trả luôn lấy đúng từ BE,
+  // đã bao gồm cả productDiscountAmount & orderDiscountAmount theo logic voucher:
   const totalAmount = orderDetail?.totalProductPrice ?? 0;
-  // Khách phải trả = tổng tiền hàng (không có discount riêng nữa)
   const finalAmount = orderDetail?.totalOrderPrice ?? totalAmount;
   const employee = orderDetail?.employeeName ?? "Vũ Hữu Quân";
 
@@ -252,6 +258,9 @@ const POSPage: React.FC = () => {
           productDetailId,
           quantity: normalizedQuantity,
         });
+        // Reload lại từ BE ở background để có giá discount mới
+        void loadDraftOrderDetail(draftOrderId);
+        setError(null);
       } catch (err) {
         console.error("Không thể cập nhật số lượng", err);
         setError("Không thể cập nhật sản phẩm. Vui lòng thử lại.");
@@ -283,6 +292,9 @@ const POSPage: React.FC = () => {
 
       try {
         await removeItemFromDraftOrder(draftOrderId, { productDetailId });
+        // Reload lại từ BE ở background để có giá discount mới
+        void loadDraftOrderDetail(draftOrderId);
+        setError(null);
       } catch (err) {
         console.error("Không thể xóa sản phẩm", err);
         setError("Không thể xóa sản phẩm. Vui lòng thử lại.");
@@ -304,50 +316,28 @@ const POSPage: React.FC = () => {
       const productDetailId = Number(product.id);
       if (Number.isNaN(productDetailId)) return;
 
-      // Optimistic: nếu sản phẩm đã có thì +1, nếu chưa có thì thêm dòng mới với dữ liệu tối thiểu
-      updateOrderDetailState((detail) => {
-        const existing = detail.items.find((item) => item.id === productDetailId);
-        let items: DraftOrderItemResponse[];
-
-        if (existing) {
-          const newQuantity = existing.quantity + 1;
-          const unitPrice = getUnitPrice(existing);
-          items = detail.items.map((item) =>
-            item.id === productDetailId
-              ? { ...item, quantity: newQuantity, amount: unitPrice * newQuantity }
-              : item
-          );
-        } else {
-          const newItem: DraftOrderItemResponse = {
-            id: productDetailId,
-            imageUrl: product.imageUrl,
-            productName: product.name,
-            attributes: product.attributes ?? undefined,
-            unitPrice: product.price,
-            discountedPrice: product.price,
-            quantity: 1,
-            amount: product.price,
-          };
-          // Thêm sản phẩm mới lên đầu danh sách để luôn hiển thị sát ô tìm kiếm
-          items = [newItem, ...detail.items];
-        }
-
-        const totalProductPrice = items.reduce((sum, item) => sum + item.amount, 0);
-        const totalOrderPrice = totalProductPrice - detail.orderDiscountAmount;
-
-        return {
-          ...detail,
-          items,
-          totalProductPrice,
-          totalOrderPrice,
-        };
-      });
+      // Check số lượng có thể bán trước khi thêm
+      if (product.available != null && product.available <= 0) {
+        setError("Sản phẩm này đã hết hàng. Không thể thêm vào giỏ hàng.");
+        return;
+      }
 
       try {
-        await addItemToOrder(draftOrderId, {
+        const response = await addItemToOrder(draftOrderId, {
           productDetailId,
           quantity: 1,
         });
+        // BE trả về DraftOrderDetailResponse đầy đủ → cập nhật trực tiếp state,
+        // tránh phải gọi thêm 1 request GET chi tiết đơn nên nhanh hơn.
+        const detail = response.data;
+        if (detail) {
+          setOrderDetail(detail);
+          setNoteValue(detail.notes ?? "");
+          setNoteSyncedValue(detail.notes ?? "");
+        } else {
+          // Fallback trong trường hợp BE không trả data (phòng hờ)
+          void loadDraftOrderDetail(draftOrderId);
+        }
         setError(null);
       } catch (err) {
         console.error("Không thể thêm sản phẩm", err);

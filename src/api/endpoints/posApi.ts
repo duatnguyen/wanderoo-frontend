@@ -28,14 +28,17 @@ export interface ProductOrderDetailResponse {
   productName: string;
   productImage?: string;
   category?: string;
-  unitPrice: number;
+  unitPrice: number; // Giá sau giảm (discounted price)
+  originalPrice?: number; // Giá gốc (original price)
   quantity: number;
   totalPrice: number;
 }
 
 export interface PaymentSummaryResponse {
   totalProductPrice: number;
-  discountAmount: number;
+  discountAmount: number; // Total discount (product + order)
+  productDiscountAmount?: number; // Product discount only
+  orderDiscountAmount?: number; // Order discount only
   totalOrderPrice: number;
   cashReceived: number;
   change: number;

@@ -1,5 +1,5 @@
 // src/pages/admin/AdminOrderDetailPOS.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, Wallet, Package, FileText, ChevronDown, ChevronUp, Check, X, Truck } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -7,6 +7,8 @@ import {
   PageContainer,
   ContentCard,
 } from "@/components/common";
+import { getAdminCustomerOrderDetail } from "@/api/endpoints/orderApi";
+import type { CustomerOrderResponse } from "@/types/api";
 
 // Mock data cho order detail POS
 const getMockOrderDataPOS = (status: string) => {
@@ -98,20 +100,34 @@ const baseOrderDataPOS = {
 };
 
 // Payment Summary Component with Dropdown
-const PaymentSummary: React.FC = () => {
+const PaymentSummary: React.FC<{
+  totalProductPrice?: number;
+  orderDiscountAmount?: number;
+  productDiscountAmount?: number;
+  totalOrderPrice?: number;
+  cashReceived?: number;
+  changeAmount?: number;
+}> = ({
+  totalProductPrice = 0,
+  orderDiscountAmount = 0,
+  productDiscountAmount = 0,
+  totalOrderPrice = 0,
+  cashReceived = 0,
+  changeAmount = 0,
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
-  const totalAmount = 380000; // Khách phải trả
+  const totalDiscount = orderDiscountAmount + productDiscountAmount;
   const summaryData = [
-    { label: "Tổng tiền hàng", amount: 400000 },
-    { label: "Giảm giá", amount: 20000 },
-    { label: "Khách phải trả", amount: 380000, isTotal: true },
-    { label: "Tiền khách đưa", amount: 400000 },
-    { label: "Tiền thừa trả khách", amount: 20000 }
+    { label: "Tổng tiền hàng", amount: totalProductPrice },
+    { label: "Giảm giá", amount: totalDiscount },
+    { label: "Khách phải trả", amount: totalOrderPrice, isTotal: true },
+    { label: "Tiền khách đưa", amount: cashReceived },
+    { label: "Tiền thừa trả khách", amount: changeAmount }
   ];
 
   return (
@@ -137,7 +153,7 @@ const PaymentSummary: React.FC = () => {
 
         <div className="flex items-center gap-[8px]">
           <p className="font-montserrat font-bold text-[18px] leading-[1.3] text-[#28a745]">
-            {formatCurrency(totalAmount)}
+            {formatCurrency(totalOrderPrice)}
           </p>
           <div className="flex items-center justify-center w-[24px] h-[24px] text-[#737373]">
             {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -181,6 +197,24 @@ const AdminOrderDetailPOS: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { orderId } = useParams<{ orderId: string }>();
+  const [orderData, setOrderData] = useState<CustomerOrderResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadOrderDetail = async () => {
+      if (!orderId) return;
+      try {
+        setIsLoading(true);
+        const order = await getAdminCustomerOrderDetail(Number(orderId));
+        setOrderData(order);
+      } catch (error) {
+        console.error("Failed to load order detail:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadOrderDetail();
+  }, [orderId]);
 
   const handleBackClick = () => {
     navigate(-1);
@@ -217,24 +251,31 @@ const AdminOrderDetailPOS: React.FC = () => {
     }
   };
 
-  // Function to get order data based on orderId
-  const getOrderData = () => {
-    // Get status from navigation state if available
-    const statusFromState = (location.state as { status?: string })?.status;
-
-    // Get mock data based on status or default
-    const mockData = getMockOrderDataPOS(statusFromState || "Chờ xác nhận");
-
-    // Combine with base order data
-    return {
-      ...mockData,
-      ...baseOrderDataPOS,
-      id: orderId || mockData.id,
-      status: statusFromState || mockData.status,
-    };
+  // Use real order data if available, otherwise fallback to mock
+  const currentOrder = orderData ? {
+    id: orderData.id?.toString() || orderId || "",
+    status: orderData.status || "Chờ xác nhận",
+    source: orderData.source || "POS",
+    customer: {
+      name: orderData.userInfo?.name || "Khách hàng",
+      avatar: orderData.userInfo?.image || "",
+    },
+    items: orderData.orderDetails?.map((detail, index) => ({
+      id: detail.id || index + 1,
+      name: detail.snapshotProductName || "Sản phẩm",
+      price: detail.snapshotProductPrice || 0,
+      quantity: detail.quantity || 0,
+      total: (detail.snapshotProductPrice || 0) * (detail.quantity || 0),
+      image: "/api/placeholder/80/80",
+      attributes: detail.snapshotVariantAttributes?.map(attr => `${attr.name}: ${attr.value}`).join(", ") || "",
+    })) || [],
+  } : {
+    id: orderId || "",
+    status: "Chờ xác nhận",
+    source: "POS",
+    customer: { name: "Khách hàng", avatar: "" },
+    items: [],
   };
-
-  const currentOrder = getOrderData();
 
   // Get status card styling based on order status
   const getStatusCardStyle = () => {
@@ -567,7 +608,7 @@ const AdminOrderDetailPOS: React.FC = () => {
                               {item.name}
                             </p>
                             <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#737373] -mt-[2px]">
-                              Phân loại hàng: Size M, Màu cam
+                              {item.attributes ? `Phân loại hàng: ${item.attributes}` : ""}
                             </p>
                           </div>
                         </div>
@@ -590,7 +631,14 @@ const AdminOrderDetailPOS: React.FC = () => {
                     ))}
                   </div>
                   {/* Summary Row - POS */}
-                  <PaymentSummary />
+                  <PaymentSummary
+                    totalProductPrice={orderData?.totalProductPrice || 0}
+                    orderDiscountAmount={orderData?.orderDiscountAmount || 0}
+                    productDiscountAmount={orderData?.productDiscountAmount || 0}
+                    totalOrderPrice={orderData?.totalOrderPrice || 0}
+                    cashReceived={orderData?.cashReceived || 0}
+                    changeAmount={orderData?.changeAmount || 0}
+                  />
                 </div>
               </div>
             </div>
