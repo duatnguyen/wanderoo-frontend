@@ -1,5 +1,5 @@
 // src/pages/admin/AdminOrders.tsx
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { DateRange } from "react-day-picker";
 import {
@@ -65,6 +65,9 @@ const AdminOrders: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // WebSocket topics (memoized to tránh tạo mới mỗi lần render)
+  const orderUpdateTopics = useMemo(() => ["/topic/orders/updates"], []);
 
   // Determine order source from path
   const getOrderSource = () => {
@@ -189,28 +192,39 @@ const AdminOrders: React.FC = () => {
     // fetchOrderCounts();
   }, [activeTab, currentPage, paymentStatusFilter, paymentMethodFilter, dateRange, location.pathname]);
 
-  // WebSocket subscription for real-time order updates
-  useWebSocket({
-    autoConnect: true,
-    topics: ["/topic/orders/updates"],
-    onMessage: (message: CustomerOrderResponse) => {
+  // WebSocket message handler（用 useCallback 保证引用稳定，避免每次 render 重建）
+  const handleWebSocketMessage = useCallback(
+    (message: CustomerOrderResponse) => {
       // Update order in the list if it exists
       setOrders((prevOrders) => {
-        const orderIndex = prevOrders.findIndex((o) => o.code === message.code || o.id === message.id);
+        const orderIndex = prevOrders.findIndex(
+          (o) => o.code === message.code || o.id === message.id
+        );
         if (orderIndex >= 0) {
           // Update existing order
           const updatedOrders = [...prevOrders];
           updatedOrders[orderIndex] = message;
           return updatedOrders;
         }
-        // If order not in current page, just refresh the list
-        // This handles cases where the order might be on a different page
+        // If order not in current page, just keep current page data
+        // 避免因为频繁刷新整页导致卡顿
         return prevOrders;
       });
     },
-    onError: (error) => {
-      console.error("[AdminOrders] WebSocket error:", error);
-    },
+    []
+  );
+
+  // WebSocket error handler（同样用 useCallback 保持稳定）
+  const handleWebSocketError = useCallback((error: Error | Event) => {
+    console.error("[AdminOrders] WebSocket error:", error);
+  }, []);
+
+  // WebSocket subscription for real-time order updates
+  useWebSocket({
+    autoConnect: true,
+    topics: orderUpdateTopics,
+    onMessage: handleWebSocketMessage,
+    onError: handleWebSocketError,
   });
 
   // Create order tabs with counts from API

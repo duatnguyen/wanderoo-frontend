@@ -1,9 +1,8 @@
 // src/pages/admin/AdminOrderDetailWebsite.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   ArrowLeft,
   Truck,
-  Wallet,
   Package,
   XCircle,
   AlertCircle,
@@ -23,11 +22,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import PaymentTableHeader from '../../../../../components/admin/order/PaymentTableHeader';
-import PaymentTableItem from '../../../../../components/admin/order/PaymentTableItem';
+
+import AdminPaymentTable, { type AdminPaymentItem } from '../../../../../components/admin/order/AdminPaymentTable';
 import PaymentSummaryWebsite from '../../../../../components/admin/order/PaymentSummaryWebsite';
 import PaymentInformationWebsite from '../../../../../components/admin/order/PaymentInformationWebsite';
 import DeliveryConfirmationPopupWebsite from '../../../../../components/admin/order/DeliveryConfirmationPopupWebsite';
+import CancelOrderConfirmationPopupWebsite from '../../../../../components/admin/order/CancelOrderConfirmationPopupWebsite';
 import ActionButtonsWebsite from '../../../../../components/admin/order/ActionButtonsWebsite';
 import WebsiteOrderInfo from '../../../../../components/admin/order/WebsiteOrderInfo';
 import { toast } from "sonner";
@@ -116,26 +116,38 @@ const AdminOrderDetailWebsite: React.FC = () => {
     }
   }, [orderCode]);
 
+  // Memoize WebSocket topics to prevent unnecessary re-subscriptions
+  const orderUpdateTopics = useMemo(() => {
+    const topics = ["/topic/orders/updates"];
+    if (orderCode) {
+      topics.push(`/topic/orders/detail/${orderCode}`);
+    }
+    return topics;
+  }, [orderCode]);
+
+  // Memoize WebSocket message handler
+  const handleWebSocketMessage = useCallback((message: CustomerOrderResponse) => {
+    // Only update if this is the current order
+    if (message.code === orderCode || message.code === orderData?.code) {
+      setOrderData(message);
+      toast.success("Đơn hàng đã được cập nhật", {
+        description: `Trạng thái: ${getStatusDisplayName(message.status || "")}`,
+        duration: 3000,
+      });
+    }
+  }, [orderCode, orderData?.code]);
+
+  // Memoize WebSocket error handler
+  const handleWebSocketError = useCallback((error: Error | Event) => {
+    console.error("[AdminOrderDetailWebsite] WebSocket error:", error);
+  }, []);
+
   // WebSocket subscription for real-time order updates
   useWebSocket({
     autoConnect: true,
-    topics: [
-      "/topic/orders/updates",
-      `/topic/orders/detail/${orderCode}`,
-    ],
-    onMessage: (message: CustomerOrderResponse) => {
-      // Only update if this is the current order
-      if (message.code === orderCode || message.code === orderData?.code) {
-        setOrderData(message);
-        toast.success("Đơn hàng đã được cập nhật", {
-          description: `Trạng thái: ${getStatusDisplayName(message.status || "")}`,
-          duration: 3000,
-        });
-      }
-    },
-    onError: (error) => {
-      console.error("[AdminOrderDetailWebsite] WebSocket error:", error);
-    },
+    topics: orderUpdateTopics,
+    onMessage: handleWebSocketMessage,
+    onError: handleWebSocketError,
   });
 
   const loadOrderDetail = async (code: string) => {
@@ -164,7 +176,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
       setShowConfirmOrderDialog(true);
     } else {
       // Nếu trạng thái là CONFIRMED, mở popup xác nhận giao hàng và tạo vận đơn
-    setShowDeliveryPopup(true);
+      setShowDeliveryPopup(true);
     }
   };
 
@@ -578,29 +590,25 @@ const AdminOrderDetailWebsite: React.FC = () => {
           />
 
           {/* Payment Table */}
-          <div
-            className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start sm:p-[20px] relative rounded-[8px] w-full ${orderData!.status === "CANCELED" ? "opacity-50" : ""
-              }`}
-          >
-            <div className="w-full">
-              <div className="box-border flex gap-[6px] items-center px-[6px] py-0 mb-4 relative shrink-0 w-full">
-                <Wallet className="relative shrink-0 size-[24px]" />
-                <h2 className="font-montserrat font-semibold text-[#272424] text-[18px] leading-[1.4]">
-                  Thông tin thanh toán
-                </h2>
-              </div>
-              <div className="w-full overflow-x-auto">
-                <div className="flex flex-col items-start relative rounded-[8px] w-full min-w-[700px] border border-[#e7e7e7] overflow-hidden bg-white">
-                  <PaymentTableHeader />
-                  {(orderData.orderDetails || []).map((item, index) => (
-                    <PaymentTableItem key={item.id} item={item} index={index} formatCurrency={formatCurrency} />
-                  ))}
-                  {/* Summary Row - Website */}
-                  <PaymentSummaryWebsite orderData={orderData!} formatCurrency={formatCurrency} />
-                </div>
-              </div>
-            </div>
-          </div>
+          <AdminPaymentTable
+            items={(orderData.orderDetails || []).map((item): AdminPaymentItem => ({
+              id: item.id,
+              name: item.snapshotProductName || "Sản phẩm không tên",
+              image: undefined,
+              unitPrice: item.snapshotProductPrice,
+              quantity: item.quantity,
+              total: item.snapshotProductPrice * item.quantity,
+              variantText: item.snapshotVariantAttributes && item.snapshotVariantAttributes.length > 0
+                ? item.snapshotVariantAttributes
+                  .sort((a, b) => (a.groupLevel || 0) - (b.groupLevel || 0))
+                  .map(attr => `${attr.name}: ${attr.value}`)
+                  .join(" • ")
+                : undefined,
+            }))}
+            formatCurrency={formatCurrency}
+            summary={<PaymentSummaryWebsite orderData={orderData!} formatCurrency={formatCurrency} />}
+            disabled={orderData!.status === "CANCELED"}
+          />
 
           {/* Payment Information Card */}
           <PaymentInformationWebsite
@@ -653,32 +661,13 @@ const AdminOrderDetailWebsite: React.FC = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Cancel Order Dialog */}
-      <AlertDialog open={showCancelOrderDialog} onOpenChange={setShowCancelOrderDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hủy đơn hàng</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn có chắc chắn muốn hủy đơn hàng <strong>#{orderData?.code}</strong> không?
-              <br />
-              <br />
-              Hành động này không thể hoàn tác. Đơn hàng sẽ chuyển sang trạng thái "Đã hủy".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={confirmingOrder}>
-              Không hủy
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelConfirm}
-              disabled={confirmingOrder}
-              className="bg-[#dc3545] hover:bg-[#c82333]"
-            >
-              {confirmingOrder ? "Đang hủy..." : "Xác nhận hủy"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Cancel Order Popup */}
+      <CancelOrderConfirmationPopupWebsite
+        isOpen={showCancelOrderDialog}
+        onClose={() => setShowCancelOrderDialog(false)}
+        onConfirm={handleCancelConfirm}
+        orderData={orderData!}
+      />
 
       {/* Update Shipping Status Confirmation Dialog */}
       <AlertDialog open={showUpdateShippingStatusDialog} onOpenChange={setShowUpdateShippingStatusDialog}>

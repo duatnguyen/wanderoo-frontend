@@ -282,12 +282,9 @@ const PaymentInformationWebsite: React.FC<PaymentInformationWebsiteProps> = ({
 
   const handleToggle = useMemo(() => () => setIsExpanded((prev) => !prev), []);
 
-  const StatusIcon = getPaymentStatusInfo.Icon;
-  const MethodIcon = getPaymentMethodInfo.Icon;
-
   return (
     <div
-      className={`bg-white border-2 border-gray-200 box-border relative rounded-lg w-full overflow-hidden min-w-0 shadow-sm transition-all duration-200 ${
+      className={`bg-gradient-to-br from-[#fafafa] to-white border border-[#e7e7e7] box-border relative rounded-[12px] w-full overflow-hidden min-w-0 shadow-sm transition-all duration-200 ${
         disabled ? "opacity-50 pointer-events-none" : ""
       }`}
     >
@@ -306,22 +303,22 @@ const PaymentInformationWebsite: React.FC<PaymentInformationWebsiteProps> = ({
           isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="border-t border-gray-200 px-4 sm:px-6 py-4 bg-gray-50">
+        <div className="px-4 sm:px-6 py-4 bg-[#fafbfc]">
           {/* Payment Breakdown */}
           <div className="space-y-2">
-            <h3 className="font-montserrat font-semibold text-base text-gray-800 mb-3">
+            <h3 className="font-montserrat font-semibold text-[14px] text-gray-800 mb-3">
               Chi tiết thanh toán
             </h3>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {paymentData.slice(0, -1).map((item, index) => {
                 if (!item.showZero && item.amount === 0) return null;
                 return (
                   <div
                     key={index}
-                    className="flex items-center justify-between py-2 px-2 hover:bg-gray-100 rounded-md transition-colors duration-150"
+                    className="flex items-center justify-between py-2 px-2 rounded-md transition-colors duration-150 bg-white/60 hover:bg-white border border-transparent hover:border-gray-200"
                   >
-                    <span className="font-montserrat font-medium text-sm text-gray-700">
+                    <span className="font-montserrat font-medium text-[13px] text-gray-700">
                       {item.label}
                     </span>
                     <span
@@ -338,11 +335,11 @@ const PaymentInformationWebsite: React.FC<PaymentInformationWebsiteProps> = ({
             </div>
 
             {/* Total Amount */}
-            <div className="flex items-center justify-between py-3 px-4 mt-4 border-t-2 border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-sm">
-              <span className="font-montserrat font-bold text-base text-gray-800">
+            <div className="flex items-center justify-between py-3 px-4 mt-4 border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-[10px] shadow-sm">
+              <span className="font-montserrat font-bold text-[14px] text-gray-800">
                 Tổng tiền thanh toán
               </span>
-              <span className="font-montserrat font-bold text-lg text-blue-600">
+              <span className="font-montserrat font-bold text-[16px] text-blue-600">
                 {formatCurrency(paymentData[paymentData.length - 1].amount)}
               </span>
             </div>

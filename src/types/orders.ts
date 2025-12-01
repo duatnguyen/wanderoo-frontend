@@ -57,7 +57,7 @@ export interface CustomerOrderResponse extends OrderResponse {
   items?: OrderItemResponse[]; // Order items (legacy, for backward compatibility)
   orderDetails?: OrderDetailItemResponse[]; // Order details with product information
   source?: string; // Order source (WEBSITE, POS, etc.)
-  picId?: number | null;
+  picInfo?: UserInfo | null; // PIC user info from backend
   discountId?: number | null;
   method?: string;
   paymentStatus?: string;

@@ -19,7 +19,7 @@ export interface ContentCardProps {
 
 export const ContentCard = ({
   children,
-  className = "bg-white border border-[#b0b0b0] flex flex-col gap-[12px] items-start px-[16px] py-[16px] rounded-[16px] w-full",
+  className = "bg-white border border-[#b0b0b0] flex flex-col gap-[12px] items-start px-[16px] py-[16px] rounded-[10px] w-full",
 }: ContentCardProps) => {
   return <div className={className}>{children}</div>;
 };

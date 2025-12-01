@@ -65,7 +65,7 @@ const PaymentSummaryWebsite: React.FC<PaymentSummaryWebsiteProps> = ({
   ];
 
   return (
-    <div className="border border-[#e7e7e7] box-border relative rounded-bl-[6px] rounded-br-[6px] shrink-0 w-full bg-white">
+    <div className="box-border relative shrink-0 w-full bg-white">
       <PaymentSummaryCollapsedView
         isExpanded={isExpanded}
         onToggle={() => setIsExpanded(!isExpanded)}
@@ -75,30 +75,27 @@ const PaymentSummaryWebsite: React.FC<PaymentSummaryWebsiteProps> = ({
 
       {/* Expanded View - Payment Details */}
       {isExpanded && (
-        <div className="border-t border-[#e7e7e7] px-[16px] py-[12px] bg-[#fafbfc]">
+        <div className="px-[16px] py-[12px] bg-[#fafbfc]">
           <div className="space-y-[8px]">
             {summaryData.map((item, index) => (
               <div
                 key={index}
-                className={`flex items-center justify-between py-[4px] ${
-                  item.isTotal ? "border-t border-[#e7e7e7] pt-[8px]" : ""
-                }`}
+                className={`flex items-center justify-between py-[4px] ${item.isTotal ? "border-t border-[#e7e7e7] pt-[8px]" : ""
+                  }`}
               >
                 <p
-                  className={`font-montserrat ${
-                    item.isTotal
-                      ? "font-semibold text-[14px] text-[#272424]"
-                      : "font-medium text-[13px] text-[#737373]"
-                  }`}
+                  className={`font-montserrat ${item.isTotal
+                    ? "font-semibold text-[14px] text-[#272424]"
+                    : "font-medium text-[13px] text-[#737373]"
+                    }`}
                 >
                   {item.label}
                 </p>
                 <p
-                  className={`font-montserrat ${
-                    item.isTotal
-                      ? "font-bold text-[16px] text-[#28a745]"
-                      : "font-medium text-[13px] text-[#272424]"
-                  }`}
+                  className={`font-montserrat ${item.isTotal
+                    ? "font-bold text-[16px] text-[#28a745]"
+                    : "font-medium text-[13px] text-[#272424]"
+                    }`}
                 >
                   {formatCurrency(item.amount)}
                 </p>
