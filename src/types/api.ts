@@ -491,6 +491,13 @@ export interface SellingQuantityRequest {
   sellingQuantityPos: number;
 }
 
+export type ProductDisplay = "WEBSITE" | "POS" | "BOTH";
+
+export interface UpdateProductDisplayRequest {
+  ids: number[];
+  display: ProductDisplay;
+}
+
 export interface CartItemRequest {
   productDetailId: number;
   quantity: number;

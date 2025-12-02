@@ -15,10 +15,9 @@ import {
   getAllProductsPrivate,
   getActiveProductsPrivate,
   getInactiveProductsPrivate,
-  getProductVariantsPrivate,
   disableProductsPrivate,
   enableProductsPrivate,
-  updateSellingQuantityPrivate,
+  updateProductDisplayPrivate,
 } from "@/api/endpoints/productApi";
 import ChannelDisplayModal from "@/components/admin/modals/ChannelDisplayModal";
 import type {
@@ -375,60 +374,49 @@ const AdminProducts: React.FC = () => {
 
   const handleChannelModalConfirm = async (data: {
     websiteEnabled: boolean;
-    websiteQuantity: number;
     posEnabled: boolean;
-    posQuantity: number;
   }) => {
     setIsActionLoading(true);
     setIsChannelModalOpen(false);
 
     try {
-      // Lấy tất cả variants của các sản phẩm đã chọn
-      const selectedProductIds = Array.from(selectedProducts).map((id) => Number(id));
-      const selectedProductsData = products.filter((p) =>
-        selectedProductIds.includes(Number(p.id))
-      );
-
-      const variantsByProduct: ProductVariant[][] = [];
-      for (const product of selectedProductsData) {
-        const existingVariants = product.variants;
-        if (existingVariants && existingVariants.length > 0) {
-          variantsByProduct.push(existingVariants);
-          continue;
-        }
-
-        const loaded = await handleLoadVariants(product.id, true);
-        if (loaded.length > 0) {
-          variantsByProduct.push(loaded);
-        }
-      }
-
-      const allVariants: ProductVariant[] = variantsByProduct.flat();
-
-      if (allVariants.length === 0) {
-        toast.error("Không tìm thấy biến thể nào để cập nhật");
+      if (!data.websiteEnabled && !data.posEnabled) {
+        toast.error("Vui lòng chọn ít nhất một kênh để hiển thị");
         setIsActionLoading(false);
         return;
       }
 
-      // Cập nhật từng variant
-      const updatePromises = allVariants.map((variant) => {
-        const request = {
-          id: Number(variant.id),
-          sellingQuantityWeb: data.websiteEnabled ? data.websiteQuantity : 0,
-          sellingQuantityPos: data.posEnabled ? data.posQuantity : 0,
-        };
-        return updateSellingQuantityPrivate(request);
+      const selectedProductIds = Array.from(selectedProducts).map((id) =>
+        Number(id)
+      );
+      if (selectedProductIds.length === 0) {
+        toast.error("Không có sản phẩm nào được chọn");
+        setIsActionLoading(false);
+        return;
+      }
+
+      // Map checkbox state -> enum Display
+      const display =
+        data.websiteEnabled && data.posEnabled
+          ? "BOTH"
+          : data.websiteEnabled
+          ? "WEBSITE"
+          : "POS";
+
+      await updateProductDisplayPrivate({
+        ids: selectedProductIds,
+        display,
       });
 
-      await Promise.all(updatePromises);
-      toast.success(`Đã cập nhật số lượng bán cho ${allVariants.length} biến thể`);
+      toast.success(
+        `Đã cập nhật hiển thị kênh cho ${selectedProductIds.length} sản phẩm`
+      );
       await fetchProducts();
       await fetchTabCounts();
       handleClearSelection();
     } catch (error) {
       console.error("Không thể cập nhật số lượng bán", error);
-      toast.error("Cập nhật số lượng bán thất bại. Vui lòng thử lại.");
+      toast.error("Cập nhật hiển thị kênh thất bại. Vui lòng thử lại.");
     } finally {
       setIsActionLoading(false);
     }

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 interface ChannelDisplayModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (data: { websiteEnabled: boolean; websiteQuantity: number; posEnabled: boolean; posQuantity: number }) => void;
+  onConfirm: (data: { websiteEnabled: boolean; posEnabled: boolean }) => void;
   selectedCount: number;
 }
 
@@ -14,26 +14,11 @@ const ChannelDisplayModal: React.FC<ChannelDisplayModalProps> = ({
   selectedCount,
 }) => {
   const [websiteEnabled, setWebsiteEnabled] = useState(false);
-  const [websiteQuantity, setWebsiteQuantity] = useState<string>("");
   const [posEnabled, setPosEnabled] = useState(false);
-  const [posQuantity, setPosQuantity] = useState<string>("");
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    const websiteQty = websiteEnabled ? parseInt(websiteQuantity) || 0 : 0;
-    const posQty = posEnabled ? parseInt(posQuantity) || 0 : 0;
-
-    if (websiteEnabled && websiteQty <= 0) {
-      alert("Vui lòng nhập số lượng có thể bán cho Website");
-      return;
-    }
-
-    if (posEnabled && posQty <= 0) {
-      alert("Vui lòng nhập số lượng có thể bán cho POS");
-      return;
-    }
-
     if (!websiteEnabled && !posEnabled) {
       alert("Vui lòng chọn ít nhất một kênh");
       return;
@@ -41,17 +26,13 @@ const ChannelDisplayModal: React.FC<ChannelDisplayModalProps> = ({
 
     onConfirm({
       websiteEnabled,
-      websiteQuantity: websiteQty,
       posEnabled,
-      posQuantity: posQty,
     });
   };
 
   const handleReset = () => {
     setWebsiteEnabled(false);
-    setWebsiteQuantity("");
     setPosEnabled(false);
-    setPosQuantity("");
   };
 
   return (
@@ -78,19 +59,6 @@ const ChannelDisplayModal: React.FC<ChannelDisplayModalProps> = ({
                 Website
               </label>
             </div>
-            {websiteEnabled && (
-              <div className="ml-6">
-                <label className="block text-sm text-gray-600 mb-1">SL có thể bán</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={websiteQuantity}
-                  onChange={(e) => setWebsiteQuantity(e.target.value)}
-                  placeholder="Nhập số lượng"
-                  className="w-full px-3 py-2 border border-[#E04D30] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E04D30] focus:border-transparent"
-                />
-              </div>
-            )}
           </div>
 
           {/* POS Section */}
@@ -107,19 +75,6 @@ const ChannelDisplayModal: React.FC<ChannelDisplayModalProps> = ({
                 POS
               </label>
             </div>
-            {posEnabled && (
-              <div className="ml-6">
-                <label className="block text-sm text-gray-600 mb-1">SL có thể bán</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={posQuantity}
-                  onChange={(e) => setPosQuantity(e.target.value)}
-                  placeholder="Nhập số lượng"
-                  className="w-full px-3 py-2 border border-[#E04D30] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E04D30] focus:border-transparent"
-                />
-              </div>
-            )}
           </div>
         </div>
 

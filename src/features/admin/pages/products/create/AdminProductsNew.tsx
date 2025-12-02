@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import type { AxiosError } from "axios";
 import { Select, Spin, Pagination } from "antd";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
@@ -68,6 +69,12 @@ const CATEGORY_PAGE_SIZE = 20;
 const BRAND_PAGE_SIZE = 20;
 const MAX_ATTRIBUTES = 5;
 const VARIANT_PAGE_SIZE = 20;
+
+const hasValue = (value?: string | number | null) =>
+  value !== undefined &&
+  value !== null &&
+  value !== "" &&
+  (typeof value === "string" ? value.trim().length > 0 : true);
 
 const INITIAL_FORM_DATA: ProductFormData = {
   productName: "",
@@ -144,6 +151,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
   const [applyAllPrice, setApplyAllPrice] = useState("");
   const [showEditVersionModal, setShowEditVersionModal] = useState(false);
   const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(null);
+  const [editVersionError, setEditVersionError] = useState("");
+  const [isSubmittingEditVersion, setIsSubmittingEditVersion] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -186,6 +195,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       : isEditMode
       ? "Chỉnh sửa sản phẩm"
       : "Thêm sản phẩm mới");
+
+  const getFieldBorderClass = (error?: string, hasValue?: boolean) => {
+    if (error) return "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]";
+    if (hasValue) return "border-[#05a660]";
+    return "border-[#d1d1d1]";
+  };
 
   useEffect(() => {
     if (initialFormData) {
@@ -1043,12 +1058,14 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         image: version.image || "",
         sku: version.sku,
       });
+      setEditVersionError("");
       setShowEditVersionModal(true);
     }
   };
 
   const handleEditVersionChange = (field: string, value: string) => {
     if (editingVersion) {
+      setEditVersionError("");
       setEditingVersion({
         ...editingVersion,
         [field]: value,
@@ -1093,83 +1110,91 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
   const handleEditVersionCancel = () => {
     setShowEditVersionModal(false);
     setEditingVersion(null);
+    setEditVersionError("");
+    setIsSubmittingEditVersion(false);
   };
 
-  const handleEditVersionConfirm = () => {
+  const handleEditVersionConfirm = async () => {
     if (!editingVersion) return;
 
-    const variantId = parseInt(editingVersion.id, 10);
-    if (isNaN(variantId)) {
-      toast.error("ID phiên bản không hợp lệ");
-      return;
-    }
+    setEditVersionError("");
+    setIsSubmittingEditVersion(true);
 
-    const updateData: any = {
-      id: variantId,
-    };
-
-    // Only include fields that have values
-    if (editingVersion.barcode && editingVersion.barcode.trim()) {
-      updateData.barcode = editingVersion.barcode.trim();
-    }
-
-    if (editingVersion.sellingPrice && editingVersion.sellingPrice.trim()) {
-      const sellingPrice = parseFloat(editingVersion.sellingPrice);
-      if (!isNaN(sellingPrice)) {
-        updateData.sellingPrice = sellingPrice;
+    try {
+      const variantId = parseInt(editingVersion.id, 10);
+      if (isNaN(variantId)) {
+        toast.error("ID phiên bản không hợp lệ");
+        return;
       }
-    }
 
-    if (editingVersion.costPrice && editingVersion.costPrice.trim()) {
-      const importPrice = parseFloat(editingVersion.costPrice);
-      if (!isNaN(importPrice)) {
-        updateData.importPrice = importPrice;
+      const updateData: any = {
+        id: variantId,
+      };
+
+      // Only include fields that have values
+      if (editingVersion.barcode && editingVersion.barcode.trim()) {
+        updateData.barcode = editingVersion.barcode.trim();
       }
-    }
 
-    if (editingVersion.image && editingVersion.image.trim()) {
-      updateData.imageUrl = [editingVersion.image];
-    }
-
-    // Chuẩn bị payload SL bán theo kênh
-    const webQty = parseInt(editingVersion.webQuantity || "0", 10);
-    const posQty = parseInt(editingVersion.posQuantity || "0", 10);
-
-    // Đóng form ngay lập tức cho cảm giác phản hồi nhanh
-    setShowEditVersionModal(false);
-    setEditingVersion(null);
-
-    // Thực hiện gọi API ở background
-    (async () => {
-      try {
-        await Promise.all([
-          updateVariantPrivate(updateData),
-          updateSellingQuantityPrivate({
-            id: variantId,
-            sellingQuantityWeb: webQty,
-            sellingQuantityPos: posQty,
-          }),
-        ]);
-
-        toast.success("Đã cập nhật phiên bản thành công");
-
-        if (createdProductId) {
-          fetchProductVariants(
-            createdProductId,
-            variantPagination.page,
-            variantPagination.pageSize
-          ).catch((error) => {
-            console.error(
-              "Không thể tải lại danh sách phiên bản sau khi cập nhật:",
-              error
-            );
-          });
+      if (editingVersion.sellingPrice && editingVersion.sellingPrice.trim()) {
+        const sellingPrice = parseFloat(editingVersion.sellingPrice);
+        if (!isNaN(sellingPrice)) {
+          updateData.sellingPrice = sellingPrice;
         }
-      } catch (error) {
-        console.error("Error updating variant:", error);
-        toast.error("Không thể cập nhật phiên bản. Vui lòng thử lại.");
       }
-    })();
+
+      if (editingVersion.costPrice && editingVersion.costPrice.trim()) {
+        const importPrice = parseFloat(editingVersion.costPrice);
+        if (!isNaN(importPrice)) {
+          updateData.importPrice = importPrice;
+        }
+      }
+
+      if (editingVersion.image && editingVersion.image.trim()) {
+        updateData.imageUrl = [editingVersion.image];
+      }
+
+      const webQty = parseInt(editingVersion.webQuantity || "0", 10);
+      const posQty = parseInt(editingVersion.posQuantity || "0", 10);
+
+      await Promise.all([
+        updateVariantPrivate(updateData),
+        updateSellingQuantityPrivate({
+          id: variantId,
+          sellingQuantityWeb: webQty,
+          sellingQuantityPos: posQty,
+        }),
+      ]);
+
+      toast.success("Đã cập nhật phiên bản thành công");
+      setShowEditVersionModal(false);
+      setEditingVersion(null);
+      setEditVersionError("");
+
+      if (createdProductId) {
+        fetchProductVariants(
+          createdProductId,
+          variantPagination.page,
+          variantPagination.pageSize
+        ).catch((error) => {
+          console.error(
+            "Không thể tải lại danh sách phiên bản sau khi cập nhật:",
+            error
+          );
+        });
+      }
+    } catch (error) {
+      console.error("Error updating variant:", error);
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage =
+        axiosError?.response?.data?.message || axiosError?.message;
+      const finalMessage =
+        backendMessage || "Không thể cập nhật phiên bản. Vui lòng thử lại.";
+      setEditVersionError(finalMessage);
+      toast.error(finalMessage);
+    } finally {
+      setIsSubmittingEditVersion(false);
+    }
   };
 
   const selectedCount = selectedVersions.size;
@@ -1263,12 +1288,14 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                 <FormField
                   label="Danh mục"
                   error={errors.category}
+                  success={!errors.category && !!formData.categoryId}
                   className="flex-1"
                 >
                   <div
-                    className={`bg-white rounded-[12px] border-2 ${
-                      errors.category ? "border-[#ff4d4f]" : "border-[#e04d30]"
-                    } flex items-center px-2 h-[40px]`}
+                    className={`bg-white rounded-[12px] border-2 ${getFieldBorderClass(
+                      errors.category,
+                      !!formData.categoryId
+                    )} flex items-center px-2 h-[40px] transition-colors`}
                   >
                     <Select<number>
                       bordered={false}
@@ -1333,15 +1360,17 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   label="Thương hiệu"
                   required
                   error={errors.brand}
+                  success={!errors.brand && !!formData.brandId}
                   className="flex-1"
                 >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className={`bg-white border-2 ${
-                          errors.brand ? "border-[#ff4d4f]" : "border-[#e04d30]"
-                        } flex items-center justify-between px-4 rounded-[12px] w-full h-[40px]`}
+                        className={`bg-white border-2 ${getFieldBorderClass(
+                          errors.brand,
+                          !!formData.brandId
+                        )} flex items-center justify-between px-4 rounded-[12px] w-full h-[40px] transition-colors`}
                         disabled={isViewMode}
                       >
                         <span
@@ -1448,9 +1477,13 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                 label="Mô tả sản phẩm"
                 required
                 error={errors.description}
+                success={!errors.description && formData.description.length >= 10}
               >
                 <textarea
-                  className="bg-white border-2 border-[#e04d30] p-4 rounded-[12px] w-full h-[141px] resize-none outline-none text-[14px] font-semibold placeholder:text-[#888888] text-[#888888]"
+                  className={`bg-white border-2 ${getFieldBorderClass(
+                    errors.description,
+                    formData.description.length >= 10
+                  )} p-4 rounded-[12px] w-full h-[141px] resize-none outline-none text-[14px] font-semibold placeholder:text-[#888888] text-[#444] transition-colors`}
                   placeholder="Nhập mô tả sản phẩm"
                   value={formData.description}
                   onChange={(e) =>
@@ -1503,7 +1536,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                       onChange={(e) =>
                         handleNumericInputChange("costPrice", e.target.value)
                       }
-                      containerClassName="h-[36px] px-4"
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.costPrice,
+                        hasValue(formData.costPrice)
+                      )}`}
                       readOnly={isViewMode}
                       disabled={isViewMode}
                     />
@@ -1519,7 +1555,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                       onChange={(e) =>
                         handleNumericInputChange("sellingPrice", e.target.value)
                       }
-                      containerClassName="h-[36px] px-4"
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.sellingPrice,
+                        hasValue(formData.sellingPrice)
+                      )}`}
                       readOnly={isViewMode}
                       disabled={isViewMode}
                     />
@@ -1538,7 +1577,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                       onChange={(e) =>
                         handleNumericInputChange("inventory", e.target.value)
                       }
-                      containerClassName="h-[36px] px-4"
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.inventory,
+                        hasValue(formData.inventory)
+                      )}`}
                       readOnly={isViewMode}
                       disabled={isViewMode}
                     />
@@ -2049,7 +2091,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                     Cân nặng (Sau khi đóng gói)
                   </label>
                 </div>
-                <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                <div
+                  className={`bg-white border-2 rounded-[12px] h-[36px] flex items-center px-4 ${getFieldBorderClass(
+                    errors.weight,
+                    hasValue(formData.weight)
+                  )}`}
+                >
                   <input
                     type="text"
                     inputMode="numeric"
@@ -2080,7 +2127,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
                 <div className="flex gap-4">
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.width,
+                        hasValue(formData.width)
+                      )}`}
+                    >
                       <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
                         R
                       </span>
@@ -2106,7 +2158,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   </div>
 
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.length,
+                        hasValue(formData.length)
+                      )}`}
+                    >
                       <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
                         D
                       </span>
@@ -2132,7 +2189,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   </div>
 
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.height,
+                        hasValue(formData.height)
+                      )}`}
+                    >
                       <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
                         C
                       </span>
@@ -2585,6 +2647,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
               </h2>
             </div>
 
+            {editVersionError && (
+              <div className="px-6 py-3 text-sm font-semibold text-[#b42318] bg-[#fef3f2] border-b border-[#fbd0d0]">
+                {editVersionError}
+              </div>
+            )}
+
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-3">
               <div className="flex gap-5 items-start">
@@ -2729,10 +2797,19 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
             {/* Footer Buttons */}
             <div className="flex items-center justify-center gap-[10px] px-6 py-3 border-t border-[#e7e7e7]">
-              <Button variant="secondary" onClick={handleEditVersionCancel}>
+              <Button
+                variant="secondary"
+                onClick={handleEditVersionCancel}
+                disabled={isSubmittingEditVersion}
+              >
                 Huỷ
               </Button>
-              <Button onClick={handleEditVersionConfirm}>Xác nhận</Button>
+              <Button
+                onClick={handleEditVersionConfirm}
+                disabled={isSubmittingEditVersion}
+              >
+                {isSubmittingEditVersion ? "Đang lưu..." : "Xác nhận"}
+              </Button>
             </div>
           </div>
         </div>
