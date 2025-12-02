@@ -10,6 +10,7 @@ export type POSProduct = {
   variant?: string;
   price: number; // Giá sau giảm (discounted price)
   originalPrice?: number; // Giá gốc (original price)
+  totalPrice?: number; // Thành tiền sau giảm
   quantity: number;
 };
 

@@ -57,25 +57,44 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   const [isSearchingProducts, setIsSearchingProducts] = useState(false);
   const [productSearchError, setProductSearchError] = useState<string | null>(null);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const productSearchCacheRef = useRef<Map<string, SaleProductResponse[]>>(new Map());
   const latestSearchIdRef = useRef(0);
   const { productSelectHandler } = usePOSContext();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
+      if (!searchContainerRef.current) return;
+      
+      const target = event.target as Node;
+      const isInsideContainer = searchContainerRef.current.contains(target);
+      
+      // Chỉ đóng dropdown nếu:
+      // 1. Click bên ngoài container VÀ
+      // 2. Input không đang được focus (tránh đóng khi click vào input)
+      if (!isInsideContainer) {
+        // Kiểm tra xem input có đang focus không
+        const isInputFocused = document.activeElement === inputRef.current;
+        if (!isInputFocused) {
+          setIsDropdownOpen(false);
+        }
       }
     };
 
-    if (isDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+    // Luôn lắng nghe click outside để tránh vấn đề khi state bị reset sau re-render
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Giữ dropdown mở khi có searchValue hoặc khi input đang focus
+  useEffect(() => {
+    if (isSalesPage && searchValue && inputRef.current === document.activeElement) {
+      setIsDropdownOpen(true);
     }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isDropdownOpen]);
+  }, [isSalesPage, searchValue]);
 
   useEffect(() => {
     if (!isSalesPage) {
@@ -295,12 +314,21 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 </svg>
               </div>
               <input
+                ref={inputRef}
                 type="text"
                 value={searchValue}
                 onChange={onSearchChange}
                 placeholder={searchPlaceholder}
                 className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:bg-white focus:border-[#e04d30]"
-                onFocus={() => setIsDropdownOpen(true)}
+                onFocus={() => {
+                  // Đảm bảo dropdown mở khi focus vào input
+                  setIsDropdownOpen(true);
+                }}
+                onClick={(e) => {
+                  // Đảm bảo dropdown mở khi click vào input và ngăn event bubble
+                  e.stopPropagation();
+                  setIsDropdownOpen(true);
+                }}
               />
               {renderProductDropdown()}
             </div>

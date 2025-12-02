@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   POSProductList,
   type POSProduct,
@@ -56,6 +56,8 @@ const POSPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const addingProductRef = useRef<string | null>(null);
 
   const loadDraftOrderDetail = useCallback(async (orderId: number) => {
     const detail = await getDraftOrderDetail(orderId);
@@ -312,7 +314,7 @@ const POSPage: React.FC = () => {
 
   const handleProductSelect = useCallback(
     async (product: ProductSelection) => {
-      if (!draftOrderId) return;
+      if (!draftOrderId || !orderDetail) return;
       const productDetailId = Number(product.id);
       if (Number.isNaN(productDetailId)) return;
 
@@ -321,6 +323,84 @@ const POSPage: React.FC = () => {
         setError("Sản phẩm này đã hết hàng. Không thể thêm vào giỏ hàng.");
         return;
       }
+
+      // Debounce: Tránh click nhanh nhiều lần cùng một sản phẩm
+      const productKey = `${productDetailId}`;
+      if (addingProductRef.current === productKey || isAddingProduct) {
+        return;
+      }
+
+      // Kiểm tra xem sản phẩm đã có trong giỏ chưa (để tăng số lượng thay vì thêm mới)
+      const existingItem = orderDetail.items.find(
+        (item) => item.id === productDetailId
+      );
+
+      // Optimistic UI update: Cập nhật UI ngay lập tức
+      const tempItemId = existingItem ? existingItem.id : -Date.now(); // Sử dụng số âm làm temp ID
+      const optimisticPrice = product.price;
+      const optimisticQuantity = existingItem ? existingItem.quantity + 1 : 1;
+      const optimisticAmount = optimisticPrice * optimisticQuantity;
+
+      // Lưu state gốc để có thể revert nếu có lỗi
+      const previousOrderDetail = orderDetail;
+
+      // Cập nhật optimistic state
+      setIsAddingProduct(true);
+      addingProductRef.current = productKey;
+
+      updateOrderDetailState((detail) => {
+        if (existingItem) {
+          // Tăng số lượng sản phẩm đã có
+          const updatedItems = detail.items.map((item) =>
+            item.id === productDetailId
+              ? {
+                  ...item,
+                  quantity: item.quantity + 1,
+                  amount: getUnitPrice(item) * (item.quantity + 1),
+                }
+              : item
+          );
+          const totalProductPrice = updatedItems.reduce(
+            (sum, item) => sum + item.amount,
+            0
+          );
+          const totalOrderPrice =
+            totalProductPrice - detail.orderDiscountAmount;
+
+          return {
+            ...detail,
+            items: updatedItems,
+            totalProductPrice,
+            totalOrderPrice,
+          };
+        } else {
+          // Thêm sản phẩm mới với dữ liệu tạm
+          const tempItem: DraftOrderItemResponse = {
+            id: tempItemId, // Sử dụng số âm làm temp ID
+            productName: product.name,
+            imageUrl: product.imageUrl,
+            attributes: product.attributes ?? undefined,
+            unitPrice: optimisticPrice,
+            discountedPrice: optimisticPrice,
+            quantity: 1,
+            amount: optimisticAmount,
+          };
+          const updatedItems = [...detail.items, tempItem];
+          const totalProductPrice = updatedItems.reduce(
+            (sum, item) => sum + item.amount,
+            0
+          );
+          const totalOrderPrice =
+            totalProductPrice - detail.orderDiscountAmount;
+
+          return {
+            ...detail,
+            items: updatedItems,
+            totalProductPrice,
+            totalOrderPrice,
+          };
+        }
+      });
 
       try {
         const response = await addItemToOrder(draftOrderId, {
@@ -341,11 +421,17 @@ const POSPage: React.FC = () => {
         setError(null);
       } catch (err) {
         console.error("Không thể thêm sản phẩm", err);
+        // Revert optimistic update nếu có lỗi
+        setOrderDetail(previousOrderDetail);
         setError("Không thể thêm sản phẩm vào hóa đơn. Vui lòng thử lại.");
+        // Reload để đảm bảo sync với backend
         void loadDraftOrderDetail(draftOrderId);
+      } finally {
+        setIsAddingProduct(false);
+        addingProductRef.current = null;
       }
     },
-    [draftOrderId, getUnitPrice, loadDraftOrderDetail, updateOrderDetailState]
+    [draftOrderId, orderDetail, isAddingProduct, loadDraftOrderDetail, updateOrderDetailState]
   );
 
   const productSelectHandler = useCallback<POSProductSelectHandler>(

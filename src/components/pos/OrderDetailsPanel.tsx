@@ -118,8 +118,16 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
       {/* Scrollable Product Items */}
       <div className="flex-1 overflow-y-auto mb-4">
         <div className="divide-y divide-[#e7e7e7]">
-          {order.products.map((product) => (
-            <div key={product.id} className="flex items-center hover:bg-gray-50 h-[100px]">
+          {order.products.map((product) => {
+            const shouldShowDiscount =
+              product.originalPrice != null &&
+              product.originalPrice > product.price &&
+              Math.abs(product.originalPrice - product.price) > 0.01;
+            const lineTotal =
+              product.totalPrice ?? product.price * (product.quantity || 0);
+
+            return (
+              <div key={product.id} className="flex items-center hover:bg-gray-50 h-[100px]">
               <div className="flex-1 px-6">
                 <div className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100">
@@ -153,14 +161,12 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
                 </div>
               </div>
               <div className="w-32 px-6 text-center">
-                {product.originalPrice != null && 
-                 product.originalPrice > product.price && 
-                 Math.abs(product.originalPrice - product.price) > 0.01 ? (
+                {shouldShowDiscount ? (
                   <div className="flex items-center justify-center gap-2">
                     <span className="text-sm text-gray-400 line-through">
-                      {formatCurrency(product.originalPrice)}
+                      {formatCurrency(product.originalPrice ?? 0)}
                     </span>
-                    <span className="text-sm text-[#272424] font-medium">
+                    <span className="text-sm text-[#272424] font-semibold">
                       {formatCurrency(product.price)}
                     </span>
                   </div>
@@ -177,11 +183,12 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
               </div>
               <div className="w-36 px-6 text-right">
                 <span className="text-sm font-bold text-[#272424]">
-                  {formatCurrency(product.price * product.quantity)}
+                  {formatCurrency(lineTotal)}
                 </span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -222,7 +229,7 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
                   Giảm giá
                 </span>
                 <span className="text-sm font-bold text-[#e04d30]">
-                  -{formatCurrency(order.discount)}
+                  {order.discount > 0 ? `-${formatCurrency(order.discount)}` : formatCurrency(0)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
