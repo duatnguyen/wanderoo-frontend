@@ -10,6 +10,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { PageContainer, ContentCard } from "@/components/common";
 import { getAdminCustomerOrderDetail, confirmOrder, createShippingOrder, cancelAdminOrder, updateShippingStatus } from "@/api/endpoints/websiteOrderApi";
+import { updateSelfShippingStatus } from "@/api/endpoints/orderApi";
 import type { CustomerOrderResponse } from "@/types/orders";
 import {
   AlertDialog,
@@ -38,7 +39,7 @@ const mapShippingStatusToLabel = (status?: string | null): string => {
   const normalized = status.toLowerCase();
   const map: Record<string, string> = {
     ready_to_pick: "Chờ lấy hàng",
-    picking: "Đang lấy hàng",
+    picking: "Đang lấy hàng", 
     cancel: "Đã hủy vận chuyển",
     money_collect_picking: "Shipper tương tác với người gửi",
     picked: "Đã lấy hàng",
@@ -207,14 +208,28 @@ const AdminOrderDetailWebsite: React.FC = () => {
     paymentTypeId: number;
     serviceTypeId: number;
     note?: string;
-  }) => {
+  }, updatedOrder?: CustomerOrderResponse) => {
     if (!orderData?.id) return;
 
     try {
+      // Nếu có updatedOrder (từ self-shipping), sử dụng nó để cập nhật UI
+      if (updatedOrder) {
+        setOrderData(updatedOrder);
+        return;
+      }
+
+      // Nếu không có updatedOrder, nghĩa là đang sử dụng GHN shipping
       // API create shipping dùng numeric id từ orderData
-      await createShippingOrder(orderData.id, data);
-      // Reload order data after confirmation theo order code
-      await loadOrderDetail(orderData.code || orderCode);
+      const response = await createShippingOrder(orderData.id, data);
+      
+      // Update orderData with the response if available
+      if (response && typeof response === 'object') {
+        setOrderData(response);
+      } else {
+        // Fallback: Reload order data after confirmation theo order code
+        await loadOrderDetail(orderData.code || orderCode);
+      }
+      
       // Toast success is already shown in DeliveryConfirmationPopupWebsite
     } catch (error: any) {
       console.error("Error confirming order:", error);
@@ -276,9 +291,25 @@ const AdminOrderDetailWebsite: React.FC = () => {
     try {
       setUpdatingShippingStatus(true);
       setShowUpdateShippingStatusDialog(false);
-      await updateShippingStatus(orderData.id, selectedShippingStatus);
-      // Reload order data after update
-      await loadOrderDetail(orderData.code || orderCode);
+      
+      let response;
+      // Sử dụng API khác nhau tùy theo shipping provider
+      if (orderData.shippingProvider === "WANDEROO") {
+        // Đơn hàng tự ship - sử dụng API riêng với logic tự động cập nhật order status và payment status
+        response = await updateSelfShippingStatus(orderData.id, selectedShippingStatus);
+      } else {
+        // Đơn hàng GHN - sử dụng API cũ chỉ cập nhật shipping status
+        response = await updateShippingStatus(orderData.id, selectedShippingStatus);
+      }
+      
+      // Update orderData with the response if available
+      if (response && typeof response === 'object') {
+        setOrderData(response);
+      } else {
+        // Fallback: Reload order data after update
+        await loadOrderDetail(orderData.code || orderCode);
+      }
+      
       setIsEditingShippingStatus(false);
       setSelectedShippingStatus("");
       toast.success("Cập nhật trạng thái vận chuyển thành công!");
@@ -587,6 +618,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
           <WebsiteOrderInfo
             orderData={orderData!}
             onCreateShipping={handleConfirmOrder}
+            onEditShippingStatus={handleEditShippingStatus}
           />
 
           {/* Payment Table */}
@@ -668,6 +700,77 @@ const AdminOrderDetailWebsite: React.FC = () => {
         onConfirm={handleCancelConfirm}
         orderData={orderData!}
       />
+
+      {/* Shipping Status Selection Dialog */}
+      <AlertDialog open={isEditingShippingStatus} onOpenChange={setIsEditingShippingStatus}>
+        <AlertDialogContent className="sm:max-w-[500px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cập nhật trạng thái vận chuyển</AlertDialogTitle>
+            <AlertDialogDescription>
+              Chọn trạng thái vận chuyển mới cho đơn hàng <strong>#{orderData?.code}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="py-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>Trạng thái hiện tại:</span>
+                <span className="font-semibold text-blue-700">
+                  {mapShippingStatusToLabel(orderData?.shippingStatus || "")}
+                </span>
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Chọn trạng thái mới:
+                </label>
+                <select
+                  value={selectedShippingStatus}
+                  onChange={(e) => setSelectedShippingStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">-- Chọn trạng thái --</option>
+                  {/* Only show available status transitions based on current status */}
+                  {orderData?.shippingStatus !== "DELIVERED" && orderData?.shippingStatus !== "CANCEL" && (
+                    <>
+                      <option value="READY_TO_PICK">Chờ lấy hàng</option>
+                      <option value="PICKING">Đang lấy hàng</option>
+                      <option value="PICKED">Đã lấy hàng</option>
+                      <option value="DELIVERING">Đang giao hàng</option>
+                      <option value="DELIVERED">Giao hàng thành công</option>
+                      <option value="DELIVERY_FAIL">Giao hàng thất bại</option>
+                      <option value="RETURNED">Đã hoàn hàng</option>
+                      <option value="CANCEL">Đã hủy</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              
+              {selectedShippingStatus === "DELIVERED" && (
+                <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                  <p className="text-sm text-green-800">
+                    <strong>Lưu ý:</strong> Khi chọn "Giao hàng thành công", đơn hàng sẽ tự động chuyển sang trạng thái "Hoàn thành" 
+                    {orderData?.method === "COD" && " và thanh toán sẽ được đánh dấu là đã hoàn thành"}.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelEditShippingStatus}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUpdateShippingStatus}
+              disabled={!selectedShippingStatus}
+              className="bg-[#28a745] hover:bg-[#218838] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cập nhật trạng thái
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Update Shipping Status Confirmation Dialog */}
       <AlertDialog open={showUpdateShippingStatusDialog} onOpenChange={setShowUpdateShippingStatusDialog}>

@@ -22,6 +22,15 @@ type StompSubscription = {
 const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL ||
   (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080');
 
+// Debug logging
+if (import.meta.env.DEV) {
+  console.log('[WebSocket] Environment variables:', {
+    VITE_WS_BASE_URL: import.meta.env.VITE_WS_BASE_URL,
+    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+    WS_BASE_URL
+  });
+}
+
 // WebSocket connection state
 export const WebSocketState = {
   CONNECTING: 'CONNECTING',

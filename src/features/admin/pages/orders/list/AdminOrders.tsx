@@ -195,23 +195,69 @@ const AdminOrders: React.FC = () => {
   // WebSocket message handler（用 useCallback 保证引用稳定，避免每次 render 重建）
   const handleWebSocketMessage = useCallback(
     (message: CustomerOrderResponse) => {
-      // Update order in the list if it exists
+      let isNewOrder = false;
+      
+      // Update order in the list if it exists or add new order
       setOrders((prevOrders) => {
         const orderIndex = prevOrders.findIndex(
           (o) => o.code === message.code || o.id === message.id
         );
+        
         if (orderIndex >= 0) {
           // Update existing order
           const updatedOrders = [...prevOrders];
           updatedOrders[orderIndex] = message;
           return updatedOrders;
+        } else {
+          // This is a new order
+          isNewOrder = true;
+          
+          // Check if this is a new order that should be displayed in current tab
+          const orderSource = getOrderSource();
+          const shouldShowOrder = 
+            orderSource === 'ALL' || 
+            (orderSource === 'POS' && message.source === 'POS') ||
+            (orderSource === 'WEBSITE' && message.source === 'WEBSITE');
+          
+          const orderMatchesStatusTab = 
+            activeTab === 'ALL' || 
+            message.status === activeTab;
+          
+          if (shouldShowOrder && orderMatchesStatusTab) {
+            // Add new order to the beginning of the list (most recent first)
+            const updatedOrders = [message, ...prevOrders];
+            
+            // Keep only the first 10 orders to match page size
+            if (updatedOrders.length > 10) {
+              updatedOrders.splice(10);
+            }
+            
+            // Show toast notification for new order
+            toast.success(`Đơn hàng mới: #${message.code}`, {
+              description: `Khách hàng: ${message.userInfo?.name || 'N/A'}`,
+              duration: 5000,
+            });
+            
+            return updatedOrders;
+          }
         }
-        // If order not in current page, just keep current page data
-        // 避免因为频繁刷新整页导致卡顿
+        // If order doesn't match current filters, keep current data
         return prevOrders;
       });
+      
+      // Update order counts when receiving new orders
+      if (isNewOrder) {
+        setOrderCounts(prevCounts => {
+          const statusKey = message.status?.toLowerCase() as keyof OrderCountResponse;
+          return {
+            ...prevCounts,
+            all: prevCounts.all + 1,
+            [statusKey]: (prevCounts[statusKey] || 0) + 1
+          };
+        });
+      }
     },
-    []
+    [activeTab, getOrderSource]
   );
 
   // WebSocket error handler（同样用 useCallback 保持稳定）

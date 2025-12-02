@@ -276,3 +276,28 @@ export const getAdminCustomerOrderDetail = async (
   );
   return response.data.data;
 };
+
+// Create self-shipping order
+export const createSelfShippingOrder = async (
+  orderId: number,
+  note?: string
+): Promise<CustomerOrderResponse> => {
+  const response = await api.post<ApiResponse<CustomerOrderResponse>>(
+    `/auth/v1/private/orders/${orderId}/self-shipping`,
+    { note: note || "" }
+  );
+  return response.data.data;
+};
+
+// Update self-shipping status
+export const updateSelfShippingStatus = async (
+  orderId: number,
+  shippingStatus: string
+): Promise<CustomerOrderResponse> => {
+  const response = await api.put<ApiResponse<CustomerOrderResponse>>(
+    `/auth/v1/private/orders/${orderId}/self-shipping-status`,
+    null,
+    { params: { shippingStatus } }
+  );
+  return response.data.data;
+};

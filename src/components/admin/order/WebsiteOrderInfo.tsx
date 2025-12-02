@@ -6,9 +6,10 @@ import { formatTimelineDate, formatOrderDate } from "@/utils/dateUtils";
 interface WebsiteOrderInfoProps {
   orderData: CustomerOrderResponse;
   onCreateShipping?: () => void;
+  onEditShippingStatus?: () => void;
 }
 
-const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData, onCreateShipping }) => {
+const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData, onCreateShipping, onEditShippingStatus }) => {
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
 
   const handleToggleTimeline = () => {
@@ -177,16 +178,44 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData, onCreate
           <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
             Phương thức vận chuyển
           </p>
-          {(orderData as any).shippingOrderCode ? (
+          {(orderData as any).shippingProvider ? (
             <>
-              <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
-                {(orderData as any).shippingProvider
-                  ? `${(orderData as any).shippingProvider} (Dịch vụ ${(orderData as any).shippingDetail?.service_type_id || "N/A"})`
-                  : "Chưa có thông tin phương thức vận chuyển"}
-              </p>
-              <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
-                Mã vận chuyển: {(orderData as any).shippingOrderCode}
-              </p>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex flex-col gap-1 flex-1">
+                  <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+                    {(orderData as any).shippingProvider === "WANDEROO" 
+                      ? "WANDEROO (Tự giao hàng)" 
+                      : `${(orderData as any).shippingProvider} (Dịch vụ ${(orderData as any).shippingDetail?.service_type_id || "N/A"})`
+                    }
+                  </p>
+                  {(orderData as any).shippingOrderCode && (
+                    <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+                      Mã vận chuyển: {(orderData as any).shippingOrderCode}
+                    </p>
+                  )}
+                </div>
+                {/* Show edit button for WANDEROO self-shipping orders - only if order is not completed or cancelled */}
+                {(orderData as any).shippingProvider === "WANDEROO" && 
+                 onEditShippingStatus && 
+                 orderData.status !== "COMPLETE" && 
+                 orderData.status !== "CANCELED" && 
+                 orderData.shippingStatus !== "DELIVERED" && 
+                 orderData.shippingStatus !== "CANCEL" && (
+                  <button
+                    onClick={onEditShippingStatus}
+                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-montserrat font-medium text-[12px] rounded-[6px] transition-colors flex items-center gap-1.5 ml-3"
+                  >
+                    <svg
+                      className="w-3 h-3"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    Cập nhật trạng thái
+                  </button>
+                )}
+              </div>
             </>
           ) : orderData.status === "CONFIRMED" && onCreateShipping ? (
             <div className="flex flex-col gap-2 w-full">
@@ -284,8 +313,8 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData, onCreate
         </div>
       </div>
 
-      {/* Timeline - Only show if shippingDetail exists */}
-      {orderData.shippingDetail && (
+      {/* Timeline - Only show if shipping has been created (based on shipping_provider) */}
+      {(orderData as any).shippingProvider && (
         <div className="border border-[#e7e7e7] box-border flex flex-col relative rounded-[8px] w-full overflow-hidden min-w-0 bg-white">
           {/* Timeline Header */}
           <div className="flex flex-col sm:flex-row items-start justify-between p-[16px] gap-[12px] sm:gap-0">

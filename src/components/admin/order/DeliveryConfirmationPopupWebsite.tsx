@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Truck, Package, Clock, ChevronDown } from "lucide-react";
+import { Truck, Package, Clock, ChevronDown, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getPickShifts, getAvailableServices } from "../../../api/endpoints/shippingApi";
+import { createSelfShippingOrder } from "../../../api/endpoints/orderApi";
 import type { PickShiftItem } from "../../../types/shipping";
 import type { AvailableServiceResponse } from "../../../types/api";
 import type { CustomerOrderResponse } from "../../../types/orders";
 import { toast } from "sonner";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /**
  * Props for DeliveryConfirmationPopupWebsite component
@@ -50,7 +61,7 @@ interface DeliveryConfirmationPopupWebsiteProps {
         paymentTypeId: number;
         serviceTypeId: number;
         note?: string;
-    }) => void;
+    }, updatedOrder?: CustomerOrderResponse) => void;
     orderData: CustomerOrderResponse;
 }
 
@@ -74,6 +85,8 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
     const [servicesError, setServicesError] = useState<string | null>(null);
     const [paymentTypeId, setPaymentTypeId] = useState<number>(2); // 1: Người gửi, 2: Người nhận
     const [note, setNote] = useState<string>(""); // Ghi chú thêm
+    const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
+    const [showConfirmCancel, setShowConfirmCancel] = useState(false);
 
     const DEFAULT_FROM_DISTRICT = Number(import.meta.env.VITE_GHN_FROM_DISTRICT_ID ?? 1447);
 
@@ -188,74 +201,83 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, fromDistrictId, toDistrictId, selectedMethod]);
 
-    const handleSubmit = async () => {
+    const handleSubmitClick = () => {
         if (!selectedMethod) {
-            alert("Vui lòng chọn phương thức giao hàng!");
+            toast.error("Vui lòng chọn phương thức giao hàng!");
             return;
         }
 
         if (selectedMethod === "pickup" && !selectedShift) {
-            alert("Vui lòng chọn ca lấy hàng!");
+            toast.error("Vui lòng chọn ca lấy hàng!");
             return;
         }
 
         if (selectedMethod === "pickup" && !selectedService) {
-            alert("Vui lòng chọn dịch vụ vận chuyển!");
+            toast.error("Vui lòng chọn dịch vụ vận chuyển!");
             return;
         }
 
+        setShowConfirmSubmit(true);
+    };
+
+    const handleConfirmSubmit = async () => {
         setIsSubmitting(true);
         try {
-            /**
-             * Build shipping order data based on selected delivery method
-             * 
-             * Request payload structure:
-             * {
-             *   pickShift: number[]        - Array of pick shift IDs (required by backend @NotEmpty)
-             *   requiredNote: string      - Delivery instruction note
-             *   paymentTypeId: number      - Who pays shipping fee (1: Shop, 2: Buyer)
-             *   serviceTypeId: number      - Shipping service type ID
-             *   note?: string              - Additional note (optional)
-             * }
-             * 
-             * This will be transformed to snake_case and sent to:
-             * POST /auth/v1/private/orders/{orderId}/shipping
-             */
-            const shippingData = {
-                // pickShift: Always send array (backend @NotEmpty requirement)
-                // - Self delivery: [2] (default, backend handles automatically)
-                // - Pickup: [selectedShift.id] (user selected shift)
-                pickShift: selectedMethod === "pickup" && selectedShift
-                    ? [selectedShift.id]
-                    : [2], // Default shift ID for self delivery
+            if (selectedMethod === "self") {
+                // Gọi API tự ship cho shop và lấy dữ liệu trả về
+                const updatedOrder = await createSelfShippingOrder(orderData.id, note.trim() || undefined);
+                toast.success("Tạo đơn vận tự ship thành công!");
+                
+                // Gọi callback onConfirm với dữ liệu đã cập nhật để parent component có thể cập nhật UI
+                if (onConfirm) {
+                    // Tạo dummy data để đảm bảo onConfirm có thể được gọi
+                    const dummyShippingData = {
+                        pickShift: [2],
+                        requiredNote: "KHONGCHOXEMHANG",
+                        paymentTypeId: 2,
+                        serviceTypeId: 2,
+                        note: note.trim() || undefined,
+                    };
+                    // Truyền updatedOrder như một property đặc biệt
+                    await onConfirm(dummyShippingData, updatedOrder);
+                }
+            } else if (selectedMethod === "pickup") {
+                // Gọi API GHN shipping như cũ
+                /**
+                 * Build shipping order data for GHN pickup delivery
+                 * 
+                 * Request payload structure:
+                 * {
+                 *   pickShift: number[]        - Array of pick shift IDs (required by backend @NotEmpty)
+                 *   requiredNote: string      - Delivery instruction note
+                 *   paymentTypeId: number      - Who pays shipping fee (1: Shop, 2: Buyer)
+                 *   serviceTypeId: number      - Shipping service type ID
+                 *   note?: string              - Additional note (optional)
+                 * }
+                 * 
+                 * This will be transformed to snake_case and sent to:
+                 * POST /auth/v1/private/orders/{orderId}/shipping
+                 */
+                const shippingData = {
+                    // pickShift: User selected shift
+                    pickShift: selectedShift ? [selectedShift.id] : [2],
 
-                // requiredNote: Delivery instruction
-                // - Self delivery: "KHONGCHOXEMHANG" (default)
-                // - Pickup: User selected from options (CHOTHUHANG, CHOXEMHANGKHONGTHU, KHONGCHOXEMHANG)
-                requiredNote: selectedMethod === "pickup"
-                    ? requiredNote
-                    : "KHONGCHOXEMHANG",
+                    // requiredNote: User selected delivery instruction
+                    requiredNote: requiredNote,
 
-                // paymentTypeId: Who pays shipping fee
-                // - Self delivery: Always 2 (Buyer pays)
-                // - Pickup: User selected (1: Shop pays, 2: Buyer pays)
-                paymentTypeId: selectedMethod === "pickup"
-                    ? paymentTypeId
-                    : 2, // Default: Buyer pays (2)
+                    // paymentTypeId: Who pays shipping fee (1: Shop pays, 2: Buyer pays)
+                    paymentTypeId: paymentTypeId,
 
-                // serviceTypeId: Shipping service type
-                // - Self delivery: 2 (default service type)
-                // - Pickup: selectedService.service_type_id or 2 (fallback)
-                serviceTypeId: selectedMethod === "pickup" && selectedService
-                    ? (selectedService.service_type_id ?? 2)
-                    : 2, // Default service type
+                    // serviceTypeId: Selected shipping service type
+                    serviceTypeId: selectedService?.service_type_id ?? 2,
 
-                // note: Additional note (optional)
-                note: note.trim() || undefined,
-            };
-            await onConfirm(shippingData);
-            // Show success toast
-            toast.success("Tạo vận đơn thành công!");
+                    // note: Additional note (optional)
+                    note: note.trim() || undefined,
+                };
+                await onConfirm(shippingData);
+                toast.success("Tạo vận đơn GHN thành công!");
+            }
+            
             // Reset form
             setSelectedMethod(null);
             setSelectedShift(pickShifts.length > 0 ? pickShifts[0] : null);
@@ -274,7 +296,17 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
             toast.error(errorMessage);
         } finally {
             setIsSubmitting(false);
+            setShowConfirmSubmit(false);
         }
+    };
+
+    const handleCancelClick = () => {
+        setShowConfirmCancel(true);
+    };
+
+    const handleConfirmCancel = () => {
+        setShowConfirmCancel(false);
+        handleClose();
     };
 
     const handleClose = () => {
@@ -425,10 +457,10 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                                                     : "text-gray-900"
                                                     }`}
                                             >
-                                                Tự mang hàng
+                                                Shop tự ship hàng
                                             </p>
                                             <p className="font-montserrat font-medium text-[12px] text-gray-500 mt-1">
-                                                Tôi sẽ tự đem ra bưu cục
+                                                Shop sẽ tự vận chuyển hàng
                                             </p>
                                         </div>
                                     </div>
@@ -700,7 +732,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                             <div className="flex items-center gap-2">
                                 <div className="w-1 h-5 bg-[#e04d30] rounded-full"></div>
                                 <h3 className="font-montserrat font-semibold text-[16px] text-gray-900">
-                                    Người thanh toán phí ship (Choose who pays shipping fee)
+                                    Người thanh toán phí vận chuyển
                                 </h3>
                             </div>
                             <div className="space-y-3">
@@ -716,10 +748,10 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                                     />
                                     <div className="flex-1">
                                         <p className="font-montserrat font-semibold text-[14px] text-gray-900">
-                                            1. Shop/Seller
+                                            Shop thanh toán
                                         </p>
                                         <p className="font-montserrat text-[12px] text-gray-500">
-                                            Shop thanh toán phí vận chuyển (Sender pays shipping fee)
+                                            Shop sẽ thanh toán phí vận chuyển
                                         </p>
                                     </div>
                                 </label>
@@ -735,10 +767,10 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                                     />
                                     <div className="flex-1">
                                         <p className="font-montserrat font-semibold text-[14px] text-gray-900">
-                                            2. Buyer/Consignee
+                                            Khách hàng thanh toán
                                         </p>
                                         <p className="font-montserrat text-[12px] text-gray-500">
-                                            Khách hàng thanh toán phí vận chuyển (Receiver pays shipping fee)
+                                            Khách hàng sẽ thanh toán phí vận chuyển
                                         </p>
                                     </div>
                                 </label>
@@ -863,18 +895,18 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                                 {[
                                     {
                                         value: "CHOTHUHANG",
-                                        label: "CHOTHUHANG",
-                                        description: "Buyer can request to see and trial goods (Cho thử hàng)",
+                                        label: "Cho thử hàng",
+                                        description: "Khách hàng có thể xem và thử sản phẩm trước khi nhận",
                                     },
                                     {
                                         value: "CHOXEMHANGKHONGTHU",
-                                        label: "CHOXEMHANGKHONGTHU",
-                                        description: "Buyer can see goods but not trial (Cho xem hàng không thử)",
+                                        label: "Cho xem hàng, không thử",
+                                        description: "Khách hàng chỉ được xem sản phẩm, không được thử",
                                     },
                                     {
                                         value: "KHONGCHOXEMHANG",
-                                        label: "KHONGCHOXEMHANG",
-                                        description: "Buyer not allow to see goods (Không cho xem hàng)",
+                                        label: "Không cho xem hàng",
+                                        description: "Khách hàng không được xem sản phẩm trước khi nhận",
                                     },
                                 ].map((option) => (
                                     <label
@@ -943,7 +975,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                                                 }`}
                                         >
                                             {selectedMethod === "self"
-                                                ? "Bạn sẽ tự mang hàng đến bưu cục gần nhất"
+                                                ? "Shop sẽ tự vận chuyển hàng đến khách hàng"
                                                 : "Shipper sẽ đến địa chỉ của shop để lấy hàng"}
                                         </p>
                                         {selectedMethod === "pickup" && selectedShift && (
@@ -999,7 +1031,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                     {/* Action Buttons */}
                     <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
                         <button
-                            onClick={handleClose}
+                            onClick={handleCancelClick}
                             disabled={isSubmitting}
                             className="flex-1 sm:flex-none px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-montserrat font-semibold text-[14px] rounded-[12px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -1007,7 +1039,7 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                         </button>
 
                         <button
-                            onClick={handleSubmit}
+                            onClick={handleSubmitClick}
                             disabled={isSubmitting || !selectedMethod}
                             className="flex-1 sm:flex-none px-8 py-3 bg-[#e04d30] hover:bg-[#d63924] active:bg-[#c73621] text-white font-montserrat font-semibold text-[14px] rounded-[12px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 min-w-[140px]"
                         >
@@ -1038,6 +1070,79 @@ const DeliveryConfirmationPopupWebsite: React.FC<DeliveryConfirmationPopupWebsit
                     </div>
                 </div>
             </div>
+
+            {/* Confirm Submit Dialog */}
+            <AlertDialog open={showConfirmSubmit} onOpenChange={setShowConfirmSubmit}>
+                <AlertDialogContent className="sm:max-w-[420px]">
+                    <AlertDialogHeader className="items-center">
+                        <div className="flex size-12 items-center justify-center rounded-full bg-green-100">
+                            <CheckCircle2 className="size-6 text-green-600" />
+                        </div>
+                        <AlertDialogTitle className="font-montserrat font-semibold text-[18px]">
+                            Xác nhận tạo vận đơn
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-center font-montserrat text-[14px] text-gray-600">
+                            Bạn có chắc chắn muốn tạo vận đơn cho đơn hàng #{orderData.code} không?
+                            <br />
+                            <span className="font-semibold text-gray-800">
+                                Phương thức: {selectedMethod === "self" ? "Shop tự ship hàng" : "Shipper đến lấy"}
+                            </span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                        <AlertDialogCancel
+                            className="font-montserrat font-semibold"
+                            disabled={isSubmitting}
+                        >
+                            Hủy bỏ
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmSubmit}
+                            disabled={isSubmitting}
+                            className="bg-[#e04d30] hover:bg-[#d63924] font-montserrat font-semibold"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                                    Đang xử lý...
+                                </>
+                            ) : (
+                                "Xác nhận tạo"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Confirm Cancel Dialog */}
+            <AlertDialog open={showConfirmCancel} onOpenChange={setShowConfirmCancel}>
+                <AlertDialogContent className="sm:max-w-[420px]">
+                    <AlertDialogHeader className="items-center">
+                        <div className="flex size-12 items-center justify-center rounded-full bg-red-100">
+                            <AlertTriangle className="size-6 text-red-600" />
+                        </div>
+                        <AlertDialogTitle className="font-montserrat font-semibold text-[18px]">
+                            Xác nhận hủy bỏ
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-center font-montserrat text-[14px] text-gray-600">
+                            Bạn có chắc chắn muốn hủy bỏ tạo vận đơn không?
+                            <br />
+                            Tất cả thông tin đã nhập sẽ bị mất.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                        <AlertDialogCancel className="font-montserrat font-semibold">
+                            Quay lại
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmCancel}
+                            className="bg-red-600 hover:bg-red-700 font-montserrat font-semibold"
+                        >
+                            Xác nhận hủy
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };
