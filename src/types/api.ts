@@ -988,6 +988,24 @@ export interface BrandCreateRequest {
   name: string;
 }
 
+export interface ProductCategoryItemResponse {
+  id: number;
+  imageUrl?: string | null;
+  name: string;
+  rating: number;
+  minSellingPrice: number;
+  discountSellingPrice: number;
+  discountValue?: string | null;
+}
+
+export interface ProductCategoryPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  productCategoryResponseList: ProductCategoryItemResponse[];
+}
+
 export interface VariantRequest {
   productId: number;
   // Other fields as needed
@@ -1005,7 +1023,8 @@ export interface VariantUpdateRequest {
   sellingPrice?: number;
   importPrice?: number;
   totalQuantity?: number;
-  availableQuantity?: number;
+  websiteSoldQuantity?: number;
+  posSoldQuantity?: number;
 }
 
 export interface ProductStatusRequest {

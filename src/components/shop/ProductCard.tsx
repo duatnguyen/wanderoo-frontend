@@ -100,23 +100,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
         )}
       </div>
       <div className="px-3 py-2 border-t border-[#454545]/40">
-        <h3 className="text-[#454545] text-sm font-semibold leading-snug line-clamp-2 min-h-[36px]">
+        <h3 className="text-[#454545] text-[13px] font-semibold leading-snug line-clamp-2 min-h-[34px]">
           {name}
         </h3>
         <div
-          className="flex items-center gap-0.5 mt-1.5"
+          className="flex items-center gap-0.5 mt-1"
           aria-label={`Rating ${rating} out of 5`}
         >
           {stars.map((filled, idx) => (
             <Star key={idx} filled={filled} />
           ))}
         </div>
-        <div className="mt-1.5 flex items-baseline gap-2">
-          <span className="text-base font-semibold text-[#454545]">
+        <div className="mt-1 flex flex-col gap-0.5">
+          <span className="text-sm font-semibold text-[#454545]">
             {formatCurrencyVND(price)}
           </span>
           {originalPrice && originalPrice > price && (
-            <span className="text-[12px] text-[#454545] line-through">
+            <span className="text-[11px] text-[#777777] line-through">
               {formatCurrencyVND(originalPrice)}
             </span>
           )}

@@ -32,7 +32,8 @@ export interface ProductVersion {
   name: string;
   price: string;
   inventory: string;
-  available: string;
+  webQuantity: string;
+  posQuantity: string;
 }
 
 export interface EditingVersion {
@@ -42,7 +43,8 @@ export interface EditingVersion {
   costPrice: string;
   sellingPrice: string;
   inventory: string;
-  available: string;
+  webQuantity: string;
+  posQuantity: string;
   image: string;
 }
 

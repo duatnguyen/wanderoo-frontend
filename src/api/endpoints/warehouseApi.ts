@@ -153,6 +153,70 @@ export const getImportInvoicesDone = async (
   return response.data.data;
 };
 
+export const getImportInvoicesProductPending = async (
+  keyword?: string,
+  page: number = 0,
+  size: number = 20
+): Promise<InvoicePageResponse> => {
+  const params = new URLSearchParams();
+  if (keyword) params.append('keyword', keyword);
+  params.append('page', page.toString());
+  params.append('size', size.toString());
+
+  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
+    `/auth/v1/private/invoice/import/product-pending?${params.toString()}`
+  );
+  return response.data.data;
+};
+
+export const getImportInvoicesProductDone = async (
+  keyword?: string,
+  page: number = 0,
+  size: number = 20
+): Promise<InvoicePageResponse> => {
+  const params = new URLSearchParams();
+  if (keyword) params.append('keyword', keyword);
+  params.append('page', page.toString());
+  params.append('size', size.toString());
+
+  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
+    `/auth/v1/private/invoice/import/product-done?${params.toString()}`
+  );
+  return response.data.data;
+};
+
+export const getImportInvoicesPaymentPending = async (
+  keyword?: string,
+  page: number = 0,
+  size: number = 20
+): Promise<InvoicePageResponse> => {
+  const params = new URLSearchParams();
+  if (keyword) params.append('keyword', keyword);
+  params.append('page', page.toString());
+  params.append('size', size.toString());
+
+  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
+    `/auth/v1/private/invoice/import/payment-pending?${params.toString()}`
+  );
+  return response.data.data;
+};
+
+export const getImportInvoicesPaymentDone = async (
+  keyword?: string,
+  page: number = 0,
+  size: number = 20
+): Promise<InvoicePageResponse> => {
+  const params = new URLSearchParams();
+  if (keyword) params.append('keyword', keyword);
+  params.append('page', page.toString());
+  params.append('size', size.toString());
+
+  const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
+    `/auth/v1/private/invoice/import/payment-done?${params.toString()}`
+  );
+  return response.data.data;
+};
+
 export const getExportInvoices = async (
   keyword?: string,
   sort?: string,

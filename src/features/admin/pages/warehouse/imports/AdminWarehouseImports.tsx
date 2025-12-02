@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
@@ -22,6 +22,10 @@ import {
   getImportInvoices,
   getImportInvoicesPending,
   getImportInvoicesDone,
+  getImportInvoicesProductPending,
+  getImportInvoicesProductDone,
+  getImportInvoicesPaymentPending,
+  getImportInvoicesPaymentDone,
 } from "@/api/endpoints/warehouseApi";
 import type { InvoiceResponse } from "@/types/warehouse";
 
@@ -54,8 +58,8 @@ const AdminWarehouseImports = () => {
     document.title = "Nhập hàng | Wanderoo";
   }, []);
 
-  // Map InvoiceResponse to WarehouseImport
-  const mapInvoiceToWarehouseImport = (invoice: InvoiceResponse): WarehouseImport => {
+  // Map InvoiceResponse to WarehouseImport - memoized để tránh re-create mỗi lần render
+  const mapInvoiceToWarehouseImport = useCallback((invoice: InvoiceResponse): WarehouseImport => {
     
     // Map status: DONE -> completed, PENDING -> processing
     const status = invoice.status === "DONE" ? "completed" : "processing";
@@ -128,7 +132,7 @@ const AdminWarehouseImports = () => {
       totalItems,
       totalValue,
     };
-  };
+  }, []);
 
   // Fetch data from API
   useEffect(() => {
@@ -144,49 +148,22 @@ const AdminWarehouseImports = () => {
         const keyword = searchTerm && searchTerm.trim() !== "" ? searchTerm.trim() : undefined;
         const size = 10;
 
-        // Map selectedStatus to API call
+        // Map selectedStatus to API call - sử dụng server-side filtering thay vì client-side
         if (selectedStatus === "Đang giao dịch") {
           response = await getImportInvoicesPending(keyword, undefined, page, size);
         } else if (selectedStatus === "Đã hoàn thành") {
           response = await getImportInvoicesDone(keyword, undefined, page, size);
+        } else if (selectedStatus === "Chưa nhập") {
+          response = await getImportInvoicesProductPending(keyword, page, size);
+        } else if (selectedStatus === "Đã nhập") {
+          response = await getImportInvoicesProductDone(keyword, page, size);
+        } else if (selectedStatus === "Chưa thanh toán") {
+          response = await getImportInvoicesPaymentPending(keyword, page, size);
+        } else if (selectedStatus === "Đã thanh toán") {
+          response = await getImportInvoicesPaymentDone(keyword, page, size);
         } else {
-          // For statuses that need client-side filtering, fetch all first
-          // Then filter based on selectedStatus
-          if (selectedStatus === "Chưa nhập" || selectedStatus === "Đã nhập" || 
-              selectedStatus === "Chưa thanh toán" || selectedStatus === "Đã thanh toán") {
-            // Fetch all invoices to filter client-side (with reasonable limit)
-            response = await getImportInvoices(keyword, undefined, 0, 500); // Limit to 500 for performance
-            
-            // Map and filter in one pass for better performance
-            const mappedInvoices = response.invoices.map(mapInvoiceToWarehouseImport);
-            
-            // Filter based on selectedStatus
-            let filteredInvoices: WarehouseImport[];
-            if (selectedStatus === "Chưa nhập") {
-              filteredInvoices = mappedInvoices.filter(item => item.importStatus === "not_imported");
-            } else if (selectedStatus === "Đã nhập") {
-              filteredInvoices = mappedInvoices.filter(item => item.importStatus === "imported");
-            } else if (selectedStatus === "Chưa thanh toán") {
-              filteredInvoices = mappedInvoices.filter(item => item.paymentStatus === "unpaid");
-            } else {
-              filteredInvoices = mappedInvoices.filter(item => item.paymentStatus === "paid");
-            }
-            
-            // Apply pagination manually
-            const startIndex = page * size;
-            const endIndex = startIndex + size;
-            const paginatedData = filteredInvoices.slice(startIndex, endIndex);
-            
-            if (isMounted) {
-              setImportsData(paginatedData);
-              setTotalPages(Math.ceil(filteredInvoices.length / size));
-              setTotalElements(filteredInvoices.length);
-            }
-            return;
-          } else {
-            // "Tất cả trạng thái" - use all invoices
-            response = await getImportInvoices(keyword, undefined, page, size);
-          }
+          // "Tất cả trạng thái" - use all invoices
+          response = await getImportInvoices(keyword, undefined, page, size);
         }
 
         if (!response || !response.invoices) {
@@ -230,38 +207,39 @@ const AdminWarehouseImports = () => {
   // Data is already filtered and paginated by the API
   const paginatedImports = importsData;
 
-  const getStatusChip = (status: WarehouseImport["status"]) => {
+  // Memoize helper functions để tránh re-create mỗi lần render
+  const getStatusChip = useCallback((status: WarehouseImport["status"]) => {
     if (status === "processing" || status === "completed") {
       return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
     return null;
-  };
+  }, []);
 
-  const getImportStatusChip = (status: WarehouseImport["importStatus"]) => {
+  const getImportStatusChip = useCallback((status: WarehouseImport["importStatus"]) => {
     if (status === "not_imported" || status === "imported") {
       return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
     return null;
-  };
+  }, []);
 
-  const getPaymentStatusChip = (status: WarehouseImport["paymentStatus"]) => {
+  const getPaymentStatusChip = useCallback((status: WarehouseImport["paymentStatus"]) => {
     if (status === "paid" || status === "unpaid") {
       return <ChipStatus status={status as ChipStatusKey} size="small" />;
     }
     return null;
-  };
+  }, []);
 
-  // Format price: hiển thị số + "vnđ" (ví dụ: 960000 vnđ)
-  const formatPrice = (amount: number) => {
+  // Format price: hiển thị số + "vnđ" (ví dụ: 960000 vnđ) - memoized
+  const formatPrice = useCallback((amount: number) => {
     if (amount == null || isNaN(amount) || !isFinite(amount)) {
       return "0 vnđ";
     }
     // Format số với dấu phẩy ngăn cách hàng nghìn
     return `${Number(amount).toLocaleString('vi-VN')} vnđ`;
-  };
+  }, []);
 
-  // Format date: parse "2025-11-13 05:31:21" → "13/11/2025"
-  const formatDate = (dateString: string) => {
+  // Format date: parse "2025-11-13 05:31:21" → "13/11/2025" - memoized
+  const formatDate = useCallback((dateString: string) => {
     try {
       let date: Date;
       if (dateString.includes(' ') && !dateString.includes('T')) {
@@ -284,7 +262,7 @@ const AdminWarehouseImports = () => {
       console.error("Error formatting date:", dateString, error);
       return dateString;
     }
-  };
+  }, []);
 
   // Calculate pagination display text (size = 10)
   const paginationText = useMemo(() => {
