@@ -175,7 +175,8 @@ const AdminSettings: React.FC = () => {
         return;
       }
       try {
-        const url = await uploadAdminAvatar(file);
+        const response = await uploadAdminAvatar(file);
+        const url = response.data;
         setFormData((prev) => ({
           ...prev,
           image_url: url,
