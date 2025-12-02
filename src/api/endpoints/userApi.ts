@@ -66,7 +66,7 @@ export const changePassword = async (
 // Admin Profile API
 export const getAdminProfile = async (): Promise<AdminProfileDetailResponse> => {
   const response = await api.get<ApiResponse<AdminProfileDetailResponse>>(
-    "/auth/v1/private/users/admin/profile"
+    "/auth/v1/private/users/admin/info"
   );
   return response.data.data;
 };
@@ -75,7 +75,7 @@ export const updateAdminProfile = async (
   profileData: AdminProfileUpdateRequest
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/users/admin/profile",
+    "/auth/v1/private/users/admin",
     profileData
   );
   return response.data;
@@ -85,7 +85,7 @@ export const updateAdminPassword = async (
   passwordData: AdminPasswordUpdateRequest
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/users/admin/change-password",
+    "/auth/v1/private/users/admin/password",
     passwordData
   );
   return response.data;
@@ -98,7 +98,7 @@ export const uploadAdminAvatar = async (
   formData.append('file', file);
   
   const response = await api.post<ApiResponse<string>>(
-    "/auth/v1/private/users/admin/avatar",
+    "/files/avatar",
     formData,
     {
       headers: {
