@@ -11,6 +11,7 @@ import {
 import { CreditCardPercentIcon } from "@/components/icons/discount";
 import Icon from "@/components/icons/Icon";
 import CustomRadio from "@/components/ui/custom-radio";
+import { toast } from "sonner";
 
 // Date formatting utilities
 const formatDateTimeForInput = (dateString: string) => {
@@ -49,6 +50,8 @@ interface VoucherFormData {
 const AdminCreateVoucher: React.FC = () => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [discountValueError, setDiscountValueError] = useState<string>("");
+  const [maxUsagePerCustomerError, setMaxUsagePerCustomerError] = useState<string>("");
   const [formData, setFormData] = useState<VoucherFormData>({
     voucherName: "",
     voucherCode: "",
@@ -74,20 +77,127 @@ const AdminCreateVoucher: React.FC = () => {
   ];
   const sanitizeNumericInput = (value: string) => value.replace(/[^0-9]/g, "");
 
+  const validateDiscountValue = (value: string, discountType: "percentage" | "fixed") => {
+    if (!value) {
+      setDiscountValueError("");
+      return;
+    }
+    const numValue = Number(value);
+    if (Number.isNaN(numValue) || numValue <= 0) {
+      if (discountType === "percentage") {
+        setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      } else {
+        setDiscountValueError("");
+      }
+      return;
+    }
+    if (discountType === "percentage" && numValue > 99) {
+      setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      return;
+    }
+    setDiscountValueError("");
+  };
+
+  const validateMaxUsagePerCustomer = (maxUsagePerCustomer: string, maxUsage: string) => {
+    if (!maxUsagePerCustomer || !maxUsage) {
+      setMaxUsagePerCustomerError("");
+      return;
+    }
+    const numMaxUsagePerCustomer = Number(maxUsagePerCustomer);
+    const numMaxUsage = Number(maxUsage);
+    if (Number.isNaN(numMaxUsagePerCustomer) || Number.isNaN(numMaxUsage)) {
+      setMaxUsagePerCustomerError("");
+      return;
+    }
+    if (numMaxUsagePerCustomer > numMaxUsage) {
+      setMaxUsagePerCustomerError("Lượt sử dụng tối đa mỗi Người mua không được lớn hơn tổng lượt sử dụng tối đa của voucher");
+      return;
+    }
+    setMaxUsagePerCustomerError("");
+  };
+
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
     const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
-    setFormData((prev) => ({
-      ...prev,
-      [field]: processedValue,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [field]: processedValue,
+      };
+      if (field === "discountValue") {
+        validateDiscountValue(processedValue, updated.discountType);
+      } else if (field === "discountType") {
+        validateDiscountValue(prev.discountValue, value as "percentage" | "fixed");
+      } else if (field === "maxUsagePerCustomer") {
+        validateMaxUsagePerCustomer(processedValue, updated.maxUsage);
+      } else if (field === "maxUsage") {
+        validateMaxUsagePerCustomer(updated.maxUsagePerCustomer, processedValue);
+      }
+      return updated;
+    });
   };
 
   const handleBackClick = () => {
     navigate("/admin/discounts");
   };
 
+  const validateForm = () => {
+    if (!formData.voucherName.trim()) {
+      return "Vui lòng nhập tên chương trình giảm giá.";
+    }
+    if (!formData.voucherCode.trim()) {
+      return "Vui lòng nhập mã voucher.";
+    }
+    const discountValue = Number(formData.discountValue);
+    if (!formData.discountValue || Number.isNaN(discountValue) || discountValue <= 0) {
+      if (formData.discountType === "percentage") {
+        return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
+      }
+      return "Mức giảm phải lớn hơn 0.";
+    }
+    if (formData.discountType === "percentage" && discountValue > 99) {
+      return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
+    }
+    if (!formData.startDate || !formData.endDate) {
+      return "Vui lòng chọn thời gian áp dụng.";
+    }
+    if (new Date(formData.startDate) >= new Date(formData.endDate)) {
+      return "Thời gian bắt đầu phải trước thời gian kết thúc.";
+    }
+    if (formData.maxDiscountLimit === "limited") {
+      const maxDiscount = Number(formData.maxDiscountValue);
+      if (!formData.maxDiscountValue || Number.isNaN(maxDiscount) || maxDiscount <= 0) {
+        return "Vui lòng nhập mức giảm tối đa hợp lệ.";
+      }
+    }
+    if (formData.minOrderAmount && Number.isNaN(Number(formData.minOrderAmount))) {
+      return "Giá trị đơn hàng tối thiểu không hợp lệ.";
+    }
+    if (formData.maxUsage && (Number.isNaN(Number(formData.maxUsage)) || Number(formData.maxUsage) <= 0)) {
+      return "Tổng lượt sử dụng tối đa phải lớn hơn 0.";
+    }
+    if (
+      formData.maxUsagePerCustomer &&
+      (Number.isNaN(Number(formData.maxUsagePerCustomer)) || Number(formData.maxUsagePerCustomer) <= 0)
+    ) {
+      return "Lượt sử dụng tối đa trên mỗi khách hàng phải lớn hơn 0.";
+    }
+    if (formData.maxUsagePerCustomer && formData.maxUsage) {
+      const numMaxUsagePerCustomer = Number(formData.maxUsagePerCustomer);
+      const numMaxUsage = Number(formData.maxUsage);
+      if (!Number.isNaN(numMaxUsagePerCustomer) && !Number.isNaN(numMaxUsage) && numMaxUsagePerCustomer > numMaxUsage) {
+        return "Lượt sử dụng tối đa mỗi Người mua không được lớn hơn tổng lượt sử dụng tối đa của voucher";
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     console.log("Voucher form submitted:", formData);
     // Handle form submission logic here
   };
@@ -153,6 +263,12 @@ const AdminCreateVoucher: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={100}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherName.length}/100
+                      </span>
+                    }
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
                     Tên voucher sẽ không được hiển thị cho người mua
@@ -174,11 +290,13 @@ const AdminCreateVoucher: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={10}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherCode.length}/10
+                      </span>
+                    }
                   />
-                  <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
-                    Vui lòng nhập các kí tự chữ cái A - Z, số 0 - 9, tối đa 5 kí
-                    tự
-                  </p>
                 </div>
               </div>
 
@@ -243,7 +361,7 @@ const AdminCreateVoucher: React.FC = () => {
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] sm:w-[215px] flex-shrink-0 sm:text-right">
                   Loại giảm giá | Mức giảm
                 </label>
-                <div className="flex-1 flex flex-col sm:flex-row gap-[16px] items-center">
+                <div className="flex-1 flex flex-col sm:flex-row gap-[16px] items-start">
                   {/* Discount Type Dropdown */}
                   <div className="w-[164px] flex-shrink-0">
                     <DropdownMenu
@@ -293,7 +411,7 @@ const AdminCreateVoucher: React.FC = () => {
                   <div className="flex-1 w-full">
                     <FormInput
                       placeholder={
-                        formData.discountType === "percentage" ? "%" : "đ"
+                        formData.discountType === "percentage" ? "Nhập giá trị lớn hơn 1%" : "đ"
                       }
                       value={formData.discountValue}
                       onChange={(e) =>
@@ -302,6 +420,11 @@ const AdminCreateVoucher: React.FC = () => {
                       containerClassName="h-[36px] w-[873px]"
                       required
                     />
+                    {discountValueError && (
+                      <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                        {discountValueError}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -403,6 +526,11 @@ const AdminCreateVoucher: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                   />
+                  {maxUsagePerCustomerError && (
+                    <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                      {maxUsagePerCustomerError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

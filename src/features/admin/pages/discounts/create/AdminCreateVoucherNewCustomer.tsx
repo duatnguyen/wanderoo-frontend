@@ -95,6 +95,7 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
   }, [discountIdFromQuery, stateDiscountId]);
   const isEditMode = Boolean(fetchDiscountId);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [discountValueError, setDiscountValueError] = useState<string>("");
   const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
   const [minDateTime] = useState(() => formatDateTimeForInput(new Date().toISOString()));
   const topElementRef = useRef<HTMLDivElement>(null);
@@ -278,12 +279,47 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
 
   const sanitizeNumericInput = (value: string) => value.replace(/[^0-9]/g, "");
 
+  const formatNumber = (value: string) => {
+    if (!value) return "";
+    const num = value.replace(/\D/g, "");
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  const validateDiscountValue = (value: string, discountType: "percentage" | "fixed") => {
+    if (!value) {
+      setDiscountValueError("");
+      return;
+    }
+    const numValue = Number(value);
+    if (Number.isNaN(numValue) || numValue <= 0) {
+      if (discountType === "percentage") {
+        setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      } else {
+        setDiscountValueError("");
+      }
+      return;
+    }
+    if (discountType === "percentage" && numValue > 99) {
+      setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      return;
+    }
+    setDiscountValueError("");
+  };
+
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
     const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
-    setFormData((prev) => ({
-      ...prev,
-      [field]: processedValue,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [field]: processedValue,
+      };
+      if (field === "discountValue") {
+        validateDiscountValue(processedValue, updated.discountType);
+      } else if (field === "discountType") {
+        validateDiscountValue(prev.discountValue, value as "percentage" | "fixed");
+      }
+      return updated;
+    });
   };
 
   const handleBackClick = () => {
@@ -307,7 +343,13 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
     }
     const discountValue = Number(formData.discountValue);
     if (!formData.discountValue || Number.isNaN(discountValue) || discountValue <= 0) {
+      if (formData.discountType === "percentage") {
+        return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
+      }
       return "Mức giảm phải lớn hơn 0.";
+    }
+    if (formData.discountType === "percentage" && discountValue > 99) {
+      return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
     }
     if (!formData.startDate || !formData.endDate) {
       return "Vui lòng chọn thời gian áp dụng.";
@@ -442,6 +484,12 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={100}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherName.length}/100
+                      </span>
+                    }
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4]">
                     Tên voucher sẽ không được hiển thị cho người mua
@@ -463,11 +511,13 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={10}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherCode.length}/10
+                      </span>
+                    }
                   />
-                  <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4]">
-                    Vui lòng nhập các kí tự chữ cái A - Z, số 0 - 9, tối đa 5 kí
-                    tự
-                  </p>
                 </div>
               </div>
 
@@ -547,7 +597,7 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
                   Loại giảm giá | Mức giảm
                 </label>
-                <div className="flex-1 flex flex-row gap-[16px] items-center flex-shrink-0 w-[873px]">
+                <div className="flex-1 flex flex-row gap-[16px] items-start flex-shrink-0 w-[873px]">
                   {/* Discount Type Dropdown */}
                   <div className="w-[164px] flex-shrink-0">
                     <DropdownMenu
@@ -597,15 +647,24 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                   <div className="flex-1">
                     <FormInput
                       placeholder={
-                        formData.discountType === "percentage" ? "%" : "đ"
+                        formData.discountType === "percentage" ? "Nhập giá trị lớn hơn 1%" : "đ"
                       }
-                      value={formData.discountValue}
+                      value={
+                        formData.discountType === "percentage"
+                          ? formData.discountValue
+                          : formatNumber(formData.discountValue)
+                      }
                       onChange={(e) =>
                         handleInputChange("discountValue", e.target.value)
                       }
                       containerClassName="h-[36px] w-full"
                       required
                     />
+                    {discountValueError && (
+                      <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                        {discountValueError}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -641,7 +700,7 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                       <div>
                         <FormInput
                           placeholder="đ"
-                          value={formData.maxDiscountValue}
+                          value={formatNumber(formData.maxDiscountValue)}
                           onChange={(e) =>
                             handleInputChange(
                               "maxDiscountValue",
@@ -664,7 +723,7 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                 <div className="flex-1">
                   <FormInput
                     placeholder="đ"
-                    value={formData.minOrderAmount}
+                    value={formatNumber(formData.minOrderAmount)}
                     onChange={(e) =>
                       handleInputChange("minOrderAmount", e.target.value)
                     }

@@ -5,6 +5,7 @@ import type {
     SelectAllRequest,
     DiscountPublicResponse,
     VoucherHistoryResponse,
+    ClaimVoucherRequest,
 } from '@/types/api';
 import type {
     AdminDiscountPageResponse,
@@ -97,6 +98,26 @@ export const getMyVouchers = async (): Promise<VoucherHistoryResponse[]> => {
         '/public/v1/discount/voucher/my-vouchers',
     );
     return response.data.data ?? [];
+};
+
+export const getVoucherHistory = async (
+    status?: string
+): Promise<VoucherHistoryResponse[]> => {
+    const response = await api.get<ApiResponse<VoucherHistoryResponse[]>>(
+        '/public/v1/discount/voucher/history',
+        { params: status ? { status } : undefined }
+    );
+    return response.data.data ?? [];
+};
+
+export const claimVoucher = async (
+    payload: ClaimVoucherRequest
+): Promise<VoucherHistoryResponse> => {
+    const response = await api.post<ApiResponse<VoucherHistoryResponse>>(
+        '/public/v1/discount/claim',
+        payload
+    );
+    return response.data.data;
 };
 
 export const applyDiscountToProducts = async (

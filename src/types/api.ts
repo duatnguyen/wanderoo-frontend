@@ -364,7 +364,7 @@ export interface DiscountResponse {
   description?: string;
 }
 
-export interface DiscountPageResponse extends PageResponse<DiscountResponse> { }
+export interface DiscountPageResponse extends PageResponse<DiscountResponse> {}
 
 export interface DraftOrderResponse {
   id: number;
@@ -411,7 +411,7 @@ export interface SimpleInventoryItemResponse {
 }
 
 export interface SimpleInventoryPageResponse
-  extends PageResponse<SimpleInventoryItemResponse> { }
+  extends PageResponse<SimpleInventoryItemResponse> {}
 
 export interface ProviderResponse {
   id: number;
@@ -435,11 +435,14 @@ export interface ProviderDetailResponse {
   name: string;
   phone: string;
   email: string;
-  note?: string;
-  province: string;
-  ward: string;
-  district: string;
-  location: string;
+  note?: string | null;
+  street?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  districtId?: number | null;
+  districtName?: string | null;
+  provinceName?: string | null;
+  fullAddress?: string | null;
 }
 
 export interface InvoiceResponse {
@@ -483,14 +486,15 @@ export interface ChangePasswordRequest {
 }
 
 export interface AddressCreationRequest {
-  province: string;
-  district: string;
-  ward: string;
-  location: string;
+  street: string;
+  wardCode: string;
+  wardName: string;
+  districtId: number;
+  districtName: string;
+  provinceName: string;
+  fullAddress?: string;
   name: string;
   phone: string;
-  wardCode: string;
-  districtId: number;
 }
 
 export interface AddressUpdateRequest extends AddressCreationRequest {
@@ -517,10 +521,36 @@ export interface ProductCreateRequest {
   sellingPrice?: number;
   totalQuantity?: number;
   availableQuantity?: number;
+  categoryId: number;
+  brandId?: number;
+  description: string;
+  attributes?: ProductAttributeInputRequest[];
+  packagedWeight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  importPrice?: number;
+  sellingPrice?: number;
+  totalQuantity?: number;
+  availableQuantity?: number;
+  price?: number; // legacy field for older forms
 }
 
 export interface ProductUpdateRequest extends ProductCreateRequest {
   id: number;
+}
+
+export interface SellingQuantityRequest {
+  id: number;
+  sellingQuantityWeb: number;
+  sellingQuantityPos: number;
+}
+
+export type ProductDisplay = "WEBSITE" | "POS" | "BOTH";
+
+export interface UpdateProductDisplayRequest {
+  ids: number[];
+  display: ProductDisplay;
 }
 
 export interface CartItemRequest {
@@ -599,6 +629,8 @@ export interface CustomerOrderResponse extends OrderResponse {
   shopDistrictName?: string | null;
   shopWardCode?: string | null;
   shopWardName?: string | null;
+  orderDiscountAmount?: number;
+  productDiscountAmount?: number;
 }
 
 export interface CustomerOrderPageResponse {
@@ -1151,6 +1183,44 @@ export interface BrandCreateRequest {
   name: string;
 }
 
+export interface BrandResponse {
+  id: number;
+  name: string;
+  imageUrl?: string;
+  status?: string;
+}
+
+export interface BrandPageResponse extends PageResponse<BrandResponse> {
+  last?: boolean;
+  pageable?: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  brands?: BrandResponse[];
+}
+
+export interface BrandCreateRequest {
+  name: string;
+}
+
+export interface ProductCategoryItemResponse {
+  id: number;
+  imageUrl?: string | null;
+  name: string;
+  rating: number;
+  minSellingPrice: number;
+  discountSellingPrice: number;
+  discountValue?: string | null;
+}
+
+export interface ProductCategoryPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  productCategoryResponseList: ProductCategoryItemResponse[];
+}
+
 export interface VariantRequest {
   productId: number;
   // Other fields as needed
@@ -1169,6 +1239,13 @@ export interface VariantUpdateRequest {
   importPrice?: number;
   totalQuantity?: number;
   availableQuantity?: number;
+  imageUrl?: string[];
+  barcode?: string;
+  sellingPrice?: number;
+  importPrice?: number;
+  totalQuantity?: number;
+  websiteSoldQuantity?: number;
+  posSoldQuantity?: number;
 }
 
 export interface ProductStatusRequest {
@@ -1178,6 +1255,11 @@ export interface ProductStatusRequest {
 export interface VariantQuantityUpdateRequest {
   variantId: number;
   quantity: number;
+}
+
+export interface UpdateVariantQuantityRequest {
+  id: number;
+  totalQuantity: number;
 }
 
 export interface EmployeeResponse extends UserResponse {
@@ -1219,6 +1301,9 @@ export interface CustomerCreationRequest {
   address?: string;
   gender?: "MALE" | "FEMALE" | "OTHER";
   birthday?: string;
+  address?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null;
 }
 
 export interface CustomerUpdateRequest {
@@ -1242,20 +1327,39 @@ export interface ProviderCreateRequest {
   phone: string;
   email: string;
   note?: string;
-  province: string;
-  ward: string;
-  district: string;
-  location: string;
+  provinceName: string;
+  districtName: string;
+  districtId: number;
+  wardName: string;
+  wardCode: string;
+  street: string;
+  fullAddress?: string;
 }
 
 export interface ProviderUpdateRequest extends ProviderCreateRequest {
   id: number;
 }
 
+export interface ProviderInvoiceHistoryItem {
+  type: "IMPORT" | "EXPORT";
+  code: string;
+  updatedAt: string;
+  productStatus: "PENDING" | "DONE";
+  paymentStatus: "PENDING" | "DONE";
+}
+
 export interface ProviderStatResponse {
-  totalInvoices: number;
-  totalAmount: number;
-  lastOrderDate: string;
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  fromDate?: string | null;
+  toDate?: string | null;
+  invoiceImportCreated: number;
+  invoiceImportUnpaid: number;
+  invoiceExportCreated: number;
+  invoiceExportUnrefund: number;
+  invoiceHistory: ProviderInvoiceHistoryItem[];
 }
 
 export interface OrderHistoryResponse {

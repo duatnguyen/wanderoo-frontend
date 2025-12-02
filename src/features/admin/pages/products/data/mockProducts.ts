@@ -1,9 +1,5 @@
 import type { Product } from "@/types/types";
-import type {
-  ProductAttribute,
-  ProductImage,
-  ProductVersion,
-} from "@/types/product";
+import type { ProductAttribute, ProductImage, ProductVersion } from "@/types/product";
 
 export type AdminProductStatus = "active" | "inactive";
 
@@ -297,3 +293,6 @@ export const adminMockProducts: AdminProductDetail[] = [
     ],
   },
 ];
+
+
+

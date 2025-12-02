@@ -55,6 +55,19 @@ const AdminCustomers: React.FC = () => {
     }
   }, [location, navigate]);
 
+  // Sync actual search term with input value (debounced) so user doesn't need Enter
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const normalizedValue = searchInputValue.trim();
+      if (normalizedValue !== searchTerm) {
+        setSearchTerm(normalizedValue);
+        setCurrentPage(1);
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [searchInputValue, searchTerm]);
+
   // Fetch customers from API
   const {
     data: customersData,

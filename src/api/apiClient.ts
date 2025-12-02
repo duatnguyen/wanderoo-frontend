@@ -44,9 +44,9 @@ function isPublicEndpoint(url?: string): boolean {
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 300000, // 5 minutes
+  timeout: 300000, // align with -c (5 minutes) to avoid premature timeouts on heavy requests
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 

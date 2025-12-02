@@ -17,7 +17,7 @@ const OrderManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  // Fetch orders list
+  // Fetch orders list (backend already filters PAID orders only)
   const {
     data: ordersData,
     isLoading: isLoadingOrders,
@@ -92,10 +92,14 @@ const OrderManagement: React.FC = () => {
           image: product.productImage,
           variant: product.category,
           price: product.unitPrice || 0,
+          originalPrice: product.originalPrice ?? product.unitPrice ?? 0,
           quantity: product.quantity || 0,
+          totalPrice:
+            product.totalPrice ??
+            (product.unitPrice || 0) * (product.quantity || 0),
         })),
         totalAmount: orderDetailData.paymentSummary?.totalProductPrice || 0,
-        discount: orderDetailData.paymentSummary?.discountAmount || 0,
+        discount: orderDetailData.paymentSummary?.orderDiscountAmount || 0,
         finalAmount: orderDetailData.paymentSummary?.totalOrderPrice || 0,
         amountPaid: orderDetailData.paymentSummary?.cashReceived || 0,
         change: orderDetailData.paymentSummary?.change || 0,

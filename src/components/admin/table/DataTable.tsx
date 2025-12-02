@@ -132,11 +132,13 @@ export const DataTable = <T extends Record<string, any>>({
                 {columns.map((column) => (
                   <div
                     key={column.key}
-                    className={`flex gap-[6px] items-center px-[4px] py-[12px] ${
-                      column.width || "flex-1"
+                    className={`flex gap-[6px] items-center px-[12px] py-[12px] ${
+                      column.width ? "" : "flex-1"
                     } ${column.className || ""}`}
                     style={
-                      column.minWidth
+                      column.width
+                        ? { width: column.width, minWidth: column.minWidth || column.width }
+                        : column.minWidth
                         ? { minWidth: column.minWidth }
                         : undefined
                     }
@@ -177,27 +179,34 @@ export const DataTable = <T extends Record<string, any>>({
                 )}
 
                 {/* Data columns */}
-                {columns.map((column) => (
-                  <div
-                    key={column.key}
-                    className={`flex flex-col gap-[2px] h-full items-start px-[4px] py-[12px] ${
-                      column.width || "flex-1"
-                    } ${column.className || ""}`}
-                    style={
-                      column.minWidth
-                        ? { minWidth: column.minWidth }
-                        : undefined
-                    }
-                  >
-                    {column.render ? (
-                      column.render(record[column.key], record, index)
-                    ) : (
-                      <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
-                        {record[column.key]}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {columns.map((column) => {
+                  const isCenterAligned = column.className?.includes("text-center") || column.className?.includes("justify-center");
+                  return (
+                    <div
+                      key={column.key}
+                      className={`flex flex-col gap-[2px] h-full px-[12px] py-[12px] ${
+                        isCenterAligned ? "items-center justify-center" : "items-start"
+                      } ${
+                        column.width ? "" : "flex-1"
+                      } ${column.className || ""}`}
+                      style={
+                        column.width
+                          ? { width: column.width, minWidth: column.minWidth || column.width }
+                          : column.minWidth
+                          ? { minWidth: column.minWidth }
+                          : undefined
+                      }
+                    >
+                      {column.render ? (
+                        column.render(record[column.key], record, index)
+                      ) : (
+                        <span className="font-medium text-[#272424] text-[14px] leading-[1.4]">
+                          {record[column.key]}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

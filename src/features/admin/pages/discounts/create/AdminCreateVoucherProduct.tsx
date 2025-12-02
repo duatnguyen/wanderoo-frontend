@@ -13,12 +13,12 @@ import { CreditCardPercentIcon } from "@/components/icons/discount";
 import Icon from "@/components/icons/Icon";
 import CustomRadio from "@/components/ui/custom-radio";
 import type { VoucherEditData, VoucherProduct } from "@/types/voucher";
-import { getAllProductsPrivate, getVariantDetailPrivate } from "@/api/endpoints/productApi";
+import { getAllProductsPrivate, getVariantDetailPrivate, getProductVariantsPrivate } from "@/api/endpoints/productApi";
 import type { AdminProductResponse } from "@/types";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createDiscount, getDiscountDetail, updateDiscount, applyDiscountToProducts, getProductDetailIdsByDiscountId, removeDiscountFromProducts } from "@/api/endpoints/discountApi";
-import type { AdminDiscountCreateRequest } from "@/types/discount";
+import type { AdminDiscountCreateRequest, AdminDiscountResponse } from "@/types/discount";
 
 // Date formatting utilities
 const formatDateTimeForInput = (dateString: string) => {
@@ -78,6 +78,13 @@ const createDefaultFormData = (): VoucherFormData => ({
   displaySetting: "website",
 });
 
+// Format number with thousand separators for VND inputs
+const formatNumber = (value: string) => {
+  if (!value) return "";
+  const num = value.replace(/\D/g, "");
+  return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
 const discountTypeToEnum = {
   percentage: "PERCENT" as const,
   fixed: "FIXED" as const,
@@ -101,7 +108,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const [searchParams] = useSearchParams();
   const discountIdQuery = searchParams.get("id");
   const discountIdFromQuery = discountIdQuery ? Number(discountIdQuery) : undefined;
-  const { mode, voucher } = (location.state as EditLocationState | undefined) || {};
+  const { voucher } = (location.state as EditLocationState | undefined) || {};
   const editData = voucher?.editData;
   const stateDiscountId = voucher?.id ? Number(voucher.id) : undefined;
   const fetchDiscountId = useMemo(() => {
@@ -116,6 +123,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const isEditMode = Boolean(fetchDiscountId);
   const queryClient = useQueryClient();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [discountValueError, setDiscountValueError] = useState<string>("");
+  const [maxUsagePerCustomerError, setMaxUsagePerCustomerError] = useState<string>("");
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [selectedVariants, setSelectedVariants] = useState<Set<string>>(new Set());
@@ -132,6 +141,24 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
   const topElementRef = useRef<HTMLDivElement>(null);
+  const [variantLoadingMap, setVariantLoadingMap] = useState<Record<string, boolean>>({});
+  const [productVariantsMap, setProductVariantsMap] = useState<Record<string, Array<{ id: number; nameDetail?: string; sellingPrice?: number | string }>>>({});
+
+  const appliedVariantIds = useMemo(() => {
+    const ids = new Set<string>();
+    confirmedProducts.forEach((product) => {
+      if (product.variantId) {
+        ids.add(String(product.variantId));
+        return;
+      }
+      const parts = product.id?.split("-") ?? [];
+      const lastPart = parts[parts.length - 1];
+      if (lastPart) {
+        ids.add(lastPart);
+      }
+    });
+    return ids;
+  }, [confirmedProducts]);
 
   const numericFields: Array<keyof VoucherFormData> = [
     "discountValue",
@@ -294,10 +321,24 @@ const AdminCreateVoucherProduct: React.FC = () => {
     return Number.isFinite(numeric) ? numeric : 0;
   };
 
-  const formatPriceDisplay = (price?: number | string | null): string => {
+  // Memoize formatPriceDisplay để tránh tạo lại function mỗi lần render
+  const formatPriceDisplay = useCallback((price?: number | string | null): string => {
     const numPrice = formatPrice(price);
     return new Intl.NumberFormat("vi-VN").format(numPrice) + "đ";
-  };
+  }, []);
+
+  // Memoize paginated products để tránh tính toán lại
+  const paginatedProducts = useMemo(() => {
+    return confirmedProducts.slice(
+      (appliedProductsPage - 1) * 5,
+      appliedProductsPage * 5
+    );
+  }, [confirmedProducts, appliedProductsPage]);
+
+  // Memoize handler để xóa sản phẩm
+  const handleRemoveProduct = useCallback((productId: string) => {
+    setConfirmedProducts((prev) => prev.filter((p) => p.id !== productId));
+  }, []);
 
   // Map product to display format
   const mapProductToDisplay = (product: AdminProductResponse) => {
@@ -306,10 +347,9 @@ const AdminCreateVoucherProduct: React.FC = () => {
       id: String(product.id),
       name: product.name,
       image: product.imageUrl || "",
-      barcode: "---", // Products don't have barcode at product level, only variants do
+      barcode: "---",
       price,
       available: product.availableQuantity ?? 0,
-      variants: product.productDetails ?? [],
     };
   };
 
@@ -317,41 +357,62 @@ const AdminCreateVoucherProduct: React.FC = () => {
     return products.map(mapProductToDisplay);
   }, [products]);
 
-  const handleProductToggle = (productId: string) => {
-    const product = displayProducts.find((p) => p.id === productId);
-    const hasVariants = product && product.variants && product.variants.length > 0;
-    
-    // If product has variants, don't allow selecting the product directly
-    // User must select individual variants
-    if (hasVariants) {
+  const handleVariantToggle = (variantId: string, productId: string) => {
+    if (appliedVariantIds.has(variantId)) {
       return;
     }
-    
-    // Only allow selecting products without variants
-    setSelectedProducts((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(productId)) {
-        newSet.delete(productId);
-    } else {
-        newSet.add(productId);
-      }
-      return newSet;
-    });
-  };
+    const variants = productVariantsMap[productId] ?? [];
+    const variantIds = variants.map((variant) => String(variant.id));
+    const selectableVariantIds = variantIds.filter((id) => !appliedVariantIds.has(id));
 
-  const handleVariantToggle = (variantId: string, productId: string) => {
     setSelectedVariants((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(variantId)) {
         newSet.delete(variantId);
       } else {
         newSet.add(variantId);
-        // If variant is selected, also select the product
-        setSelectedProducts((p) => new Set(p).add(productId));
       }
+
+      setSelectedProducts((prevProducts) => {
+        const productSet = new Set(prevProducts);
+        if (
+          selectableVariantIds.length > 0 &&
+          selectableVariantIds.every((id) => newSet.has(id))
+        ) {
+          productSet.add(productId);
+        } else {
+          productSet.delete(productId);
+        }
+        return productSet;
+      });
+
       return newSet;
     });
   };
+
+  const loadProductVariants = useCallback(async (productId: string) => {
+    if (variantLoadingMap[productId] || productVariantsMap[productId]) {
+      return;
+    }
+    
+    setVariantLoadingMap((prev) => ({ ...prev, [productId]: true }));
+    try {
+      const response = await getProductVariantsPrivate(Number(productId), {
+        page: 0,
+        size: 50,
+      });
+      const variants = response?.variants?.map((v) => ({
+        id: v.id,
+        nameDetail: v.nameDetail,
+        sellingPrice: v.sellingPrice,
+      })) ?? [];
+      setProductVariantsMap((prev) => ({ ...prev, [productId]: variants }));
+    } catch (error) {
+      console.error("Không thể tải biến thể sản phẩm", error);
+    } finally {
+      setVariantLoadingMap((prev) => ({ ...prev, [productId]: false }));
+    }
+  }, [variantLoadingMap, productVariantsMap]);
 
   const toggleProductExpanded = (productId: string) => {
     setExpandedProducts((prev) => {
@@ -360,59 +421,76 @@ const AdminCreateVoucherProduct: React.FC = () => {
         newSet.delete(productId);
       } else {
         newSet.add(productId);
+        // Load variants when expanding
+        loadProductVariants(productId);
       }
       return newSet;
     });
   };
 
+  const getSelectableVariantIds = useCallback(
+    (productId: string) => {
+      const variants = productVariantsMap[productId] ?? [];
+      return variants
+        .map((variant) => String(variant.id))
+        .filter((variantId) => !appliedVariantIds.has(variantId));
+    },
+    [productVariantsMap, appliedVariantIds],
+  );
+
   const handleSelectAll = () => {
-    const productsWithoutVariants = displayProducts.filter((p) => !p.variants || p.variants.length === 0);
-    const productsWithVariants = displayProducts.filter((p) => p.variants && p.variants.length > 0);
-    
-    const allProductIds = new Set(productsWithoutVariants.map((p) => p.id));
+    if (displayProducts.length === 0) return;
+
+    const selectableProductIds: string[] = [];
     const allVariantIds = new Set<string>();
-    
-    productsWithVariants.forEach((product) => {
-      product.variants.forEach((variant) => {
-        allVariantIds.add(String(variant.id));
-      });
+
+    displayProducts.forEach((product) => {
+      const selectableVariants = getSelectableVariantIds(product.id);
+      if (selectableVariants.length > 0) {
+        selectableProductIds.push(product.id);
+        selectableVariants.forEach((variantId) => allVariantIds.add(variantId));
+      }
     });
 
-  const isAllSelected =
-      selectedProducts.size === productsWithoutVariants.length &&
-      selectedVariants.size === allVariantIds.size &&
-      productsWithoutVariants.every((p) => selectedProducts.has(p.id)) &&
-      Array.from(allVariantIds).every((id) => selectedVariants.has(id));
-    
-    if (isAllSelected) {
+    if (selectableProductIds.length === 0) {
       setSelectedProducts(new Set());
       setSelectedVariants(new Set());
-    } else {
-      setSelectedProducts(allProductIds);
-      setSelectedVariants(allVariantIds);
+      return;
     }
+
+    const shouldDeselectAll = selectableProductIds.every((productId) =>
+      selectedProducts.has(productId),
+    );
+
+    if (shouldDeselectAll) {
+      setSelectedProducts(new Set());
+      setSelectedVariants(new Set());
+      return;
+    }
+
+    setSelectedProducts(new Set(selectableProductIds));
+    setSelectedVariants(allVariantIds);
   };
 
   const isAllSelected = useMemo(() => {
     if (displayProducts.length === 0) return false;
-    
-    const productsWithoutVariants = displayProducts.filter((p) => !p.variants || p.variants.length === 0);
-    const productsWithVariants = displayProducts.filter((p) => p.variants && p.variants.length > 0);
-    
-    const allVariantIds = new Set<string>();
-    productsWithVariants.forEach((product) => {
-      product.variants.forEach((variant) => {
-        allVariantIds.add(String(variant.id));
-      });
+
+    const selectableProducts = displayProducts
+      .map((product) => ({
+        id: product.id,
+        variants: getSelectableVariantIds(product.id),
+      }))
+      .filter(({ variants }) => variants.length > 0);
+
+    if (selectableProducts.length === 0) return false;
+
+    return selectableProducts.every(({ id, variants }) => {
+      if (!selectedProducts.has(id)) {
+        return false;
+      }
+      return variants.every((variantId) => selectedVariants.has(variantId));
     });
-    
-    return (
-      selectedProducts.size === productsWithoutVariants.length &&
-      selectedVariants.size === allVariantIds.size &&
-      productsWithoutVariants.every((p) => selectedProducts.has(p.id)) &&
-      Array.from(allVariantIds).every((id) => selectedVariants.has(id))
-    );
-  }, [displayProducts, selectedProducts, selectedVariants]);
+  }, [displayProducts, selectedProducts, selectedVariants, getSelectableVariantIds]);
 
   // Calculate page numbers to display
   const getPageNumbers = () => {
@@ -455,18 +533,27 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const CustomCheckbox = ({
     checked,
     onChange,
+    disabled = false,
   }: {
     checked: boolean;
     onChange: () => void;
+    disabled?: boolean;
   }) => {
     return (
       <div
-        onClick={onChange}
-        className={`w-[16px] h-[16px] border-2 rounded cursor-pointer flex items-center justify-center transition-colors ${
+        onClick={() => {
+          if (!disabled) {
+            onChange();
+          }
+        }}
+        className={`w-[16px] h-[16px] border-2 rounded flex items-center justify-center transition-colors ${
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+        } ${
           checked
             ? "bg-[#e04d30] border-[#e04d30]"
             : "bg-white border-[#d1d5db]"
         }`}
+        aria-disabled={disabled}
       >
         {checked && (
           <svg
@@ -490,12 +577,63 @@ const AdminCreateVoucherProduct: React.FC = () => {
   };
 
 
+  const validateDiscountValue = (value: string, discountType: "percentage" | "fixed") => {
+    if (!value) {
+      setDiscountValueError("");
+      return;
+    }
+    const numValue = Number(value);
+    if (Number.isNaN(numValue) || numValue <= 0) {
+      if (discountType === "percentage") {
+        setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      } else {
+        setDiscountValueError("");
+      }
+      return;
+    }
+    if (discountType === "percentage" && numValue > 99) {
+      setDiscountValueError("Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99");
+      return;
+    }
+    setDiscountValueError("");
+  };
+
+  const validateMaxUsagePerCustomer = (maxUsagePerCustomer: string, maxUsage: string) => {
+    if (!maxUsagePerCustomer || !maxUsage) {
+      setMaxUsagePerCustomerError("");
+      return;
+    }
+    const numMaxUsagePerCustomer = Number(maxUsagePerCustomer);
+    const numMaxUsage = Number(maxUsage);
+    if (Number.isNaN(numMaxUsagePerCustomer) || Number.isNaN(numMaxUsage)) {
+      setMaxUsagePerCustomerError("");
+      return;
+    }
+    if (numMaxUsagePerCustomer > numMaxUsage) {
+      setMaxUsagePerCustomerError("Lượt sử dụng tối đa mỗi Người mua không được lớn hơn tổng lượt sử dụng tối đa của voucher");
+      return;
+    }
+    setMaxUsagePerCustomerError("");
+  };
+
   const handleInputChange = (field: keyof VoucherFormData, value: string) => {
     const processedValue = numericFields.includes(field) ? sanitizeNumericInput(value) : value;
-    setFormData((prev) => ({
-      ...prev,
-      [field]: processedValue,
-    }));
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        [field]: processedValue,
+      };
+      if (field === "discountValue") {
+        validateDiscountValue(processedValue, updated.discountType);
+      } else if (field === "discountType") {
+        validateDiscountValue(prev.discountValue, value as "percentage" | "fixed");
+      } else if (field === "maxUsagePerCustomer") {
+        validateMaxUsagePerCustomer(processedValue, updated.maxUsage);
+      } else if (field === "maxUsage") {
+        validateMaxUsagePerCustomer(updated.maxUsagePerCustomer, processedValue);
+      }
+      return updated;
+    });
   };
 
   const handleBackClick = () => {
@@ -582,59 +720,75 @@ const AdminCreateVoucherProduct: React.FC = () => {
       if (productDetailIds && Array.isArray(productDetailIds) && productDetailIds.length > 0) {
         try {
           console.log(`Loading ${productDetailIds.length} product details...`);
-          const productDetails: VoucherProduct[] = [];
           
           // Load all products once to avoid multiple API calls
-          let allProductsCache: AdminProductResponse[] | null = null;
+          const allProductsResponse = await getAllProductsPrivate({ page: 0, size: 1000 });
+          const allProductsCache = allProductsResponse?.productResponseList ?? [];
+          console.log(`Loaded ${allProductsCache.length} products for searching`);
           
-          for (const productDetailId of productDetailIds) {
-            try {
-              const variantDetail = await getVariantDetailPrivate(productDetailId);
-              if (variantDetail) {
-                // Load all products only once
-                if (!allProductsCache) {
-                  const allProductsResponse = await getAllProductsPrivate({ page: 0, size: 1000 });
-                  allProductsCache = allProductsResponse?.productResponseList ?? [];
-                  console.log(`Loaded ${allProductsCache.length} products for searching`);
-                }
-                
-                // Find the product that contains this variant
-                const product = allProductsCache.find(p => 
-                  p.productDetails?.some(pd => pd.id === productDetailId)
-                );
-                
-                if (product) {
-                  const variant = product.productDetails?.find(pd => pd.id === productDetailId);
-                  if (variant) {
-                    productDetails.push({
-                      id: `${product.id}-${variant.id}`,
-                      name: `${product.name}${variant.nameDetail ? ` - ${variant.nameDetail}` : ''}`,
-                      image: variant.imageUrl || product.imageUrl || "",
-                      barcode: variant.barcode || "",
-                      price: typeof variant.sellingPrice === 'number' ? variant.sellingPrice : Number(variant.sellingPrice) || 0,
-                      available: variant.availableQuantity || 0,
-                      variantId: String(variant.id),
-                    });
-                    console.log(`Loaded product: ${product.name} - ${variant.nameDetail || variant.id}`);
-                  }
-                } else {
-                  // If product not found, use variant detail directly
-                  productDetails.push({
-                    id: String(productDetailId),
-                    name: variantDetail.nameDetail || `Product Detail ${productDetailId}`,
-                    image: variantDetail.imageUrl || "",
-                    barcode: variantDetail.barcode || "",
-                    price: typeof variantDetail.sellingPrice === 'number' ? variantDetail.sellingPrice : Number(variantDetail.sellingPrice) || 0,
-                    available: variantDetail.availableQuantity || 0,
-                    variantId: String(productDetailId),
-                  });
-                  console.log(`Loaded variant directly: ${variantDetail.nameDetail || productDetailId}`);
-                }
-              }
-            } catch (error) {
+          // Load all variant details in parallel for better performance
+          const variantDetailPromises = productDetailIds.map(productDetailId =>
+            getVariantDetailPrivate(productDetailId).catch(error => {
               console.error(`Error loading product detail ${productDetailId}:`, error);
+              return null;
+            })
+          );
+          
+          const variantDetails = await Promise.all(variantDetailPromises);
+          
+          const productDetails: VoucherProduct[] = [];
+          
+          variantDetails.forEach((variantDetail, index) => {
+            if (!variantDetail) return;
+            
+            const productDetailId = productDetailIds[index];
+            
+            // Find the product that contains this variant
+            const product = allProductsCache.find(p => 
+              p.productDetails?.some(pd => pd.id === productDetailId)
+            );
+            
+            if (product) {
+              const variant = product.productDetails?.find(pd => pd.id === productDetailId);
+              if (variant) {
+                productDetails.push({
+                  id: `${product.id}-${variant.id}`,
+                  name: `${product.name}${variant.nameDetail ? ` - ${variant.nameDetail}` : ''}`,
+                  image: variant.imageUrl || product.imageUrl || "",
+                  barcode: variant.barcode || "",
+                  price: typeof variant.sellingPrice === 'number' ? variant.sellingPrice : Number(variant.sellingPrice) || 0,
+                  available: variant.availableQuantity || 0,
+                  variantId: String(variant.id),
+                });
+                console.log(`Loaded product: ${product.name} - ${variant.nameDetail || variant.id}`);
+              }
+            } else {
+              // If product not found, use variant detail directly with product name from backend.
+              const variantImage = Array.isArray(variantDetail.imageUrl)
+                ? variantDetail.imageUrl[0] ?? ""
+                : variantDetail.imageUrl || "";
+              const variantName =
+                variantDetail.productName
+                  ? `${variantDetail.productName}${
+                      variantDetail.nameDetail ? ` - ${variantDetail.nameDetail}` : ""
+                    }`
+                  : variantDetail.nameDetail || `Product Detail ${productDetailId}`;
+
+              productDetails.push({
+                id: String(productDetailId),
+                name: variantName,
+                image: variantImage,
+                barcode: variantDetail.barcode || "",
+                price:
+                  typeof variantDetail.sellingPrice === "number"
+                    ? variantDetail.sellingPrice
+                    : Number(variantDetail.sellingPrice) || 0,
+                available: variantDetail.availableQuantity || 0,
+                variantId: String(productDetailId),
+              });
+              console.log(`Loaded variant directly: ${variantName}`);
             }
-          }
+          });
           
           console.log(`Successfully loaded ${productDetails.length} product details`);
           console.log("Product details:", productDetails);
@@ -835,7 +989,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
     }
     const discountValue = Number(formData.discountValue);
     if (!formData.discountValue || Number.isNaN(discountValue) || discountValue <= 0) {
+      if (formData.discountType === "percentage") {
+        return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
+      }
       return "Mức giảm phải lớn hơn 0.";
+    }
+    if (formData.discountType === "percentage" && discountValue > 99) {
+      return "Mức giảm giá không hợp lệ. Vui lòng nhập giá trị từ 1 đến 99";
     }
     if (!formData.startDate || !formData.endDate) {
       return "Vui lòng chọn thời gian áp dụng.";
@@ -854,6 +1014,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
     }
     if (formData.maxUsage && (Number.isNaN(Number(formData.maxUsage)) || Number(formData.maxUsage) <= 0)) {
       return "Tổng lượt sử dụng tối đa phải lớn hơn 0.";
+    }
+    if (formData.maxUsagePerCustomer && formData.maxUsage) {
+      const numMaxUsagePerCustomer = Number(formData.maxUsagePerCustomer);
+      const numMaxUsage = Number(formData.maxUsage);
+      if (!Number.isNaN(numMaxUsagePerCustomer) && !Number.isNaN(numMaxUsage) && numMaxUsagePerCustomer > numMaxUsage) {
+        return "Lượt sử dụng tối đa mỗi Người mua không được lớn hơn tổng lượt sử dụng tối đa của voucher";
+      }
     }
     if (confirmedProducts.length === 0) {
       return "Vui lòng chọn ít nhất một sản phẩm.";
@@ -995,6 +1162,12 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={100}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherName.length}/100
+                      </span>
+                    }
                   />
                   <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4]">
                     Tên voucher sẽ không được hiển thị cho người mua
@@ -1016,11 +1189,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                     required
+                    maxLength={10}
+                    right={
+                      <span className="text-[12px] text-[#888888] font-medium">
+                        {formData.voucherCode.length}/10
+                      </span>
+                    }
                   />
-                  <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4]">
-                    Vui lòng nhập các kí tự chữ cái A - Z, số 0 - 9, tối đa 5 kí
-                    tự
-                  </p>
                 </div>
               </div>
 
@@ -1085,7 +1260,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
                   Loại giảm giá | Mức giảm
                 </label>
-                <div className="flex-1 flex flex-row gap-[16px] items-center flex-shrink-0 w-[873px]">
+                <div className="flex-1 flex flex-row gap-[16px] items-start flex-shrink-0 w-[873px]">
                   {/* Discount Type Dropdown */}
                   <div className="w-[164px] flex-shrink-0">
                     <DropdownMenu
@@ -1135,15 +1310,24 @@ const AdminCreateVoucherProduct: React.FC = () => {
                   <div className="flex-1">
                     <FormInput
                       placeholder={
-                        formData.discountType === "percentage" ? "%" : "đ"
+                        formData.discountType === "percentage" ? "Nhập giá trị lớn hơn 1%" : "đ"
                       }
-                      value={formData.discountValue}
+                      value={
+                        formData.discountType === "percentage"
+                          ? formData.discountValue
+                          : formatNumber(formData.discountValue)
+                      }
                       onChange={(e) =>
                         handleInputChange("discountValue", e.target.value)
                       }
                       containerClassName="h-[36px] w-full"
                       required
                     />
+                    {discountValueError && (
+                      <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                        {discountValueError}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1179,7 +1363,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                       <div>
                         <FormInput
                           placeholder="đ"
-                          value={formData.maxDiscountValue}
+                          value={formatNumber(formData.maxDiscountValue)}
                           onChange={(e) =>
                             handleInputChange(
                               "maxDiscountValue",
@@ -1202,7 +1386,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                 <div className="flex-1">
                   <FormInput
                     placeholder="đ"
-                    value={formData.minOrderAmount}
+                    value={formatNumber(formData.minOrderAmount)}
                     onChange={(e) =>
                       handleInputChange("minOrderAmount", e.target.value)
                     }
@@ -1245,6 +1429,11 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     }
                     containerClassName="h-[36px] w-[873px]"
                   />
+                  {maxUsagePerCustomerError && (
+                    <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                      {maxUsagePerCustomerError}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1328,39 +1517,38 @@ const AdminCreateVoucherProduct: React.FC = () => {
 
                 {/* Products Table */}
                 {confirmedProducts.length > 0 && (
-                  <div className="bg-white border border-[#e7e7e7] rounded-[12px] overflow-hidden ml-[200px] sm:ml-[215px] max-w-[calc(100%-200px)] sm:max-w-[calc(100%-215px)] mt-[4px]">
+                  <div className="bg-white border border-[#e7e7e7] rounded-[12px] overflow-hidden ml-[231px] w-[873px] mt-[4px]">
                     <table className="w-full">
                       <thead className="bg-[#f5f5f5]">
                         <tr>
-                          <th className="px-[16px] py-[12px] text-left font-semibold text-[14px] text-[#272424]">
+                          <th className="px-[16px] py-[12px] text-left font-semibold text-[14px] text-[#272424] w-[70%]">
                             Sản phẩm
                           </th>
-                          <th className="px-[16px] py-[12px] text-left font-semibold text-[14px] text-[#272424]">
+                          <th className="px-[16px] py-[12px] text-right font-semibold text-[14px] text-[#272424] w-[20%]">
                             Đơn giá
                           </th>
-                          <th className="px-[16px] py-[12px] text-center font-semibold text-[14px] text-[#272424]">
-                            Hoạt động
+                          <th className="px-[16px] py-[12px] text-center font-semibold text-[14px] text-[#272424] w-[10%]">
+                            TT
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {confirmedProducts
-                          .slice(
-                            (appliedProductsPage - 1) * 5,
-                            appliedProductsPage * 5
-                          )
-                          .map((product) => (
+                        {paginatedProducts.map((product) => {
+                          const formattedPrice = formatPriceDisplay(product.price);
+                          return (
                             <tr
                               key={product.id}
                               className="border-b border-[#e7e7e7] last:border-b-0"
                             >
-                              <td className="px-[16px] py-[12px]">
+                              <td className="px-[16px] py-[12px] w-[70%]">
                                 <div className="flex items-center gap-[8px]">
                                   <div className="w-[32px] h-[32px] bg-[#f5f5f5] rounded-[6px] flex items-center justify-center flex-shrink-0 overflow-hidden">
                                     <img
                                       src={product.image}
                                       alt={product.name}
                                       className="w-full h-full object-cover"
+                                      loading="lazy"
+                                      decoding="async"
                                       onError={(e) => {
                                         (
                                           e.target as HTMLImageElement
@@ -1368,24 +1556,20 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                       }}
                                     />
                                   </div>
-                                  <span className="font-medium text-[14px] text-[#272424] truncate max-w-[300px]">
+                                  <span className="font-medium text-[14px] text-[#272424] truncate max-w-[500px]">
                                     {product.name}
                                   </span>
                                 </div>
                               </td>
-                              <td className="px-[16px] py-[12px]">
+                              <td className="px-[16px] py-[12px] text-right w-[20%]">
                                 <span className="font-semibold text-[14px] text-[#272424]">
-                                  {formatPriceDisplay(product.price)}
+                                  {formattedPrice}
                                 </span>
                               </td>
-                              <td className="px-[16px] py-[12px] text-center">
+                              <td className="px-[16px] py-[12px] text-center w-[10%]">
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setConfirmedProducts((prev) =>
-                                      prev.filter((p) => p.id !== product.id)
-                                    );
-                                  }}
+                                  onClick={() => handleRemoveProduct(product.id)}
                                   className="p-[8px] hover:bg-[#f5f5f5] rounded-[6px] transition-colors inline-flex items-center justify-center"
                                 >
                                   <Icon
@@ -1396,7 +1580,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                          );
+                        })}
                       </tbody>
                     </table>
 
@@ -1542,81 +1727,105 @@ const AdminCreateVoucherProduct: React.FC = () => {
                   </thead>
                   <tbody>
                       {displayProducts.map((product) => {
-                        const hasVariants = product.variants && product.variants.length > 0;
                         const isExpanded = expandedProducts.has(product.id);
-                        const isProductSelected = selectedProducts.has(product.id);
+                        const variants = productVariantsMap[product.id] ?? [];
+                        const isLoadingVariants = variantLoadingMap[product.id] ?? false;
+                        // Memoize formatted price để tránh tính toán lại
+                        const formattedProductPrice = formatPriceDisplay(product.price);
                         
                         return (
                           <React.Fragment key={product.id}>
                             {/* Main Product Row */}
                             <tr className="border-b border-[#e7e7e7] hover:bg-gray-50">
-                        <td className="pl-[10px] pr-[2px] py-[8px]">
-                          <div className="flex items-center gap-[8px]">
-                            <CustomCheckbox
-                                    checked={isProductSelected && !hasVariants}
-                              onChange={() => handleProductToggle(product.id)}
-                            />
-                                  {hasVariants && (
-                                    <button
-                                      onClick={() => toggleProductExpanded(product.id)}
-                                      className="flex-shrink-0 p-1 hover:bg-gray-200 rounded transition-colors"
-                                      title={isExpanded ? "Thu gọn variants" : "Mở rộng variants"}
-                                    >
-                                      {isExpanded ? (
-                                        <ChevronDown className="w-3 h-3 text-gray-500" />
-                                      ) : (
-                                        <ChevronRight className="w-3 h-3 text-gray-500" />
-                                      )}
-                                    </button>
-                                  )}
-                                  {!hasVariants && <div className="w-5 h-5 flex-shrink-0"></div>}
+                              <td className="pl-[10px] pr-[2px] py-[8px]">
+                                <div className="flex items-center gap-[8px]">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleProductExpanded(product.id)}
+                                    className="flex-shrink-0 p-1 hover:bg-gray-200 rounded transition-colors"
+                                    title={isExpanded ? "Thu gọn biến thể" : "Xem biến thể"}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronDown className="w-3 h-3 text-gray-500" />
+                                    ) : (
+                                      <ChevronRight className="w-3 h-3 text-gray-500" />
+                                    )}
+                                  </button>
                                   <div className="w-[40px] h-[40px] bg-[#f5f5f5] rounded-[4px] flex items-center justify-center flex-shrink-0 overflow-hidden">
                                     {product.image ? (
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-cover rounded-[4px]"
-                                onError={(e) => {
+                                      <img
+                                        src={product.image}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover rounded-[4px]"
+                                        loading="lazy"
+                                        decoding="async"
+                                        onError={(e) => {
                                           (e.target as HTMLImageElement).style.display = "none";
-                                }}
-                              />
+                                        }}
+                                      />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center bg-gray-100">
                                         <span className="text-gray-400 text-xs">No Image</span>
                                       </div>
                                     )}
-                            </div>
-                            <div className="flex flex-col gap-[2px] min-w-0">
-                              <span className="font-medium text-[12px] text-[#272424] truncate">
-                                {product.name}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
+                                  </div>
+                                  <div className="flex flex-col gap-[2px] min-w-0">
+                                    <span className="font-medium text-[12px] text-[#272424] truncate">
+                                      {product.name}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
                               <td className="pl-[2px] pr-[10px] py-[8px]">
-                          <span className="font-semibold text-[12px] text-[#272424]">
-                                  {formatPriceDisplay(product.price)}
-                          </span>
-                        </td>
+                                <span className="font-semibold text-[12px] text-[#272424]">
+                                  {formattedProductPrice}
+                                </span>
+                              </td>
                             </tr>
                             
+                            {/* Loading Variants */}
+                            {isExpanded && isLoadingVariants && (
+                              <tr className="bg-[#f6f6f6] border-b border-[#e7e7e7]">
+                                <td colSpan={2} className="px-[16px] py-[12px] text-center text-gray-500 text-[12px]">
+                                  Đang tải biến thể...
+                                </td>
+                              </tr>
+                            )}
+                            
+                            {/* No Variants */}
+                            {isExpanded && !isLoadingVariants && variants.length === 0 && (
+                              <tr className="bg-[#f6f6f6] border-b border-[#e7e7e7]">
+                                <td colSpan={2} className="px-[16px] py-[12px] text-center text-gray-500 text-[12px]">
+                                  Sản phẩm này chưa có biến thể
+                                </td>
+                              </tr>
+                            )}
+                            
                             {/* Variant Rows */}
-                            {hasVariants && isExpanded && product.variants.map((variant) => {
-                              const isVariantSelected = selectedVariants.has(String(variant.id));
+                            {isExpanded && !isLoadingVariants && variants.map((variant) => {
+                              const variantIdStr = String(variant.id);
+                              const isVariantApplied = appliedVariantIds.has(variantIdStr);
+                              const isVariantSelected = selectedVariants.has(variantIdStr);
                               const variantPrice = formatPrice(variant.sellingPrice);
+                              const checkboxChecked = isVariantApplied || isVariantSelected;
+                              // Memoize formatted variant price
+                              const formattedVariantPrice = formatPriceDisplay(variantPrice);
                               
                               return (
                                 <tr
                                   key={variant.id}
-                                  className="bg-[#f6f6f6] border-b border-[#e7e7e7] hover:bg-gray-100"
+                                  className={`bg-[#f6f6f6] border-b border-[#e7e7e7] ${
+                                    isVariantApplied ? "opacity-60" : "hover:bg-gray-100"
+                                  }`}
                                 >
                                   <td className="pl-[10px] pr-[2px] py-[8px]">
                                     <div className="flex items-center gap-[8px]">
                                       <div className="w-[16px] h-[16px] flex-shrink-0"></div>
                                       <div className="w-5 h-5 flex-shrink-0"></div>
                                       <CustomCheckbox
-                                        checked={isVariantSelected}
-                                        onChange={() => handleVariantToggle(String(variant.id), product.id)}
+                                        checked={checkboxChecked}
+                                        onChange={() => handleVariantToggle(variantIdStr, product.id)}
+                                        disabled={isVariantApplied}
                                       />
                                       <div className="w-[40px] h-[40px] flex-shrink-0 flex items-center justify-center">
                                         <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center">
@@ -1626,24 +1835,19 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                       <div className="flex flex-col gap-[2px] min-w-0">
                                         <div className="flex items-center gap-2">
                                           <div className="w-3 h-0.5 bg-gray-300"></div>
-                                          <span className="font-medium text-[12px] text-[#272424] text-gray-600">
+                                          <span className="font-medium text-[12px] text-gray-600">
                                             {variant.nameDetail || `Biến thể ${variant.id}`}
                                           </span>
                                         </div>
-                                        {variant.barcode && (
-                                          <span className="font-normal text-[10px] text-[#737373] truncate ml-5">
-                                            Mã barcode: {variant.barcode}
-                                          </span>
-                                        )}
                                       </div>
                                     </div>
                                   </td>
                                   <td className="pl-[2px] pr-[10px] py-[8px]">
-                          <span className="font-semibold text-[12px] text-[#272424]">
-                                      {formatPriceDisplay(variantPrice)}
-                          </span>
-                        </td>
-                      </tr>
+                                    <span className="font-semibold text-[12px] text-[#272424]">
+                                      {formattedVariantPrice}
+                                    </span>
+                                  </td>
+                                </tr>
                               );
                             })}
                           </React.Fragment>
@@ -1735,48 +1939,24 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     onClick={() => {
                       const newProducts: VoucherProduct[] = [];
                       
-                      // Add selected products (without variants)
-                      displayProducts.forEach((displayProduct) => {
-                        if (selectedProducts.has(displayProduct.id)) {
-                          const hasVariants = displayProduct.variants && displayProduct.variants.length > 0;
-                          // Only add product if it has no variants or no variants are selected
-                          if (!hasVariants || !displayProduct.variants.some((v) => selectedVariants.has(String(v.id)))) {
-                            // If product has no variants, get the first product detail ID from the original product
-                            const originalProduct = products.find(p => String(p.id) === displayProduct.id);
-                            const productDetailId = !hasVariants && originalProduct?.productDetails && originalProduct.productDetails.length > 0
-                              ? String(originalProduct.productDetails[0].id)
-                              : undefined;
+                      // Add selected products (only those without variants)
+                      // Add selected variants from productVariantsMap
+                      displayProducts.forEach((product) => {
+                        const variants = productVariantsMap[product.id] ?? [];
+                        variants.forEach((variant) => {
+                          if (selectedVariants.has(String(variant.id))) {
+                            const variantPrice = formatPrice(variant.sellingPrice);
                             newProducts.push({
-                              id: displayProduct.id,
-                              name: displayProduct.name,
-                              image: displayProduct.image,
-                              barcode: displayProduct.barcode,
-                              price: displayProduct.price,
-                              available: displayProduct.available,
-                              variantId: productDetailId,
+                              id: `${product.id}-${variant.id}`,
+                              name: `${product.name} - ${variant.nameDetail || `Biến thể ${variant.id}`}`,
+                              image: product.image,
+                              barcode: product.barcode,
+                              price: variantPrice,
+                              available: 0,
+                              variantId: String(variant.id),
                             });
                           }
-                        }
-                      });
-                      
-                      // Add selected variants
-                      displayProducts.forEach((product) => {
-                        if (product.variants) {
-                          product.variants.forEach((variant) => {
-                            if (selectedVariants.has(String(variant.id))) {
-                              const variantPrice = formatPrice(variant.sellingPrice);
-                              newProducts.push({
-                                id: `${product.id}-${variant.id}`,
-                                name: `${product.name} - ${variant.nameDetail || `Biến thể ${variant.id}`}`,
-                                image: product.image,
-                                barcode: variant.barcode || product.barcode,
-                                price: variantPrice,
-                                available: variant.availableQuantity ?? 0,
-                                variantId: String(variant.id),
-                              });
-                            }
-                          });
-                        }
+                        });
                       });
                       
                       setConfirmedProducts((prev) => {

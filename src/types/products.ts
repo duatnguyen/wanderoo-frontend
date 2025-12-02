@@ -1,4 +1,5 @@
 // src/types/products.ts - Product and category types
+import type { PageResponse } from './common';
 
 export interface ProductResponse {
   id: number;
@@ -12,6 +13,8 @@ export interface ProductResponse {
   imageUrl?: string | null;
 }
 
+export interface ProductPageResponse extends PageResponse<ProductResponse> {}
+
 export interface VariantResponse {
   id: number;
   productId: number;
@@ -19,7 +22,18 @@ export interface VariantResponse {
   price: number;
   quantity: number;
   status: string;
+  // Optional fields returned by admin/private APIs
+  productName?: string;
+  nameDetail?: string;
+  imageUrl?: string | string[];
+  barcode?: string;
+  totalQuantity?: number;
+  availableQuantity?: number;
+  sellingPrice?: number | string;
+  importPrice?: number | string;
 }
+
+export interface VariantPageResponse extends PageResponse<VariantResponse> {}
 
 export type CategoryStatus = 'ACTIVE' | 'INACTIVE';
 
@@ -56,7 +70,6 @@ export interface CategoryChildPageResponse {
   totalElements: number;
   totalPages: number;
   categoryChildResponseList: CategoryChildResponse[];
-  content?: CategoryChildResponse[];
 }
 
 export interface SimpleCategoryResponse {
@@ -69,26 +82,11 @@ export interface CategoryPublicResponse {
 }
 
 // Request types
-export interface ProductAttributeInputRequest {
-  name: string;
-  values: string[];
-}
-
 export interface ProductCreateRequest {
   name: string;
   description: string;
+  price: number;
   categoryId: number;
-  brandId: number;
-  images?: string[];
-  attributes?: ProductAttributeInputRequest[];
-  packagedWeight: number;
-  length: number;
-  width: number;
-  height: number;
-  importPrice?: number;
-  sellingPrice?: number;
-  totalQuantity?: number;
-  availableQuantity?: number;
 }
 
 export interface ProductUpdateRequest extends ProductCreateRequest {
@@ -205,6 +203,12 @@ export interface ProductDetailsResponse {
   brandResponse?: { id: number; name: string } | null;
   description?: string;
   attributes?: ProductDetailAttributeResponse[];
+  quantity?: number;
+  totalQuantity?: number | null;
+  availableQuantity?: number | null;
+  sellingPrice?: number | string | null;
+  importPrice?: number | string | null;
+  price?: string | null;
   packagedWeight?: number;
   length?: number;
   width?: number;

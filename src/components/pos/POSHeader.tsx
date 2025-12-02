@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { POSOrderTabs, type OrderTab } from "./POSOrderTabs";
 import { searchProducts } from "@/api/endpoints/saleApi";
 import { usePOSContext } from "@/context/POSContext";
-import type { SaleProductResponse } from "@/types/api.ts";
+import type { SaleProductResponse } from "@/types/api";
 
 export type { OrderTab };
 
@@ -53,31 +53,48 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 }) => {
   const isSalesPage = searchValue !== undefined && orders !== undefined;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [productResults, setProductResults] = useState<SaleProductResponse[]>(
-    []
-  );
+  const [productResults, setProductResults] = useState<SaleProductResponse[]>([]);
   const [isSearchingProducts, setIsSearchingProducts] = useState(false);
-  const [productSearchError, setProductSearchError] = useState<string | null>(
-    null
-  );
+  const [productSearchError, setProductSearchError] = useState<string | null>(null);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const productSearchCacheRef = useRef<Map<string, SaleProductResponse[]>>(new Map());
+  const latestSearchIdRef = useRef(0);
   const { productSelectHandler } = usePOSContext();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
+      if (!searchContainerRef.current) return;
+      
+      const target = event.target as Node;
+      const isInsideContainer = searchContainerRef.current.contains(target);
+      
+      // Chỉ đóng dropdown nếu:
+      // 1. Click bên ngoài container VÀ
+      // 2. Input không đang được focus (tránh đóng khi click vào input)
+      if (!isInsideContainer) {
+        // Kiểm tra xem input có đang focus không
+        const isInputFocused = document.activeElement === inputRef.current;
+        if (!isInputFocused) {
+          setIsDropdownOpen(false);
+        }
       }
     };
 
-    if (isDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+    // Luôn lắng nghe click outside để tránh vấn đề khi state bị reset sau re-render
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Giữ dropdown mở khi có searchValue hoặc khi input đang focus
+  useEffect(() => {
+    if (isSalesPage && searchValue && inputRef.current === document.activeElement) {
+      setIsDropdownOpen(true);
     }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isDropdownOpen]);
+  }, [isSalesPage, searchValue]);
 
   useEffect(() => {
     if (!isSalesPage) {
@@ -88,38 +105,44 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     }
 
     const keyword = searchValue?.trim() ?? "";
-    if (!keyword) {
-      setProductResults([]);
+    const cacheKey = keyword.toLowerCase();
+
+    const cachedResults = productSearchCacheRef.current.get(cacheKey);
+    if (cachedResults) {
+      setProductResults(cachedResults);
       setProductSearchError(null);
       setIsSearchingProducts(false);
       return;
     }
 
-    let isCancelled = false;
+    const currentSearchId = ++latestSearchIdRef.current;
     setIsSearchingProducts(true);
     setProductSearchError(null);
 
     const handler = window.setTimeout(async () => {
       try {
-        const results = await searchProducts(keyword);
-        if (!isCancelled) {
-          setProductResults(results);
+        const results = await searchProducts(keyword || undefined);
+
+        if (currentSearchId !== latestSearchIdRef.current) {
+          return;
         }
+
+        productSearchCacheRef.current.set(cacheKey, results);
+        setProductResults(results);
       } catch (error) {
         console.error("Không thể tìm sản phẩm:", error);
-        if (!isCancelled) {
+        if (currentSearchId === latestSearchIdRef.current) {
           setProductResults([]);
           setProductSearchError("Không thể tải danh sách sản phẩm");
         }
       } finally {
-        if (!isCancelled) {
+        if (currentSearchId === latestSearchIdRef.current) {
           setIsSearchingProducts(false);
         }
       }
-    }, 350);
+    }, 250);
 
     return () => {
-      isCancelled = true;
       clearTimeout(handler);
     };
   }, [isSalesPage, searchValue]);
@@ -131,8 +154,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
 
-  const effectiveProductSelect =
-    onProductSelect ?? productSelectHandler ?? null;
+  const effectiveProductSelect = onProductSelect ?? productSelectHandler ?? null;
 
   const renderProductDropdown = () => {
     if (!isDropdownOpen || !isSalesPage) {
@@ -145,7 +167,10 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     return (
       <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-40 overflow-hidden">
         <div className="max-h-80 overflow-y-auto divide-y divide-[#f0f0f0]">
-          {!hasKeyword && !isSearchingProducts && (
+          {!hasKeyword &&
+            !isSearchingProducts &&
+            !productSearchError &&
+            productResults.length === 0 && (
             <p className="px-4 py-3 text-sm text-[#6F6F6F]">
               Nhập tên hoặc mã barcode để tìm sản phẩm
             </p>
@@ -159,9 +184,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           )}
 
           {!isSearchingProducts && productSearchError && (
-            <p className="px-4 py-3 text-xs text-[#E04D30]">
-              {productSearchError}
-            </p>
+            <p className="px-4 py-3 text-xs text-[#E04D30]">{productSearchError}</p>
           )}
 
           {!isSearchingProducts &&
@@ -175,11 +198,14 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
           {!isSearchingProducts &&
             !productSearchError &&
-            productResults.map((product) => (
+            productResults.map((product) => {
+              const isOutOfStock = (product.posSoldQuantity ?? 0) <= 0;
+              return (
               <button
                 key={product.id}
                 type="button"
                 onClick={() => {
+                  if (isOutOfStock) return;
                   effectiveProductSelect?.({
                     id: product.id?.toString() ?? "",
                     name: product.productName,
@@ -190,7 +216,12 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                   });
                   setIsDropdownOpen(false);
                 }}
-                className="w-full text-left px-4 py-3 hover:bg-[#f8f9ff] transition-colors"
+                disabled={isOutOfStock}
+                className={`w-full text-left px-4 py-3 transition-colors ${
+                  isOutOfStock 
+                    ? "opacity-50 cursor-not-allowed bg-gray-100" 
+                    : "hover:bg-[#f8f9ff]"
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg bg-gray-100 border border-[#e7e7e7] flex items-center justify-center text-xs text-[#6F6F6F] overflow-hidden">
@@ -213,21 +244,28 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                         {formatCurrency(product.sellingPrice)}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-[#737373] mt-1">
-                      <span className="line-clamp-1">
+                    <div className="flex items-center justify-between text-xs mt-1">
+                      <span className={`line-clamp-1 ${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
                         {product.attributes || "—"}
                       </span>
-                      <span className="font-medium whitespace-nowrap">
-                        Có thể bán:{" "}
-                        {product.posSoldQuantity != null
-                          ? product.posSoldQuantity.toLocaleString("vi-VN")
-                          : "—"}
+                      <span className={`font-medium whitespace-nowrap ${
+                        isOutOfStock ? "text-red-500" : "text-[#737373]"
+                      }`}>
+                        {isOutOfStock 
+                          ? "Hết hàng" 
+                          : `Có thể bán: ${
+                              product.posSoldQuantity != null
+                                ? product.posSoldQuantity.toLocaleString("vi-VN")
+                                : "—"
+                            }`
+                        }
                       </span>
                     </div>
                   </div>
                 </div>
               </button>
-            ))}
+              );
+            })}
         </div>
       </div>
     );
@@ -276,19 +314,28 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 </svg>
               </div>
               <input
+                ref={inputRef}
                 type="text"
                 value={searchValue}
                 onChange={onSearchChange}
                 placeholder={searchPlaceholder}
                 className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:bg-white focus:border-[#e04d30]"
-                onFocus={() => setIsDropdownOpen(true)}
+                onFocus={() => {
+                  // Đảm bảo dropdown mở khi focus vào input
+                  setIsDropdownOpen(true);
+                }}
+                onClick={(e) => {
+                  // Đảm bảo dropdown mở khi click vào input và ngăn event bubble
+                  e.stopPropagation();
+                  setIsDropdownOpen(true);
+                }}
               />
               {renderProductDropdown()}
             </div>
           </div>
 
           {/* Order Tabs - Only on sales page */}
-          <div className="flex-1 min-w-0 max-w-[400px]">
+          <div className="min-w-0 max-w-full w-auto">
             <POSOrderTabs
               orders={orders}
               currentOrderId={currentOrderId || "1"}

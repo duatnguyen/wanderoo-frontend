@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import type { OrderTab } from "../components/pos/POSHeader";
 import type { POSSidebarItemId } from "../components/pos/POSSidebar";
@@ -85,7 +85,18 @@ export const POSProvider: React.FC<POSProviderProps> = ({
 
   const setProductSelectHandler = useCallback(
     (handler: POSProductSelectHandler | null) => {
-      setProductSelectHandlerState(handler);
+      setProductSelectHandlerState(() => handler);
+    },
+    []
+  );
+
+  const setOrderHandlers = useCallback(
+    (handlers: {
+      onOrderAdd?: () => void;
+      onOrderClose?: (orderId: string) => void;
+      onOrderSelect?: (orderId: string) => void;
+    }) => {
+      setOrderHandlersState(handlers);
     },
     []
   );

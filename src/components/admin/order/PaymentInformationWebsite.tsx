@@ -222,6 +222,9 @@ const PaymentInformationWebsite: React.FC<PaymentInformationWebsiteProps> = ({
           textClassName: "text-green-700",
         };
       case "PENDING":
+      case "WAITING":
+        // "WAITING" được dùng cho một số đơn hủy tiền mặt (ví dụ WEB-0160),
+        // cần hiển thị giống trạng thái "Chờ thanh toán"
         return {
           label: "Chờ thanh toán",
           Icon: Clock,

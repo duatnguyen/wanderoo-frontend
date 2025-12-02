@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import type { AxiosError } from "axios";
 import { Select, Spin, Pagination } from "antd";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
@@ -36,6 +37,8 @@ import {
   getProductVariantsPrivate,
   updateVariantPrivate,
   updateProductPrivate,
+  updateSellingQuantityPrivate,
+  updateVariantQuantityPrivate,
 } from "@/api/endpoints/productApi";
 import {
   getBrandList,
@@ -67,6 +70,12 @@ const CATEGORY_PAGE_SIZE = 20;
 const BRAND_PAGE_SIZE = 20;
 const MAX_ATTRIBUTES = 5;
 const VARIANT_PAGE_SIZE = 20;
+
+const hasValue = (value?: string | number | null) =>
+  value !== undefined &&
+  value !== null &&
+  value !== "" &&
+  (typeof value === "string" ? value.trim().length > 0 : true);
 
 const INITIAL_FORM_DATA: ProductFormData = {
   productName: "",
@@ -143,6 +152,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
   const [applyAllPrice, setApplyAllPrice] = useState("");
   const [showEditVersionModal, setShowEditVersionModal] = useState(false);
   const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(null);
+  const [editVersionError, setEditVersionError] = useState("");
+  const [isSubmittingEditVersion, setIsSubmittingEditVersion] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -166,6 +177,9 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     (initialVersions?.length ?? 0) > 0
   );
   const [variantStatusMessage, setVariantStatusMessage] = useState<string | null>(null);
+  const [inventoryErrors, setInventoryErrors] = useState<Record<string, string>>({});
+  const [updatingInventoryIds, setUpdatingInventoryIds] = useState<Set<string>>(new Set());
+  const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null);
   const [variantError, setVariantError] = useState<string | null>(null);
   const [isVariantLoading, setIsVariantLoading] = useState(false);
   const [variantPagination, setVariantPagination] = useState<VariantPaginationState>(
@@ -185,6 +199,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       : isEditMode
       ? "Chỉnh sửa sản phẩm"
       : "Thêm sản phẩm mới");
+
+  const getFieldBorderClass = (error?: string, hasValue?: boolean) => {
+    if (error) return "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]";
+    if (hasValue) return "border-[#05a660]";
+    return "border-[#d1d1d1]";
+  };
 
   useEffect(() => {
     if (initialFormData) {
@@ -237,29 +257,57 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     "Hoàn thành"
   ];
 
-  const handleInputChange = useCallback((field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({
+  const handleInputChange = useCallback(
+    (field: string, value: string) => {
+      setFormData((prev) => ({
         ...prev,
-        [field]: "",
+        [field]: value,
       }));
+
+      // Clear error when user starts typing
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "",
+        }));
+      }
+
+      // Real-time validation cho một số field (nếu có rule)
+      const fieldError = validateField(field, value);
+      if (fieldError) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: fieldError,
+        }));
+      }
+    },
+    [errors]
+  );
+
+  // Helpers: chỉ cho phép nhập số (option: cho phép số thập phân)
+  const sanitizeNumeric = (value: string, allowDecimal = false): string => {
+    if (!value) return "";
+
+    if (allowDecimal) {
+      // Giữ lại số và dấu chấm, giới hạn 1 dấu chấm
+      const cleaned = value.replace(/[^0-9.]/g, "");
+      const parts = cleaned.split(".");
+      if (parts.length <= 1) return cleaned;
+      return parts[0] + "." + parts.slice(1).join("");
     }
 
-    // Real-time validation for specific fields
-    const fieldError = validateField(field, value);
-    if (fieldError) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: fieldError,
-      }));
-    }
-  }, [errors]);
+    // Chỉ giữ lại chữ số
+    return value.replace(/\D/g, "");
+  };
+
+  const handleNumericInputChange = (
+    field: keyof ProductFormData,
+    rawValue: string,
+    allowDecimal = false
+  ) => {
+    const sanitized = sanitizeNumeric(rawValue, allowDecimal);
+    handleInputChange(field as string, sanitized);
+  };
 
   const fetchProductVariants = useCallback(
     async (productId: number, page = 0, size = VARIANT_PAGE_SIZE) => {
@@ -284,13 +332,18 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
               variant.importPrice !== undefined && variant.importPrice !== null
                 ? String(variant.importPrice)
                 : "",
+            // inventory mapping với totalQuantity (tồn kho)
             inventory:
               variant.totalQuantity !== undefined && variant.totalQuantity !== null
                 ? String(variant.totalQuantity)
                 : "",
-            available:
-              variant.availableQuantity !== undefined && variant.availableQuantity !== null
-                ? String(variant.availableQuantity)
+            webQuantity:
+              variant.websiteSoldQuantity !== undefined && variant.websiteSoldQuantity !== null
+                ? String(variant.websiteSoldQuantity)
+                : "",
+            posQuantity:
+              variant.posSoldQuantity !== undefined && variant.posSoldQuantity !== null
+                ? String(variant.posSoldQuantity)
                 : "",
             image: variant.imageUrl ?? null,
             sku: variant.skuDetail ?? "",
@@ -314,6 +367,84 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     },
     []
   );
+
+  const handleVersionInventoryChange = (versionId: string, rawValue: string) => {
+    if (isViewMode) return;
+    const sanitized = sanitizeNumeric(rawValue, false);
+    setVersions((prev) =>
+      prev.map((v) =>
+        v.id === versionId
+          ? {
+              ...v,
+              inventory: sanitized,
+            }
+          : v
+      )
+    );
+    setInventoryErrors((prev) => {
+      if (!prev[versionId]) return prev;
+      const next = { ...prev };
+      delete next[versionId];
+      return next;
+    });
+  };
+
+  const handleInventorySubmit = async (versionId: string) => {
+    if (!createdProductId || isViewMode) return;
+
+    const version = versions.find((v) => v.id === versionId);
+    if (!version) return;
+
+    const quantity = version.inventory ? parseInt(version.inventory, 10) : 0;
+    if (isNaN(quantity) || quantity < 0) {
+      toast.error("Tồn kho phải là số không âm");
+      return;
+    }
+
+    const variantId = parseInt(versionId, 10);
+    if (isNaN(variantId)) {
+      toast.error("ID phiên bản không hợp lệ");
+      return;
+    }
+
+    setUpdatingInventoryIds((prev) => {
+      const next = new Set(prev);
+      next.add(versionId);
+      return next;
+    });
+
+    try {
+      await updateVariantQuantityPrivate({
+        id: variantId,
+        totalQuantity: quantity,
+      });
+      toast.success("Đã cập nhật tồn kho phiên bản");
+      setInventoryErrors((prev) => {
+        if (!prev[versionId]) return prev;
+        const next = { ...prev };
+        delete next[versionId];
+        return next;
+      });
+      setEditingInventoryId(null);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const message =
+        axiosError.response?.data?.message ??
+        "Không thể cập nhật tồn kho phiên bản. Vui lòng thử lại.";
+      console.error("Không thể cập nhật tồn kho phiên bản:", message);
+      setInventoryErrors((prev) => ({
+        ...prev,
+        [versionId]: message,
+      }));
+      toast.error(message);
+    } finally {
+      setUpdatingInventoryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(versionId);
+        return next;
+      });
+    }
+  };
 
   // Load variants when in edit mode
   useEffect(() => {
@@ -375,7 +506,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           importPrice: toOptionalFloat(formData.costPrice),
           sellingPrice: toOptionalFloat(formData.sellingPrice),
           totalQuantity: toOptionalInt(formData.inventory),
-          availableQuantity: toOptionalInt(formData.available),
+          // availableQuantity được tính riêng theo luồng khác
         };
 
         await updateProductPrivate(updatePayload);
@@ -400,7 +531,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           importPrice: toOptionalFloat(formData.costPrice),
           sellingPrice: toOptionalFloat(formData.sellingPrice),
           totalQuantity: toOptionalInt(formData.inventory),
-          availableQuantity: toOptionalInt(formData.available),
+          // availableQuantity không nhập ở form tạo sản phẩm
         };
 
         const creationResponse = await createProductPrivate(payload);
@@ -440,6 +571,32 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       onBack?.();
       return;
     }
+
+    if (isEditMode) {
+      // Edit mode: khôi phục lại dữ liệu ban đầu khi mở form chỉnh sửa
+      setFormData({
+        ...INITIAL_FORM_DATA,
+        ...(initialFormData ?? {}),
+      });
+      setImages(initialImages ?? []);
+      setAttributes(initialAttributes ?? []);
+      setNewAttributeName("");
+      setNewAttributeValueInput("");
+      setNewAttributeValues([]);
+      setAttributeError("");
+      setEditingAttributeIndex(null);
+      setIsAttributeFormVisible(true);
+      setErrors({});
+      setSelectedVersions(new Set());
+      setVersions(initialVersions ?? []);
+      setCreatedProductId(null);
+      setVariantStatusMessage(null);
+      setVariantError(null);
+      toast.success("Đã khôi phục dữ liệu ban đầu của sản phẩm.");
+      return;
+    }
+
+    // Create mode: reset về form rỗng
     setFormData(INITIAL_FORM_DATA);
     setImages([]);
     setAttributes([]);
@@ -676,6 +833,17 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     setShowAttributes(true);
     setIsAttributeFormVisible(true);
     resetAttributeDraft();
+  };
+
+  // Quay lại chế độ nhập thông tin bán hàng (không dùng thuộc tính)
+  const handleCancelAttributes = () => {
+    if (isViewMode) return;
+    setShowAttributes(false);
+    setIsAttributeFormVisible(false);
+    setEditingAttributeIndex(null);
+    setAttributes([]);
+    resetAttributeDraft();
+    setAttributeError("");
   };
 
   const handleRemoveExistingAttributeValue = (
@@ -967,16 +1135,19 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         costPrice: version.costPrice || "",
         sellingPrice: version.price || "",
         inventory: version.inventory || "",
-        available: version.available || "",
+        webQuantity: version.webQuantity || "",
+        posQuantity: version.posQuantity || "",
         image: version.image || "",
         sku: version.sku,
       });
+      setEditVersionError("");
       setShowEditVersionModal(true);
     }
   };
 
   const handleEditVersionChange = (field: string, value: string) => {
     if (editingVersion) {
+      setEditVersionError("");
       setEditingVersion({
         ...editingVersion,
         [field]: value,
@@ -1021,10 +1192,15 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
   const handleEditVersionCancel = () => {
     setShowEditVersionModal(false);
     setEditingVersion(null);
+    setEditVersionError("");
+    setIsSubmittingEditVersion(false);
   };
 
   const handleEditVersionConfirm = async () => {
     if (!editingVersion) return;
+
+    setEditVersionError("");
+    setIsSubmittingEditVersion(true);
 
     try {
       const variantId = parseInt(editingVersion.id, 10);
@@ -1056,58 +1232,50 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         }
       }
 
-      if (editingVersion.inventory && editingVersion.inventory.trim()) {
-        const totalQuantity = parseInt(editingVersion.inventory, 10);
-        if (!isNaN(totalQuantity)) {
-          updateData.totalQuantity = totalQuantity;
-        }
-      }
-
-      if (editingVersion.available && editingVersion.available.trim()) {
-        const availableQuantity = parseInt(editingVersion.available, 10);
-        if (!isNaN(availableQuantity)) {
-          updateData.availableQuantity = availableQuantity;
-        }
-      }
-
       if (editingVersion.image && editingVersion.image.trim()) {
         updateData.imageUrl = [editingVersion.image];
       }
 
-      await updateVariantPrivate(updateData);
+      const webQty = parseInt(editingVersion.webQuantity || "0", 10);
+      const posQty = parseInt(editingVersion.posQuantity || "0", 10);
 
-      // Update local state
-      setVersions((prev) =>
-        prev.map((v) =>
-          v.id === editingVersion.id
-            ? {
-                ...v,
-                price: editingVersion.sellingPrice,
-                costPrice: editingVersion.costPrice,
-                inventory: editingVersion.inventory,
-                available: editingVersion.available,
-                barcode: editingVersion.barcode,
-                image: editingVersion.image,
-              }
-            : v
-        )
-      );
+      await Promise.all([
+        updateVariantPrivate(updateData),
+        updateSellingQuantityPrivate({
+          id: variantId,
+          sellingQuantityWeb: webQty,
+          sellingQuantityPos: posQty,
+        }),
+      ]);
 
       toast.success("Đã cập nhật phiên bản thành công");
       setShowEditVersionModal(false);
       setEditingVersion(null);
+      setEditVersionError("");
 
-      // Refresh variant list
       if (createdProductId) {
-        await fetchProductVariants(
+        fetchProductVariants(
           createdProductId,
           variantPagination.page,
           variantPagination.pageSize
-        );
+        ).catch((error) => {
+          console.error(
+            "Không thể tải lại danh sách phiên bản sau khi cập nhật:",
+            error
+          );
+        });
       }
     } catch (error) {
       console.error("Error updating variant:", error);
-      toast.error("Không thể cập nhật phiên bản. Vui lòng thử lại.");
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage =
+        axiosError?.response?.data?.message || axiosError?.message;
+      const finalMessage =
+        backendMessage || "Không thể cập nhật phiên bản. Vui lòng thử lại.";
+      setEditVersionError(finalMessage);
+      toast.error(finalMessage);
+    } finally {
+      setIsSubmittingEditVersion(false);
     }
   };
 
@@ -1202,12 +1370,14 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                 <FormField
                   label="Danh mục"
                   error={errors.category}
+                  success={!errors.category && !!formData.categoryId}
                   className="flex-1"
                 >
                   <div
-                    className={`bg-white rounded-[12px] border-2 ${
-                      errors.category ? "border-[#ff4d4f]" : "border-[#e04d30]"
-                    } flex items-center px-2 h-[40px]`}
+                    className={`bg-white rounded-[12px] border-2 ${getFieldBorderClass(
+                      errors.category,
+                      !!formData.categoryId
+                    )} flex items-center px-2 h-[40px] transition-colors`}
                   >
                     <Select<number>
                       bordered={false}
@@ -1272,15 +1442,17 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   label="Thương hiệu"
                   required
                   error={errors.brand}
+                  success={!errors.brand && !!formData.brandId}
                   className="flex-1"
                 >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className={`bg-white border-2 ${
-                          errors.brand ? "border-[#ff4d4f]" : "border-[#e04d30]"
-                        } flex items-center justify-between px-4 rounded-[12px] w-full h-[40px]`}
+                        className={`bg-white border-2 ${getFieldBorderClass(
+                          errors.brand,
+                          !!formData.brandId
+                        )} flex items-center justify-between px-4 rounded-[12px] w-full h-[40px] transition-colors`}
                         disabled={isViewMode}
                       >
                         <span
@@ -1387,9 +1559,13 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                 label="Mô tả sản phẩm"
                 required
                 error={errors.description}
+                success={!errors.description && formData.description.length >= 10}
               >
                 <textarea
-                  className="bg-white border-2 border-[#e04d30] p-4 rounded-[12px] w-full h-[141px] resize-none outline-none text-[14px] font-semibold placeholder:text-[#888888] text-[#888888]"
+                  className={`bg-white border-2 ${getFieldBorderClass(
+                    errors.description,
+                    formData.description.length >= 10
+                  )} p-4 rounded-[12px] w-full h-[141px] resize-none outline-none text-[14px] font-semibold placeholder:text-[#888888] text-[#444] transition-colors`}
                   placeholder="Nhập mô tả sản phẩm"
                   value={formData.description}
                   onChange={(e) =>
@@ -1403,7 +1579,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           </div>
 
           {/* Sales Information Section - Conditionally render based on showAttributes */}
-          {!showAttributes ? (
+          {!showAttributes && !isEditMode ? (
             <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
               <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
                 Thông tin bán hàng
@@ -1440,9 +1616,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                       placeholder="Nhập giá vốn"
                       value={formData.costPrice}
                       onChange={(e) =>
-                        handleInputChange("costPrice", e.target.value)
+                        handleNumericInputChange("costPrice", e.target.value)
                       }
-                      containerClassName="h-[36px] px-4"
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.costPrice,
+                        hasValue(formData.costPrice)
+                      )}`}
                       readOnly={isViewMode}
                       disabled={isViewMode}
                     />
@@ -1456,16 +1635,19 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                       placeholder="Nhập giá bán"
                       value={formData.sellingPrice}
                       onChange={(e) =>
-                        handleInputChange("sellingPrice", e.target.value)
+                        handleNumericInputChange("sellingPrice", e.target.value)
                       }
-                      containerClassName="h-[36px] px-4"
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.sellingPrice,
+                        hasValue(formData.sellingPrice)
+                      )}`}
                       readOnly={isViewMode}
                       disabled={isViewMode}
                     />
                   </div>
                 </div>
 
-                {/* Inventory and Available */}
+                {/* Inventory */}
                 <div className="flex gap-4">
                   <div className="flex-1 flex flex-col gap-1.5">
                     <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
@@ -1475,25 +1657,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                       placeholder="Nhập số lượng tồn kho"
                       value={formData.inventory}
                       onChange={(e) =>
-                        handleInputChange("inventory", e.target.value)
+                        handleNumericInputChange("inventory", e.target.value)
                       }
-                      containerClassName="h-[36px] px-4"
-                      readOnly={isViewMode}
-                      disabled={isViewMode}
-                    />
-                  </div>
-
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                      Có thể bán
-                    </label>
-                    <FormInput
-                      placeholder="Nhập số lượng có thể bán"
-                      value={formData.available}
-                      onChange={(e) =>
-                        handleInputChange("available", e.target.value)
-                      }
-                      containerClassName="h-[36px] px-4"
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.inventory,
+                        hasValue(formData.inventory)
+                      )}`}
                       readOnly={isViewMode}
                       disabled={isViewMode}
                     />
@@ -1503,13 +1672,25 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
             </div>
           ) : (
             <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
-                  Thuộc tính
-                </h2>
-                <span className="text-sm text-gray-500">
-                  {attributes.length}/{MAX_ATTRIBUTES}
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+                    Thuộc tính
+                  </h2>
+                  <span className="text-sm text-gray-500">
+                    {attributes.length}/{MAX_ATTRIBUTES}
+                  </span>
+                </div>
+
+                {!isViewMode && !isEditMode && (
+                  <button
+                    type="button"
+                    onClick={handleCancelAttributes}
+                    className="text-[13px] font-semibold text-[#1a71f6] hover:text-[#0f5ad8] underline-offset-2 hover:underline transition-colors"
+                  >
+                    Quay lại
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-col gap-3">
@@ -1547,7 +1728,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                                 <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
                                   {value}
                                 </span>
-                                {!isViewMode && (
+                                {!isViewMode && !isEditMode && (
                                   <button
                                     type="button"
                                     className="text-[#737373] hover:text-[#1a71f6]"
@@ -1566,10 +1747,34 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                                     </svg>
                                   </button>
                                 )}
+                                {isEditMode && (
+                                  <button
+                                    type="button"
+                                    className="text-[#1a71f6] hover:text-[#0f5ad8] p-0.5"
+                                    title="Chỉnh sửa tên giá trị"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                      <path
+                                        d="M12 20h9"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                      <path
+                                        d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </button>
+                                )}
                               </div>
                             ))}
                           </div>
-                          {!isViewMode && (
+                          {!isViewMode && !isEditMode && (
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
@@ -1626,26 +1831,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                 )}
               </div>
 
-              {shouldShowAttributeForm ? (
-                <div className="flex flex-col gap-3 border-t border-dashed border-[#e7e7e7] pt-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
-                      {editingAttributeIndex !== null
-                        ? "Chỉnh sửa thuộc tính"
-                        : "Thêm thuộc tính mới"}
-                    </p>
-                    {editingAttributeIndex !== null && (
-                      <button
-                        type="button"
-                        className="text-sm text-[#f44336] hover:text-[#d32f2f]"
-                        onClick={handleCancelEditingAttribute}
-                      >
-                        Huỷ chỉnh sửa
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex gap-4 items-start">
-                    <div className="w-[28%] min-w-[200px]">
+              {shouldShowAttributeForm && !isEditMode ? (
+                <div className="border-t border-[#e7e7e7] pt-4 mt-2">
+                  <div className="flex gap-3 items-start">
+                    <div className="w-[28%] min-w-[180px]">
                       <FormInput
                         placeholder="Nhập tên thuộc tính"
                         value={newAttributeName}
@@ -1653,25 +1842,32 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                           setNewAttributeName(e.target.value);
                           setAttributeError("");
                         }}
-                        containerClassName="h-[36px] px-4"
+                        containerClassName="h-[40px] px-3"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newAttributeName.trim() && newAttributeValues.length > 0) {
+                            e.preventDefault();
+                            handleSubmitNewAttribute();
+                          }
+                        }}
                       />
                     </div>
                     <div className="flex-1">
-                      <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-2 py-[6px] flex flex-wrap items-center gap-2 min-h-[40px]">
+                      <div className="bg-white border border-[#e7e7e7] rounded-[8px] px-3 py-2 flex flex-wrap items-center gap-2 min-h-[40px] focus-within:border-[#1a71f6] transition-colors">
                         {newAttributeValues.map((value, index) => (
                           <div
                             key={`${value}-${index}`}
-                            className="bg-[#eef3ff] rounded-[16px] px-3 py-1 flex items-center gap-2 border border-[#d1dbff]"
+                            className="bg-[#eef3ff] rounded-[8px] px-2.5 py-1 flex items-center gap-1.5 border border-[#d1dbff]"
                           >
-                            <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            <span className="text-[13px] font-medium text-[#272424]">
                               {value}
                             </span>
                             <button
                               type="button"
-                              className="text-[#737373] hover:text-[#1a71f6]"
+                              className="text-[#737373] hover:text-[#f44336] transition-colors"
                               onClick={() => handleRemoveNewAttributeValue(index)}
+                              title="Xóa"
                             >
-                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                              <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
                                 <path
                                   d="M9 3L3 9M3 3L9 9"
                                   stroke="currentColor"
@@ -1685,64 +1881,53 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         ))}
                         <input
                           type="text"
-                          placeholder="Nhập ký tự và ấn Enter"
+                          placeholder="Nhập giá trị và ấn Enter"
                           value={newAttributeValueInput}
                           onChange={(e) => {
                             setNewAttributeValueInput(e.target.value);
                             setAttributeError("");
                           }}
                           onKeyDown={handleNewAttributeValueKeyDown}
-                          className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat min-w-[120px]"
+                          className="flex-1 border-0 outline-none bg-transparent text-[13px] text-[#272424] min-w-[150px] placeholder:text-gray-400"
                         />
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleSubmitNewAttribute}
-                      className={`flex items-center gap-1 text-[14px] font-bold ${
-                        canSubmitAttribute
-                          ? "text-[#1a71f6]"
-                          : "text-gray-400 cursor-not-allowed"
-                      }`}
-                      disabled={!canSubmitAttribute}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M12 5V19M5 12H19"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      {editingAttributeIndex !== null
-                        ? "Cập nhật thuộc tính"
-                        : "Thêm thuộc tính khác"}
-                    </button>
-                    {editingAttributeIndex !== null && (
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={handleCancelEditingAttribute}
-                        className="text-[14px] font-semibold text-[#737373] hover:text-[#1a71f6]"
+                        onClick={handleSubmitNewAttribute}
+                        disabled={!canSubmitAttribute}
+                        className={`px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${
+                          canSubmitAttribute
+                            ? "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
+                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        }`}
                       >
-                        Hủy
+                        {editingAttributeIndex !== null ? "Cập nhật" : "Thêm"}
                       </button>
-                    )}
+                      {editingAttributeIndex !== null && (
+                        <button
+                          type="button"
+                          onClick={handleCancelEditingAttribute}
+                          className="px-4 py-2 rounded-[8px] text-[13px] font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+                        >
+                          Hủy
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {attributeError && (
-                    <p className="text-sm text-red-500 mt-1">{attributeError}</p>
+                    <p className="text-xs text-red-500 mt-2 ml-1">{attributeError}</p>
                   )}
                 </div>
               ) : canAddMoreAttributes ? (
-                !isViewMode ? (
+                !isViewMode && !isEditMode ? (
                   <button
                     type="button"
                     onClick={handleAddAttribute}
-                    className="flex items-center gap-1 text-[14px] font-bold text-[#1a71f6]"
+                    className="mt-2 flex items-center gap-2 text-[13px] font-semibold text-[#1a71f6] hover:text-[#0f5ad8] transition-colors"
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                       <path
                         d="M12 5V19M5 12H19"
                         stroke="currentColor"
@@ -1751,12 +1936,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         strokeLinejoin="round"
                       />
                     </svg>
-                    Thêm thuộc tính khác
+                    Thêm thuộc tính
                   </button>
                 ) : null
               ) : (
-                <p className="text-sm text-gray-500 border-t border-dashed border-[#e7e7e7] pt-4">
-                  Bạn đã thêm tối đa {MAX_ATTRIBUTES} thuộc tính.
+                <p className="text-xs text-gray-500 mt-2">
+                  Đã đạt tối đa {MAX_ATTRIBUTES} thuộc tính.
                 </p>
               )}
             </div>
@@ -1893,24 +2078,147 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex-1 grid grid-cols-[repeat(3,minmax(0,1fr))_auto] gap-4 items-center px-3 py-[14px]">
+                      <div className="flex-1 grid grid-cols-[repeat(5,minmax(0,1fr))] gap-4 items-center px-3 py-[14px]">
                         <div className="text-right">
                           <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
                             {formatCurrencyDisplay(version.price)}
                           </p>
                           <p className="text-xs text-gray-500">Giá bán</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
-                            {version.inventory || "0"}
-                          </p>
-                          <p className="text-xs text-gray-500">Tồn kho</p>
+                        <div className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-col items-end gap-1">
+                            {editingInventoryId === version.id ? (
+                              <div className="bg-white border border-[#e5e7eb] rounded-[12px] shadow-sm px-3 py-2 min-w-[220px]">
+                                <p className="text-[11px] text-gray-500 text-left mb-1">
+                                  Chỉnh sửa tồn kho
+                                </p>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className={`flex-1 text-right text-[14px] font-semibold font-montserrat bg-transparent border-b outline-none transition-colors ${
+                                      inventoryErrors[version.id]
+                                        ? "border-red-500 text-red-600"
+                                        : "border-[#d4d4d8] text-[#272424] focus:border-[#1a71f6]"
+                                    }`}
+                                    value={version.inventory || ""}
+                                    placeholder="0"
+                                    onChange={(e) =>
+                                      handleVersionInventoryChange(version.id, e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleInventorySubmit(version.id);
+                                      }
+                                      if (e.key === "Escape") {
+                                        e.preventDefault();
+                                        setEditingInventoryId(null);
+                                        setInventoryErrors((prev) => {
+                                          if (!prev[version.id]) return prev;
+                                          const next = { ...prev };
+                                          delete next[version.id];
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                    autoFocus
+                                    disabled={isViewMode}
+                                  />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    className="px-3 h-[28px] rounded-[999px] text-[12px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingInventoryId(null);
+                                      setInventoryErrors((prev) => {
+                                        if (!prev[version.id]) return prev;
+                                        const next = { ...prev };
+                                        delete next[version.id];
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    Hủy
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`px-3 h-[28px] rounded-[999px] text-[12px] font-semibold transition-colors flex items-center justify-center ${
+                                      updatingInventoryIds.has(version.id) || !createdProductId
+                                        ? "bg-[#e5edff] text-[#1a71f6] cursor-not-allowed"
+                                        : "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
+                                    } ${isViewMode ? "cursor-not-allowed opacity-60" : ""}`}
+                                    disabled={
+                                      isViewMode ||
+                                      updatingInventoryIds.has(version.id) ||
+                                      !createdProductId
+                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleInventorySubmit(version.id);
+                                    }}
+                                  >
+                                    {updatingInventoryIds.has(version.id) ? (
+                                      <svg
+                                        className="w-4 h-4 animate-spin"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                      >
+                                        <circle
+                                          className="opacity-25"
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="currentColor"
+                                          strokeWidth="4"
+                                        />
+                                        <path
+                                          className="opacity-75"
+                                          fill="currentColor"
+                                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                        />
+                                      </svg>
+                                    ) : (
+                                      "Lưu"
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-end gap-1 text-[14px] font-semibold font-montserrat text-[#272424] hover:text-[#1a71f6]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isViewMode) return;
+                                  setEditingInventoryId(version.id);
+                                }}
+                              >
+                                <span>{version.inventory || "0"}</span>
+                              </button>
+                            )}
+                            {inventoryErrors[version.id] ? (
+                              <p className="text-xs text-red-500">
+                                {inventoryErrors[version.id]}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-gray-500">Tồn kho</p>
+                            )}
+                          </div>
                         </div>
                         <div className="text-right">
                           <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
-                            {version.available || "0"}
+                            {version.webQuantity || "0"}
                           </p>
-                          <p className="text-xs text-gray-500">Có thể bán</p>
+                          <p className="text-xs text-gray-500">SL bán website</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.posQuantity || "0"}
+                          </p>
+                          <p className="text-xs text-gray-500">SL bán pos</p>
                         </div>
                         <div className="flex items-center justify-end gap-3">
                           {!isViewMode && (
@@ -1982,13 +2290,20 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                     Cân nặng (Sau khi đóng gói)
                   </label>
                 </div>
-                <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                <div
+                  className={`bg-white border-2 rounded-[12px] h-[36px] flex items-center px-4 ${getFieldBorderClass(
+                    errors.weight,
+                    hasValue(formData.weight)
+                  )}`}
+                >
                   <input
                     type="text"
                     inputMode="numeric"
-                  placeholder="Nhập vào"
-                  value={formData.weight}
-                  onChange={(e) => handleInputChange("weight", e.target.value)}
+                    placeholder="Nhập vào"
+                    value={formData.weight}
+                    onChange={(e) =>
+                      handleNumericInputChange("weight", e.target.value, true)
+                    }
                     className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat placeholder:text-[#b0b0b0]"
                     readOnly={isViewMode}
                     disabled={isViewMode}
@@ -2011,7 +2326,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
                 <div className="flex gap-4">
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.width,
+                        hasValue(formData.width)
+                      )}`}
+                    >
                       <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
                         R
                       </span>
@@ -2020,7 +2340,9 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.width}
-                        onChange={(e) => handleInputChange("width", e.target.value)}
+                        onChange={(e) =>
+                          handleNumericInputChange("width", e.target.value, true)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                         readOnly={isViewMode}
                         disabled={isViewMode}
@@ -2035,7 +2357,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   </div>
 
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.length,
+                        hasValue(formData.length)
+                      )}`}
+                    >
                       <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
                         D
                       </span>
@@ -2044,7 +2371,9 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.length}
-                        onChange={(e) => handleInputChange("length", e.target.value)}
+                        onChange={(e) =>
+                          handleNumericInputChange("length", e.target.value, true)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                         readOnly={isViewMode}
                         disabled={isViewMode}
@@ -2059,7 +2388,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   </div>
 
                   <div className="flex-1 flex flex-col gap-1.5">
-                    <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.height,
+                        hasValue(formData.height)
+                      )}`}
+                    >
                       <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
                         C
                       </span>
@@ -2068,7 +2402,9 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         inputMode="numeric"
                         placeholder="0"
                         value={formData.height}
-                        onChange={(e) => handleInputChange("height", e.target.value)}
+                        onChange={(e) =>
+                          handleNumericInputChange("height", e.target.value, true)
+                        }
                         className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                         readOnly={isViewMode}
                         disabled={isViewMode}
@@ -2510,6 +2846,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
               </h2>
             </div>
 
+            {editVersionError && (
+              <div className="px-6 py-3 text-sm font-semibold text-[#b42318] bg-[#fef3f2] border-b border-[#fbd0d0]">
+                {editVersionError}
+              </div>
+            )}
+
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-3">
               <div className="flex gap-5 items-start">
@@ -2576,44 +2918,46 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                     </div>
                   </div>
 
-                  {/* Inventory and Available */}
-                  <div className="flex gap-4">
-                    <div className="flex-1 flex flex-col gap-1.5">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                          *
-                        </span>
-                        <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                          Tồn kho
-                        </label>
+                  {/* Inventory and Channel Sold Quantities */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-4">
+                      <div className="flex-1 flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                            *
+                          </span>
+                          <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                            SL bán trên WEBSITE
+                          </label>
+                        </div>
+                        <FormInput
+                          placeholder="Nhập SL bán trên website"
+                          value={editingVersion.webQuantity}
+                          onChange={(e) =>
+                            handleEditVersionChange("webQuantity", e.target.value)
+                          }
+                          containerClassName="h-[36px] px-4"
+                        />
                       </div>
-                      <FormInput
-                        placeholder="Nhập số lượng tồn kho"
-                        value={editingVersion.inventory}
-                        onChange={(e) =>
-                          handleEditVersionChange("inventory", e.target.value)
-                        }
-                        containerClassName="h-[36px] px-4"
-                      />
-                    </div>
 
-                    <div className="flex-1 flex flex-col gap-1.5">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                          *
-                        </span>
-                        <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
-                          Có thể bán
-                        </label>
+                      <div className="flex-1 flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                            *
+                          </span>
+                          <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                            SL bán trên POS
+                          </label>
+                        </div>
+                        <FormInput
+                          placeholder="Nhập SL bán trên POS"
+                          value={editingVersion.posQuantity}
+                          onChange={(e) =>
+                            handleEditVersionChange("posQuantity", e.target.value)
+                          }
+                          containerClassName="h-[36px] px-4"
+                        />
                       </div>
-                      <FormInput
-                        placeholder="Nhập số lượng có thể bán"
-                        value={editingVersion.available}
-                        onChange={(e) =>
-                          handleEditVersionChange("available", e.target.value)
-                        }
-                        containerClassName="h-[36px] px-4"
-                      />
                     </div>
                   </div>
                 </div>
@@ -2652,10 +2996,19 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
             {/* Footer Buttons */}
             <div className="flex items-center justify-center gap-[10px] px-6 py-3 border-t border-[#e7e7e7]">
-              <Button variant="secondary" onClick={handleEditVersionCancel}>
+              <Button
+                variant="secondary"
+                onClick={handleEditVersionCancel}
+                disabled={isSubmittingEditVersion}
+              >
                 Huỷ
               </Button>
-              <Button onClick={handleEditVersionConfirm}>Xác nhận</Button>
+              <Button
+                onClick={handleEditVersionConfirm}
+                disabled={isSubmittingEditVersion}
+              >
+                {isSubmittingEditVersion ? "Đang lưu..." : "Xác nhận"}
+              </Button>
             </div>
           </div>
         </div>

@@ -30,13 +30,46 @@ type CustomerAddressFormState = {
   id: number | null;
   name: string;
   phone: string;
-  provinceName: string;
+  province: string;
   provinceId: number | null;
-  districtName: string;
+  district: string;
   districtId: number | null;
-  wardName: string;
+  ward: string;
   wardCode: string;
-  street: string;
+  location: string;
+};
+
+type CustomerContactField = "name" | "phone" | "birthdate" | "email";
+type ContactFormErrors = Partial<Record<CustomerContactField, string>>;
+
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const normalizeAddressPart = (value?: string | null) => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const lower = trimmed.toLowerCase();
+  if (lower === "null" || lower === "undefined") return "";
+  return trimmed;
+};
+
+const formatAddressText = (address?: AddressResponse | null) => {
+  if (!address) return "Chưa có địa chỉ";
+
+  const normalizedFull = normalizeAddressPart(address.fullAddress);
+  if (normalizedFull) {
+    return normalizedFull;
+  }
+
+  const parts = [
+    normalizeAddressPart(address.street) || normalizeAddressPart((address as any).location),
+    normalizeAddressPart(address.wardName) || normalizeAddressPart((address as any).ward),
+    normalizeAddressPart(address.districtName) || normalizeAddressPart((address as any).district),
+    normalizeAddressPart(address.provinceName) || normalizeAddressPart((address as any).province),
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(", ") : "Chưa có địa chỉ";
 };
 
 const AdminCustomerDetail = () => {
@@ -53,19 +86,116 @@ const AdminCustomerDetail = () => {
     gender: "Nữ",
     email: "",
   });
+  const [formErrors, setFormErrors] = useState<ContactFormErrors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
   const [addressData, setAddressData] = useState<CustomerAddressFormState>({
     id: null,
     name: "",
     phone: "",
-    provinceName: "",
+    province: "",
     provinceId: null,
-    districtName: "",
+    district: "",
     districtId: null,
-    wardName: "",
+    ward: "",
     wardCode: "",
-    street: "",
+    location: "",
   });
   const [defaultAddress, setDefaultAddress] = useState<AddressResponse | null>(null);
+  const formattedDefaultAddress = useMemo(
+    () => formatAddressText(defaultAddress),
+    [defaultAddress]
+  );
+
+  const setFieldError = (field: CustomerContactField, error?: string) => {
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (error) {
+        next[field] = error;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  const validateField = (field: CustomerContactField, value: string) => {
+    let error: string | undefined;
+    const trimmedValue = value.trim();
+
+    switch (field) {
+      case "name":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập họ tên.";
+        } else if (trimmedValue.length < 3) {
+          error = "Họ tên phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const digits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (digits.length < 10 || digits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (!trimmedValue) {
+          error = undefined;
+        } else if (!EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
+        }
+        break;
+      case "birthdate":
+        if (trimmedValue) {
+          const inputDate = new Date(trimmedValue);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (Number.isNaN(inputDate.getTime())) {
+            error = "Ngày sinh không hợp lệ.";
+          } else if (inputDate > today) {
+            error = "Ngày sinh không được lớn hơn hiện tại.";
+          }
+        }
+        break;
+      default:
+        break;
+    }
+
+    setFieldError(field, error);
+    return error;
+  };
+
+  const handleContactFieldChange = (
+    field: CustomerContactField,
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    setApiError(null);
+    validateField(field, value);
+  };
+
+  const validateContactForm = () => {
+    let isValid = true;
+    (["name", "phone", "email", "birthdate"] as CustomerContactField[]).forEach(
+      (field) => {
+        const error = validateField(field, formData[field]);
+        if (error) {
+          isValid = false;
+        }
+      }
+    );
+    return isValid;
+  };
 
   const shouldHideLocationName = (name: string) => {
     const normalized = name
@@ -109,15 +239,10 @@ const AdminCustomerDetail = () => {
   const districts = useMemo(() => {
     if (!districtsData) return [];
     return districtsData
-      .filter((district) => {
-        const districtName = (district as any).districtName || (district as any).name;
-        return !shouldHideLocationName(districtName);
-      })
-      .sort((a, b) => {
-        const nameA = (a as any).districtName || (a as any).name;
-        const nameB = (b as any).districtName || (b as any).name;
-        return nameA.localeCompare(nameB, "vi", { sensitivity: "base" });
-      });
+      .filter((district) => !shouldHideLocationName(district.districtName))
+      .sort((a, b) =>
+        a.districtName.localeCompare(b.districtName, "vi", { sensitivity: "base" })
+      );
   }, [districtsData]);
 
   const {
@@ -136,25 +261,20 @@ const AdminCustomerDetail = () => {
   const wards = useMemo(() => {
     if (!wardsData) return [];
     return wardsData
-      .filter((ward) => {
-        const wardName = (ward as any).wardName || (ward as any).name;
-        return !shouldHideLocationName(wardName);
-      })
-      .sort((a, b) => {
-        const nameA = (a as any).wardName || (a as any).name;
-        const nameB = (b as any).wardName || (b as any).name;
-        return nameA.localeCompare(nameB, "vi", { sensitivity: "base" });
-      });
+      .filter((ward) => !shouldHideLocationName(ward.wardName))
+      .sort((a, b) =>
+        a.wardName.localeCompare(b.wardName, "vi", { sensitivity: "base" })
+      );
   }, [wardsData]);
 
   useEffect(() => {
     if (
       provinces.length > 0 &&
-      addressData.provinceName &&
+      addressData.province &&
       !addressData.provinceId
     ) {
       const matchedProvince = provinces.find(
-        (province) => province.provinceName === addressData.provinceName
+        (province) => province.provinceName === addressData.province
       );
       if (matchedProvince) {
         setAddressData((prev) => ({
@@ -163,129 +283,83 @@ const AdminCustomerDetail = () => {
         }));
       }
     }
-  }, [provinces, addressData.provinceName, addressData.provinceId]);
+  }, [provinces, addressData.province, addressData.provinceId]);
 
   useEffect(() => {
     if (
       districts.length > 0 &&
-      addressData.districtName &&
+      addressData.district &&
       !addressData.districtId
     ) {
-      const matchedDistrict = districts.find((district) => {
-        const districtName = (district as any).districtName || (district as any).name;
-        return districtName === addressData.districtName;
-      });
+      const matchedDistrict = districts.find(
+        (district) => district.districtName === addressData.district
+      );
       if (matchedDistrict) {
-        const districtId = (matchedDistrict as any).districtId ?? (matchedDistrict as any).id;
         setAddressData((prev) => ({
           ...prev,
-          districtId: districtId,
+          districtId: matchedDistrict.districtId,
         }));
       }
     }
-  }, [districts, addressData.districtName, addressData.districtId]);
+  }, [districts, addressData.district, addressData.districtId]);
 
   useEffect(() => {
-    if (wards.length > 0 && addressData.wardName && !addressData.wardCode) {
-      const matchedWard = wards.find((ward) => {
-        const wardName = (ward as any).wardName || (ward as any).name;
-        return wardName === addressData.wardName;
-      });
+    if (wards.length > 0 && addressData.ward && !addressData.wardCode) {
+      const matchedWard = wards.find(
+        (ward) => ward.wardName === addressData.ward
+      );
       if (matchedWard) {
-        const wardCode = (matchedWard as any).wardCode ?? (matchedWard as any).code;
         setAddressData((prev) => ({
           ...prev,
-          wardCode: wardCode,
+          wardCode: matchedWard.wardCode,
         }));
       }
     }
-  }, [wards, addressData.wardName, addressData.wardCode]);
+  }, [wards, addressData.ward, addressData.wardCode]);
 
   const handleProvinceSelect = (province: ProvinceResponse) => {
     setAddressData((prev) => ({
       ...prev,
-      provinceName: province.provinceName,
+      province: province.provinceName,
       provinceId: province.provinceId,
-      districtName: "",
+      district: "",
       districtId: null,
-      wardName: "",
+      ward: "",
       wardCode: "",
     }));
   };
 
   const handleDistrictSelect = (district: DistrictResponse) => {
-    // Support both API response formats: {districtId, districtName} or {id, name}
-    const districtId = (district as any).districtId ?? (district as any).id;
-    const districtName = (district as any).districtName ?? (district as any).name;
-
-    console.log("Selected district:", district);
-    console.log("Extracted districtId:", districtId, "type:", typeof districtId, "districtName:", districtName);
-
-    if (districtId === null || districtId === undefined) {
-      console.error("District missing districtId:", district);
-      toast.error("Không thể lấy mã quận/huyện. Vui lòng thử lại.");
-      return;
-    }
-
-    // Ensure districtId is a number
-    const numericDistrictId = typeof districtId === 'number' ? districtId : Number(districtId);
-    if (isNaN(numericDistrictId)) {
-      console.error("Invalid districtId format:", districtId);
-      toast.error("Mã quận/huyện không hợp lệ. Vui lòng thử lại.");
-      return;
-    }
-
     setAddressData((prev) => ({
       ...prev,
-      districtName: districtName || "",
-      districtId: numericDistrictId,
-      wardName: "",
+      district: district.districtName,
+      districtId: district.districtId,
+      ward: "",
       wardCode: "",
     }));
   };
 
   const handleWardSelect = (ward: WardResponse) => {
-    // Support both API response formats: {wardCode, wardName} or {code, name}
-    const wardCode = (ward as any).wardCode ?? (ward as any).code;
-    const wardName = (ward as any).wardName ?? (ward as any).name;
-
-    console.log("Selected ward:", ward);
-    console.log("Extracted wardCode:", wardCode, "type:", typeof wardCode, "wardName:", wardName);
-
-    if (!wardCode || wardCode === null || wardCode === undefined) {
-      console.error("Ward missing wardCode:", ward);
-      toast.error("Không thể lấy mã phường/xã. Vui lòng thử lại.");
-      return;
-    }
-
-    // Ensure wardCode is a string
-    const stringWardCode = String(wardCode).trim();
-    if (!stringWardCode) {
-      console.error("Invalid wardCode format:", wardCode);
-      toast.error("Mã phường/xã không hợp lệ. Vui lòng thử lại.");
-      return;
-    }
-
     setAddressData((prev) => ({
       ...prev,
-      wardName: wardName || "",
-      wardCode: stringWardCode,
+      ward: ward.wardName,
+      wardCode: ward.wardCode,
     }));
   };
 
   const provinceLabel = useMemo(() => {
     if (isLoadingProvinces) return "Đang tải tỉnh/thành";
     if (isProvinceError) return "Không thể tải tỉnh/thành";
-    return addressData.provinceName || "Chọn tỉnh/thành phố";
-  }, [addressData.provinceName, isLoadingProvinces, isProvinceError]);
+    return addressData.province || "Chọn tỉnh/thành phố";
+  }, [addressData.province, isLoadingProvinces, isProvinceError]);
 
   const districtLabel = useMemo(() => {
     if (!addressData.provinceId) return "Chọn tỉnh trước";
     if (isLoadingDistricts) return "Đang tải quận/huyện";
     if (isDistrictError) return "Không thể tải quận/huyện";
-    return addressData.districtName || "Chọn quận/huyện";
+    return addressData.district || "Chọn quận/huyện";
   }, [
-    addressData.districtName,
+    addressData.district,
     addressData.provinceId,
     isLoadingDistricts,
     isDistrictError,
@@ -295,25 +369,13 @@ const AdminCustomerDetail = () => {
     if (!addressData.districtId) return "Chọn quận/huyện trước";
     if (isLoadingWards) return "Đang tải phường/xã";
     if (isWardError) return "Không thể tải phường/xã";
-    return addressData.wardName || "Chọn phường/xã";
-  }, [addressData.wardName, addressData.districtId, isLoadingWards, isWardError]);
-
-  const getProvinceLabel = (province: any): string => {
-    return province.provinceName || province.name || "";
-  };
-
-  const getDistrictLabel = (district: any): string => {
-    return district.districtName || district.name || "";
-  };
-
-  const getWardLabel = (ward: any): string => {
-    return ward.wardName || ward.name || "";
-  };
+    return addressData.ward || "Chọn phường/xã";
+  }, [addressData.ward, addressData.districtId, isLoadingWards, isWardError]);
 
   const renderMenuContent = <T extends { [key: string]: any }>(
     list: T[] | null | undefined,
     onSelect: (item: T) => void,
-    getLabel: (item: T) => string
+    labelKey: keyof T
   ) => {
     if (!list || !Array.isArray(list) || list.length === 0) {
       return (
@@ -323,13 +385,13 @@ const AdminCustomerDetail = () => {
       );
     }
 
-    return list.map((item, index) => (
+    return list.map((item) => (
       <DropdownMenuItem
-        key={index}
+        key={String(item[labelKey])}
         onClick={() => onSelect(item)}
         className="text-[14px]"
       >
-        {getLabel(item)}
+        {item[labelKey]}
       </DropdownMenuItem>
     ));
   };
@@ -377,6 +439,8 @@ const AdminCustomerDetail = () => {
       return updateCustomer(data.id, data);
     },
     onSuccess: async () => {
+      setFormErrors({});
+      setApiError(null);
       toast.success("Cập nhật thông tin khách hàng thành công");
       await refetchCustomer();
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
@@ -389,7 +453,54 @@ const AdminCustomerDetail = () => {
         error?.response?.data?.message ||
         error?.message ||
         "Không thể cập nhật thông tin khách hàng";
-      toast.error(errorMessage);
+      const lowerMessage = errorMessage.toLowerCase();
+
+      const fieldErrorTranslations: Array<{
+        field: CustomerContactField;
+        keywords: string[];
+        translatedMessage: string;
+      }> = [
+        {
+          field: "phone",
+          keywords: [
+            "phone number must contain only digits",
+            "phone number must be between 10 and 13 digits",
+          ],
+          translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
+        },
+        {
+          field: "phone",
+          keywords: ["phone number already exists", "duplicate entry", "constraint `phone`"],
+          translatedMessage: "Số điện thoại đã tồn tại.",
+        },
+        {
+          field: "email",
+          keywords: ["email already exists"],
+          translatedMessage: "Email đã tồn tại.",
+        },
+        {
+          field: "name",
+          keywords: ["name must not contain special characters"],
+          translatedMessage: "Họ tên không được chứa ký tự đặc biệt.",
+        },
+        {
+          field: "birthdate",
+          keywords: ["birthday must be in the past"],
+          translatedMessage: "Ngày sinh không được lớn hơn hiện tại.",
+        },
+      ];
+
+      const matchedFieldError = fieldErrorTranslations.find(({ keywords }) =>
+        keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+      );
+
+      if (matchedFieldError) {
+        setFieldError(matchedFieldError.field, matchedFieldError.translatedMessage);
+        toast.error(matchedFieldError.translatedMessage);
+      } else {
+        setApiError(errorMessage);
+        toast.error(errorMessage);
+      }
     },
   });
 
@@ -444,6 +555,8 @@ const AdminCustomerDetail = () => {
         gender: customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ",
         email: customer.email || "",
       });
+      setFormErrors({});
+      setApiError(null);
     }
   }, [customer]);
 
@@ -451,8 +564,13 @@ const AdminCustomerDetail = () => {
   useEffect(() => {
     if (addressesData?.addresses && addressesData.addresses.length > 0) {
       // Find default address or use first address
-      const defaultAddr = addressesData.addresses.find(addr => addr.isDefault === "Địa chỉ mặc định")
-        || addressesData.addresses[0];
+      const defaultAddr =
+        addressesData.addresses.find(
+          (addr) =>
+            addr.isDefault === true ||
+            addr.isDefault === "true" ||
+            addr.isDefault === "Địa chỉ mặc định"
+        ) || addressesData.addresses[0];
       setDefaultAddress(defaultAddr);
     } else {
       setDefaultAddress(null);
@@ -483,8 +601,30 @@ const AdminCustomerDetail = () => {
     );
   }
 
+  const resetFormData = () => {
+    if (customer) {
+      setFormData({
+        name: customer.name || "",
+        phone: customer.phone || "",
+        birthdate: customer.birthday
+          ? new Date(customer.birthday).toISOString().split("T")[0]
+          : "",
+        gender: customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ",
+        email: customer.email || "",
+      });
+      setFormErrors({});
+      setApiError(null);
+    }
+  };
+
   const handleEditClick = () => {
+    resetFormData(); // Reset form to original values when opening modal
     setIsEditModalOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    resetFormData(); // Reset form to original values when canceling
+    setIsEditModalOpen(false);
   };
 
   const handleSave = () => {
@@ -492,27 +632,21 @@ const AdminCustomerDetail = () => {
 
     console.log("handleSave called with formData:", formData);
 
-    // Validation
-    if (!formData.name.trim()) {
-      toast.error("Vui lòng nhập họ và tên");
+    setApiError(null);
+    if (!validateContactForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin.");
       return;
     }
-    if (!formData.phone.trim()) {
-      toast.error("Vui lòng nhập số điện thoại");
-      return;
-    }
-    if (!formData.email.trim()) {
-      toast.error("Vui lòng nhập email");
-      return;
-    }
+
+    const emailValue = formData.email.trim();
 
     const updateData: CustomerUpdateRequest = {
       id: customer.id,
       name: formData.name.trim(),
       phone: formData.phone.trim(),
-      email: formData.email.trim(),
+      email: emailValue || undefined,
       username: customer.username, // Keep existing username
-      password: "", // Password not required for update - backend will skip encoding if empty
+      password: undefined,
       address: customer.address || "", // Keep existing address
       gender: formData.gender === "Nam" ? "MALE" : "FEMALE", // Convert to backend format
       birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : customer.birthday ? new Date(customer.birthday).toISOString() : undefined,
@@ -524,37 +658,50 @@ const AdminCustomerDetail = () => {
     updateCustomerMutation.mutate(updateData);
   };
 
-  const handleAddressEditClick = () => {
+  const resetAddressData = () => {
     if (defaultAddress) {
-      // Edit existing address
+      // Reset to existing address
+      const provinceName = normalizeAddressPart(defaultAddress.provinceName) || normalizeAddressPart((defaultAddress as any).province);
+      const districtName = normalizeAddressPart(defaultAddress.districtName) || normalizeAddressPart((defaultAddress as any).district);
+      const wardName = normalizeAddressPart(defaultAddress.wardName) || normalizeAddressPart((defaultAddress as any).ward);
+      const street = normalizeAddressPart(defaultAddress.street) || normalizeAddressPart((defaultAddress as any).location);
       setAddressData({
         id: defaultAddress.id,
-        name: defaultAddress.name || customer.name,
-        phone: defaultAddress.phone || customer.phone,
-        provinceName: defaultAddress.provinceName || "",
-        provinceId: null, // Will be set by useEffect
-        districtName: defaultAddress.districtName || "",
-        districtId: defaultAddress.districtId || null,
-        wardName: defaultAddress.wardName || "",
+        name: defaultAddress.receiverName || defaultAddress.name || customer.name,
+        phone: defaultAddress.receiverPhone || defaultAddress.phone || customer.phone,
+        province: provinceName,
+        provinceId: null,
+        district: districtName,
+        ward: wardName,
+        location: street,
         wardCode: defaultAddress.wardCode || "",
-        street: defaultAddress.street || "",
+        districtId: defaultAddress.districtId || null,
       });
     } else {
-      // Create new address
+      // Reset to new address form
       setAddressData({
         id: null,
         name: customer.name,
         phone: customer.phone,
-        provinceName: "",
+        province: "",
         provinceId: null,
-        districtName: "",
-        districtId: null,
-        wardName: "",
+        district: "",
+        ward: "",
+        location: "",
         wardCode: "",
-        street: "",
+        districtId: null,
       });
     }
+  };
+
+  const handleAddressEditClick = () => {
+    resetAddressData(); // Reset address data to original values when opening modal
     setIsAddressModalOpen(true);
+  };
+
+  const handleCancelAddressEdit = () => {
+    resetAddressData(); // Reset address data to original values when canceling
+    setIsAddressModalOpen(false);
   };
 
   const handleAddressSave = () => {
@@ -571,19 +718,19 @@ const AdminCustomerDetail = () => {
       toast.error("Vui lòng nhập số điện thoại");
       return;
     }
-    if (!addressData.provinceName.trim()) {
+    if (!addressData.province.trim()) {
       toast.error("Vui lòng chọn tỉnh/thành phố");
       return;
     }
-    if (!addressData.districtName.trim()) {
+    if (!addressData.district.trim()) {
       toast.error("Vui lòng chọn quận/huyện");
       return;
     }
-    if (!addressData.wardName.trim()) {
+    if (!addressData.ward.trim()) {
       toast.error("Vui lòng chọn phường/xã");
       return;
     }
-    if (!addressData.street.trim()) {
+    if (!addressData.location.trim()) {
       toast.error("Vui lòng nhập địa chỉ chi tiết");
       return;
     }
@@ -595,7 +742,7 @@ const AdminCustomerDetail = () => {
       toast.error("Vui lòng chọn quận/huyện hợp lệ");
       return;
     }
-    if (!addressData.wardCode || !addressData.wardCode.trim()) {
+    if (!addressData.wardCode.trim()) {
       toast.error("Vui lòng chọn phường/xã hợp lệ");
       return;
     }
@@ -603,32 +750,36 @@ const AdminCustomerDetail = () => {
     const finalWardCode = addressData.wardCode.trim();
     const finalDistrictId = addressData.districtId;
 
+    const street = addressData.location.trim();
+    const wardName = addressData.ward.trim();
+    const districtName = addressData.district.trim();
+    const provinceName = addressData.province.trim();
+    const payloadCommon = {
+      name: addressData.name.trim(),
+      phone: addressData.phone.trim(),
+      street,
+      wardCode: finalWardCode,
+      wardName,
+      districtId: finalDistrictId,
+      districtName,
+      provinceName,
+      fullAddress: [street, wardName, districtName, provinceName]
+        .filter(Boolean)
+        .join(", "),
+    };
+
     if (addressData.id) {
       // Update existing address
       const updateData: AddressUpdateRequest = {
         id: addressData.id,
-        name: addressData.name.trim(),
-        phone: addressData.phone.trim(),
-        street: addressData.street.trim(),
-        wardCode: finalWardCode,
-        wardName: addressData.wardName.trim(),
-        districtId: finalDistrictId,
-        districtName: addressData.districtName.trim(),
-        provinceName: addressData.provinceName.trim(),
+        ...payloadCommon,
       };
       console.log("Updating address with data:", updateData);
       updateAddressMutation.mutate(updateData);
     } else {
       // Create new address
       const createData: AddressCreationRequest = {
-        name: addressData.name.trim(),
-        phone: addressData.phone.trim(),
-        street: addressData.street.trim(),
-        wardCode: finalWardCode,
-        wardName: addressData.wardName.trim(),
-        districtId: finalDistrictId,
-        districtName: addressData.districtName.trim(),
-        provinceName: addressData.provinceName.trim(),
+        ...payloadCommon,
       };
       console.log("Creating address with data:", createData);
       createAddressMutation.mutate(createData);
@@ -691,7 +842,7 @@ const AdminCustomerDetail = () => {
                   </div>
                 </div>
               </div>
-
+              
               <div className="flex gap-[32px] items-center">
                 <div className="flex flex-col items-center gap-[4px]">
                   <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
@@ -985,7 +1136,7 @@ const AdminCustomerDetail = () => {
                     Người nhận
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {defaultAddress?.name || customer.name}
+                    {defaultAddress?.receiverName || defaultAddress?.name || customer.name}
                   </p>
                 </div>
                 <div className="flex flex-col gap-[4px]">
@@ -993,7 +1144,7 @@ const AdminCustomerDetail = () => {
                     Số điện thoại
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {defaultAddress?.phone || customer.phone}
+                    {defaultAddress?.receiverPhone || defaultAddress?.phone || customer.phone}
                   </p>
                 </div>
               </div>
@@ -1003,10 +1154,7 @@ const AdminCustomerDetail = () => {
                   Địa chỉ chi tiết
                 </p>
                 <p className="font-semibold text-[#272424] text-[15px] leading-[1.5] break-words">
-                  {defaultAddress
-                    ? (defaultAddress.fullAddress ||
-                      `${defaultAddress.street || ""}, ${defaultAddress.wardName || ""}, ${defaultAddress.districtName || ""}, ${defaultAddress.provinceName || ""}`.replace(/^,\s*|,\s*$/g, '').trim()) || "Chưa có địa chỉ"
-                    : "Chưa có địa chỉ"}
+                  {formattedDefaultAddress}
                 </p>
               </div>
             </div>
@@ -1022,7 +1170,7 @@ const AdminCustomerDetail = () => {
             backgroundColor: "rgba(255, 255, 255, 0.7)",
             backdropFilter: "blur(8px)",
           }}
-          onClick={() => setIsEditModalOpen(false)}
+          onClick={handleCancelEdit}
         >
           <div
             className="bg-white rounded-[8px] p-[24px] w-[520px] shadow-2xl animate-scaleIn"
@@ -1044,10 +1192,13 @@ const AdminCustomerDetail = () => {
                   <FormInput
                     value={formData.name}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      handleContactFieldChange("name", e.target.value)
                     }
                     placeholder="Nhập họ và tên"
                   />
+                  {formErrors.name && (
+                    <p className="text-sm text-red-500">{formErrors.name}</p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-[6px]">
                   <label className="font-medium text-[#272424] text-[14px]">
@@ -1056,10 +1207,13 @@ const AdminCustomerDetail = () => {
                   <FormInput
                     value={formData.phone}
                     onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                      handleContactFieldChange("phone", e.target.value)
                     }
                     placeholder="Nhập số điện thoại"
                   />
+                  {formErrors.phone && (
+                    <p className="text-sm text-red-500">{formErrors.phone}</p>
+                  )}
                 </div>
               </div>
 
@@ -1073,10 +1227,15 @@ const AdminCustomerDetail = () => {
                     type="date"
                     value={formData.birthdate}
                     onChange={(e) =>
-                      setFormData({ ...formData, birthdate: e.target.value })
+                      handleContactFieldChange("birthdate", e.target.value)
                     }
                     placeholder="dd/mm/yyyy"
                   />
+                  {formErrors.birthdate && (
+                    <p className="text-sm text-red-500">
+                      {formErrors.birthdate}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-[6px]">
                   <label className="font-medium text-[#272424] text-[14px]">
@@ -1110,22 +1269,31 @@ const AdminCustomerDetail = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
+                    handleContactFieldChange("email", e.target.value)
                   }
                   placeholder="email@example.com"
                 />
+                {formErrors.email && (
+                  <p className="text-sm text-red-500">{formErrors.email}</p>
+                )}
               </div>
+
+              {apiError && (
+                <div className="w-full rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {apiError}
+                </div>
+              )}
 
               {/* Buttons */}
               <div className="flex gap-[12px] justify-end mt-[4px]">
                 <Button
                   variant="secondary"
-                  onClick={() => setIsEditModalOpen(false)}
+                  onClick={handleCancelEdit}
                 >
                   Hủy bỏ
                 </Button>
-                <Button
-                  variant="default"
+                <Button 
+                  variant="default" 
                   onClick={handleSave}
                   disabled={updateCustomerMutation.isPending}
                 >
@@ -1145,7 +1313,7 @@ const AdminCustomerDetail = () => {
             backgroundColor: "rgba(255, 255, 255, 0.7)",
             backdropFilter: "blur(8px)",
           }}
-          onClick={() => setIsAddressModalOpen(false)}
+          onClick={handleCancelAddressEdit}
         >
           <div
             className="bg-white rounded-[8px] p-[24px] w-[520px] shadow-2xl animate-scaleIn"
@@ -1201,8 +1369,9 @@ const AdminCustomerDetail = () => {
                         } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] cursor-pointer`}
                     >
                       <span
-                        className={`text-[14px] ${addressData.provinceName ? "text-[#272424]" : "text-[#888888]"
-                          }`}
+                        className={`text-[14px] ${
+                          addressData.province ? "text-[#272424]" : "text-[#888888]"
+                        }`}
                       >
                         {provinceLabel}
                       </span>
@@ -1213,7 +1382,7 @@ const AdminCustomerDetail = () => {
                     {isLoadingProvinces ? (
                       <div className="px-3 py-2 text-[13px] text-[#888888]">Đang tải...</div>
                     ) : (
-                      renderMenuContent(provinces, handleProvinceSelect, getProvinceLabel)
+                      renderMenuContent(provinces, handleProvinceSelect, "provinceName")
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1227,13 +1396,16 @@ const AdminCustomerDetail = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <div
-                      className={`bg-white border ${isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
-                        } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${!addressData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                        }`}
+                      className={`bg-white border ${
+                        isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                      } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${
+                        !addressData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                      }`}
                     >
                       <span
-                        className={`text-[14px] ${addressData.districtName ? "text-[#272424]" : "text-[#888888]"
-                          }`}
+                        className={`text-[14px] ${
+                          addressData.district ? "text-[#272424]" : "text-[#888888]"
+                        }`}
                       >
                         {districtLabel}
                       </span>
@@ -1250,7 +1422,7 @@ const AdminCustomerDetail = () => {
                         Đang tải...
                       </div>
                     ) : (
-                      renderMenuContent(districts, handleDistrictSelect, getDistrictLabel)
+                      renderMenuContent(districts, handleDistrictSelect, "districtName")
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1264,13 +1436,16 @@ const AdminCustomerDetail = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <div
-                      className={`bg-white border ${isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
-                        } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${!addressData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                        }`}
+                      className={`bg-white border ${
+                        isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                      } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${
+                        !addressData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                      }`}
                     >
                       <span
-                        className={`text-[14px] ${addressData.wardName ? "text-[#272424]" : "text-[#888888]"
-                          }`}
+                        className={`text-[14px] ${
+                          addressData.ward ? "text-[#272424]" : "text-[#888888]"
+                        }`}
                       >
                         {wardLabel}
                       </span>
@@ -1287,7 +1462,7 @@ const AdminCustomerDetail = () => {
                         Đang tải...
                       </div>
                     ) : (
-                      renderMenuContent(wards, handleWardSelect, getWardLabel)
+                      renderMenuContent(wards, handleWardSelect, "wardName")
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -1299,11 +1474,11 @@ const AdminCustomerDetail = () => {
                   Địa chỉ chi tiết <span className="text-[#e04d30]">*</span>
                 </label>
                 <FormInput
-                  value={addressData.street}
+                  value={addressData.location}
                   onChange={(e) =>
                     setAddressData({
                       ...addressData,
-                      street: e.target.value,
+                      location: e.target.value,
                     })
                   }
                   placeholder="Nhập số nhà, tên đường..."
@@ -1314,12 +1489,12 @@ const AdminCustomerDetail = () => {
               <div className="flex gap-[12px] justify-end mt-[4px]">
                 <Button
                   variant="secondary"
-                  onClick={() => setIsAddressModalOpen(false)}
+                  onClick={handleCancelAddressEdit}
                 >
                   Hủy bỏ
                 </Button>
-                <Button
-                  variant="default"
+                <Button 
+                  variant="default" 
                   onClick={handleAddressSave}
                   disabled={updateAddressMutation.isPending || createAddressMutation.isPending}
                 >

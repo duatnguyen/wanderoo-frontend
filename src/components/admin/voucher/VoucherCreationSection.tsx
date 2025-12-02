@@ -32,8 +32,7 @@ export const VoucherCreationSection: React.FC<VoucherCreationSectionProps> = ({
           </h2>
         </div>
         <p className="font-medium text-[13px] text-[#e04d30] leading-[1.4] -mt-[2px] whitespace-nowrap">
-          Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để
-          thu hút người mua.
+          Tạo Mã giảm giá toàn shop hoặc Mã giảm giá sản phẩm ngay bây giờ để thu hút người mua.
         </p>
       </div>
 
@@ -59,13 +58,13 @@ export const VoucherCreationSection: React.FC<VoucherCreationSectionProps> = ({
         <div className="flex flex-col w-full">
           <div className="flex flex-col gap-[8px] items-start justify-center px-0 py-[10px] w-full flex-shrink-0">
             <h3 className="font-bold text-[20px] text-[#2a2a2a] leading-[1.4] whitespace-nowrap">
-              Tập trung vào kênh hiển thị riêng tư
+              Tập trung vào Kênh hiển thị Voucher
             </h3>
           </div>
           <div className="w-full">
             <VoucherCreationCard
               icon={voucherTypes.privateChannel.icon}
-              title={voucherTypes.privateChannel.title}
+              title="Voucher nhập mã"
               description={voucherTypes.privateChannel.description}
               onClick={() => onCreateVoucher(voucherTypes.privateChannel.title)}
               className="bg-white border-2 border-[#E04D30] rounded-[12px] px-[22px] py-[19px] h-[110px] flex flex-col items-start w-full"

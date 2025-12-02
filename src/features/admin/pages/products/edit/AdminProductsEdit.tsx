@@ -8,15 +8,12 @@ import type {
   ProductVersion,
 } from "@/types/product";
 import { PageContainer, ContentCard } from "@/components/common";
-import {
-  getProductDetailPrivate,
-  getProductVariantsPrivate,
-} from "@/api/endpoints/productApi";
-import type { ProductDetailsResponse } from "@/types";
+import { getProductDetailPrivate, getProductVariantsPrivate } from "@/api/endpoints/productApi";
+import type { ProductDetailsResponse, ProductVariantListResponse } from "@/types";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
-const VARIANT_PAGE_SIZE = 20;
+const VARIANT_PAGE_SIZE = 50;
 
 const AdminProductsEdit: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -76,12 +73,6 @@ const AdminProductsEdit: React.FC = () => {
     loadProductData();
   }, [productId]);
 
-  const stripCurrency = (value: string | number | null | undefined): string => {
-    if (value === null || value === undefined) return "";
-    if (typeof value === "number") return value.toString();
-    return value.toString().replace(/[^\d]/g, "");
-  };
-
   const initialFormData: Partial<ProductFormData> | undefined = useMemo(() => {
     if (!productDetail) return undefined;
 
@@ -116,8 +107,6 @@ const AdminProductsEdit: React.FC = () => {
       }));
     }
 
-    // Note: ProductDetailsResponse doesn't have imageUrl, only images array
-
     return [];
   }, [productDetail]);
 
@@ -143,14 +132,20 @@ const AdminProductsEdit: React.FC = () => {
         variant.importPrice !== undefined && variant.importPrice !== null
           ? String(variant.importPrice)
           : "",
+      // inventory mapping với totalQuantity (tồn kho)
       inventory:
         variant.totalQuantity !== undefined && variant.totalQuantity !== null
           ? String(variant.totalQuantity)
           : "",
-      available:
-        variant.availableQuantity !== undefined &&
-        variant.availableQuantity !== null
-          ? String(variant.availableQuantity)
+      webQuantity:
+        variant.websiteSoldQuantity !== undefined &&
+        variant.websiteSoldQuantity !== null
+          ? String(variant.websiteSoldQuantity)
+          : "",
+      posQuantity:
+        variant.posSoldQuantity !== undefined &&
+        variant.posSoldQuantity !== null
+          ? String(variant.posSoldQuantity)
           : "",
       image: variant.imageUrl ?? null,
       sku: variant.skuDetail ?? "",
@@ -185,18 +180,8 @@ const AdminProductsEdit: React.FC = () => {
         <ContentCard>
           <div className="text-center py-[60px]">
             <div className="w-20 h-20 bg-[#fef2f2] rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg
-                className="w-10 h-10 text-[#dc2626]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"
-                />
+              <svg className="w-10 h-10 text-[#dc2626]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
             <h2 className="text-[24px] font-['Montserrat'] font-bold text-[#1f2937] mb-4">

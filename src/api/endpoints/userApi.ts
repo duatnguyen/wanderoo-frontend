@@ -291,7 +291,8 @@ export const getCustomers = async (params?: {
 
   const pageSizeValue = payload.pageSize ?? size;
   const totalPages =
-    payload.totalPages ?? Math.ceil(totalElements / (pageSizeValue || 1));
+    payload.totalPages ??
+    Math.ceil(totalElements / (pageSizeValue || 1));
 
   return {
     pageNumber: payload.pageNumber ?? page,
@@ -352,6 +353,12 @@ export const disableCustomerAccounts = async (
     "/auth/v1/private/account/customer/disable",
     selectData
   );
+export const disableCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
+  console.log("disableCustomerAccounts API call:", selectData);
+  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/account/customer/disable/all', {
+    data: selectData,
+  });
+  console.log("disableCustomerAccounts API response:", response.data);
   return response.data;
 };
 
@@ -362,6 +369,10 @@ export const enableCustomerAccounts = async (
     "/auth/v1/private/account/customer/enable",
     selectData
   );
+export const enableCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
+  console.log("enableCustomerAccounts API call:", selectData);
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/customer/enable/all', selectData);
+  console.log("enableCustomerAccounts API response:", response.data);
   return response.data;
 };
 

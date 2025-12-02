@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   POSProductList,
   type POSProduct,
@@ -26,12 +26,27 @@ import {
 import type {
   DraftOrderDetailResponse,
   DraftOrderResponse,
+  DraftOrderItemResponse,
 } from "@/types/api";
 import { Loader2 } from "lucide-react";
 
+// Utility: tính đơn giá một item từ dữ liệu backend
+const getUnitPrice = (item: DraftOrderItemResponse) => {
+  if (item.quantity > 0 && item.amount) {
+    return item.amount / item.quantity;
+  }
+  return item.discountedPrice ?? item.unitPrice ?? 0;
+};
+
 const POSPage: React.FC = () => {
-  const { orders, setOrders, setCurrentOrderId, setProductSelectHandler, setOrderHandlers } =
-    usePOSContext();
+  const {
+    orders,
+    setOrders,
+    currentOrderId,
+    setCurrentOrderId,
+    setProductSelectHandler,
+    setOrderHandlers,
+  } = usePOSContext();
   const [draftOrderId, setDraftOrderId] = useState<number | null>(null);
   const [orderDetail, setOrderDetail] = useState<DraftOrderDetailResponse | null>(
     null
@@ -41,6 +56,8 @@ const POSPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const addingProductRef = useRef<string | null>(null);
 
   const loadDraftOrderDetail = useCallback(async (orderId: number) => {
     const detail = await getDraftOrderDetail(orderId);
@@ -49,6 +66,16 @@ const POSPage: React.FC = () => {
     setNoteSyncedValue(detail.notes ?? "");
     setError(null);
   }, []);
+
+  const updateOrderDetailState = useCallback(
+    (updater: (detail: DraftOrderDetailResponse) => DraftOrderDetailResponse) => {
+      setOrderDetail((prev) => {
+        if (!prev) return prev;
+        return updater(prev);
+      });
+    },
+    []
+  );
 
   const loadAllDraftOrders = useCallback(async () => {
     try {
@@ -65,55 +92,70 @@ const POSPage: React.FC = () => {
     setError(null);
     try {
       const draftOrders = await loadAllDraftOrders();
-      
-      // Chuyển đổi draft orders thành format cho tabs
-      const orderTabs = draftOrders.map((order: DraftOrderResponse, index: number) => ({
-        id: order.id.toString(),
-        label: `Đơn ${index + 1}`,
-      }));
 
-      let orderId: number | null = null;
+      // Nếu backend đã có các hóa đơn chờ → chỉ dùng hóa đơn đầu tiên để khởi tạo UI
       if (draftOrders.length > 0) {
-        orderId = draftOrders[0]?.id ?? null;
-      } else {
-        // Nếu không có draft order nào, tạo mới
-        try {
-          const created = await createNewDraftOrder();
-          orderId = created.data?.id ?? null;
-          if (orderId) {
-            // Reload danh sách sau khi tạo mới
-            const refreshed = await loadAllDraftOrders();
-            const refreshedTabs = refreshed.map((order: DraftOrderResponse, index: number) => ({
-              id: order.id.toString(),
-              label: `Đơn ${index + 1}`,
-            }));
-            setOrders(refreshedTabs);
-            setCurrentOrderId(orderId.toString());
-            setDraftOrderId(orderId);
-            await loadDraftOrderDetail(orderId);
-            setIsLoading(false);
-            return;
-          }
-        } catch (createErr: any) {
-          const errorMessage = createErr?.response?.data?.message || createErr?.message;
-          if (errorMessage?.includes("LIMIT_REACHED") || errorMessage?.includes("limit")) {
-            setError("Bạn đã đạt giới hạn 5 hóa đơn chờ. Vui lòng hoàn thành hoặc xóa một hóa đơn trước khi tạo mới.");
-          } else {
-            setError("Không thể tạo hóa đơn chờ mới. Vui lòng thử lại.");
-          }
-          setIsLoading(false);
-          return;
+        const firstOrder = draftOrders[0] as DraftOrderResponse | undefined;
+        const firstId = firstOrder?.id ?? null;
+        if (!firstId) {
+          throw new Error("Không thể khởi tạo hóa đơn chờ");
         }
+
+        // Chỉ hiển thị một tab duy nhất tương ứng với hóa đơn đầu tiên
+        const orderTabs: { id: string; label: string }[] = [
+          { id: firstId.toString(), label: "Đơn 1" },
+        ];
+
+        setDraftOrderId(firstId);
+        setOrders(orderTabs);
+        setCurrentOrderId(firstId.toString());
+        // Hiển thị layout ngay sau khi có tabs
+        setIsLoading(false);
+        // Load chi tiết đơn đầu tiên ở background, đồng thời hiển thị overlay nhẹ
+        setIsRefreshing(true);
+        try {
+          await loadDraftOrderDetail(firstId);
+        } finally {
+          setIsRefreshing(false);
+        }
+        return;
       }
 
-      if (!orderId) {
-        throw new Error("Không thể khởi tạo hóa đơn chờ");
-      }
+      // Không có hóa đơn chờ nào → tạo mới một hóa đơn và dùng ngay kết quả trả về
+      try {
+        const created = await createNewDraftOrder();
+        const newOrder = created.data;
+        const newOrderId = newOrder?.id ?? null;
 
-      setDraftOrderId(orderId);
-      setOrders(orderTabs);
-      setCurrentOrderId(orderId.toString());
-      await loadDraftOrderDetail(orderId);
+        if (!newOrderId) {
+          throw new Error("Không thể tạo hóa đơn chờ mới");
+        }
+
+        const orderTabs: { id: string; label: string }[] = [
+          { id: newOrderId.toString(), label: "Đơn 1" },
+        ];
+
+        setOrders(orderTabs);
+        setDraftOrderId(newOrderId);
+        setCurrentOrderId(newOrderId.toString());
+        setIsLoading(false);
+        setIsRefreshing(true);
+        try {
+          await loadDraftOrderDetail(newOrderId);
+        } finally {
+          setIsRefreshing(false);
+        }
+      } catch (createErr: any) {
+        const errorMessage = createErr?.response?.data?.message || createErr?.message;
+        if (errorMessage?.includes("LIMIT_REACHED") || errorMessage?.includes("limit")) {
+          setError(
+            "Bạn đã đạt giới hạn 5 hóa đơn chờ. Vui lòng hoàn thành hoặc xóa một hóa đơn trước khi tạo mới."
+          );
+        } else {
+          setError("Không thể tạo hóa đơn chờ mới. Vui lòng thử lại.");
+        }
+        setIsLoading(false);
+      }
     } catch (err) {
       console.error(err);
       setError(
@@ -121,7 +163,6 @@ const POSPage: React.FC = () => {
           ? err.message
           : "Không thể tải dữ liệu hóa đơn bán hàng"
       );
-    } finally {
       setIsLoading(false);
     }
   }, [loadDraftOrderDetail, loadAllDraftOrders, setCurrentOrderId, setOrders]);
@@ -149,90 +190,121 @@ const POSPage: React.FC = () => {
   const products: POSProduct[] = useMemo(() => {
     if (!orderDetail) return [];
     return orderDetail.items.map((item) => {
-      // Lấy giá sau giảm (nếu có) hoặc giá gốc
-      const discountedPrice = item.discountedPrice;
-      const originalPrice = item.unitPrice;
-      
-      // Debug log
-      console.log('Product item:', {
-        name: item.productName,
-        unitPrice: originalPrice,
-        discountedPrice: discountedPrice,
-        hasDiscountedPrice: discountedPrice != null,
-      });
-      
-      // Kiểm tra có giảm giá không: có discountedPrice và nhỏ hơn originalPrice
-      const hasDiscount = discountedPrice != null 
-        && originalPrice != null
-        && discountedPrice < originalPrice
-        && Math.abs(discountedPrice - originalPrice) > 0.01; // Tránh sai số floating point
-      
-      const finalPrice = hasDiscount ? discountedPrice : originalPrice;
-      
-      console.log('Product mapping:', {
-        name: item.productName,
-        hasDiscount,
-        originalPrice,
-        finalPrice,
-      });
-      
+      // BE luôn trả:
+      // - unitPrice: giá gốc
+      // - discountedPrice: giá sau khi đã áp dụng tất cả discount SẢN PHẨM (nếu có),
+      //   còn nếu không có product-discount thì discountedPrice == unitPrice.
+      const originalPrice = item.unitPrice ?? 0;
+      const discountedPrice = item.discountedPrice ?? originalPrice;
+
+      // Chỉ coi là "có giảm giá" khi discountedPrice < unitPrice một cách đáng kể
+      const hasDiscount =
+        discountedPrice != null &&
+        originalPrice != null &&
+        discountedPrice < originalPrice &&
+        Math.abs(discountedPrice - originalPrice) > 0.01;
+
       return {
         id: item.id.toString(),
         name: item.productName,
         image: item.imageUrl,
         variant: item.attributes,
-        price: finalPrice ?? 0, // Giá sau giảm (hiển thị chính)
-        originalPrice: hasDiscount ? originalPrice : undefined, // Giá gốc (hiển thị gạch ngang nếu có giảm)
+        // Luôn hiển thị đúng giá sau giảm mà BE đã tính
+        price: discountedPrice ?? originalPrice ?? 0,
+        // Giá gốc chỉ hiển thị gạch ngang khi thực sự có giảm
+        originalPrice: hasDiscount ? originalPrice ?? undefined : undefined,
         quantity: item.quantity,
       };
     });
   }, [orderDetail]);
 
-  // Tổng tiền hàng = tổng giá sau giảm (vì đã giảm ở từng sản phẩm)
+  // Tổng tiền hàng & khách phải trả luôn lấy đúng từ BE,
+  // đã bao gồm cả productDiscountAmount & orderDiscountAmount theo logic voucher:
   const totalAmount = orderDetail?.totalProductPrice ?? 0;
-  // Khách phải trả = tổng tiền hàng (không có discount riêng nữa)
   const finalAmount = orderDetail?.totalOrderPrice ?? totalAmount;
   const employee = orderDetail?.employeeName ?? "Vũ Hữu Quân";
 
-  const handleQuantityChange = async (productId: string, quantity: number) => {
-    if (!draftOrderId) return;
-    const productDetailId = Number(productId);
-    if (Number.isNaN(productDetailId)) return;
+  const handleQuantityChange = useCallback(
+    async (productId: string, quantity: number) => {
+      if (!draftOrderId) return;
+      const productDetailId = Number(productId);
+      if (Number.isNaN(productDetailId)) return;
+      const normalizedQuantity = Number.isFinite(quantity)
+        ? Math.max(1, Math.floor(quantity))
+        : 1;
 
-    try {
-      setIsRefreshing(true);
-      if (quantity <= 0) {
-        await removeItemFromDraftOrder(draftOrderId, { productDetailId });
-      } else {
+      // Optimistic UI update
+      updateOrderDetailState((detail) => {
+        const items = detail.items.map((item) =>
+          item.id === productDetailId
+            ? {
+                ...item,
+                quantity: normalizedQuantity,
+                amount: getUnitPrice(item) * normalizedQuantity,
+              }
+            : item
+        );
+        const totalProductPrice = items.reduce((sum, item) => sum + item.amount, 0);
+        const totalOrderPrice = totalProductPrice - detail.orderDiscountAmount;
+
+        return {
+          ...detail,
+          items,
+          totalProductPrice,
+          totalOrderPrice,
+        };
+      });
+
+      try {
         await updateItemQuantity(draftOrderId, {
           productDetailId,
-          quantity,
+          quantity: normalizedQuantity,
         });
+        // Reload lại từ BE ở background để có giá discount mới
+        void loadDraftOrderDetail(draftOrderId);
+        setError(null);
+      } catch (err) {
+        console.error("Không thể cập nhật số lượng", err);
+        setError("Không thể cập nhật sản phẩm. Vui lòng thử lại.");
+        void loadDraftOrderDetail(draftOrderId);
       }
-      await loadDraftOrderDetail(draftOrderId);
-    } catch (err) {
-      console.error("Không thể cập nhật số lượng", err);
-      setError("Không thể cập nhật sản phẩm. Vui lòng thử lại.");
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+    },
+    [draftOrderId, loadDraftOrderDetail, updateOrderDetailState]
+  );
 
-  const handleRemove = async (productId: string) => {
-    if (!draftOrderId) return;
-    const productDetailId = Number(productId);
-    if (Number.isNaN(productDetailId)) return;
-    try {
-      setIsRefreshing(true);
-      await removeItemFromDraftOrder(draftOrderId, { productDetailId });
-      await loadDraftOrderDetail(draftOrderId);
-    } catch (err) {
-      console.error("Không thể xóa sản phẩm", err);
-      setError("Không thể xóa sản phẩm. Vui lòng thử lại.");
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  const handleRemove = useCallback(
+    async (productId: string) => {
+      if (!draftOrderId) return;
+      const productDetailId = Number(productId);
+      if (Number.isNaN(productDetailId)) return;
+
+      // Optimistic UI update: remove item khỏi giỏ và cập nhật tổng tiền
+      updateOrderDetailState((detail) => {
+        const items = detail.items.filter((item) => item.id !== productDetailId);
+        const totalProductPrice = items.reduce((sum, item) => sum + item.amount, 0);
+        const totalOrderPrice = totalProductPrice - detail.orderDiscountAmount;
+
+        return {
+          ...detail,
+          items,
+          totalProductPrice,
+          totalOrderPrice,
+        };
+      });
+
+      try {
+        await removeItemFromDraftOrder(draftOrderId, { productDetailId });
+        // Reload lại từ BE ở background để có giá discount mới
+        void loadDraftOrderDetail(draftOrderId);
+        setError(null);
+      } catch (err) {
+        console.error("Không thể xóa sản phẩm", err);
+        setError("Không thể xóa sản phẩm. Vui lòng thử lại.");
+        void loadDraftOrderDetail(draftOrderId);
+      }
+    },
+    [draftOrderId, loadDraftOrderDetail, updateOrderDetailState]
+  );
 
   const handleNoteChange = (value: string) => {
     setNoteValue(value);
@@ -242,26 +314,131 @@ const POSPage: React.FC = () => {
 
   const handleProductSelect = useCallback(
     async (product: ProductSelection) => {
-      if (!draftOrderId) return;
+      if (!draftOrderId || !orderDetail) return;
       const productDetailId = Number(product.id);
       if (Number.isNaN(productDetailId)) return;
 
+      // Check số lượng có thể bán trước khi thêm
+      if (product.available != null && product.available <= 0) {
+        setError("Sản phẩm này đã hết hàng. Không thể thêm vào giỏ hàng.");
+        return;
+      }
+
+      // Debounce: Tránh click nhanh nhiều lần cùng một sản phẩm
+      const productKey = `${productDetailId}`;
+      if (addingProductRef.current === productKey || isAddingProduct) {
+        return;
+      }
+
+      // Kiểm tra xem sản phẩm đã có trong giỏ chưa (để tăng số lượng thay vì thêm mới)
+      const existingItem = orderDetail.items.find(
+        (item) => item.id === productDetailId
+      );
+
+      // Optimistic UI update: Cập nhật UI ngay lập tức
+      const tempItemId = existingItem ? existingItem.id : -Date.now(); // Sử dụng số âm làm temp ID
+      const optimisticPrice = product.price;
+      const optimisticQuantity = existingItem ? existingItem.quantity + 1 : 1;
+      const optimisticAmount = optimisticPrice * optimisticQuantity;
+
+      // Lưu state gốc để có thể revert nếu có lỗi
+      const previousOrderDetail = orderDetail;
+
+      // Cập nhật optimistic state
+      setIsAddingProduct(true);
+      addingProductRef.current = productKey;
+
+      updateOrderDetailState((detail) => {
+        if (existingItem) {
+          // Tăng số lượng sản phẩm đã có
+          const updatedItems = detail.items.map((item) =>
+            item.id === productDetailId
+              ? {
+                  ...item,
+                  quantity: item.quantity + 1,
+                  amount: getUnitPrice(item) * (item.quantity + 1),
+                }
+              : item
+          );
+          const totalProductPrice = updatedItems.reduce(
+            (sum, item) => sum + item.amount,
+            0
+          );
+          const totalOrderPrice =
+            totalProductPrice - detail.orderDiscountAmount;
+
+          return {
+            ...detail,
+            items: updatedItems,
+            totalProductPrice,
+            totalOrderPrice,
+          };
+        } else {
+          // Thêm sản phẩm mới với dữ liệu tạm
+          const tempItem: DraftOrderItemResponse = {
+            id: tempItemId, // Sử dụng số âm làm temp ID
+            productName: product.name,
+            imageUrl: product.imageUrl,
+            attributes: product.attributes ?? undefined,
+            unitPrice: optimisticPrice,
+            discountedPrice: optimisticPrice,
+            quantity: 1,
+            amount: optimisticAmount,
+          };
+          const updatedItems = [...detail.items, tempItem];
+          const totalProductPrice = updatedItems.reduce(
+            (sum, item) => sum + item.amount,
+            0
+          );
+          const totalOrderPrice =
+            totalProductPrice - detail.orderDiscountAmount;
+
+          return {
+            ...detail,
+            items: updatedItems,
+            totalProductPrice,
+            totalOrderPrice,
+          };
+        }
+      });
+
       try {
-        setIsRefreshing(true);
-        await addItemToOrder(draftOrderId, {
+        const response = await addItemToOrder(draftOrderId, {
           productDetailId,
           quantity: 1,
         });
-        await loadDraftOrderDetail(draftOrderId);
+        // BE trả về DraftOrderDetailResponse đầy đủ → cập nhật trực tiếp state,
+        // tránh phải gọi thêm 1 request GET chi tiết đơn nên nhanh hơn.
+        const detail = response.data;
+        if (detail) {
+          setOrderDetail(detail);
+          setNoteValue(detail.notes ?? "");
+          setNoteSyncedValue(detail.notes ?? "");
+        } else {
+          // Fallback trong trường hợp BE không trả data (phòng hờ)
+          void loadDraftOrderDetail(draftOrderId);
+        }
         setError(null);
       } catch (err) {
         console.error("Không thể thêm sản phẩm", err);
+        // Revert optimistic update nếu có lỗi
+        setOrderDetail(previousOrderDetail);
         setError("Không thể thêm sản phẩm vào hóa đơn. Vui lòng thử lại.");
+        // Reload để đảm bảo sync với backend
+        void loadDraftOrderDetail(draftOrderId);
       } finally {
-        setIsRefreshing(false);
+        setIsAddingProduct(false);
+        addingProductRef.current = null;
       }
     },
-    [draftOrderId, loadDraftOrderDetail]
+    [draftOrderId, orderDetail, isAddingProduct, loadDraftOrderDetail, updateOrderDetailState]
+  );
+
+  const productSelectHandler = useCallback<POSProductSelectHandler>(
+    (product) => {
+      void handleProductSelect(product);
+    },
+    [handleProductSelect]
   );
 
   useEffect(() => {
@@ -269,12 +446,9 @@ const POSPage: React.FC = () => {
       setProductSelectHandler(null);
       return;
     }
-    const handler: POSProductSelectHandler = (product) => {
-      void handleProductSelect(product);
-    };
-    setProductSelectHandler(handler);
+    setProductSelectHandler(productSelectHandler);
     return () => setProductSelectHandler(null);
-  }, [draftOrderId, handleProductSelect, setProductSelectHandler]);
+  }, [draftOrderId, productSelectHandler, setProductSelectHandler]);
 
   const handleClearAssignedCustomer = useCallback(async () => {
     if (!draftOrderId) {
@@ -379,26 +553,41 @@ const POSPage: React.FC = () => {
         setIsRefreshing(true);
         await deleteDraftOrder(numOrderId);
 
-        // Nếu đang xóa hóa đơn hiện tại, chuyển sang hóa đơn khác
-        if (numOrderId === draftOrderId) {
-          const refreshed = await loadAllDraftOrders();
-          if (refreshed.length > 0) {
-            const newOrderId = refreshed[0]?.id;
-            if (newOrderId) {
-              setDraftOrderId(newOrderId);
-              setCurrentOrderId(newOrderId.toString());
-              await loadDraftOrderDetail(newOrderId);
-            }
-          }
+        // Cập nhật tabs cục bộ, không reload toàn bộ từ server
+        let remainingTabs: { id: string; label: string }[] = [];
+        setOrders((prev) => {
+          const filtered = prev.filter((tab) => tab.id !== orderId);
+          const relabeled = filtered.map((tab, index) => ({
+            ...tab,
+            label: `Đơn ${index + 1}`,
+          }));
+          remainingTabs = relabeled;
+          return relabeled;
+        });
+
+        // Xác định hóa đơn đang active sau khi xóa
+        let nextActiveId: string | null = null;
+        if (orderId === currentOrderId && remainingTabs.length > 0) {
+          // Nếu xóa hóa đơn hiện tại → chọn tab đầu tiên trong danh sách mới
+          nextActiveId = remainingTabs[0]?.id ?? null;
+        } else {
+          // Nếu xóa hóa đơn khác → giữ nguyên currentOrderId nếu vẫn còn
+          const stillExists = remainingTabs.some((tab) => tab.id === currentOrderId);
+          nextActiveId = stillExists
+            ? currentOrderId
+            : remainingTabs[0]?.id ?? null;
         }
 
-        // Reload danh sách tabs
-        const refreshed = await loadAllDraftOrders();
-        const refreshedTabs = refreshed.map((order: DraftOrderResponse, index: number) => ({
-          id: order.id.toString(),
-          label: `Đơn ${index + 1}`,
-        }));
-        setOrders(refreshedTabs);
+        if (nextActiveId) {
+          const nextIdNum = Number(nextActiveId);
+          setDraftOrderId(nextIdNum);
+          setCurrentOrderId(nextActiveId);
+          await loadDraftOrderDetail(nextIdNum);
+        } else {
+          setDraftOrderId(null);
+          setCurrentOrderId("");
+        }
+
         setError(null);
       } catch (err) {
         console.error("Không thể xóa hóa đơn", err);
@@ -407,27 +596,32 @@ const POSPage: React.FC = () => {
         setIsRefreshing(false);
       }
     },
-    [draftOrderId, orders, loadAllDraftOrders, loadDraftOrderDetail, setCurrentOrderId, setOrders]
+    [currentOrderId, loadDraftOrderDetail, orders, setOrders]
   );
 
   const handleOrderAdd = useCallback(async () => {
     try {
       setIsRefreshing(true);
       const created = await createNewDraftOrder();
-      const newOrderId = created.data?.id;
-      
+      const newOrder = created.data;
+      const newOrderId = newOrder?.id;
+
       if (!newOrderId) {
         throw new Error("Không thể tạo hóa đơn mới");
       }
 
-      // Reload danh sách và chuyển sang hóa đơn mới
-      const refreshed = await loadAllDraftOrders();
-      const refreshedTabs = refreshed.map((order: DraftOrderResponse, index: number) => ({
-        id: order.id.toString(),
-        label: `Đơn ${index + 1}`,
-      }));
-      
-      setOrders(refreshedTabs);
+      // Cập nhật tabs cục bộ: thêm một tab mới ở cuối
+      setOrders((prev) => {
+        const nextIndex = prev.length + 1;
+        return [
+          ...prev,
+          {
+            id: newOrderId.toString(),
+            label: `Đơn ${nextIndex}`,
+          },
+        ];
+      });
+
       setDraftOrderId(newOrderId);
       setCurrentOrderId(newOrderId.toString());
       await loadDraftOrderDetail(newOrderId);
@@ -436,14 +630,16 @@ const POSPage: React.FC = () => {
       console.error("Không thể tạo hóa đơn mới", err);
       const errorMessage = err?.response?.data?.message || err?.message;
       if (errorMessage?.includes("LIMIT_REACHED") || errorMessage?.includes("limit")) {
-        setError("Bạn đã đạt giới hạn 5 hóa đơn chờ. Vui lòng hoàn thành hoặc xóa một hóa đơn trước khi tạo mới.");
+        setError(
+          "Bạn đã đạt giới hạn 5 hóa đơn chờ. Vui lòng hoàn thành hoặc xóa một hóa đơn trước khi tạo mới."
+        );
       } else {
         setError("Không thể tạo hóa đơn mới. Vui lòng thử lại.");
       }
     } finally {
       setIsRefreshing(false);
     }
-  }, [loadAllDraftOrders, loadDraftOrderDetail, setCurrentOrderId, setOrders]);
+  }, [loadDraftOrderDetail, setOrders]);
 
   // Đăng ký handlers với context để POSLayout có thể sử dụng
   useEffect(() => {

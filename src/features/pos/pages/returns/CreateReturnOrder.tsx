@@ -13,12 +13,18 @@ import {
 } from "../../../../api/endpoints/posApi";
 import Loading from "../../../../components/common/Loading";
 
+const DEFAULT_RETURN_REASONS: Array<{ value: ReturnReasonEnum; label: string }> = [
+  { value: "PRODUCT_ERROR", label: "Sản phẩm lỗi" },
+  { value: "CUSTOMER_CHANGE_MIND", label: "Khách đổi ý" },
+];
+
+const CUSTOM_REASON_STORAGE_KEY = "pos-custom-return-reasons";
+
 const CreateReturnOrder: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Fetch order detail to get products
   const {
     data: orderDetailData,
     isLoading: isLoadingOrder,
@@ -27,26 +33,15 @@ const CreateReturnOrder: React.FC = () => {
     queryKey: ["posOrderDetail", orderId],
     queryFn: async () => {
       if (!orderId) throw new Error("Order ID is required");
-      return await getPosOrderDetail(parseInt(orderId));
+      return await getPosOrderDetail(Number(orderId));
     },
     enabled: !!orderId,
   });
 
-  // Convert order products to return products format
-  const orderProducts: POSProduct[] =
-    orderDetailData?.products.map((product) => ({
-      id: product.id.toString(),
-      name: product.productName,
-      image: product.productImage,
-      variant: product.category,
-      price: product.unitPrice || 0,
-      quantity: product.quantity || 0,
-    })) || [];
-
   const [returnProducts, setReturnProducts] = useState<
     Array<{
       product: POSProduct;
-      orderDetailId: number; // Store order detail ID for API
+      orderDetailId: number;
       returnQuantity: number;
       reason: ReturnReasonEnum;
     }>
@@ -55,8 +50,24 @@ const CreateReturnOrder: React.FC = () => {
   const [note, setNote] = useState("");
   const [refundMethod, setRefundMethod] = useState("Chuyển khoản");
   const [refundAmount, setRefundAmount] = useState(0);
+  const [customReasons, setCustomReasons] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = window.localStorage.getItem(CUSTOM_REASON_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isAddingReason, setIsAddingReason] = useState(false);
+  const [newReasonInput, setNewReasonInput] = useState("");
+  const [customReasonError, setCustomReasonError] = useState("");
+  const [selectedReasonLabel, setSelectedReasonLabel] = useState(
+    DEFAULT_RETURN_REASONS[1].label
+  );
+  const [customReasonNote, setCustomReasonNote] = useState<string | null>(null);
 
-  // Initialize return products when order data is loaded
   useEffect(() => {
     if (orderDetailData?.products) {
       setReturnProducts(
@@ -71,45 +82,32 @@ const CreateReturnOrder: React.FC = () => {
           },
           orderDetailId: product.id,
           returnQuantity: product.quantity || 0,
-          reason: "CUSTOMER_CHANGE_MIND" as ReturnReasonEnum,
+          reason: "CUSTOMER_CHANGE_MIND",
         }))
       );
+      setSelectedReasonLabel(DEFAULT_RETURN_REASONS[1].label);
+      setCustomReasonNote(null);
     }
   }, [orderDetailData]);
 
-  const returnReasons: Array<{ value: ReturnReasonEnum; label: string }> = [
-    { value: "PRODUCT_ERROR", label: "Sản phẩm lỗi" },
-    { value: "CUSTOMER_CHANGE_MIND", label: "Khách đổi ý" },
-  ];
-
   const refundMethods = ["Chuyển khoản", "Tiền mặt"];
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
-  };
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("vi-VN").format(amount) + "đ";
 
-  // Calculate discounted price per unit
-  // If order has discount, calculate the actual price after discount
   const calculateDiscountedPrice = (originalPrice: number): number => {
     if (!orderDetailData?.paymentSummary) return originalPrice;
     const { totalProductPrice, totalOrderPrice } = orderDetailData.paymentSummary;
-    if (totalProductPrice === 0) return originalPrice;
-    // Calculate discount ratio: actual paid / original total
-    const discountRatio = totalOrderPrice / totalProductPrice;
-    // Apply same ratio to unit price
-    return originalPrice * discountRatio;
+    if (!totalProductPrice) return originalPrice;
+    const ratio = totalOrderPrice / totalProductPrice;
+    return originalPrice * ratio;
   };
 
-  // Calculate totals using discounted prices
-  const totalAmount = returnProducts.reduce(
-    (sum, item) => {
-      const discountedPrice = calculateDiscountedPrice(item.product.price);
-      return sum + discountedPrice * item.returnQuantity;
-    },
-    0
-  );
-  const discount = 0;
-  const totalRefund = totalAmount - discount;
+  const totalAmount = returnProducts.reduce((sum, item) => {
+    const discounted = calculateDiscountedPrice(item.product.price);
+    return sum + discounted * item.returnQuantity;
+  }, 0);
+  const totalRefund = totalAmount;
 
   useEffect(() => {
     setRefundAmount(totalRefund);
@@ -120,31 +118,69 @@ const CreateReturnOrder: React.FC = () => {
     newQuantity: number,
     maxQuantity: number
   ) => {
-    setReturnProducts(
-      returnProducts.map((item) =>
-        item.product.id === productId
-          ? {
-              ...item,
-              returnQuantity: Math.max(0, Math.min(newQuantity, maxQuantity)),
-            }
-          : item
-      )
+    setReturnProducts((prev) =>
+    prev.map((item) =>
+      item.product.id === productId
+        ? {
+            ...item,
+            returnQuantity: Math.max(0, Math.min(newQuantity, maxQuantity)),
+          }
+        : item
+    ));
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      CUSTOM_REASON_STORAGE_KEY,
+      JSON.stringify(customReasons)
+    );
+  }, [customReasons]);
+
+  const handleReasonSelection = (reasonLabel: string) => {
+    const reasonValue =
+      DEFAULT_RETURN_REASONS.find((r) => r.label === reasonLabel)?.value ||
+      "CUSTOMER_CHANGE_MIND";
+    const isCustomReason = !DEFAULT_RETURN_REASONS.some(
+      (reason) => reason.label === reasonLabel
+    );
+    setSelectedReasonLabel(reasonLabel);
+    setCustomReasonNote(isCustomReason ? reasonLabel : null);
+    setReturnProducts((prev) =>
+      prev.map((item) => ({
+        ...item,
+        reason: reasonValue,
+      }))
     );
   };
 
-  const handleReasonChange = (productId: string, reasonLabel: string) => {
-    // Map label back to enum value
-    const reasonValue = returnReasons.find((r) => r.label === reasonLabel)?.value || "CUSTOMER_CHANGE_MIND";
-    setReturnProducts(
-      returnProducts.map((item) =>
-        item.product.id === productId
-          ? { ...item, reason: reasonValue }
-          : item
-      )
-    );
+  const handleAddCustomReason = () => {
+    const trimmed = newReasonInput.trim();
+    if (!trimmed) {
+      setCustomReasonError("Vui lòng nhập lý do");
+      return;
+    }
+    const normalized = trimmed.toLowerCase();
+    const allLabels = [
+      ...DEFAULT_RETURN_REASONS.map((reason) => reason.label.toLowerCase()),
+      ...customReasons.map((reason) => reason.toLowerCase()),
+    ];
+    if (allLabels.includes(normalized)) {
+      setCustomReasonError("Lý do đã tồn tại");
+      return;
+    }
+    setCustomReasons((prev) => [...prev, trimmed]);
+    setNewReasonInput("");
+    setIsAddingReason(false);
+    setCustomReasonError("");
+    handleReasonSelection(trimmed);
   };
 
-  // Create return order mutation
+  const dropdownReasonOptions = [
+    ...DEFAULT_RETURN_REASONS.map((reason) => reason.label),
+    ...customReasons,
+  ];
+
   const createReturnOrderMutation = useMutation({
     mutationFn: async (data: {
       orderId: number;
@@ -156,15 +192,10 @@ const CreateReturnOrder: React.FC = () => {
         returnQuantity: number;
         returnPrice: number;
       }>;
-    }) => {
-      return await createPosReturnOrder(data);
-    },
+    }) => createPosReturnOrder(data),
     onSuccess: async () => {
-      // Invalidate return orders list to refresh
       await queryClient.invalidateQueries({ queryKey: ["posReturnOrders"] });
-      // Refetch immediately to ensure data is up to date
       await queryClient.refetchQueries({ queryKey: ["posReturnOrders"] });
-      // Navigate back to returns page after creation
       navigate("/pos/returns");
     },
     onError: (error: any) => {
@@ -179,52 +210,50 @@ const CreateReturnOrder: React.FC = () => {
 
   const handleCreateReturn = () => {
     if (!orderId) {
-      alert("Không tìm thấy mã đơn hàng");
+      alert("Không tìm thấy mã đơn");
       return;
     }
 
-    // Check if at least one product is selected for return
-    const hasReturnProducts = returnProducts.some(
-      (item) => item.returnQuantity > 0
-    );
-    if (!hasReturnProducts) {
-      alert("Vui lòng chọn ít nhất một sản phẩm để trả hàng");
+    const hasItem = returnProducts.some((item) => item.returnQuantity > 0);
+    if (!hasItem) {
+      alert("Vui lòng chọn ít nhất một sản phẩm để trả");
       return;
     }
 
-    // Determine return type (FULL or PARTIAL)
-    const totalOriginalQuantity = returnProducts.reduce(
+    const totalOriginalQty = returnProducts.reduce(
       (sum, item) => sum + item.product.quantity,
       0
     );
-    const totalReturnQuantity = returnProducts.reduce(
+    const totalReturnQty = returnProducts.reduce(
       (sum, item) => sum + item.returnQuantity,
       0
     );
     const returnType: ReturnTypeEnum =
-      totalReturnQuantity >= totalOriginalQuantity ? "FULL" : "PARTIAL";
+      totalReturnQty >= totalOriginalQty ? "FULL" : "PARTIAL";
 
-    // Get the first reason (assuming all products have the same reason, or use the first one)
     const returnReason = returnProducts[0]?.reason || "CUSTOMER_CHANGE_MIND";
+    const userNote = note.trim();
+    const combinedNote = [
+      customReasonNote ? `Lý do bổ sung: ${customReasonNote}` : null,
+      userNote ? userNote : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    // Prepare return products for API with discounted prices
-    const returnProductsForApi = returnProducts
+    const payloadProducts = returnProducts
       .filter((item) => item.returnQuantity > 0)
-      .map((item) => {
-        const discountedPrice = calculateDiscountedPrice(item.product.price);
-        return {
-          orderDetailId: item.orderDetailId,
-          returnQuantity: item.returnQuantity,
-          returnPrice: discountedPrice, // Use discounted price, not original price
-        };
-      });
+      .map((item) => ({
+        orderDetailId: item.orderDetailId,
+        returnQuantity: item.returnQuantity,
+        returnPrice: calculateDiscountedPrice(item.product.price),
+      }));
 
     createReturnOrderMutation.mutate({
-      orderId: parseInt(orderId),
+      orderId: Number(orderId),
       returnType,
       returnReason,
-      notes: note || undefined,
-      returnProducts: returnProductsForApi,
+      notes: combinedNote || undefined,
+      returnProducts: payloadProducts,
     });
   };
 
@@ -295,13 +324,31 @@ const CreateReturnOrder: React.FC = () => {
                 >
                   <div className="flex items-center gap-4">
                     {/* Hình ảnh */}
-                    {item.product.image && (
-                      <img
-                        src={item.product.image}
-                        alt={item.product.name}
-                        className="w-[64px] h-[64px] rounded-lg object-cover border border-[#e7e7e7] flex-shrink-0"
-                      />
-                    )}
+                    <div className="w-[64px] h-[64px] rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100">
+                      {item.product.image ? (
+                        <img
+                          src={item.product.image}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <svg
+                            className="w-7 h-7 text-gray-300"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
                     {/* Thông tin + điều chỉnh số lượng + tổng tiền */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
@@ -309,8 +356,18 @@ const CreateReturnOrder: React.FC = () => {
                           <p className="text-[15px] font-medium text-[#272424] mb-1 line-clamp-2">
                             {item.product.name}
                           </p>
+                          {item.product.variant && (
+                            <p className="text-xs text-[#737373] mb-1">
+                              Phân loại hàng:{" "}
+                              <span className="text-[#272424]">
+                                {item.product.variant}
+                              </span>
+                            </p>
+                          )}
                           <p className="text-sm text-[#272424]">
-                            {formatCurrency(calculateDiscountedPrice(item.product.price))}
+                            {formatCurrency(
+                              calculateDiscountedPrice(item.product.price)
+                            )}
                           </p>
                         </div>
                         {/* Điều chỉnh số lượng theo style ảnh 2 */}
@@ -353,36 +410,87 @@ const CreateReturnOrder: React.FC = () => {
                           </button>
                         </div>
                         {/* Tổng tiền */}
-                              <div className="text-right min-w-[100px]">
-                                <p className="text-sm font-medium text-[#272424]">
-                                  {formatCurrency(
-                                    calculateDiscountedPrice(item.product.price) * item.returnQuantity
-                                  )}
-                                </p>
-                              </div>
+                        <div className="text-right min-w-[100px]">
+                          <p className="text-sm font-medium text-[#272424]">
+                            {formatCurrency(
+                              calculateDiscountedPrice(item.product.price) *
+                                item.returnQuantity
+                            )}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
-              {/* Lý do chọn trả hàng */}
               {returnProducts.length > 0 && (
                 <div>
-                  <p className="text-[15px] font-semibold text-[#272424] mb-2">
-                    Lí do chọn trả hàng
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <p className="text-[15px] font-semibold text-[#272424] m-0">
+                      Lý do chọn trả hàng
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingReason((prev) => !prev);
+                        setCustomReasonError("");
+                      }}
+                      className="text-xs font-semibold text-[#e04d30] border border-[#e04d30] rounded-full px-3 py-1 hover:bg-[#e04d30] hover:text-white transition-colors"
+                    >
+                      {isAddingReason ? "Đóng" : "+ Thêm lý do"}
+                    </button>
+                  </div>
                   <div className="bg-[#f5f5f5] rounded-md">
                     <div className="p-2.5">
                       <SimpleDropdown
-                        value={returnReasons.find((r) => r.value === returnProducts[0]?.reason)?.label || ""}
-                        onValueChange={(reasonLabel) =>
-                          handleReasonChange(returnProducts[0]?.product.id || "", reasonLabel)
-                        }
-                        options={returnReasons.map((r) => r.label)}
+                        value={selectedReasonLabel || ""}
+                        onValueChange={handleReasonSelection}
+                        options={dropdownReasonOptions}
                         placeholder="Chọn lý do"
                       />
                     </div>
                   </div>
+                  {isAddingReason && (
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={newReasonInput}
+                        onChange={(e) => {
+                          setNewReasonInput(e.target.value);
+                          if (customReasonError) setCustomReasonError("");
+                        }}
+                        placeholder="Nhập lý do mới..."
+                        className="flex-1 border border-[#e7e7e7] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#e04d30]"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleAddCustomReason}
+                          className="px-4 py-2 bg-[#e04d30] text-white text-sm font-medium rounded-md hover:bg-[#d04327]"
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingReason(false);
+                            setNewReasonInput("");
+                            setCustomReasonError("");
+                          }}
+                          className="px-4 py-2 border border-[#e7e7e7] text-sm font-medium rounded-md text-[#272424] hover:bg-gray-100"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {customReasonError && (
+                    <p className="text-xs text-red-500 mt-2">{customReasonError}</p>
+                  )}
+                  {customReasonNote && !customReasonError && (
+                    <p className="text-xs text-[#737373] mt-2">
+                      Lý do mới sẽ được lưu lại và ghi kèm vào ghi chú khi tạo đơn.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -426,14 +534,7 @@ const CreateReturnOrder: React.FC = () => {
                 {formatCurrency(totalAmount)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-[#e04d30]">
-                Giảm giá
-              </span>
-              <span className="text-sm font-bold text-[#e04d30]">
-                {formatCurrency(discount)}
-              </span>
-            </div>
+            <div className="h-px bg-[#e7e7e7]" />
             <div className="flex justify-between items-center mt-3">
               <span className="text-sm font-medium text-[#272424]">
                 Tổng hoàn trả

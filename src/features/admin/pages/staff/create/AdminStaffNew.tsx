@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-// import { Input } from "@/components/ui/input";
 import FormInput from "@/components/ui/form-input";
 import { ArrowLeft, HelpCircle } from "lucide-react";
 import RoleDropdown from "@/components/ui/role-dropdown";
@@ -31,6 +30,25 @@ const ROLE_TO_USER_TYPE: Record<string, AllowedRole> = {
   "Nhân viên thu ngân": "EMPLOYEE",
 };
 
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{4,30}$/;
+const PASSWORD_COMPLEXITY_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
+const EMAIL_REGEX =
+  /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const getAge = (date: Date) => {
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age--;
+  }
+
+  return age;
+};
+
 const AdminStaffNew: React.FC = () => {
   const navigate = useNavigate();
   const [apiError, setApiError] = useState<string | null>(null);
@@ -46,37 +64,107 @@ const AdminStaffNew: React.FC = () => {
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
+  const setFieldError = (
+    field: keyof StaffFormData,
+    errorMessage?: string
+  ) => {
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (errorMessage) {
+        next[field] = errorMessage;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  const validateField = (field: keyof StaffFormData, value: string) => {
+    let error: string | undefined;
+    const trimmedValue = value.trim();
+
+    switch (field) {
+      case "fullName":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập họ tên.";
+        } else if (trimmedValue.length < 3) {
+          error = "Họ tên phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "username":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập tên đăng nhập.";
+        } else if (!USERNAME_REGEX.test(trimmedValue)) {
+          error =
+            "Tên đăng nhập phải từ 4-30 ký tự và chỉ gồm chữ, số, dấu gạch dưới.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const phoneDigits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (trimmedValue && !EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
+        }
+        break;
+      case "password":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập mật khẩu.";
+        } else if (!PASSWORD_COMPLEXITY_REGEX.test(trimmedValue)) {
+          error =
+            "Mật khẩu phải có tối thiểu 8 ký tự gồm chữ hoa, chữ thường, số và ký tự đặc biệt.";
+        }
+        break;
+      case "dateOfBirth":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập ngày sinh.";
+          break;
+        }
+        {
+          const inputDate = new Date(trimmedValue);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (Number.isNaN(inputDate.getTime())) {
+            error = "Ngày sinh không hợp lệ.";
+          } else if (inputDate > today) {
+            error = "Ngày sinh không được lớn hơn hiện tại.";
+          } else if (getAge(inputDate) < 18) {
+            error = "Nhân viên phải từ 18 tuổi trở lên.";
+          }
+        }
+        break;
+      case "role":
+        if (!trimmedValue) {
+          error = "Vui lòng chọn vai trò.";
+        }
+        break;
+      default:
+        break;
+    }
+
+    setFieldError(field, error);
+    return error;
+  };
+
   const handleInputChange = (field: keyof StaffFormData, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
-    
-    // Clear error when user starts typing
-    setFormErrors((prev) => {
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
-    
-    // Real-time validation for phone number
-    if (field === "phone" && value.trim()) {
-      const phoneValue = value.trim();
-      const phoneDigits = phoneValue.replace(/\D/g, ""); // Remove non-digits
-      
-      // Check if phone contains only digits
-      if (!/^\d+$/.test(phoneValue)) {
-        setFormErrors((prev) => ({
-          ...prev,
-          phone: "Số điện thoại chỉ được chứa chữ số.",
-        }));
-      } else if (phoneDigits.length > 0 && (phoneDigits.length < 10 || phoneDigits.length > 13)) {
-        setFormErrors((prev) => ({
-          ...prev,
-          phone: "Số điện thoại phải có từ 10 đến 13 chữ số.",
-        }));
-      }
-    }
+
+    validateField(field, value);
   };
 
   const createEmployeeMutation = useMutation({
@@ -97,66 +185,67 @@ const AdminStaffNew: React.FC = () => {
       const errorResponse = (error as any)?.response?.data;
       let message = errorResponse?.message || "Không thể tạo nhân viên. Vui lòng thử lại.";
       
-      // Translate phone number errors to Vietnamese
-      const phoneErrorMessages: Record<string, string> = {
-        "phone number must contain only digits": "Số điện thoại chỉ được chứa chữ số.",
-        "phone number must be between 10 and 13 digits": "Số điện thoại phải có từ 10 đến 13 chữ số.",
-        "phone number must contain only digits.": "Số điện thoại chỉ được chứa chữ số.",
-        "phone number must be between 10 and 13 digits.": "Số điện thoại phải có từ 10 đến 13 chữ số.",
-      };
-      
+      type FieldKey = keyof StaffFormData;
       const lowerMessage = message.toLowerCase();
-      let translatedMessage = message;
-      
-      // Check for phone number error messages
-      for (const [key, value] of Object.entries(phoneErrorMessages)) {
-        if (lowerMessage.includes(key.toLowerCase())) {
-          translatedMessage = value;
-          break;
-        }
-      }
-      
-      // Check if error is related to phone number
-      if (lowerMessage.includes("phone") || lowerMessage.includes("số điện thoại") || lowerMessage.includes("digits")) {
-        setFormErrors((prev) => ({ ...prev, phone: translatedMessage }));
-        toast.error(translatedMessage);
+      const fieldErrorTranslations: Array<{
+        field: FieldKey;
+        keywords: string[];
+        translatedMessage: string;
+      }> = [
+        {
+          field: "phone",
+          keywords: [
+            "phone number must contain only digits",
+            "phone number must be between 10 and 13 digits",
+          ],
+          translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
+        },
+        {
+          field: "phone",
+          keywords: ["constraint `phone`", "duplicate entry", "phone number already exists"],
+          translatedMessage: "Số điện thoại đã tồn tại.",
+        },
+        {
+          field: "username",
+          keywords: ["username already exists"],
+          translatedMessage: "Tên đăng nhập đã tồn tại.",
+        },
+        {
+          field: "email",
+          keywords: ["email already exists"],
+          translatedMessage: "Email đã tồn tại.",
+        },
+      ];
+
+      const matchedFieldError = fieldErrorTranslations.find(({ keywords }) =>
+        keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+      );
+
+      if (matchedFieldError) {
+        setFieldError(matchedFieldError.field, matchedFieldError.translatedMessage);
+        toast.error(matchedFieldError.translatedMessage);
       } else {
-        setApiError(translatedMessage);
-        toast.error(translatedMessage);
+        setApiError(message);
+        toast.error(message);
       }
     },
   });
 
   const validateForm = () => {
     const errors: FormErrors = {};
-    if (!formData.fullName.trim()) {
-      errors.fullName = "Vui lòng nhập họ tên.";
-    }
-    if (!formData.username.trim()) {
-      errors.username = "Vui lòng nhập tên đăng nhập.";
-    }
-    if (!formData.phone.trim()) {
-      errors.phone = "Vui lòng nhập số điện thoại.";
-    } else {
-      // Validate phone number: must contain only digits
-      const phoneDigits = formData.phone.trim().replace(/\D/g, ""); // Remove non-digits
-      const originalPhone = formData.phone.trim();
-      
-      // Check if phone contains only digits
-      if (!/^\d+$/.test(originalPhone)) {
-        errors.phone = "Số điện thoại chỉ được chứa chữ số.";
-      } else if (phoneDigits.length < 10 || phoneDigits.length > 13) {
-        errors.phone = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+    let isValid = true;
+
+    (Object.keys(formData) as Array<keyof StaffFormData>).forEach((key) => {
+      const value = formData[key];
+      const error = validateField(key, value);
+      if (error) {
+        errors[key] = error;
+        isValid = false;
       }
-    }
-    if (!formData.password.trim()) {
-      errors.password = "Vui lòng nhập mật khẩu.";
-    }
-    if (!formData.role) {
-      errors.role = "Vui lòng chọn vai trò.";
-    }
+    });
+
     setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

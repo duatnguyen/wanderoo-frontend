@@ -5,7 +5,6 @@ import { ArrowLeft } from "lucide-react";
 import { useMemo, useState } from "react";
 import FormInput from "@/components/ui/form-input";
 import CustomRadio from "@/components/ui/custom-radio";
-import DatePicker from "@/components/ui/date-picker";
 import { createCustomer, createCustomerAddress } from "@/api/endpoints/userApi";
 import {
   DropdownMenu,
@@ -24,10 +23,35 @@ import type {
   WardResponse,
 } from "@/types";
 
+type CustomerField = "name" | "phone" | "birthdate" | "email" | "username" | "addressName" | "addressPhone" | "province" | "district" | "ward" | "location";
+type FormErrors = Partial<Record<CustomerField, string>>;
+type CustomerFormData = {
+  name: string;
+  phone: string;
+  birthdate: string;
+  gender: "Nam" | "Nữ";
+  email: string;
+  username: string;
+  password: string;
+  addressName: string;
+  addressPhone: string;
+  province: string;
+  provinceId: number | null;
+  district: string;
+  districtId: number | null;
+  ward: string;
+  location: string;
+  wardCode: string;
+};
+
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{4,30}$/;
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 const AdminAddCustomer = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CustomerFormData>({
     name: "",
     phone: "",
     birthdate: "",
@@ -45,6 +69,217 @@ const AdminAddCustomer = () => {
     location: "",
     wardCode: "",
   });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const setFieldError = (field: CustomerField, error?: string) => {
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (error) {
+        next[field] = error;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  const validateField = (field: CustomerField, value: string) => {
+    return validateFieldWithData(field, value, formData);
+  };
+
+  const handleFieldChange = (field: CustomerField, value: string) => {
+    const updatedFormData = {
+      ...formData,
+      [field]: value,
+    };
+    setFormData(updatedFormData);
+    setApiError(null);
+    
+    // Validate the changed field with updated formData
+    validateFieldWithData(field, value, updatedFormData);
+    
+    // If address field changes, re-validate related address fields
+    if (field === "province" || field === "district" || field === "ward" || field === "location" || field === "addressName" || field === "addressPhone") {
+      // Re-validate all address fields when one changes
+      setTimeout(() => {
+        validateFieldWithData("addressName", updatedFormData.addressName, updatedFormData);
+        validateFieldWithData("addressPhone", updatedFormData.addressPhone, updatedFormData);
+        validateFieldWithData("province", updatedFormData.province, updatedFormData);
+        validateFieldWithData("district", updatedFormData.district, updatedFormData);
+        validateFieldWithData("ward", updatedFormData.ward, updatedFormData);
+        validateFieldWithData("location", updatedFormData.location, updatedFormData);
+      }, 0);
+    }
+  };
+  
+  const validateFieldWithData = (field: CustomerField, value: string, currentFormData: CustomerFormData) => {
+    let error: string | undefined;
+    const trimmedValue = value.trim();
+
+    switch (field) {
+      case "name":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập họ tên.";
+        } else if (trimmedValue.length < 3) {
+          error = "Họ tên phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const digits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (digits.length < 10 || digits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (trimmedValue && !EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
+        }
+        break;
+      case "username":
+        if (trimmedValue && !USERNAME_REGEX.test(trimmedValue)) {
+          error =
+            "Tên đăng nhập phải từ 4-30 ký tự và chỉ gồm chữ, số, dấu gạch dưới.";
+        }
+        break;
+      case "birthdate":
+        if (trimmedValue) {
+          const inputDate = new Date(trimmedValue);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (Number.isNaN(inputDate.getTime())) {
+            error = "Ngày sinh không hợp lệ.";
+          } else if (inputDate > today) {
+            error = "Ngày sinh không được lớn hơn hiện tại.";
+          }
+        }
+        break;
+      case "addressName":
+        // Validate only if address is being filled (at least one address field is filled)
+        const hasAddressData = currentFormData.province || currentFormData.district || currentFormData.ward || currentFormData.location.trim() || currentFormData.addressPhone.trim();
+        if (hasAddressData && !trimmedValue) {
+          error = "Vui lòng nhập họ tên người nhận.";
+        } else if (trimmedValue && trimmedValue.length < 3) {
+          error = "Họ tên người nhận phải có ít nhất 3 ký tự.";
+        } else if (trimmedValue && !NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên người nhận không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "addressPhone": {
+        const hasAddressData = currentFormData.province || currentFormData.district || currentFormData.ward || currentFormData.location.trim() || currentFormData.addressName.trim();
+        if (hasAddressData && !trimmedValue) {
+          error = "Vui lòng nhập số điện thoại người nhận.";
+          break;
+        }
+        if (trimmedValue) {
+          const digits = trimmedValue.replace(/\D/g, "");
+          if (!/^\d+$/.test(trimmedValue)) {
+            error = "Số điện thoại chỉ được chứa chữ số.";
+          } else if (digits.length < 10 || digits.length > 13) {
+            error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+          }
+        }
+        break;
+      }
+      case "province":
+        const hasOtherAddressData = currentFormData.district || currentFormData.ward || currentFormData.location.trim() || currentFormData.addressName.trim() || currentFormData.addressPhone.trim();
+        if (hasOtherAddressData && !trimmedValue) {
+          error = "Vui lòng chọn tỉnh/thành phố.";
+        }
+        break;
+      case "district":
+        if (currentFormData.province && !trimmedValue) {
+          error = "Vui lòng chọn quận/huyện.";
+        }
+        break;
+      case "ward":
+        if (currentFormData.district && !trimmedValue) {
+          error = "Vui lòng chọn phường/xã.";
+        }
+        break;
+      case "location":
+        const hasAddressFields = currentFormData.province || currentFormData.district || currentFormData.ward || currentFormData.addressName.trim() || currentFormData.addressPhone.trim();
+        if (hasAddressFields && !trimmedValue) {
+          error = "Vui lòng nhập địa chỉ cụ thể.";
+        } else if (trimmedValue && trimmedValue.length < 5) {
+          error = "Địa chỉ cụ thể phải có ít nhất 5 ký tự.";
+        }
+        break;
+      default:
+        break;
+    }
+
+    setFieldError(field, error);
+    return error;
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    
+    // Validate contact information
+    (["name", "phone", "email", "username", "birthdate"] as CustomerField[]).forEach(
+      (field) => {
+        const error = validateField(field, formData[field]);
+        if (error) {
+          isValid = false;
+        }
+      }
+    );
+    
+    // Validate address fields if any address data is provided
+    const hasAddressData = formData.province || formData.district || formData.ward || 
+                          formData.location.trim() || formData.addressName.trim() || 
+                          formData.addressPhone.trim();
+    
+    if (hasAddressData) {
+      // If user starts filling address, all required fields must be filled
+      (["addressName", "addressPhone", "province", "district", "ward", "location"] as CustomerField[]).forEach(
+        (field) => {
+          const error = validateField(field, formData[field] || "");
+          if (error) {
+            isValid = false;
+          }
+        }
+      );
+      
+      // Additional validation: if province is selected, district and ward must be selected
+      if (formData.province && (!formData.district || !formData.ward)) {
+        if (!formData.district) {
+          setFieldError("district", "Vui lòng chọn quận/huyện.");
+          isValid = false;
+        }
+        if (!formData.ward) {
+          setFieldError("ward", "Vui lòng chọn phường/xã.");
+          isValid = false;
+        }
+      }
+      
+      // Validate provinceId, districtId, wardCode are set
+      if (formData.province && !formData.provinceId) {
+        setFieldError("province", "Vui lòng chọn tỉnh/thành phố hợp lệ.");
+        isValid = false;
+      }
+      if (formData.district && !formData.districtId) {
+        setFieldError("district", "Vui lòng chọn quận/huyện hợp lệ.");
+        isValid = false;
+      }
+      if (formData.ward && !formData.wardCode.trim()) {
+        setFieldError("ward", "Vui lòng chọn phường/xã hợp lệ.");
+        isValid = false;
+      }
+    }
+    
+    return isValid;
+  };
 
   const shouldHideLocationName = (name: string) => {
     const normalized = name
@@ -88,15 +323,10 @@ const AdminAddCustomer = () => {
   const districts = useMemo(() => {
     if (!districtsData) return [];
     return districtsData
-      .filter((district) => {
-        const districtName = (district as any).districtName || (district as any).name;
-        return !shouldHideLocationName(districtName);
-      })
-      .sort((a, b) => {
-        const nameA = (a as any).districtName || (a as any).name;
-        const nameB = (b as any).districtName || (b as any).name;
-        return nameA.localeCompare(nameB, "vi", { sensitivity: "base" });
-      });
+      .filter((district) => !shouldHideLocationName(district.districtName))
+      .sort((a, b) =>
+        a.districtName.localeCompare(b.districtName, "vi", { sensitivity: "base" })
+      );
   }, [districtsData]);
 
   const {
@@ -115,87 +345,73 @@ const AdminAddCustomer = () => {
   const wards = useMemo(() => {
     if (!wardsData) return [];
     return wardsData
-      .filter((ward) => {
-        const wardName = (ward as any).wardName || (ward as any).name;
-        return !shouldHideLocationName(wardName);
-      })
-      .sort((a, b) => {
-        const nameA = (a as any).wardName || (a as any).name;
-        const nameB = (b as any).wardName || (b as any).name;
-        return nameA.localeCompare(nameB, "vi", { sensitivity: "base" });
-      });
+      .filter((ward) => !shouldHideLocationName(ward.wardName))
+      .sort((a, b) =>
+        a.wardName.localeCompare(b.wardName, "vi", { sensitivity: "base" })
+      );
   }, [wardsData]);
 
   const handleProvinceSelect = (province: ProvinceResponse) => {
-    setFormData((prev) => ({
-      ...prev,
+    const updatedFormData = {
+      ...formData,
       province: province.provinceName,
       provinceId: province.provinceId,
       district: "",
       districtId: null,
       ward: "",
       wardCode: "",
-    }));
+    };
+    setFormData(updatedFormData);
+    setFieldError("province", undefined);
+    setFieldError("district", undefined);
+    setFieldError("ward", undefined);
+    // Re-validate address fields
+    setTimeout(() => {
+      validateFieldWithData("province", province.provinceName, updatedFormData);
+      validateFieldWithData("district", "", updatedFormData);
+      validateFieldWithData("ward", "", updatedFormData);
+      validateFieldWithData("addressName", updatedFormData.addressName, updatedFormData);
+      validateFieldWithData("addressPhone", updatedFormData.addressPhone, updatedFormData);
+      validateFieldWithData("location", updatedFormData.location, updatedFormData);
+    }, 0);
   };
 
   const handleDistrictSelect = (district: DistrictResponse) => {
-    // Support both API response formats: {districtId, districtName} or {id, name}
-    const districtId = (district as any).districtId ?? (district as any).id;
-    const districtName = (district as any).districtName ?? (district as any).name;
-
-    console.log("Selected district:", district);
-    console.log("Extracted districtId:", districtId, "type:", typeof districtId, "districtName:", districtName);
-
-    if (districtId === null || districtId === undefined) {
-      console.error("District missing districtId:", district);
-      toast.error("Không thể lấy mã quận/huyện. Vui lòng thử lại.");
-      return;
-    }
-
-    // Ensure districtId is a number
-    const numericDistrictId = typeof districtId === 'number' ? districtId : Number(districtId);
-    if (isNaN(numericDistrictId)) {
-      console.error("Invalid districtId format:", districtId);
-      toast.error("Mã quận/huyện không hợp lệ. Vui lòng thử lại.");
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      district: districtName || "",
-      districtId: numericDistrictId,
+    const updatedFormData = {
+      ...formData,
+      district: district.districtName,
+      districtId: district.districtId,
       ward: "",
       wardCode: "",
-    }));
+    };
+    setFormData(updatedFormData);
+    setFieldError("district", undefined);
+    setFieldError("ward", undefined);
+    // Re-validate address fields
+    setTimeout(() => {
+      validateFieldWithData("district", district.districtName, updatedFormData);
+      validateFieldWithData("ward", "", updatedFormData);
+      validateFieldWithData("addressName", updatedFormData.addressName, updatedFormData);
+      validateFieldWithData("addressPhone", updatedFormData.addressPhone, updatedFormData);
+      validateFieldWithData("location", updatedFormData.location, updatedFormData);
+    }, 0);
   };
 
   const handleWardSelect = (ward: WardResponse) => {
-    // Support both API response formats: {wardCode, wardName} or {code, name}
-    const wardCode = (ward as any).wardCode ?? (ward as any).code;
-    const wardName = (ward as any).wardName ?? (ward as any).name;
-
-    console.log("Selected ward:", ward);
-    console.log("Extracted wardCode:", wardCode, "type:", typeof wardCode, "wardName:", wardName);
-
-    if (!wardCode || wardCode === null || wardCode === undefined) {
-      console.error("Ward missing wardCode:", ward);
-      toast.error("Không thể lấy mã phường/xã. Vui lòng thử lại.");
-      return;
-    }
-
-    // Ensure wardCode is a string
-    const stringWardCode = String(wardCode).trim();
-    if (!stringWardCode) {
-      console.error("Invalid wardCode format:", wardCode);
-      toast.error("Mã phường/xã không hợp lệ. Vui lòng thử lại.");
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      ward: wardName || "",
-      wardCode: stringWardCode,
-    }));
+    const updatedFormData = {
+      ...formData,
+      ward: ward.wardName,
+      wardCode: ward.wardCode,
+    };
+    setFormData(updatedFormData);
+    setFieldError("ward", undefined);
+    // Re-validate address fields
+    setTimeout(() => {
+      validateFieldWithData("ward", ward.wardName, updatedFormData);
+      validateFieldWithData("addressName", updatedFormData.addressName, updatedFormData);
+      validateFieldWithData("addressPhone", updatedFormData.addressPhone, updatedFormData);
+      validateFieldWithData("location", updatedFormData.location, updatedFormData);
+    }, 0);
   };
 
   const provinceLabel = useMemo(() => {
@@ -223,22 +439,10 @@ const AdminAddCustomer = () => {
     return formData.ward || "Chọn phường/xã";
   }, [formData.ward, formData.districtId, isLoadingWards, isWardError]);
 
-  const getProvinceLabel = (province: any): string => {
-    return province.provinceName || province.name || "";
-  };
-
-  const getDistrictLabel = (district: any): string => {
-    return district.districtName || district.name || "";
-  };
-
-  const getWardLabel = (ward: any): string => {
-    return ward.wardName || ward.name || "";
-  };
-
   const renderMenuContent = <T extends { [key: string]: any }>(
     list: T[] | null | undefined,
     onSelect: (item: T) => void,
-    getLabel: (item: T) => string
+    labelKey: keyof T
   ) => {
     if (!list || !Array.isArray(list) || list.length === 0) {
       return (
@@ -248,13 +452,13 @@ const AdminAddCustomer = () => {
       );
     }
 
-    return list.map((item, index) => (
+    return list.map((item) => (
       <DropdownMenuItem
-        key={index}
+        key={String(item[labelKey])}
         onClick={() => onSelect(item)}
         className="text-[14px]"
       >
-        {getLabel(item)}
+        {item[labelKey]}
       </DropdownMenuItem>
     ));
   };
@@ -262,9 +466,11 @@ const AdminAddCustomer = () => {
   const createCustomerMutation = useMutation({
     mutationFn: (data: CustomerCreationRequest) => createCustomer(data),
     onSuccess: async (response) => {
+      setFormErrors({});
+      setApiError(null);
       const customerId = response.data;
       console.log("Customer created with ID:", customerId);
-
+      
       // Create address if provided
       if (
         formData.province &&
@@ -272,34 +478,27 @@ const AdminAddCustomer = () => {
         formData.ward &&
         formData.location
       ) {
-        console.log("Creating address with formData:", {
-          provinceId: formData.provinceId,
-          districtId: formData.districtId,
-          wardCode: formData.wardCode,
-          district: formData.district,
-          ward: formData.ward,
-        });
-
-        if (!formData.provinceId || !formData.districtId || !formData.wardCode || !formData.wardCode.trim()) {
-          console.error("Missing address data:", {
-            provinceId: formData.provinceId,
-            districtId: formData.districtId,
-            wardCode: formData.wardCode,
-          });
+        if (!formData.provinceId || !formData.districtId || !formData.wardCode.trim()) {
           toast.warning("Không thể tạo địa chỉ vì thiếu thông tin tỉnh/thành hợp lệ");
         } else {
           try {
+            const street = formData.location.trim();
+            const wardName = formData.ward.trim();
+            const districtName = formData.district.trim();
+            const provinceName = formData.province.trim();
             const addressData: AddressCreationRequest = {
               name: formData.addressName.trim() || formData.name.trim(),
               phone: formData.addressPhone.trim() || formData.phone.trim(),
-              street: formData.location.trim(),
+              street,
               wardCode: formData.wardCode.trim(),
-              wardName: formData.ward.trim(),
+              wardName,
               districtId: formData.districtId,
-              districtName: formData.district.trim(),
-              provinceName: formData.province.trim(),
+              districtName,
+              provinceName,
+              fullAddress: [street, wardName, districtName, provinceName]
+                .filter(Boolean)
+                .join(", "),
             };
-            console.log("Address data to send:", addressData);
             await createCustomerAddress(customerId, addressData);
             console.log("Address created for customer:", customerId);
           } catch (error) {
@@ -309,7 +508,7 @@ const AdminAddCustomer = () => {
           }
         }
       }
-
+      
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["admin-customers"] }),
         queryClient.invalidateQueries({ queryKey: ["admin-customers-all"] }),
@@ -322,24 +521,61 @@ const AdminAddCustomer = () => {
         error?.response?.data?.message ||
         error?.message ||
         "Không thể tạo khách hàng";
-      toast.error(errorMessage);
+      const lowerMessage = errorMessage.toLowerCase();
+
+      const fieldErrorTranslations: Array<{
+        field: CustomerField;
+        keywords: string[];
+        translatedMessage: string;
+      }> = [
+        {
+          field: "phone",
+          keywords: [
+            "phone number must contain only digits",
+            "phone number must be between 10 and 13 digits",
+          ],
+          translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
+        },
+        {
+          field: "phone",
+          keywords: ["phone number already exists", "duplicate entry", "constraint `phone`"],
+          translatedMessage: "Số điện thoại đã tồn tại.",
+        },
+        {
+          field: "email",
+          keywords: ["email already exists"],
+          translatedMessage: "Email đã tồn tại.",
+        },
+        {
+          field: "username",
+          keywords: ["username already exists"],
+          translatedMessage: "Tên đăng nhập đã tồn tại.",
+        },
+        {
+          field: "birthdate",
+          keywords: ["birthday must be in the past"],
+          translatedMessage: "Ngày sinh không được lớn hơn hiện tại.",
+        },
+      ];
+
+      const matchedFieldError = fieldErrorTranslations.find(({ keywords }) =>
+        keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+      );
+
+      if (matchedFieldError) {
+        setFieldError(matchedFieldError.field, matchedFieldError.translatedMessage);
+        toast.error(matchedFieldError.translatedMessage);
+      } else {
+        setApiError(errorMessage);
+        toast.error(errorMessage);
+      }
     },
   });
 
   const handleSubmit = () => {
-    // Validation - Only name and phone are required
-    if (!formData.name.trim()) {
-      toast.error("Vui lòng nhập họ và tên");
-      return;
-    }
-    if (!formData.phone.trim()) {
-      toast.error("Vui lòng nhập số điện thoại");
-      return;
-    }
-
-    // Validate email format if provided
-    if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      toast.error("Email không hợp lệ");
+    setApiError(null);
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin.");
       return;
     }
 
@@ -349,11 +585,11 @@ const AdminAddCustomer = () => {
     const customerData: CustomerCreationRequest = {
       name: formData.name.trim(),
       phone: formData.phone.trim(),
-      ...(formData.email.trim() && { email: formData.email.trim() }),
-      ...(formData.username.trim() && { username: formData.username.trim() }),
-      ...(formData.password.trim() && { password: formData.password.trim() }),
-      ...(gender && { gender }),
-      ...(formData.birthdate && { birthday: new Date(formData.birthdate).toISOString() }),
+      email: formData.email.trim() || undefined,
+      username: formData.username.trim() || undefined, // Optional - backend will auto-generate
+      password: formData.password.trim() || undefined, // Optional - backend will auto-generate
+      gender: gender as any,
+      birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : undefined,
       // Note: Address is managed separately via Address entity, not in customer creation
     };
 
@@ -391,12 +627,13 @@ const AdminAddCustomer = () => {
               </label>
               <FormInput
                 value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
+                onChange={(e) => handleFieldChange("name", e.target.value)}
                 placeholder="Nhập họ và tên"
                 containerClassName="h-[36px] px-[12px] py-0"
               />
+              {formErrors.name && (
+                <p className="text-sm text-red-500">{formErrors.name}</p>
+              )}
             </div>
             <div className="flex flex-col gap-[8px]">
               <label className="font-semibold text-[#272424] text-[14px]">
@@ -404,12 +641,13 @@ const AdminAddCustomer = () => {
               </label>
               <FormInput
                 value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
+                onChange={(e) => handleFieldChange("phone", e.target.value)}
                 placeholder="Nhập số điện thoại"
                 containerClassName="h-[36px] px-[12px] py-0"
               />
+              {formErrors.phone && (
+                <p className="text-sm text-red-500">{formErrors.phone}</p>
+              )}
             </div>
           </div>
 
@@ -419,15 +657,32 @@ const AdminAddCustomer = () => {
               <label className="font-semibold text-[#272424] text-[14px]">
                 Ngày sinh
               </label>
-              <DatePicker
-                type="date"
-                value={formData.birthdate}
-                onChange={(e) =>
-                  setFormData({ ...formData, birthdate: e.target.value })
-                }
-                placeholder="20 / 10 / 1997"
-                containerClassName="gap-0"
-              />
+              <div className="bg-white border-2 border-[#e04d30] flex items-center h-[36px] px-[12px] py-0 rounded-[12px] w-full relative">
+                <input
+                  type="date"
+                  value={formData.birthdate}
+                  onChange={(e) => handleFieldChange("birthdate", e.target.value)}
+                  placeholder="20 / 10 / 1997"
+                  className={`hide-native-picker border-0 outline-none bg-transparent text-[14px] font-semibold placeholder:text-[#888888] ${formData.birthdate ? "text-[#272424]" : "text-[#888888]"} flex-1 w-full`}
+                />
+                <svg
+                  className="w-5 h-5 text-[#272424] opacity-40 absolute right-3 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              {formErrors.birthdate && (
+                <p className="text-sm text-red-500">{formErrors.birthdate}</p>
+              )}
             </div>
             <div className="flex flex-col gap-[4px]">
               <label className="font-semibold text-[#272424] text-[14px]">
@@ -456,12 +711,13 @@ const AdminAddCustomer = () => {
             <FormInput
               type="email"
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
+              onChange={(e) => handleFieldChange("email", e.target.value)}
               placeholder="Nhập email (không bắt buộc)"
               containerClassName="h-[36px] px-[12px] py-0"
             />
+            {formErrors.email && (
+              <p className="text-sm text-red-500">{formErrors.email}</p>
+            )}
           </div>
 
           {/* Username */}
@@ -471,12 +727,13 @@ const AdminAddCustomer = () => {
             </label>
             <FormInput
               value={formData.username}
-              onChange={(e) =>
-                setFormData({ ...formData, username: e.target.value })
-              }
+              onChange={(e) => handleFieldChange("username", e.target.value)}
               placeholder="Nhập tên đăng nhập (không bắt buộc - tự động tạo nếu để trống)"
               containerClassName="h-[36px] px-[12px] py-0"
             />
+            {formErrors.username && (
+              <p className="text-sm text-red-500">{formErrors.username}</p>
+            )}
           </div>
 
           {/* Password */}
@@ -513,11 +770,14 @@ const AdminAddCustomer = () => {
               <FormInput
                 value={formData.addressName}
                 onChange={(e) =>
-                  setFormData({ ...formData, addressName: e.target.value })
+                  handleFieldChange("addressName", e.target.value)
                 }
                 placeholder="Nhập họ và tên (mặc định là tên khách hàng)"
-                containerClassName="h-[36px] px-[12px] py-0"
+                containerClassName={`h-[36px] px-[12px] py-0 ${formErrors.addressName ? "border-red-500" : ""}`}
               />
+              {formErrors.addressName && (
+                <p className="text-sm text-red-500">{formErrors.addressName}</p>
+              )}
             </div>
             <div className="flex flex-col gap-[8px]">
               <label className="font-semibold text-[#272424] text-[14px]">
@@ -526,11 +786,14 @@ const AdminAddCustomer = () => {
               <FormInput
                 value={formData.addressPhone}
                 onChange={(e) =>
-                  setFormData({ ...formData, addressPhone: e.target.value })
+                  handleFieldChange("addressPhone", e.target.value)
                 }
                 placeholder="Nhập số điện thoại (mặc định là số điện thoại khách hàng)"
-                containerClassName="h-[36px] px-[12px] py-0"
+                containerClassName={`h-[36px] px-[12px] py-0 ${formErrors.addressPhone ? "border-red-500" : ""}`}
               />
+              {formErrors.addressPhone && (
+                <p className="text-sm text-red-500">{formErrors.addressPhone}</p>
+              )}
             </div>
           </div>
 
@@ -543,11 +806,12 @@ const AdminAddCustomer = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border ${isProvinceError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] cursor-pointer`}
+                    className={`bg-white border ${isProvinceError || formErrors.province ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] cursor-pointer`}
                   >
                     <span
-                      className={`text-[14px] font-semibold ${formData.province ? "text-[#272424]" : "text-[#888888]"
-                        }`}
+                      className={`text-[14px] font-semibold ${
+                        formData.province ? "text-[#272424]" : "text-[#888888]"
+                      }`}
                     >
                       {provinceLabel}
                     </span>
@@ -560,10 +824,13 @@ const AdminAddCustomer = () => {
                       Đang tải...
                     </div>
                   ) : (
-                    renderMenuContent(provinces, handleProvinceSelect, getProvinceLabel)
+                    renderMenuContent(provinces, handleProvinceSelect, "provinceName")
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              {formErrors.province && (
+                <p className="text-sm text-red-500">{formErrors.province}</p>
+              )}
             </div>
 
             <div className="flex flex-col gap-[8px]">
@@ -573,12 +840,14 @@ const AdminAddCustomer = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border ${isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${!formData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                      }`}
+                    className={`bg-white border ${isDistrictError || formErrors.district ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${
+                      !formData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                    }`}
                   >
                     <span
-                      className={`text-[14px] font-semibold ${formData.district ? "text-[#272424]" : "text-[#888888]"
-                        }`}
+                      className={`text-[14px] font-semibold ${
+                        formData.district ? "text-[#272424]" : "text-[#888888]"
+                      }`}
                     >
                       {districtLabel}
                     </span>
@@ -595,10 +864,13 @@ const AdminAddCustomer = () => {
                       Đang tải...
                     </div>
                   ) : (
-                    renderMenuContent(districts, handleDistrictSelect, getDistrictLabel)
+                    renderMenuContent(districts, handleDistrictSelect, "districtName")
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              {formErrors.district && (
+                <p className="text-sm text-red-500">{formErrors.district}</p>
+              )}
             </div>
 
             <div className="flex flex-col gap-[8px]">
@@ -608,12 +880,14 @@ const AdminAddCustomer = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border ${isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${!formData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                      }`}
+                    className={`bg-white border ${isWardError || formErrors.ward ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${
+                      !formData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                    }`}
                   >
                     <span
-                      className={`text-[14px] font-semibold ${formData.ward ? "text-[#272424]" : "text-[#888888]"
-                        }`}
+                      className={`text-[14px] font-semibold ${
+                        formData.ward ? "text-[#272424]" : "text-[#888888]"
+                      }`}
                     >
                       {wardLabel}
                     </span>
@@ -630,10 +904,13 @@ const AdminAddCustomer = () => {
                       Đang tải...
                     </div>
                   ) : (
-                    renderMenuContent(wards, handleWardSelect, getWardLabel)
+                    renderMenuContent(wards, handleWardSelect, "wardName")
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              {formErrors.ward && (
+                <p className="text-sm text-red-500">{formErrors.ward}</p>
+              )}
             </div>
           </div>
 
@@ -645,14 +922,23 @@ const AdminAddCustomer = () => {
             <FormInput
               value={formData.location}
               onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
+                handleFieldChange("location", e.target.value)
               }
               placeholder="Nhập số nhà, tên đường..."
-              containerClassName="h-[36px] px-[12px] py-0"
+              containerClassName={`h-[36px] px-[12px] py-0 ${formErrors.location ? "border-red-500" : ""}`}
             />
+            {formErrors.location && (
+              <p className="text-sm text-red-500">{formErrors.location}</p>
+            )}
           </div>
         </div>
       </div>
+
+      {apiError && (
+        <div className="w-full rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {apiError}
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-[12px] justify-end py-[16px] w-full">

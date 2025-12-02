@@ -6,9 +6,6 @@ export const productValidationRules: ValidationRules = {
     { minLength: 2, message: "Tên sản phẩm phải có ít nhất 2 ký tự" },
     { maxLength: 100, message: "Tên sản phẩm không được vượt quá 100 ký tự" }
   ],
-  category: [
-    { required: true, message: "Danh mục là bắt buộc" }
-  ],
   brand: [
     { required: true, message: "Thương hiệu là bắt buộc" }
   ],
@@ -16,21 +13,18 @@ export const productValidationRules: ValidationRules = {
     { required: true, message: "Mô tả sản phẩm là bắt buộc" },
     { minLength: 10, message: "Mô tả phải có ít nhất 10 ký tự" }
   ],
+  costPrice: [
+    { pattern: /^\d+$/, message: "Giá vốn phải là số" }
+  ],
+  sellingPrice: [
+    { pattern: /^\d+$/, message: "Giá bán phải là số" }
+  ],
+  inventory: [
+    { pattern: /^\d+$/, message: "Tồn kho phải là số nguyên" }
+  ],
   weight: [
     { required: true, message: "Cân nặng là bắt buộc" },
     { pattern: /^\d+(\.\d+)?$/, message: "Cân nặng phải là số" }
-  ],
-  length: [
-    { required: true, message: "Chiều dài là bắt buộc" },
-    { pattern: /^\d+(\.\d+)?$/, message: "Chiều dài phải là số" }
-  ],
-  width: [
-    { required: true, message: "Chiều rộng là bắt buộc" },
-    { pattern: /^\d+(\.\d+)?$/, message: "Chiều rộng phải là số" }
-  ],
-  height: [
-    { required: true, message: "Chiều cao là bắt buộc" },
-    { pattern: /^\d+(\.\d+)?$/, message: "Chiều cao phải là số" }
   ]
 };
 
@@ -39,19 +33,26 @@ export const validateField = (field: string, value: string): string => {
   if (!rules) return '';
 
   for (const rule of rules) {
-    if (rule.required && !value.trim()) {
+    const trimmed = value.trim();
+
+    if (rule.required && !trimmed) {
       return rule.message;
     }
-    
-    if (rule.minLength && value.length < rule.minLength) {
+
+    // Nếu cho phép bỏ trống thì chỉ kiểm tra các rule khác khi có giá trị
+    if (!trimmed) {
+      continue;
+    }
+
+    if (rule.minLength && trimmed.length < rule.minLength) {
       return rule.message;
     }
-    
-    if (rule.maxLength && value.length > rule.maxLength) {
+
+    if (rule.maxLength && trimmed.length > rule.maxLength) {
       return rule.message;
     }
-    
-    if (rule.pattern && !rule.pattern.test(value)) {
+
+    if (rule.pattern && !rule.pattern.test(trimmed)) {
       return rule.message;
     }
   }
@@ -68,14 +69,24 @@ export const validateForm = (formData: ProductFormData): FormErrors => {
       errors[field] = error;
     }
   });
+
+  // Custom validation for price comparison
+  if (formData.costPrice && formData.sellingPrice) {
+    const cost = parseFloat(formData.costPrice);
+    const selling = parseFloat(formData.sellingPrice);
+    if (selling <= cost) {
+      errors.sellingPrice = "Giá bán phải lớn hơn giá vốn";
+    }
+  }
+
+  // Custom validation for inventory vs available
+  if (formData.inventory && formData.available) {
+    const inventory = parseInt(formData.inventory);
+    const available = parseInt(formData.available);
+    if (available > inventory) {
+      errors.available = "Số lượng có thể bán không được lớn hơn tồn kho";
+    }
+  }
   
-  if (!formData.categoryId) {
-    errors.category = "Vui lòng chọn danh mục";
-  }
-
-  if (!formData.brandId) {
-    errors.brand = "Vui lòng chọn thương hiệu";
-  }
-
   return errors;
 };

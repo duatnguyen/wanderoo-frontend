@@ -7,7 +7,6 @@ import {
   TabMenuWithBadge,
   PageContainer,
   ContentCard,
-  PageHeader,
   type TabItemWithBadge,
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
@@ -16,9 +15,10 @@ import {
   getAllProductsPrivate,
   getActiveProductsPrivate,
   getInactiveProductsPrivate,
+  getProductVariantsPrivate,
   disableProductsPrivate,
   enableProductsPrivate,
-  updateSellingQuantityPrivate,
+  updateProductDisplayPrivate,
 } from "@/api/endpoints/productApi";
 import ChannelDisplayModal from "@/components/admin/modals/ChannelDisplayModal";
 import type {
@@ -89,7 +89,6 @@ const mapProductToUi = (product: AdminProductResponse): ProductWithStatus => ({
   posQuantity: toNumber(product.posSoldQuantity),
   sellingPrice: formatPriceDisplay(product.sellingPrice),
   costPrice: formatPriceDisplay(product.importPrice),
-  variants: (product.productDetails ?? []).map(mapVariant),
   status: product.display === "ACTIVE" ? "active" : "inactive",
 });
 
@@ -117,6 +116,12 @@ const AdminProducts: React.FC = () => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isChannelModalOpen, setIsChannelModalOpen] = useState(false);
   const latestRequestRef = useRef(0);
+  const [variantLoadingMap, setVariantLoadingMap] = useState<Record<string, boolean>>({});
+  const productsRef = useRef<ProductWithStatus[]>([]);
+
+  useEffect(() => {
+    productsRef.current = products;
+  }, [products]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -191,11 +196,11 @@ const AdminProducts: React.FC = () => {
         setProducts(mappedProducts);
         setTotalPages(
           response?.totalPages ??
-          response?.totalPage ??
-          Math.max(
-            1,
-            Math.ceil((response?.totalProducts ?? 1) / itemsPerPage)
-          )
+            response?.totalPage ??
+            Math.max(
+              1,
+              Math.ceil((response?.totalProducts ?? 1) / itemsPerPage)
+            )
         );
       }
     } catch (error) {
@@ -322,10 +327,6 @@ const AdminProducts: React.FC = () => {
     navigate(`/admin/products/${productId}/edit`);
   };
 
-  const handleView = (productId: string) => {
-    navigate(`/admin/products/${productId}/view`);
-  };
-
   const handleBulkHide = async () => {
     const ids = buildSelectedIdPayload();
     if (ids.length === 0) return;
@@ -374,50 +375,49 @@ const AdminProducts: React.FC = () => {
 
   const handleChannelModalConfirm = async (data: {
     websiteEnabled: boolean;
-    websiteQuantity: number;
     posEnabled: boolean;
-    posQuantity: number;
   }) => {
     setIsActionLoading(true);
     setIsChannelModalOpen(false);
 
     try {
-      // Lấy tất cả variants của các sản phẩm đã chọn
-      const selectedProductIds = Array.from(selectedProducts).map((id) => Number(id));
-      const selectedProductsData = products.filter((p) => selectedProductIds.includes(Number(p.id)));
-
-      // Thu thập tất cả variants từ các sản phẩm đã chọn
-      const allVariants: ProductVariant[] = [];
-      selectedProductsData.forEach((product) => {
-        if (product.variants && product.variants.length > 0) {
-          allVariants.push(...product.variants);
-        }
-      });
-
-      if (allVariants.length === 0) {
-        toast.error("Không tìm thấy biến thể nào để cập nhật");
+      if (!data.websiteEnabled && !data.posEnabled) {
+        toast.error("Vui lòng chọn ít nhất một kênh để hiển thị");
         setIsActionLoading(false);
         return;
       }
 
-      // Cập nhật từng variant
-      const updatePromises = allVariants.map((variant) => {
-        const request = {
-          id: Number(variant.id),
-          sellingQuantityWeb: data.websiteEnabled ? data.websiteQuantity : 0,
-          sellingQuantityPos: data.posEnabled ? data.posQuantity : 0,
-        };
-        return updateSellingQuantityPrivate(request);
+      const selectedProductIds = Array.from(selectedProducts).map((id) =>
+        Number(id)
+      );
+      if (selectedProductIds.length === 0) {
+        toast.error("Không có sản phẩm nào được chọn");
+        setIsActionLoading(false);
+        return;
+      }
+
+      // Map checkbox state -> enum Display
+      const display =
+        data.websiteEnabled && data.posEnabled
+          ? "BOTH"
+          : data.websiteEnabled
+          ? "WEBSITE"
+          : "POS";
+
+      await updateProductDisplayPrivate({
+        ids: selectedProductIds,
+        display,
       });
 
-      await Promise.all(updatePromises);
-      toast.success(`Đã cập nhật số lượng bán cho ${allVariants.length} biến thể`);
+      toast.success(
+        `Đã cập nhật hiển thị kênh cho ${selectedProductIds.length} sản phẩm`
+      );
       await fetchProducts();
       await fetchTabCounts();
       handleClearSelection();
     } catch (error) {
       console.error("Không thể cập nhật số lượng bán", error);
-      toast.error("Cập nhật số lượng bán thất bại. Vui lòng thử lại.");
+      toast.error("Cập nhật hiển thị kênh thất bại. Vui lòng thử lại.");
     } finally {
       setIsActionLoading(false);
     }
@@ -459,6 +459,56 @@ const AdminProducts: React.FC = () => {
   }, [searchValue, activeTab, currentPage, products]);
 
   const paginatedProducts = filteredProducts;
+
+  const handleLoadVariants = useCallback(
+    async (productId: string, forceReload = false): Promise<ProductVariant[]> => {
+      const currentProduct =
+        productsRef.current.find((p) => p.id === productId) || null;
+      if (!currentProduct) {
+        return [];
+      }
+
+      if (!forceReload && currentProduct.variants && currentProduct.variants.length > 0) {
+        return currentProduct.variants;
+      }
+
+      if (variantLoadingMap[productId]) {
+        return currentProduct.variants ?? [];
+      }
+
+      setVariantLoadingMap((prev) => ({ ...prev, [productId]: true }));
+      try {
+        const response = await getProductVariantsPrivate(Number(productId), {
+          page: 0,
+          size: 50,
+          sort: "asc",
+        });
+        const mappedVariants =
+          response?.variants?.map(mapVariant) ?? [];
+        setProducts((prev) =>
+          prev.map((product) =>
+            product.id === productId
+              ? {
+                  ...product,
+                  variants: mappedVariants,
+                }
+              : product
+          )
+        );
+        return mappedVariants;
+      } catch (error) {
+        console.error("Không thể tải biến thể sản phẩm", error);
+        toast.error("Không thể tải biến thể sản phẩm. Vui lòng thử lại.");
+        return [];
+      } finally {
+        setVariantLoadingMap((prev) => ({
+          ...prev,
+          [productId]: false,
+        }));
+      }
+    },
+    [variantLoadingMap]
+  );
 
   return (
     <PageContainer>
@@ -543,7 +593,8 @@ const AdminProducts: React.FC = () => {
                   isSelected={selectedProducts.has(product.id)}
                   onSelect={handleProductSelect}
                   onUpdate={handleUpdate}
-                  onView={handleView}
+                  onLoadVariants={handleLoadVariants}
+                  isVariantsLoading={variantLoadingMap[product.id]}
                 />
               ))}
             {!isLoading && paginatedProducts.length === 0 && !errorMessage && (

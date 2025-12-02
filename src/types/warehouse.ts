@@ -35,11 +35,14 @@ export interface ProviderDetailResponse {
   name: string;
   phone: string;
   email: string;
-  note?: string;
-  province: string;
-  ward: string;
-  district: string;
-  location: string;
+  note?: string | null;
+  street?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  districtId?: number | null;
+  districtName?: string | null;
+  provinceName?: string | null;
+  fullAddress?: string | null;
 }
 
 export interface ProviderCreateRequest {
@@ -47,20 +50,39 @@ export interface ProviderCreateRequest {
   phone: string;
   email: string;
   note?: string;
-  province: string;
-  ward: string;
-  district: string;
-  location: string;
+  provinceName: string;
+  districtName: string;
+  districtId: number;
+  wardName: string;
+  wardCode: string;
+  street: string;
+  fullAddress?: string;
 }
 
 export interface ProviderUpdateRequest extends ProviderCreateRequest {
   id: number;
 }
 
+export interface ProviderInvoiceHistoryItem {
+  type: "IMPORT" | "EXPORT";
+  code: string;
+  updatedAt: string;
+  productStatus: "PENDING" | "DONE";
+  paymentStatus: "PENDING" | "DONE";
+}
+
 export interface ProviderStatResponse {
-  totalInvoices: number;
-  totalAmount: number;
-  lastOrderDate: string;
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  fromDate?: string | null;
+  toDate?: string | null;
+  invoiceImportCreated: number;
+  invoiceImportUnpaid: number;
+  invoiceExportCreated: number;
+  invoiceExportUnrefund: number;
+  invoiceHistory: ProviderInvoiceHistoryItem[];
 }
 
 export interface InvoiceResponse {
@@ -124,6 +146,7 @@ export interface InvoiceDetailCartItemResponse {
 export interface InvoiceDetailResponse {
   id: number;
   updatedAt: string;
+  invoiceType: string;
   cartItem: InvoiceDetailCartItemResponse[];
   code: string;
   status: string;
@@ -142,4 +165,29 @@ export interface PaymentRequest {
   method?: PaymentMethod;
   paidAmount: number;
   referenceCode?: string;
+}
+
+export interface VariantAttributeSnapshot {
+  id: number;
+  name: string;
+  groupLevel?: number | null;
+  value?: string | null;
+}
+
+export interface ProductInvoiceResponse {
+  id: number;
+  imageUrl?: string | null;
+  productName: string;
+  totalQuantity?: number | null;
+  importPrice?: number | null;
+  sellingPrice?: number | null;
+  attribute?: VariantAttributeSnapshot[] | null;
+}
+
+export interface ProductInvoicePageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalElements: number;
+  productInvoices: ProductInvoiceResponse[];
 }

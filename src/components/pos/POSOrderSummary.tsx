@@ -24,7 +24,7 @@ export type POSOrderSummaryProps = {
   className?: string;
 };
 
-export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
+const POSOrderSummaryComponent: React.FC<POSOrderSummaryProps> = ({
   totalAmount = 0,
   finalAmount = 0,
   orderDiscountAmount = 0,
@@ -172,9 +172,12 @@ export const POSOrderSummary: React.FC<POSOrderSummaryProps> = ({
           }
         }}
         selectedVoucherId={selectedVoucherId}
+        orderTotal={totalAmount}
       />
     </>
   );
 };
+
+export const POSOrderSummary = React.memo(POSOrderSummaryComponent);
 
 export default POSOrderSummary;

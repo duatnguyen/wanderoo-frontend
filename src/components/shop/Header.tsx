@@ -61,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({
     userName?.trim() ||
     authUser?.name?.trim() ||
     resolvedUsername ||
-    "Khách hàng";
+    "Thanh";
 
   const displayAvatar = (avatarUrl || authUser?.avatar) ?? undefined;
   const usernameTag = resolvedUsername ? `@${resolvedUsername}` : "";
@@ -73,18 +73,12 @@ const Header: React.FC<HeaderProps> = ({
     rawId: number;
   };
   const [mainCategories, setMainCategories] = useState<DropdownCategory[]>([]);
-  const [childLoadingState, setChildLoadingState] = useState<
-    Record<string, boolean>
-  >({});
-
-  type SimpleCategory = {
-    id: number;
-    name: string;
-  };
+  const [childLoadingState, setChildLoadingState] = useState<Record<string, boolean>>({});
 
   const handleSearch = () => {
     if (!searchValue.trim()) return;
-    navigate(`/shop/search?q=${encodeURIComponent(searchValue.trim())}`);
+    console.log("Search:", searchValue);
+    // navigate(`/shop/search?keyword=${encodeURIComponent(searchValue)}`);
   };
 
   // Close dropdown when clicking outside
@@ -109,8 +103,8 @@ const Header: React.FC<HeaderProps> = ({
   useEffect(() => {
     // Fetch main categories
     getPublicCategoryParents()
-      .then((response: SimpleCategory[]) => {
-        const categories: DropdownCategory[] = response.map((attr) => ({
+      .then((response) => {
+        const categories: DropdownCategory[] = response.map((attr: any) => ({
           id: attr.id.toString(),
           label: attr.name,
           subcategories: [], // Will be loaded on hover
@@ -118,16 +112,14 @@ const Header: React.FC<HeaderProps> = ({
         }));
         setMainCategories(categories);
       })
-      .catch((error: any) => {
+      .catch((error) => {
         console.error("Error fetching categories:", error);
       });
   }, []);
 
   const handleCategoryHover = useCallback(
     async (categoryId: string) => {
-      const currentCategory = mainCategories.find(
-        (cat) => cat.id === categoryId
-      );
+      const currentCategory = mainCategories.find((cat) => cat.id === categoryId);
       if (
         !currentCategory ||
         currentCategory.subcategories.length > 0 ||
@@ -138,22 +130,20 @@ const Header: React.FC<HeaderProps> = ({
 
       setChildLoadingState((prev) => ({ ...prev, [categoryId]: true }));
       try {
-        const children: SimpleCategory[] = await getPublicCategoryChildren(
-          currentCategory.rawId
-        );
+        const children = await getPublicCategoryChildren(currentCategory.rawId);
         setMainCategories((prev) =>
-          prev.map((cat) =>
-            cat.id === categoryId
-              ? {
-                  ...cat,
-                  subcategories: children.map((child) => ({
-                    id: child.id.toString(),
-                    label: child.name,
-                  })),
-                }
-              : cat
-          )
-        );
+            prev.map((cat) =>
+              cat.id === categoryId
+                ? {
+                    ...cat,
+                    subcategories: children.map((child) => ({
+                      id: child.id.toString(),
+                      label: child.name,
+                    })),
+                  }
+                : cat
+            )
+          );
       } catch (error) {
         console.error("Không thể tải danh mục con", error);
       } finally {
@@ -164,9 +154,18 @@ const Header: React.FC<HeaderProps> = ({
   );
 
   const handleCategoryClick = (categoryId: string, mainCategoryId?: string) => {
-    console.log("Category clicked:", categoryId, "Main:", mainCategoryId);
-    // Navigate to filter page with category parameter
-    navigate(`/shop/filter?category=${categoryId}`);
+    if (mainCategoryId) {
+      navigate(`/shop/category/${mainCategoryId}/${categoryId}`);
+    } else {
+      const parent = mainCategories.find((cat) => cat.id === categoryId);
+      const firstChild = parent?.subcategories?.[0];
+      if (firstChild) {
+        navigate(`/shop/category/${categoryId}/${firstChild.id}`);
+      } else {
+        navigate(`/shop/category/${categoryId}`);
+      }
+    }
+    setIsCategoryDropdownOpen(false);
   };
 
   return (

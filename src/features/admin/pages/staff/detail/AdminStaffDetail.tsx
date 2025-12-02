@@ -45,12 +45,42 @@ const getRoleLabel = (type?: string | null): string => {
   return ROLE_LABELS[normalizedType] || type;
 };
 
+type EditFormData = {
+  fullName: string;
+  phone: string;
+  email: string;
+  dateOfBirth: string;
+  password: string;
+  gender: "male" | "female";
+  role: string;
+  username: string;
+};
+
+type FormErrors = Partial<Record<keyof EditFormData, string>>;
+
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{4,30}$/;
+const PASSWORD_COMPLEXITY_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
+const EMAIL_REGEX =
+  /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const getAge = (date: Date) => {
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 const AdminStaffDetail: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { staffId } = useParams<{ staffId: string }>();
   const [isEditing, setIsEditing] = useState(false);
-  const [editFormData, setEditFormData] = useState({
+  const [editFormData, setEditFormData] = useState<EditFormData>({
     fullName: "",
     phone: "",
     email: "",
@@ -60,6 +90,8 @@ const AdminStaffDetail: React.FC = () => {
     role: "",
     username: "",
   });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Fetch employee data from API
   const {
@@ -92,8 +124,121 @@ const AdminStaffDetail: React.FC = () => {
         role: getRoleLabel(staff.type),
         username: staff.username || "",
       });
+      setFormErrors({});
+      setApiError(null);
     }
   }, [isEditing, staff]);
+
+  const setFieldError = (field: keyof EditFormData, error?: string) => {
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (error) {
+        next[field] = error;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  const validateField = (field: keyof EditFormData, value: string) => {
+    let error: string | undefined;
+    const trimmedValue = value.trim();
+
+    switch (field) {
+      case "fullName":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập họ tên.";
+        } else if (trimmedValue.length < 3) {
+          error = "Họ tên phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "username":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập tên đăng nhập.";
+        } else if (!USERNAME_REGEX.test(trimmedValue)) {
+          error =
+            "Tên đăng nhập phải từ 4-30 ký tự và chỉ gồm chữ, số, dấu gạch dưới.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const phoneDigits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (trimmedValue && !EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
+        }
+        break;
+      case "password":
+        if (trimmedValue && !PASSWORD_COMPLEXITY_REGEX.test(trimmedValue)) {
+          error =
+            "Mật khẩu phải có tối thiểu 8 ký tự gồm chữ hoa, chữ thường, số và ký tự đặc biệt.";
+        }
+        break;
+      case "dateOfBirth":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập ngày sinh.";
+          break;
+        }
+        {
+          const inputDate = new Date(trimmedValue);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (Number.isNaN(inputDate.getTime())) {
+            error = "Ngày sinh không hợp lệ.";
+          } else if (inputDate > today) {
+            error = "Ngày sinh không được lớn hơn hiện tại.";
+          } else if (getAge(inputDate) < 18) {
+            error = "Nhân viên phải từ 18 tuổi trở lên.";
+          }
+        }
+        break;
+      case "role":
+        if (!trimmedValue) {
+          error = "Vui lòng chọn vai trò.";
+        }
+        break;
+      default:
+        break;
+    }
+
+    setFieldError(field, error);
+    return error;
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    const fieldsToValidate: Array<keyof EditFormData> = [
+      "fullName",
+      "phone",
+      "email",
+      "dateOfBirth",
+      "password",
+      "role",
+      "username",
+    ];
+
+    fieldsToValidate.forEach((field) => {
+      const error = validateField(field, editFormData[field]);
+      if (error) {
+        isValid = false;
+      }
+    });
+
+    return isValid;
+  };
 
   // Update employee mutation
   const updateMutation = useMutation({
@@ -200,7 +345,55 @@ const AdminStaffDetail: React.FC = () => {
         error?.response?.data?.message ||
         error?.message ||
         "Không thể cập nhật thông tin nhân viên";
-      toast.error(errorMessage);
+      const lowerMessage = errorMessage.toLowerCase();
+
+      type FieldKey = keyof EditFormData;
+      const fieldErrorTranslations: Array<{
+        field: FieldKey;
+        keywords: string[];
+        translatedMessage: string;
+      }> = [
+        {
+          field: "phone",
+          keywords: [
+            "phone number must contain only digits",
+            "phone number must be between 10 and 13 digits",
+          ],
+          translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
+        },
+        {
+          field: "phone",
+          keywords: ["phone number already exists", "duplicate entry", "constraint `phone`"],
+          translatedMessage: "Số điện thoại đã tồn tại.",
+        },
+        {
+          field: "username",
+          keywords: ["username already exists"],
+          translatedMessage: "Tên đăng nhập đã tồn tại.",
+        },
+        {
+          field: "email",
+          keywords: ["email already exists"],
+          translatedMessage: "Email đã tồn tại.",
+        },
+        {
+          field: "dateOfBirth",
+          keywords: ["at least 18 years old", "birthday is required"],
+          translatedMessage: "Ngày sinh phải hợp lệ và từ 18 tuổi trở lên.",
+        },
+      ];
+
+      const matchedFieldError = fieldErrorTranslations.find(({ keywords }) =>
+        keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+      );
+
+      if (matchedFieldError) {
+        setFieldError(matchedFieldError.field, matchedFieldError.translatedMessage);
+        toast.error(matchedFieldError.translatedMessage);
+      } else {
+        setApiError(errorMessage);
+        toast.error(errorMessage);
+      }
     },
   });
 
@@ -249,13 +442,15 @@ const AdminStaffDetail: React.FC = () => {
   };
 
   const handleInputChange = (
-    field: keyof typeof editFormData,
+    field: keyof EditFormData,
     value: string
   ) => {
     setEditFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+    setApiError(null);
+    validateField(field, value);
   };
 
   const handleSave = () => {
@@ -266,17 +461,9 @@ const AdminStaffDetail: React.FC = () => {
       return;
     }
 
-    // Validation
-    if (!editFormData.fullName.trim()) {
-      toast.error("Vui lòng nhập họ và tên");
-      return;
-    }
-    if (!editFormData.phone.trim()) {
-      toast.error("Vui lòng nhập số điện thoại");
-      return;
-    }
-    if (!editFormData.username.trim()) {
-      toast.error("Vui lòng nhập tên đăng nhập");
+    setApiError(null);
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin.");
       return;
     }
 
@@ -548,6 +735,9 @@ const AdminStaffDetail: React.FC = () => {
                       className="text-[#272424] text-[14px]"
                       containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
+                    {formErrors.fullName && (
+                      <p className="text-sm text-red-500">{formErrors.fullName}</p>
+                    )}
                   </div>
 
                   {/* Phone */}
@@ -565,6 +755,9 @@ const AdminStaffDetail: React.FC = () => {
                       className="text-[#272424] text-[14px]"
                       containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
+                    {formErrors.phone && (
+                      <p className="text-sm text-red-500">{formErrors.phone}</p>
+                    )}
                   </div>
                 </div>
 
@@ -585,6 +778,9 @@ const AdminStaffDetail: React.FC = () => {
                       className="text-[#272424] text-[14px]"
                       containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
+                    {formErrors.username && (
+                      <p className="text-sm text-red-500">{formErrors.username}</p>
+                    )}
                   </div>
 
                   {/* Email */}
@@ -602,6 +798,9 @@ const AdminStaffDetail: React.FC = () => {
                       className="text-[#272424] text-[14px]"
                       containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
+                    {formErrors.email && (
+                      <p className="text-sm text-red-500">{formErrors.email}</p>
+                    )}
                   </div>
                 </div>
 
@@ -622,6 +821,9 @@ const AdminStaffDetail: React.FC = () => {
                       className="text-[#888888] text-[14px]"
                       containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
+                    {formErrors.password && (
+                      <p className="text-sm text-red-500">{formErrors.password}</p>
+                    )}
                   </div>
                   <div className="flex-1"></div>
                 </div>
@@ -642,6 +844,9 @@ const AdminStaffDetail: React.FC = () => {
                       className="text-[14px] font-medium text-[#737373]"
                       containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
+                    {formErrors.dateOfBirth && (
+                      <p className="text-sm text-red-500">{formErrors.dateOfBirth}</p>
+                    )}
                   </div>
 
                   {/* Gender */}
@@ -694,8 +899,19 @@ const AdminStaffDetail: React.FC = () => {
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  {formErrors.role && (
+                    <p className="text-sm text-red-500">{formErrors.role}</p>
+                  )}
                 </div>
               </div>
+
+              {apiError && (
+                <div className="px-[8px]">
+                  <div className="w-full rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {apiError}
+                  </div>
+                </div>
+              )}
 
               {/* Footer Buttons */}
               <div className="flex gap-[10px] items-center justify-end px-[8px] py-[8px]">

@@ -105,6 +105,10 @@ const AdminWarehouseExports = lazy(
   () =>
     import("../../features/admin/pages/warehouse/exports/AdminWarehouseExports")
 );
+const AdminWarehouseExportDetail = lazy(
+  () =>
+    import("../../features/admin/pages/warehouse/exports/AdminWarehouseExportDetail")
+);
 const AdminWarehouseCreateImport = lazy(
   () =>
     import(
@@ -388,6 +392,22 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminWarehouseExports />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/exports/:exportId",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseExportDetail />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/exports/create",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseCreateImport />
       </LazyWrapper>
     ),
   },

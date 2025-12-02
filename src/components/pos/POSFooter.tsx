@@ -9,7 +9,7 @@ export type POSFooterProps = {
   className?: string;
 };
 
-export const POSFooter: React.FC<POSFooterProps> = ({
+const POSFooterComponent: React.FC<POSFooterProps> = ({
   note,
   onNoteChange,
   employee,
@@ -48,5 +48,7 @@ export const POSFooter: React.FC<POSFooterProps> = ({
     </div>
   );
 };
+
+export const POSFooter = React.memo(POSFooterComponent);
 
 export default POSFooter;

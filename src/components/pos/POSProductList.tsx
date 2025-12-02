@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ export type POSProduct = {
   variant?: string;
   price: number; // Giá sau giảm (discounted price)
   originalPrice?: number; // Giá gốc (original price)
+  totalPrice?: number; // Thành tiền sau giảm
   quantity: number;
 };
 
@@ -20,12 +21,64 @@ export type POSProductListProps = {
   className?: string;
 };
 
-export const POSProductList: React.FC<POSProductListProps> = ({
+const POSProductListComponent: React.FC<POSProductListProps> = ({
   products = [],
   onQuantityChange,
   onRemove,
   className,
 }) => {
+  const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>(
+    {}
+  );
+  const [editingInputs, setEditingInputs] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  useEffect(() => {
+    setEditingInputs((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      const productIds = new Set(products.map((product) => product.id));
+
+      Object.keys(next).forEach((id) => {
+        if (!productIds.has(id)) {
+          delete next[id];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [products]);
+
+  useEffect(() => {
+    setQuantityInputs((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      const currentProductIds = new Set(products.map((product) => product.id));
+
+      Object.keys(next).forEach((id) => {
+        if (!currentProductIds.has(id)) {
+          delete next[id];
+          changed = true;
+        }
+      });
+
+      products.forEach((product) => {
+        if (editingInputs[product.id]) {
+          return;
+        }
+        const syncedValue = product.quantity.toString();
+        if (next[product.id] !== syncedValue) {
+          next[product.id] = syncedValue;
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [products, editingInputs]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
   };
@@ -69,8 +122,8 @@ export const POSProductList: React.FC<POSProductListProps> = ({
           </div>
         ) : (
           <div className="divide-y divide-[#e7e7e7]">
-            {products.map((product, index) => (
-              <div key={`${product.id}-${index}`} className="px-4 py-2 hover:bg-gray-50">
+            {products.map((product) => (
+              <div key={product.id} className="px-4 py-2 hover:bg-gray-50">
                 <div className="grid grid-cols-12 gap-4 items-center">
                   {/* Product Info with Image */}
                   <div className="col-span-5 flex items-center gap-3 min-w-0">
@@ -127,25 +180,73 @@ export const POSProductList: React.FC<POSProductListProps> = ({
                   {/* Quantity */}
                   <div className="col-span-2 flex items-center justify-center gap-2">
                     <button
-                      onClick={() =>
-                        onQuantityChange?.(
-                          product.id,
-                          Math.max(0, product.quantity - 1)
-                        )
-                      }
+                      onClick={() => {
+                        const nextQuantity = Math.max(1, product.quantity - 1);
+                        if (nextQuantity === product.quantity) {
+                          return;
+                        }
+                        setQuantityInputs((prev) => ({
+                          ...prev,
+                          [product.id]: nextQuantity.toString(),
+                        }));
+                        onQuantityChange?.(product.id, nextQuantity);
+                      }}
                       className="w-7 h-7 flex items-center justify-center border border-[#e7e7e7] rounded text-[#272424] hover:bg-gray-100 transition-colors"
                     >
                       -
                     </button>
                     <input
                       type="number"
-                      value={product.quantity}
+                      value={
+                        quantityInputs[product.id] ??
+                        product.quantity.toString()
+                      }
+                      onFocus={() =>
+                        setEditingInputs((prev) => ({
+                          ...prev,
+                          [product.id]: true,
+                        }))
+                      }
                       onChange={(e) => {
-                        const qty = parseInt(e.target.value) || 0;
-                        onQuantityChange?.(product.id, Math.max(0, qty));
+                        const rawValue = e.target.value;
+                        if (/^\d*$/.test(rawValue)) {
+                          setQuantityInputs((prev) => ({
+                            ...prev,
+                            [product.id]: rawValue,
+                          }));
+                        }
+                      }}
+                      onBlur={() => {
+                        const rawValue = quantityInputs[product.id];
+                        let nextQuantity = Number.parseInt(rawValue ?? "", 10);
+
+                        if (Number.isNaN(nextQuantity) || nextQuantity <= 0) {
+                          nextQuantity = product.quantity || 1;
+                        }
+
+                        setEditingInputs((prev) => {
+                          const updated = { ...prev };
+                          delete updated[product.id];
+                          return updated;
+                        });
+
+                        setQuantityInputs((prev) => ({
+                          ...prev,
+                          [product.id]: nextQuantity.toString(),
+                        }));
+
+                        if (nextQuantity !== product.quantity) {
+                          onQuantityChange?.(product.id, nextQuantity);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          (e.target as HTMLInputElement).blur();
+                        }
                       }}
                       className="w-12 text-center text-sm text-[#272424] border border-[#e7e7e7] rounded py-1.5 focus:outline-none focus:border-[#e04d30]"
-                      min="0"
+                      min="1"
+                      inputMode="numeric"
                     />
                   </div>
                   {/* Total */}
@@ -175,5 +276,7 @@ export const POSProductList: React.FC<POSProductListProps> = ({
     </div>
   );
 };
+
+export const POSProductList = React.memo(POSProductListComponent);
 
 export default POSProductList;

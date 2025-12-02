@@ -1,5 +1,5 @@
 // src/api/endpoints/attributeApi.ts - Attribute management API calls
-import api from "../apiClient";
+import api from '../apiClient';
 import type {
   ApiResponse,
   CategoryParentPageResponse,
@@ -9,12 +9,12 @@ import type {
   CategoryParentUpdateRequest,
   CategoryChildUpdateRequest,
   SelectAllRequest,
-  BrandCreateRequest,
-  BrandPageResponse,
+  CategoryStatus,
   CategoryPublicResponse,
   SimpleCategoryResponse,
+  BrandPageResponse,
+  BrandCreateRequest,
 } from '../../types';
-
 
 // Category Parent APIs
 export const getCategoryParentList = async (params?: {
@@ -25,38 +25,29 @@ export const getCategoryParentList = async (params?: {
   return response.data.data;
 };
 
-export const createCategoryParent = async (
-  categoryData: CategoryParentCreateRequest
-): Promise<ApiResponse<number>> => {
-  const response = await api.post<ApiResponse<number>>(
-    "/auth/v1/private/attribute/category-parent",
-    categoryData
-  );
+export const createCategoryParent = async (categoryData: CategoryParentCreateRequest): Promise<ApiResponse<number>> => {
+  const response = await api.post<ApiResponse<number>>('/auth/v1/private/attribute/category-parent', categoryData);
   return response.data;
 };
 
 export const updateCategoryParent = async (
-  categoryData: CategoryParentUpdateRequest
+  categoryData: CategoryParentUpdateRequest,
+  status: CategoryStatus
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/attribute/category-parent",
-    categoryData
+    '/auth/v1/private/attribute/category-parent',
+    categoryData,
+    { params: { status } }
   );
   return response.data;
 };
 
 // Category Child APIs
-export const getCategoryChildListByParent = async (
-  parentId: number,
-  params?: {
-    page?: number;
-    size?: number;
-  }
-): Promise<CategoryChildPageResponse> => {
-  const response = await api.get<ApiResponse<CategoryChildPageResponse>>(
-    `/auth/v1/private/attribute/category-child/${parentId}`,
-    { params }
-  );
+export const getCategoryChildListByParent = async (parentId: number, params?: {
+  page?: number;
+  size?: number;
+}): Promise<CategoryChildPageResponse> => {
+  const response = await api.get<ApiResponse<CategoryChildPageResponse>>(`/auth/v1/private/attribute/category-child/${parentId}`, { params });
   return response.data.data;
 };
 
@@ -64,54 +55,44 @@ export const getCategoryChildList = async (params?: {
   page?: number;
   size?: number;
 }): Promise<CategoryChildPageResponse> => {
-  const response = await api.get<ApiResponse<CategoryChildPageResponse>>(
-    "/auth/v1/private/attribute/category-child",
-    { params }
-  );
+  const response = await api.get<ApiResponse<CategoryChildPageResponse>>('/auth/v1/private/attribute/category-child', { params });
   return response.data.data;
 };
 
-export const createCategoryChild = async (
-  categoryData: CategoryChildCreateRequest
-): Promise<ApiResponse<number>> => {
-  const response = await api.post<ApiResponse<number>>(
-    "/auth/v1/private/attribute/category-child",
-    categoryData
-  );
+export const createCategoryChild = async (categoryData: CategoryChildCreateRequest): Promise<ApiResponse<number>> => {
+  const response = await api.post<ApiResponse<number>>('/auth/v1/private/attribute/category-child', categoryData);
   return response.data;
 };
 
 export const updateCategoryChild = async (
-  categoryData: CategoryChildUpdateRequest
+  categoryData: CategoryChildUpdateRequest,
+  status: CategoryStatus
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/attribute/category-child",
-    categoryData
+    '/auth/v1/private/attribute/category-child',
+    categoryData,
+    { params: { status } }
   );
   return response.data;
 };
 
 // Category Bulk Operations
-export const enableAllCategories = async (
-  request: SelectAllRequest
-): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/attribute/category/enable-all",
-    request
-  );
+export const enableAllCategories = async (request: SelectAllRequest): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/attribute/category/enable-all', request);
   return response.data;
 };
 
-export const disableAllCategories = async (
-  request: SelectAllRequest
-): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/attribute/category/disable-all",
-    request
-  );
+export const disableAllCategories = async (request: SelectAllRequest): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>('/auth/v1/private/attribute/category/disable-all', request);
   return response.data;
 };
 
+export const deleteCategory = async (categoryId: number): Promise<ApiResponse<null>> => {
+  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/attribute/category', {
+    params: { id: categoryId },
+  });
+  return response.data;
+};
 
 // Brand APIs
 export const getBrandList = async (params?: {
@@ -129,13 +110,6 @@ export const getBrandList = async (params?: {
 
 export const createBrand = async (brandData: BrandCreateRequest): Promise<ApiResponse<number>> => {
   const response = await api.post<ApiResponse<number>>('/auth/v1/private/attribute/brand', brandData);
-  return response.data;
-};
-
-export const deleteCategory = async (categoryId: number): Promise<ApiResponse<null>> => {
-  const response = await api.delete<ApiResponse<null>>('/auth/v1/private/attribute/category', {
-    params: { id: categoryId },
-  });
   return response.data;
 };
 

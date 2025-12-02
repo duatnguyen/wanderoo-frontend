@@ -9,6 +9,7 @@ export interface PosOrderListParams {
   page?: number;
   size?: number;
   sort?: string; // e.g. createdAt,desc
+  paymentStatus?: string; // PAID, UNPAID, PARTIAL, REFUNDED
 }
 
 export interface PosOrderListItem {
@@ -26,14 +27,17 @@ export interface ProductOrderDetailResponse {
   productName: string;
   productImage?: string;
   category?: string;
-  unitPrice: number;
+  unitPrice: number; // Giá sau giảm (discounted price)
+  originalPrice?: number; // Giá gốc (original price)
   quantity: number;
   totalPrice: number;
 }
 
 export interface PaymentSummaryResponse {
   totalProductPrice: number;
-  discountAmount: number;
+  discountAmount: number; // Total discount (product + order)
+  productDiscountAmount?: number; // Product discount only
+  orderDiscountAmount?: number; // Order discount only
   totalOrderPrice: number;
   cashReceived: number;
   change: number;
@@ -65,6 +69,7 @@ export const getPosOrderList = async (
   if (params.fromDate) queryParams.fromDate = params.fromDate;
   if (params.toDate) queryParams.toDate = params.toDate;
   if (params.sort) queryParams.sort = params.sort;
+  if (params.paymentStatus) queryParams.paymentStatus = params.paymentStatus;
 
   const resp = await apiClient.get<ApiResponse<PageResponse<PosOrderListItem>>>(
     '/api/v1/pos/orders',

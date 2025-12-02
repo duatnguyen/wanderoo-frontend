@@ -68,8 +68,8 @@ export const POSOrderTabs: React.FC<POSOrderTabsProps> = ({
       {onOrderAdd && orders.length < 5 && (
         <button
           onClick={onOrderAdd}
-          className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-white/50 hover:bg-white transition-colors flex-shrink-0"
-          aria-label="Add new order"
+          className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white hover:bg-white/90 shadow-sm flex-shrink-0 transition-colors"
+          aria-label="Thêm hóa đơn mới"
           title="Thêm hóa đơn mới"
         >
           <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-[#272424]" />

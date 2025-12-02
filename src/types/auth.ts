@@ -1,5 +1,5 @@
 // src/types/auth.ts - Authentication and user management types
-import type { PageResponse } from "./common";
+import type { PageResponse } from './common';
 
 export interface UserResponse {
   id: number;
@@ -27,6 +27,23 @@ export interface AddressResponse {
   receiverName?: string | null; // Receiver name from address
   receiverPhone?: string | null; // Receiver phone from address
   isDefault: string | boolean; // Backend returns "Địa chỉ mặc định" or "Địa chỉ không mặc định" as string
+  name: string;
+  phone: string;
+  receiverName?: string | null;
+  receiverPhone?: string | null;
+  street?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  districtId?: number | null;
+  districtName?: string | null;
+  provinceName?: string | null;
+  fullAddress?: string | null;
+  isDefault: string | boolean | null;
+  // Legacy fallback fields
+  province?: string | null;
+  district?: string | null;
+  ward?: string | null;
+  location?: string | null;
 }
 
 export interface AddressPageResponse {
@@ -128,6 +145,8 @@ export interface AddressCreationRequest {
   fullAddress?: string;
   name: string;
   phone: string;
+  wardCode: string;
+  districtId: number;
 }
 
 export interface AddressUpdateRequest extends AddressCreationRequest {
@@ -158,6 +177,9 @@ export interface CustomerCreationRequest {
   address?: string;
   gender?: "MALE" | "FEMALE" | "OTHER";
   birthday?: string;
+  address?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null;
 }
 
 export interface CustomerUpdateRequest extends CustomerCreationRequest {

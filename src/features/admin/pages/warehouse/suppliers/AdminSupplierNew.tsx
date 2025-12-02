@@ -290,10 +290,14 @@ const AdminSupplierNew = () => {
 
     if (!formData.ward.trim()) {
       newErrors.ward = "Phường/Xã là bắt buộc";
+    } else if (!formData.wardCode) {
+      newErrors.ward = "Vui lòng chọn phường/xã hợp lệ";
     }
 
     if (!formData.district.trim()) {
       newErrors.district = "Quận/Huyện là bắt buộc";
+    } else if (typeof formData.districtId !== "number") {
+      newErrors.district = "Vui lòng chọn quận/huyện hợp lệ";
     }
 
     if (!formData.city.trim()) {
@@ -312,15 +316,22 @@ const AdminSupplierNew = () => {
     if (validateForm()) {
       try {
         setIsSubmitting(true);
+        if (!formData.districtId || !formData.wardCode) {
+          toast.error("Vui lòng chọn đầy đủ quận/huyện và phường/xã.");
+          return;
+        }
+
         await createProvider({
           name: formData.supplierName.trim(),
           phone: formData.phone.trim(),
           email: formData.email.trim(),
           note: formData.note?.trim() || "",
-          province: formData.city.trim(),
-          ward: formData.ward.trim(),
-          district: formData.district.trim(),
-          location: formData.street.trim(),
+          provinceName: formData.city.trim(),
+          districtName: formData.district.trim(),
+          districtId: formData.districtId,
+          wardName: formData.ward.trim(),
+          wardCode: formData.wardCode,
+          street: formData.street.trim(),
         });
         toast.success("Thêm nhà cung cấp thành công");
         navigate("/admin/warehouse/supplier", {
