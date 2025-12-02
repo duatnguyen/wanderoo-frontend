@@ -13,6 +13,13 @@ import {
 } from "../../../../api/endpoints/posApi";
 import Loading from "../../../../components/common/Loading";
 
+const DEFAULT_RETURN_REASONS: Array<{ value: ReturnReasonEnum; label: string }> = [
+  { value: "PRODUCT_ERROR", label: "Sản phẩm lỗi" },
+  { value: "CUSTOMER_CHANGE_MIND", label: "Khách đổi ý" },
+];
+
+const CUSTOM_REASON_STORAGE_KEY = "pos-custom-return-reasons";
+
 const CreateReturnOrder: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
@@ -43,6 +50,23 @@ const CreateReturnOrder: React.FC = () => {
   const [note, setNote] = useState("");
   const [refundMethod, setRefundMethod] = useState("Chuyển khoản");
   const [refundAmount, setRefundAmount] = useState(0);
+  const [customReasons, setCustomReasons] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = window.localStorage.getItem(CUSTOM_REASON_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isAddingReason, setIsAddingReason] = useState(false);
+  const [newReasonInput, setNewReasonInput] = useState("");
+  const [customReasonError, setCustomReasonError] = useState("");
+  const [selectedReasonLabel, setSelectedReasonLabel] = useState(
+    DEFAULT_RETURN_REASONS[1].label
+  );
+  const [customReasonNote, setCustomReasonNote] = useState<string | null>(null);
 
   useEffect(() => {
     if (orderDetailData?.products) {
@@ -61,13 +85,10 @@ const CreateReturnOrder: React.FC = () => {
           reason: "CUSTOMER_CHANGE_MIND",
         }))
       );
+      setSelectedReasonLabel(DEFAULT_RETURN_REASONS[1].label);
+      setCustomReasonNote(null);
     }
   }, [orderDetailData]);
-
-  const returnReasons: Array<{ value: ReturnReasonEnum; label: string }> = [
-    { value: "PRODUCT_ERROR", label: "Sản phẩm lỗi" },
-    { value: "CUSTOMER_CHANGE_MIND", label: "Khách đổi ý" },
-  ];
 
   const refundMethods = ["Chuyển khoản", "Tiền mặt"];
 
@@ -86,8 +107,7 @@ const CreateReturnOrder: React.FC = () => {
     const discounted = calculateDiscountedPrice(item.product.price);
     return sum + discounted * item.returnQuantity;
   }, 0);
-  const discount = 0;
-  const totalRefund = totalAmount - discount;
+  const totalRefund = totalAmount;
 
   useEffect(() => {
     setRefundAmount(totalRefund);
@@ -109,16 +129,57 @@ const CreateReturnOrder: React.FC = () => {
     ));
   };
 
-  const handleReasonChange = (productId: string, reasonLabel: string) => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      CUSTOM_REASON_STORAGE_KEY,
+      JSON.stringify(customReasons)
+    );
+  }, [customReasons]);
+
+  const handleReasonSelection = (reasonLabel: string) => {
     const reasonValue =
-      returnReasons.find((r) => r.label === reasonLabel)?.value ||
+      DEFAULT_RETURN_REASONS.find((r) => r.label === reasonLabel)?.value ||
       "CUSTOMER_CHANGE_MIND";
+    const isCustomReason = !DEFAULT_RETURN_REASONS.some(
+      (reason) => reason.label === reasonLabel
+    );
+    setSelectedReasonLabel(reasonLabel);
+    setCustomReasonNote(isCustomReason ? reasonLabel : null);
     setReturnProducts((prev) =>
-      prev.map((item) =>
-        item.product.id === productId ? { ...item, reason: reasonValue } : item
-      )
+      prev.map((item) => ({
+        ...item,
+        reason: reasonValue,
+      }))
     );
   };
+
+  const handleAddCustomReason = () => {
+    const trimmed = newReasonInput.trim();
+    if (!trimmed) {
+      setCustomReasonError("Vui lòng nhập lý do");
+      return;
+    }
+    const normalized = trimmed.toLowerCase();
+    const allLabels = [
+      ...DEFAULT_RETURN_REASONS.map((reason) => reason.label.toLowerCase()),
+      ...customReasons.map((reason) => reason.toLowerCase()),
+    ];
+    if (allLabels.includes(normalized)) {
+      setCustomReasonError("Lý do đã tồn tại");
+      return;
+    }
+    setCustomReasons((prev) => [...prev, trimmed]);
+    setNewReasonInput("");
+    setIsAddingReason(false);
+    setCustomReasonError("");
+    handleReasonSelection(trimmed);
+  };
+
+  const dropdownReasonOptions = [
+    ...DEFAULT_RETURN_REASONS.map((reason) => reason.label),
+    ...customReasons,
+  ];
 
   const createReturnOrderMutation = useMutation({
     mutationFn: async (data: {
@@ -171,6 +232,13 @@ const CreateReturnOrder: React.FC = () => {
       totalReturnQty >= totalOriginalQty ? "FULL" : "PARTIAL";
 
     const returnReason = returnProducts[0]?.reason || "CUSTOMER_CHANGE_MIND";
+    const userNote = note.trim();
+    const combinedNote = [
+      customReasonNote ? `Lý do bổ sung: ${customReasonNote}` : null,
+      userNote ? userNote : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     const payloadProducts = returnProducts
       .filter((item) => item.returnQuantity > 0)
@@ -184,7 +252,7 @@ const CreateReturnOrder: React.FC = () => {
       orderId: Number(orderId),
       returnType,
       returnReason,
-      notes: note || undefined,
+      notes: combinedNote || undefined,
       returnProducts: payloadProducts,
     });
   };
@@ -357,28 +425,72 @@ const CreateReturnOrder: React.FC = () => {
               ))}
               {returnProducts.length > 0 && (
                 <div>
-                  <p className="text-[15px] font-semibold text-[#272424] mb-2">
-                    Lý do chọn trả hàng
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <p className="text-[15px] font-semibold text-[#272424] m-0">
+                      Lý do chọn trả hàng
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingReason((prev) => !prev);
+                        setCustomReasonError("");
+                      }}
+                      className="text-xs font-semibold text-[#e04d30] border border-[#e04d30] rounded-full px-3 py-1 hover:bg-[#e04d30] hover:text-white transition-colors"
+                    >
+                      {isAddingReason ? "Đóng" : "+ Thêm lý do"}
+                    </button>
+                  </div>
                   <div className="bg-[#f5f5f5] rounded-md">
                     <div className="p-2.5">
                       <SimpleDropdown
-                        value={
-                          returnReasons.find(
-                            (r) => r.value === returnProducts[0]?.reason
-                          )?.label || ""
-                        }
-                        onValueChange={(reasonLabel) =>
-                          handleReasonChange(
-                            returnProducts[0]?.product.id || "",
-                            reasonLabel
-                          )
-                        }
-                        options={returnReasons.map((r) => r.label)}
+                        value={selectedReasonLabel || ""}
+                        onValueChange={handleReasonSelection}
+                        options={dropdownReasonOptions}
                         placeholder="Chọn lý do"
                       />
                     </div>
                   </div>
+                  {isAddingReason && (
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={newReasonInput}
+                        onChange={(e) => {
+                          setNewReasonInput(e.target.value);
+                          if (customReasonError) setCustomReasonError("");
+                        }}
+                        placeholder="Nhập lý do mới..."
+                        className="flex-1 border border-[#e7e7e7] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#e04d30]"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleAddCustomReason}
+                          className="px-4 py-2 bg-[#e04d30] text-white text-sm font-medium rounded-md hover:bg-[#d04327]"
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingReason(false);
+                            setNewReasonInput("");
+                            setCustomReasonError("");
+                          }}
+                          className="px-4 py-2 border border-[#e7e7e7] text-sm font-medium rounded-md text-[#272424] hover:bg-gray-100"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {customReasonError && (
+                    <p className="text-xs text-red-500 mt-2">{customReasonError}</p>
+                  )}
+                  {customReasonNote && !customReasonError && (
+                    <p className="text-xs text-[#737373] mt-2">
+                      Lý do mới sẽ được lưu lại và ghi kèm vào ghi chú khi tạo đơn.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -422,14 +534,7 @@ const CreateReturnOrder: React.FC = () => {
                 {formatCurrency(totalAmount)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-[#e04d30]">
-                Giảm giá
-              </span>
-              <span className="text-sm font-bold text-[#e04d30]">
-                {formatCurrency(discount)}
-              </span>
-            </div>
+            <div className="h-px bg-[#e7e7e7]" />
             <div className="flex justify-between items-center mt-3">
               <span className="text-sm font-medium text-[#272424]">
                 Tổng hoàn trả
