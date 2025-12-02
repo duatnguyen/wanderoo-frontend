@@ -14,15 +14,12 @@ export const productValidationRules: ValidationRules = {
     { minLength: 10, message: "Mô tả phải có ít nhất 10 ký tự" }
   ],
   costPrice: [
-    { required: true, message: "Giá vốn là bắt buộc" },
     { pattern: /^\d+$/, message: "Giá vốn phải là số" }
   ],
   sellingPrice: [
-    { required: true, message: "Giá bán là bắt buộc" },
     { pattern: /^\d+$/, message: "Giá bán phải là số" }
   ],
   inventory: [
-    { required: true, message: "Tồn kho là bắt buộc" },
     { pattern: /^\d+$/, message: "Tồn kho phải là số nguyên" }
   ],
   weight: [
@@ -36,19 +33,26 @@ export const validateField = (field: string, value: string): string => {
   if (!rules) return '';
 
   for (const rule of rules) {
-    if (rule.required && !value.trim()) {
+    const trimmed = value.trim();
+
+    if (rule.required && !trimmed) {
       return rule.message;
     }
-    
-    if (rule.minLength && value.length < rule.minLength) {
+
+    // Nếu cho phép bỏ trống thì chỉ kiểm tra các rule khác khi có giá trị
+    if (!trimmed) {
+      continue;
+    }
+
+    if (rule.minLength && trimmed.length < rule.minLength) {
       return rule.message;
     }
-    
-    if (rule.maxLength && value.length > rule.maxLength) {
+
+    if (rule.maxLength && trimmed.length > rule.maxLength) {
       return rule.message;
     }
-    
-    if (rule.pattern && !rule.pattern.test(value)) {
+
+    if (rule.pattern && !rule.pattern.test(trimmed)) {
       return rule.message;
     }
   }
