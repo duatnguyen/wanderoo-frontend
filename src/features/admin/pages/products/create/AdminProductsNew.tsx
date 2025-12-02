@@ -29,7 +29,7 @@ import type {
   ProductImage,
   FormErrors,
 } from "@/types/product";
-import type { ProductCreateRequest } from "@/types";
+import type { ProductCreateRequest } from "@/types/api";
 import { validateForm, validateField } from "@/utils/productValidation";
 import {
   createProductPrivate,
@@ -506,8 +506,14 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         const payload: ProductCreateRequest = {
           name: formData.productName.trim(),
           description: formData.description.trim(),
-          price: toFloat(formData.sellingPrice),
+          sellingPrice: toFloat(formData.sellingPrice),
           categoryId: formData.categoryId!,
+          brandId: formData.brandId!,
+          ...(formData.costPrice && { importPrice: toFloat(formData.costPrice) }),
+          ...(formData.weight && { packagedWeight: toFloat(formData.weight) }),
+          ...(formData.length && { length: toFloat(formData.length) }),
+          ...(formData.width && { width: toFloat(formData.width) }),
+          ...(formData.height && { height: toFloat(formData.height) }),
         };
 
         console.log("Creating product with payload:", payload);

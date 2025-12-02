@@ -29,6 +29,7 @@ import type {
   UpdateItemQuantityRequest,
   UpdateVariantQuantityRequest,
 } from '../../types';
+import type { ProductCreateRequest as BackendProductCreateRequest } from '../../types/api';
 
 type ProductListQuery = {
   keyword?: string;
@@ -85,7 +86,7 @@ export const getPublicCategoryBrands = async (): Promise<BrandResponse[]> => {
 };
 
 // Admin Product APIs (Private v1)
-export const createProductPrivate = async (productData: ProductCreateRequest): Promise<ApiResponse<number>> => {
+export const createProductPrivate = async (productData: BackendProductCreateRequest): Promise<ApiResponse<number>> => {
   const response = await api.post<ApiResponse<number>>('/auth/v1/private/product/', productData);
   return response.data;
 };
