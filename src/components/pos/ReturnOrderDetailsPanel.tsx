@@ -236,14 +236,6 @@ export const ReturnOrderDetailsPanel: React.FC<
                       {formatCurrency(returnOrder.returnedSummary.totalAmount)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-[#e04d30]">
-                      Giảm giá
-                    </span>
-                    <span className="text-sm font-bold text-[#e04d30]">
-                      {formatCurrency(returnOrder.returnedSummary.discount)}
-                    </span>
-                  </div>
                   <div className="flex justify-between items-center pt-3 border-t border-[#e7e7e7]">
                     <span className="text-sm font-medium text-[#272424]">
                       Tổng giá trị hoàn trả
