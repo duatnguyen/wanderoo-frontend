@@ -15,6 +15,7 @@ import {
   getAllProductsPrivate,
   getActiveProductsPrivate,
   getInactiveProductsPrivate,
+  getProductVariantsPrivate,
   disableProductsPrivate,
   enableProductsPrivate,
   updateProductDisplayPrivate,

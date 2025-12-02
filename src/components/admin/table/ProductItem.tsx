@@ -21,16 +21,32 @@ const ProductItem: React.FC<ProductItemProps> = ({
     isVariantsLoading,
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const hasVariants = Boolean(product.variants && product.variants.length > 0);
+    const [localVariants, setLocalVariants] = useState<ProductVariant[] | null>(product.variants ?? null);
+
+    const hasVariants = Boolean((localVariants ?? product.variants)?.length);
     const canExpand = Boolean(onLoadVariants) || hasVariants;
+
+    const variantsToDisplay = localVariants ?? product.variants;
 
     const toggleExpanded = () => {
         if (!canExpand) return;
         if (!isExpanded && onLoadVariants) {
-            onLoadVariants(product.id).catch(() => undefined);
+            onLoadVariants(product.id)
+                ?.then((variants) => {
+                    if (Array.isArray(variants)) {
+                        setLocalVariants(variants);
+                    }
+                })
+                .catch(() => undefined);
         }
         setIsExpanded((prev) => !prev);
     };
+
+    React.useEffect(() => {
+        if (product.variants && product.variants !== localVariants) {
+            setLocalVariants(product.variants);
+        }
+    }, [product.variants]);
 
     return (
         <>
@@ -163,14 +179,14 @@ const ProductItem: React.FC<ProductItemProps> = ({
                             Đang tải biến thể...
                         </div>
                     )}
-                    {!isVariantsLoading && (!product.variants || product.variants.length === 0) && (
+                    {!isVariantsLoading && variantsToDisplay && variantsToDisplay.length === 0 && (
                         <div className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center justify-center px-0 py-6 w-full text-sm text-gray-500">
                             Sản phẩm này chưa có biến thể
                         </div>
                     )}
                 </>
             )}
-            {isExpanded && !isVariantsLoading && product.variants?.map((variant) => (
+            {isExpanded && !isVariantsLoading && variantsToDisplay?.map((variant) => (
                 <div key={variant.id} className="bg-[#f6f6f6] border-b-[0.5px] border-[#e7e7e7] flex items-center px-0 py-0 w-full hover:bg-gray-100">
                     <div className="flex flex-row items-center w-full h-full">
                         {/* Variant Name */}
