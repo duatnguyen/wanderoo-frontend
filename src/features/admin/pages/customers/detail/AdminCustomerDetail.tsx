@@ -14,7 +14,7 @@ import {
 } from "@/components/common";
 import { getCustomerById, updateCustomer, getCustomerAddresses, updateCustomerAddress, createCustomerAddress } from "@/api/endpoints/userApi";
 import { getProvinces, getDistrictsByPath, getWardsByPath } from "@/api/endpoints/shippingApi";
-import { getCustomerOrders } from "@/api/endpoints/orderApi";
+import { getAdminCustomerOrders } from "@/api/endpoints/orderApi";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,16 +57,11 @@ const normalizeAddressPart = (value?: string | null) => {
 const formatAddressText = (address?: AddressResponse | null) => {
   if (!address) return "Chưa có địa chỉ";
 
-  const normalizedFull = normalizeAddressPart(address.fullAddress);
-  if (normalizedFull) {
-    return normalizedFull;
-  }
-
   const parts = [
-    normalizeAddressPart(address.street) || normalizeAddressPart((address as any).location),
-    normalizeAddressPart(address.wardName) || normalizeAddressPart((address as any).ward),
-    normalizeAddressPart(address.districtName) || normalizeAddressPart((address as any).district),
-    normalizeAddressPart(address.provinceName) || normalizeAddressPart((address as any).province),
+    normalizeAddressPart(address.location),
+    normalizeAddressPart(address.ward),
+    normalizeAddressPart(address.district),
+    normalizeAddressPart(address.province),
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(", ") : "Chưa có địa chỉ";
@@ -424,8 +419,7 @@ const AdminCustomerDetail = () => {
     isLoading: isLoadingOrders,
   } = useQuery({
     queryKey: ["admin-customer-orders", customerId],
-    queryFn: () => getCustomerOrders({
-      userId: Number(customerId),
+    queryFn: () => getAdminCustomerOrders({
       page: 0,
       size: 10, // Lấy 10 đơn hàng gần đây nhất
     }),
@@ -436,7 +430,7 @@ const AdminCustomerDetail = () => {
   const updateCustomerMutation = useMutation({
     mutationFn: (data: CustomerUpdateRequest) => {
       console.log("updateCustomerMutation called with:", data);
-      return updateCustomer(data.id, data);
+      return updateCustomer(data.id, data as any);
     },
     onSuccess: async () => {
       setFormErrors({});
@@ -571,7 +565,7 @@ const AdminCustomerDetail = () => {
             addr.isDefault === "true" ||
             addr.isDefault === "Địa chỉ mặc định"
         ) || addressesData.addresses[0];
-      setDefaultAddress(defaultAddr);
+      setDefaultAddress(defaultAddr as any);
     } else {
       setDefaultAddress(null);
     }
@@ -649,7 +643,7 @@ const AdminCustomerDetail = () => {
       password: undefined,
       address: customer.address || "", // Keep existing address
       gender: formData.gender === "Nam" ? "MALE" : "FEMALE", // Convert to backend format
-      birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : customer.birthday ? new Date(customer.birthday).toISOString() : undefined,
+      birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : (customer.birthday ? new Date(customer.birthday).toISOString() : undefined),
       // Note: address field is for contact address, not delivery address
       // Delivery address is managed separately via Address entity
     };
@@ -661,14 +655,14 @@ const AdminCustomerDetail = () => {
   const resetAddressData = () => {
     if (defaultAddress) {
       // Reset to existing address
-      const provinceName = normalizeAddressPart(defaultAddress.provinceName) || normalizeAddressPart((defaultAddress as any).province);
-      const districtName = normalizeAddressPart(defaultAddress.districtName) || normalizeAddressPart((defaultAddress as any).district);
-      const wardName = normalizeAddressPart(defaultAddress.wardName) || normalizeAddressPart((defaultAddress as any).ward);
-      const street = normalizeAddressPart(defaultAddress.street) || normalizeAddressPart((defaultAddress as any).location);
+      const provinceName = normalizeAddressPart(defaultAddress.province);
+      const districtName = normalizeAddressPart(defaultAddress.district);
+      const wardName = normalizeAddressPart(defaultAddress.ward);
+      const street = normalizeAddressPart(defaultAddress.location);
       setAddressData({
         id: defaultAddress.id,
-        name: defaultAddress.receiverName || defaultAddress.name || customer.name,
-        phone: defaultAddress.receiverPhone || defaultAddress.phone || customer.phone,
+        name: defaultAddress.name || customer.name,
+        phone: defaultAddress.phone || customer.phone,
         province: provinceName,
         provinceId: null,
         district: districtName,
@@ -851,8 +845,8 @@ const AdminCustomerDetail = () => {
                   <p className="font-bold text-[#272424] text-[24px] leading-normal">
                     {(() => {
                       // Tính từ ordersData nếu có
-                      if (ordersData?.content && ordersData.content.length > 0) {
-                        const total = ordersData.content.reduce((sum, order) => {
+                      if (ordersData?.orders && ordersData.orders.length > 0) {
+                        const total = ordersData.orders.reduce((sum: number, order: any) => {
                           return sum + (order.totalAmount || 0);
                         }, 0);
                         return new Intl.NumberFormat('vi-VN', { 
@@ -909,12 +903,12 @@ const AdminCustomerDetail = () => {
                     <div className="px-[16px] py-[8px] text-[#737373] text-[14px]">
                       Đang tải đơn hàng...
                     </div>
-                  ) : !ordersData?.content || ordersData.content.length === 0 ? (
+                  ) : !ordersData?.orders || ordersData.orders.length === 0 ? (
                     <div className="px-[16px] py-[8px] text-[#737373] text-[14px]">
                       Khách hàng chưa có đơn hàng nào
                     </div>
                   ) : (
-                    ordersData.content.map((order, index) => {
+                    ordersData.orders.map((order: any, index: number) => {
                       // Format date
                       const orderDate = order.createdAt
                         ? new Date(order.createdAt).toLocaleDateString("vi-VN", {
@@ -988,7 +982,7 @@ const AdminCustomerDetail = () => {
                         <div
                           key={order.id}
                           className={`flex items-center justify-between px-[16px] py-[8px] ${
-                            index < ordersData.content.length - 1
+                            index < ordersData.orders.length - 1
                               ? "border-b border-[#d1d1d1]"
                               : ""
                           }`}
@@ -1136,7 +1130,7 @@ const AdminCustomerDetail = () => {
                     Người nhận
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {defaultAddress?.receiverName || defaultAddress?.name || customer.name}
+                    {defaultAddress?.name || customer.name}
                   </p>
                 </div>
                 <div className="flex flex-col gap-[4px]">
@@ -1144,7 +1138,7 @@ const AdminCustomerDetail = () => {
                     Số điện thoại
                   </p>
                   <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {defaultAddress?.receiverPhone || defaultAddress?.phone || customer.phone}
+                    {defaultAddress?.phone || customer.phone}
                   </p>
                 </div>
               </div>
