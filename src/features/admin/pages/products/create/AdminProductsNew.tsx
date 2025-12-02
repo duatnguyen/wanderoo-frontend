@@ -506,14 +506,23 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         const payload: ProductCreateRequest = {
           name: formData.productName.trim(),
           description: formData.description.trim(),
-          sellingPrice: toFloat(formData.sellingPrice),
           categoryId: formData.categoryId!,
           brandId: formData.brandId!,
+          attributes: attributes.length > 0 ? attributes.map(attr => ({
+            name: attr.name,
+            values: attr.values
+          })) : [],
+          // Required fields with default values to satisfy backend validation
+          packagedWeight: formData.weight ? toFloat(formData.weight) : 1.0,
+          length: formData.length ? toFloat(formData.length) : 1.0,
+          width: formData.width ? toFloat(formData.width) : 1.0,
+          height: formData.height ? toFloat(formData.height) : 1.0,
+          // Optional fields
           ...(formData.costPrice && { importPrice: toFloat(formData.costPrice) }),
-          ...(formData.weight && { packagedWeight: toFloat(formData.weight) }),
-          ...(formData.length && { length: toFloat(formData.length) }),
-          ...(formData.width && { width: toFloat(formData.width) }),
-          ...(formData.height && { height: toFloat(formData.height) }),
+          ...(formData.sellingPrice && { sellingPrice: toFloat(formData.sellingPrice) }),
+          ...(images.length > 0 && { images: images.map(img => img.url) }),
+          ...(formData.inventory && { totalQuantity: parseInt(formData.inventory) || 0 }),
+          ...(formData.available && { availableQuantity: parseInt(formData.available) || 0 }),
         };
 
         console.log("Creating product with payload:", payload);
