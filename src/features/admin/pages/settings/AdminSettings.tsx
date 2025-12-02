@@ -17,10 +17,27 @@ import type {
   AdminPasswordUpdateRequest 
 } from "@/types/auth";
 
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^\w\s]).+$/;
+
 const toAbsoluteImageUrl = (url?: string | null) => {
   if (!url) return null;
   return url.startsWith("http") ? url : `${BASE_URL}${url}`;
 };
+
+const getInlineInputClass = (hasError: boolean) =>
+  `flex-1 px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 ${
+    hasError
+      ? "border-red-500 focus:ring-red-500"
+      : "border-[#E04D30] focus:ring-[#E04D30]"
+  }`;
+
+const getPasswordInputClass = (hasError: boolean) =>
+  `w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-1 pr-10 ${
+    hasError
+      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+      : "border-gray-300 focus:ring-[#E04D30] focus:border-[#E04D30]"
+  }`;
 
 const AdminSettings: React.FC = () => {
   const location = useLocation();
@@ -52,6 +69,21 @@ const AdminSettings: React.FC = () => {
     newPassword: "",
     confirmNewPassword: "",
   });
+  const [passwordErrors, setPasswordErrors] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+  const [passwordFeedback, setPasswordFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const passwordChecks = {
+    hasLength: passwordData.newPassword.length >= 8,
+    hasLetter: /[A-Za-z]/.test(passwordData.newPassword),
+    hasNumber: /\d/.test(passwordData.newPassword),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(passwordData.newPassword),
+  };
 
   // Inline editing states
   const [editingEmail, setEditingEmail] = useState(false);
@@ -60,6 +92,9 @@ const AdminSettings: React.FC = () => {
   const [emailValue, setEmailValue] = useState("");
   const [phoneValue, setPhoneValue] = useState("");
   const [birthdayValue, setBirthdayValue] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [birthdayError, setBirthdayError] = useState<string | null>(null);
 
   // Fetch admin profile
   const { data: adminProfile, isLoading: isLoadingProfile } = useQuery<AdminProfileDetailResponse>({
@@ -90,9 +125,18 @@ const AdminSettings: React.FC = () => {
         newPassword: "",
         confirmNewPassword: "",
       });
+      setPasswordFeedback({
+        type: "success",
+        message: "Đổi mật khẩu thành công.",
+      });
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Đổi mật khẩu thất bại");
+      const errorMessage = error?.response?.data?.message || "Đổi mật khẩu thất bại";
+      toast.error(errorMessage);
+      setPasswordFeedback({
+        type: "error",
+        message: errorMessage,
+      });
     },
   });
 
@@ -179,19 +223,29 @@ const AdminSettings: React.FC = () => {
   };
 
   // Handle email update
+  const handleStartEditEmail = () => {
+    if (profileData) {
+      setEmailValue(profileData.email || "");
+      setEmailError(null);
+      setEditingEmail(true);
+    }
+  };
+
   const handleUpdateEmail = async () => {
     if (!profileData) return;
-    if (!emailValue || !emailValue.includes("@")) {
-      toast.error("Email không hợp lệ");
+    
+    const trimmedEmail = emailValue.trim();
+    if (!trimmedEmail) {
+      setEmailError("Vui lòng nhập email.");
       return;
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(emailValue)) {
-      toast.error("Email không đúng định dạng");
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setEmailError("Định dạng email không đúng. Ví dụ: ten@gmail.com");
       return;
     }
+    setEmailError(null);
 
     try {
       // Backend requires image_url for admin - must not be null or empty
@@ -204,7 +258,7 @@ const AdminSettings: React.FC = () => {
         id: profileData.id,
         name: profileData.name || "", // Backend requires @NotBlank
         phone: profileData.phone || "", // Backend requires @NotBlank
-        email: emailValue,
+        email: trimmedEmail,
         image_url: profileData.image_url, // Required for admin
         gender: profileData.gender || undefined,
         birthday: profileData.birthday || undefined,
@@ -213,6 +267,7 @@ const AdminSettings: React.FC = () => {
       await updateProfile(updateData);
       setEditingEmail(false);
       setEmailValue("");
+      setEmailError(null);
     } catch (error: any) {
       console.error("Error updating email:", error);
       const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Cập nhật email thất bại";
@@ -225,6 +280,7 @@ const AdminSettings: React.FC = () => {
       setEmailValue(profileData.email);
     }
     setEditingEmail(false);
+    setEmailError(null);
   };
 
   // Handle phone update
@@ -232,10 +288,19 @@ const AdminSettings: React.FC = () => {
     if (!profileData) return;
     // Clean phone number - remove all non-digit characters
     const cleanPhone = phoneValue.replace(/\D/g, "");
-    if (!cleanPhone || cleanPhone.length < 10 || cleanPhone.length > 13) {
-      toast.error("Số điện thoại phải có từ 10 đến 13 chữ số");
+    if (!cleanPhone) {
+      setPhoneError("Vui lòng nhập số điện thoại.");
       return;
     }
+    if (!/^\d+$/.test(phoneValue)) {
+      setPhoneError("Số điện thoại chỉ được chứa chữ số.");
+      return;
+    }
+    if (cleanPhone.length < 10 || cleanPhone.length > 13) {
+      setPhoneError("Số điện thoại phải có từ 10 đến 13 chữ số.");
+      return;
+    }
+    setPhoneError(null);
 
     try {
       // Backend requires image_url for admin - must not be null or empty
@@ -257,6 +322,7 @@ const AdminSettings: React.FC = () => {
       await updateProfile(updateData);
       setEditingPhone(false);
       setPhoneValue("");
+      setPhoneError(null);
     } catch (error: any) {
       console.error("Error updating phone:", error);
       const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Cập nhật số điện thoại thất bại";
@@ -269,6 +335,7 @@ const AdminSettings: React.FC = () => {
       setPhoneValue(profileData.phone);
     }
     setEditingPhone(false);
+    setPhoneError(null);
   };
 
   // Handle birthday update
@@ -287,10 +354,18 @@ const AdminSettings: React.FC = () => {
       if (birthdayValue) {
         const date = new Date(birthdayValue);
         if (isNaN(date.getTime())) {
-          toast.error("Ngày sinh không hợp lệ");
+          setBirthdayError("Ngày sinh không hợp lệ.");
+          return;
+        }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+          setBirthdayError("Ngày sinh không được lớn hơn hiện tại.");
           return;
         }
         birthdayISO = date.toISOString();
+      } else {
+        setBirthdayError(null);
       }
 
       const updateData: AdminProfileUpdateRequest = {
@@ -305,6 +380,7 @@ const AdminSettings: React.FC = () => {
 
       await updateProfile(updateData);
       setEditingBirthday(false);
+      setBirthdayError(null);
     } catch (error: any) {
       console.error("Error updating birthday:", error);
       const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Cập nhật ngày sinh thất bại";
@@ -320,25 +396,70 @@ const AdminSettings: React.FC = () => {
       setBirthdayValue("");
     }
     setEditingBirthday(false);
+    setBirthdayError(null);
   };
 
   // Handle password change
+  const validatePasswordField = (field: keyof typeof passwordData, value: string) => {
+    if (passwordFeedback) {
+      setPasswordFeedback(null);
+    }
+    setPasswordErrors((prev) => ({
+      ...prev,
+      [field]: "",
+    }));
+    setPasswordData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
   const handleChangePassword = async () => {
-    if (passwordData.newPassword !== passwordData.confirmNewPassword) {
-      toast.error("Mật khẩu mới và xác nhận mật khẩu không khớp");
+    const errors = {
+      oldPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    };
+
+    if (!passwordData.oldPassword.trim()) {
+      errors.oldPassword = "Vui lòng nhập mật khẩu hiện tại.";
+    }
+
+    const newPassword = passwordData.newPassword.trim();
+    if (!newPassword) {
+      errors.newPassword = "Vui lòng nhập mật khẩu mới.";
+    } else if (newPassword.length < 8) {
+      errors.newPassword = "Mật khẩu mới phải có ít nhất 8 ký tự.";
+    } else if (!PASSWORD_COMPLEXITY_REGEX.test(newPassword)) {
+      errors.newPassword =
+        "Mật khẩu phải có chữ cái (hoa hoặc thường), ít nhất 1 chữ số và 1 ký tự đặc biệt.";
+    } else if (passwordData.oldPassword.trim() === newPassword) {
+      errors.newPassword = "Mật khẩu mới phải khác mật khẩu hiện tại.";
+    }
+
+    const confirmPassword = passwordData.confirmNewPassword.trim();
+    if (!confirmPassword) {
+      errors.confirmNewPassword = "Vui lòng nhập lại mật khẩu mới.";
+    } else if (newPassword !== confirmPassword) {
+      errors.confirmNewPassword = "Mật khẩu xác nhận không khớp.";
+    }
+
+    if (
+      errors.oldPassword ||
+      errors.newPassword ||
+      errors.confirmNewPassword
+    ) {
+      setPasswordErrors(errors);
       return;
     }
 
-    if (passwordData.newPassword.length < 8) {
-      toast.error("Mật khẩu mới phải có ít nhất 8 ký tự");
-      return;
-    }
-
-    try {
-      await updatePassword(passwordData as AdminPasswordUpdateRequest);
-    } catch (error) {
-      console.error("Error changing password:", error);
-    }
+    setPasswordFeedback(null);
+    await updatePassword(passwordData as AdminPasswordUpdateRequest);
+    setPasswordErrors({
+      oldPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    });
   };
 
   // Format phone number for display (mask middle digits)
@@ -347,16 +468,6 @@ const AdminSettings: React.FC = () => {
     const start = phone.substring(0, 2);
     const end = phone.substring(phone.length - 2);
     return `${start}${"*".repeat(phone.length - 4)}${end}`;
-  };
-
-  // Format email for display (mask middle part)
-  const formatEmailForDisplay = (email: string) => {
-    if (!email) return "";
-    const [localPart, domain] = email.split("@");
-    if (!localPart || !domain) return email;
-    if (localPart.length <= 3) return email;
-    const start = localPart.substring(0, 3);
-    return `${start}${"*".repeat(localPart.length - 3)}@${domain}`;
   };
 
   // Format date for display
@@ -434,70 +545,76 @@ const AdminSettings: React.FC = () => {
                   </label>
                   <div className="flex-1">
                     {editingEmail ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="email"
-                          value={emailValue}
-                          onChange={(e) => setEmailValue(e.target.value)}
-                          className="flex-1 px-4 py-2 border-2 border-[#E04D30] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E04D30]"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleUpdateEmail();
-                            if (e.key === "Escape") handleCancelEmail();
-                          }}
-                        />
-                        <button
-                          onClick={handleUpdateEmail}
-                          disabled={isUpdatingProfile}
-                          className="w-9 h-9 bg-[#E04D30] text-white rounded-lg flex items-center justify-center hover:bg-[#d0442a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      <>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="email"
+                            value={emailValue}
+                            onChange={(e) => {
+                              setEmailValue(e.target.value);
+                              if (emailError) setEmailError(null);
+                            }}
+                            className={getInlineInputClass(Boolean(emailError))}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleUpdateEmail();
+                              if (e.key === "Escape") handleCancelEmail();
+                            }}
+                          />
+                          <button
+                            onClick={handleUpdateEmail}
+                            disabled={isUpdatingProfile}
+                            className="w-9 h-9 bg-[#E04D30] text-white rounded-lg flex items-center justify-center hover:bg-[#d0442a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleCancelEmail}
-                          className="w-9 h-9 bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-300 transition-colors"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={handleCancelEmail}
+                            className="w-9 h-9 bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-300 transition-colors"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                        {emailError && (
+                          <p className="text-sm text-red-500 mt-1">{emailError}</p>
+                        )}
+                      </>
                     ) : (
                       <div className="flex items-center gap-3">
                         <span className="text-gray-900">
-                          {formatEmailForDisplay(profileData.email)}
+                          {profileData.email || ""}
                         </span>
-                        <button 
-                          onClick={() => {
-                            setEmailValue(profileData.email);
-                            setEditingEmail(true);
-                          }}
+                        <button
+                          type="button"
                           className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                          onClick={handleStartEditEmail}
                         >
-                      Thay đổi
-                    </button>
+                          Thay đổi
+                        </button>
                       </div>
                     )}
                   </div>
@@ -510,70 +627,80 @@ const AdminSettings: React.FC = () => {
                   </label>
                   <div className="flex-1">
                     {editingPhone ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="tel"
-                          value={phoneValue}
-                          onChange={(e) => setPhoneValue(e.target.value.replace(/\D/g, ""))}
-                          className="flex-1 px-4 py-2 border-2 border-[#E04D30] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E04D30]"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleUpdatePhone();
-                            if (e.key === "Escape") handleCancelPhone();
-                          }}
-                        />
-                        <button
-                          onClick={handleUpdatePhone}
-                          disabled={isUpdatingProfile}
-                          className="w-9 h-9 bg-[#E04D30] text-white rounded-lg flex items-center justify-center hover:bg-[#d0442a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      <>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="tel"
+                            value={phoneValue}
+                            onChange={(e) => {
+                              const cleaned = e.target.value.replace(/\D/g, "");
+                              setPhoneValue(cleaned);
+                              if (phoneError) setPhoneError(null);
+                            }}
+                            className={getInlineInputClass(Boolean(phoneError))}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleUpdatePhone();
+                              if (e.key === "Escape") handleCancelPhone();
+                            }}
+                          />
+                          <button
+                            onClick={handleUpdatePhone}
+                            disabled={isUpdatingProfile}
+                            className="w-9 h-9 bg-[#E04D30] text-white rounded-lg flex items-center justify-center hover:bg-[#d0442a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleCancelPhone}
-                          className="w-9 h-9 bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-300 transition-colors"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={handleCancelPhone}
+                            className="w-9 h-9 bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-300 transition-colors"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                        {phoneError && (
+                          <p className="text-sm text-red-500 mt-1">{phoneError}</p>
+                        )}
+                      </>
                     ) : (
                       <div className="flex items-center gap-3">
                         <span className="text-gray-900">
                           {formatPhoneForDisplay(profileData.phone)}
                         </span>
-                        <button 
+                        <button
                           onClick={() => {
                             setPhoneValue(profileData.phone);
+                            setPhoneError(null);
                             setEditingPhone(true);
                           }}
                           className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                         >
-                      Thay đổi
-                    </button>
+                          Thay đổi
+                        </button>
                       </div>
                     )}
                   </div>
@@ -617,62 +744,70 @@ const AdminSettings: React.FC = () => {
                   </label>
                   <div className="flex-1">
                     {editingBirthday ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="date"
-                          value={birthdayValue}
-                          onChange={(e) => setBirthdayValue(e.target.value)}
-                          className="flex-1 px-4 py-2 border-2 border-[#E04D30] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E04D30]"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleUpdateBirthday();
-                            if (e.key === "Escape") handleCancelBirthday();
-                          }}
-                        />
-                        <button
-                          onClick={handleUpdateBirthday}
-                          disabled={isUpdatingProfile}
-                          className="w-9 h-9 bg-[#E04D30] text-white rounded-lg flex items-center justify-center hover:bg-[#d0442a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                      <>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="date"
+                            value={birthdayValue}
+                            onChange={(e) => {
+                              setBirthdayValue(e.target.value);
+                              if (birthdayError) setBirthdayError(null);
+                            }}
+                            className={getInlineInputClass(Boolean(birthdayError))}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleUpdateBirthday();
+                              if (e.key === "Escape") handleCancelBirthday();
+                            }}
+                          />
+                          <button
+                            onClick={handleUpdateBirthday}
+                            disabled={isUpdatingProfile}
+                            className="w-9 h-9 bg-[#E04D30] text-white rounded-lg flex items-center justify-center hover:bg-[#d0442a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={handleCancelBirthday}
-                          className="w-9 h-9 bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-300 transition-colors"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={handleCancelBirthday}
+                            className="w-9 h-9 bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center hover:bg-gray-300 transition-colors"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                        {birthdayError && (
+                          <p className="text-sm text-red-500 mt-1">{birthdayError}</p>
+                        )}
+                      </>
                     ) : (
                       <div className="flex items-center gap-3">
                         <span className="text-gray-900">
                           {formatDateForDisplay(profileData.birthday)}
                         </span>
-                        <button 
+                        <button
                           onClick={() => {
                             if (profileData.birthday) {
                               const date = new Date(profileData.birthday);
@@ -680,12 +815,13 @@ const AdminSettings: React.FC = () => {
                             } else {
                               setBirthdayValue("");
                             }
+                            setBirthdayError(null);
                             setEditingBirthday(true);
                           }}
                           className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                         >
-                      Thay đổi
-                    </button>
+                          Thay đổi
+                        </button>
                       </div>
                     )}
                   </div>
@@ -771,6 +907,17 @@ const AdminSettings: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-3">
             Đổi mật khẩu
           </h2>
+        {passwordFeedback && (
+          <div
+            className={`mb-6 rounded-lg px-4 py-3 text-sm border ${
+              passwordFeedback.type === "success"
+                ? "bg-green-50 text-green-700 border-green-100"
+                : "bg-red-50 text-red-600 border-red-100"
+            }`}
+          >
+            {passwordFeedback.message}
+          </div>
+        )}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left column */}
@@ -785,8 +932,8 @@ const AdminSettings: React.FC = () => {
                       type={showCurrentPassword ? "text" : "password"}
                       placeholder="Nhập mật khẩu hiện tại"
                       value={passwordData.oldPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#E04D30] focus:border-[#E04D30] pr-10"
+                      onChange={(e) => validatePasswordField("oldPassword", e.target.value)}
+                      className={getPasswordInputClass(Boolean(passwordErrors.oldPassword))}
                     />
                     <button
                       type="button"
@@ -830,6 +977,9 @@ const AdminSettings: React.FC = () => {
                       )}
                     </button>
                   </div>
+                  {passwordErrors.oldPassword && (
+                    <p className="text-sm text-red-500 mt-1">{passwordErrors.oldPassword}</p>
+                  )}
                 </div>
 
                 {/* Nhập mật khẩu mới */}
@@ -842,8 +992,8 @@ const AdminSettings: React.FC = () => {
                       type={showNewPassword ? "text" : "password"}
                       placeholder="Nhập mật khẩu mới"
                       value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#E04D30] focus:border-[#E04D30] pr-10"
+                      onChange={(e) => validatePasswordField("newPassword", e.target.value)}
+                      className={getPasswordInputClass(Boolean(passwordErrors.newPassword))}
                     />
                     <button
                       type="button"
@@ -887,23 +1037,33 @@ const AdminSettings: React.FC = () => {
                       )}
                     </button>
                   </div>
+                  {passwordErrors.newPassword && (
+                    <p className="text-sm text-red-500 mt-1">{passwordErrors.newPassword}</p>
+                  )}
                 </div>
 
                 {/* Lưu ý */}
-                <div>
-                  <p className="text-sm mb-2">
-                    <span className="font-bold text-red-500">Lưu ý:</span>{" "}
-                    <span className="text-gray-700">
-                      Mật khẩu cần thoả mãn các điều kiện sau
-                    </span>
+                <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                  <p className="text-sm font-medium text-gray-900 mb-3">
+                    Mật khẩu cần thoả các điều kiện:
                   </p>
-                  <ul className="text-sm text-gray-700 space-y-1 ml-4 list-disc">
-                    <li>Có độ dài ít nhất 8 ký tự.</li>
-                    <li>
-                      Chứa ít nhất 01 ký tự số, 01 ký tự chữ và 01 ký tự đặc
-                      biệt.
-                    </li>
-                    <li>Không được trùng với 4 mật khẩu gần nhất.</li>
+                  <ul className="text-sm space-y-2">
+                    {[
+                      { label: "Tối thiểu 8 ký tự.", satisfied: passwordChecks.hasLength },
+                      { label: "Có chữ cái (hoa hoặc thường).", satisfied: passwordChecks.hasLetter },
+                      { label: "Có ít nhất 1 chữ số.", satisfied: passwordChecks.hasNumber },
+                      { label: "Có ký tự đặc biệt (ví dụ: ! @ # ...).", satisfied: passwordChecks.hasSpecial },
+                    ].map((item) => (
+                      <li
+                        key={item.label}
+                        className={`flex items-center gap-2 ${
+                          item.satisfied ? "text-green-600" : "text-gray-600"
+                        }`}
+                      >
+                        <span className="text-lg">{item.satisfied ? "✔" : "•"}</span>
+                        {item.label}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -933,8 +1093,8 @@ const AdminSettings: React.FC = () => {
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Nhập lại mật khẩu mới"
                       value={passwordData.confirmNewPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#E04D30] focus:border-[#E04D30] pr-10"
+                      onChange={(e) => validatePasswordField("confirmNewPassword", e.target.value)}
+                      className={getPasswordInputClass(Boolean(passwordErrors.confirmNewPassword))}
                     />
                     <button
                       type="button"
@@ -978,6 +1138,9 @@ const AdminSettings: React.FC = () => {
                       )}
                     </button>
                   </div>
+                  {passwordErrors.confirmNewPassword && (
+                    <p className="text-sm text-red-500 mt-1">{passwordErrors.confirmNewPassword}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -991,6 +1154,12 @@ const AdminSettings: React.FC = () => {
                     newPassword: "",
                     confirmNewPassword: "",
                   });
+                  setPasswordErrors({
+                    oldPassword: "",
+                    newPassword: "",
+                    confirmNewPassword: "",
+                  });
+                  setPasswordFeedback(null);
                 }}
                 className="bg-white text-[#E04D30] border border-[#E04D30] py-2.5 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors"
               >
