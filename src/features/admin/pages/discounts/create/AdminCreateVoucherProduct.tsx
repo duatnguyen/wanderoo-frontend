@@ -321,10 +321,24 @@ const AdminCreateVoucherProduct: React.FC = () => {
     return Number.isFinite(numeric) ? numeric : 0;
   };
 
-  const formatPriceDisplay = (price?: number | string | null): string => {
+  // Memoize formatPriceDisplay để tránh tạo lại function mỗi lần render
+  const formatPriceDisplay = useCallback((price?: number | string | null): string => {
     const numPrice = formatPrice(price);
     return new Intl.NumberFormat("vi-VN").format(numPrice) + "đ";
-  };
+  }, []);
+
+  // Memoize paginated products để tránh tính toán lại
+  const paginatedProducts = useMemo(() => {
+    return confirmedProducts.slice(
+      (appliedProductsPage - 1) * 5,
+      appliedProductsPage * 5
+    );
+  }, [confirmedProducts, appliedProductsPage]);
+
+  // Memoize handler để xóa sản phẩm
+  const handleRemoveProduct = useCallback((productId: string) => {
+    setConfirmedProducts((prev) => prev.filter((p) => p.id !== productId));
+  }, []);
 
   // Map product to display format
   const mapProductToDisplay = (product: AdminProductResponse) => {
@@ -706,72 +720,75 @@ const AdminCreateVoucherProduct: React.FC = () => {
       if (productDetailIds && Array.isArray(productDetailIds) && productDetailIds.length > 0) {
         try {
           console.log(`Loading ${productDetailIds.length} product details...`);
-          const productDetails: VoucherProduct[] = [];
           
           // Load all products once to avoid multiple API calls
-          let allProductsCache: AdminProductResponse[] | null = null;
+          const allProductsResponse = await getAllProductsPrivate({ page: 0, size: 1000 });
+          const allProductsCache = allProductsResponse?.productResponseList ?? [];
+          console.log(`Loaded ${allProductsCache.length} products for searching`);
           
-          for (const productDetailId of productDetailIds) {
-            try {
-              const variantDetail = await getVariantDetailPrivate(productDetailId);
-              if (variantDetail) {
-                // Load all products only once
-                if (!allProductsCache) {
-                  const allProductsResponse = await getAllProductsPrivate({ page: 0, size: 1000 });
-                  allProductsCache = allProductsResponse?.productResponseList ?? [];
-                  console.log(`Loaded ${allProductsCache.length} products for searching`);
-                }
-                
-                // Find the product that contains this variant
-                const product = allProductsCache.find(p => 
-                  p.productDetails?.some(pd => pd.id === productDetailId)
-                );
-                
-                if (product) {
-                  const variant = product.productDetails?.find(pd => pd.id === productDetailId);
-                  if (variant) {
-                    productDetails.push({
-                      id: `${product.id}-${variant.id}`,
-                      name: `${product.name}${variant.nameDetail ? ` - ${variant.nameDetail}` : ''}`,
-                      image: variant.imageUrl || product.imageUrl || "",
-                      barcode: variant.barcode || "",
-                      price: typeof variant.sellingPrice === 'number' ? variant.sellingPrice : Number(variant.sellingPrice) || 0,
-                      available: variant.availableQuantity || 0,
-                      variantId: String(variant.id),
-                    });
-                    console.log(`Loaded product: ${product.name} - ${variant.nameDetail || variant.id}`);
-                  }
-                } else {
-                  // If product not found, use variant detail directly with product name from backend.
-                  const variantImage = Array.isArray(variantDetail.imageUrl)
-                    ? variantDetail.imageUrl[0] ?? ""
-                    : variantDetail.imageUrl || "";
-                  const variantName =
-                    variantDetail.productName
-                      ? `${variantDetail.productName}${
-                          variantDetail.nameDetail ? ` - ${variantDetail.nameDetail}` : ""
-                        }`
-                      : variantDetail.nameDetail || `Product Detail ${productDetailId}`;
-
-                  productDetails.push({
-                    id: String(productDetailId),
-                    name: variantName,
-                    image: variantImage,
-                    barcode: variantDetail.barcode || "",
-                    price:
-                      typeof variantDetail.sellingPrice === "number"
-                        ? variantDetail.sellingPrice
-                        : Number(variantDetail.sellingPrice) || 0,
-                    available: variantDetail.availableQuantity || 0,
-                    variantId: String(productDetailId),
-                  });
-                  console.log(`Loaded variant directly: ${variantName}`);
-                }
-              }
-            } catch (error) {
+          // Load all variant details in parallel for better performance
+          const variantDetailPromises = productDetailIds.map(productDetailId =>
+            getVariantDetailPrivate(productDetailId).catch(error => {
               console.error(`Error loading product detail ${productDetailId}:`, error);
+              return null;
+            })
+          );
+          
+          const variantDetails = await Promise.all(variantDetailPromises);
+          
+          const productDetails: VoucherProduct[] = [];
+          
+          variantDetails.forEach((variantDetail, index) => {
+            if (!variantDetail) return;
+            
+            const productDetailId = productDetailIds[index];
+            
+            // Find the product that contains this variant
+            const product = allProductsCache.find(p => 
+              p.productDetails?.some(pd => pd.id === productDetailId)
+            );
+            
+            if (product) {
+              const variant = product.productDetails?.find(pd => pd.id === productDetailId);
+              if (variant) {
+                productDetails.push({
+                  id: `${product.id}-${variant.id}`,
+                  name: `${product.name}${variant.nameDetail ? ` - ${variant.nameDetail}` : ''}`,
+                  image: variant.imageUrl || product.imageUrl || "",
+                  barcode: variant.barcode || "",
+                  price: typeof variant.sellingPrice === 'number' ? variant.sellingPrice : Number(variant.sellingPrice) || 0,
+                  available: variant.availableQuantity || 0,
+                  variantId: String(variant.id),
+                });
+                console.log(`Loaded product: ${product.name} - ${variant.nameDetail || variant.id}`);
+              }
+            } else {
+              // If product not found, use variant detail directly with product name from backend.
+              const variantImage = Array.isArray(variantDetail.imageUrl)
+                ? variantDetail.imageUrl[0] ?? ""
+                : variantDetail.imageUrl || "";
+              const variantName =
+                variantDetail.productName
+                  ? `${variantDetail.productName}${
+                      variantDetail.nameDetail ? ` - ${variantDetail.nameDetail}` : ""
+                    }`
+                  : variantDetail.nameDetail || `Product Detail ${productDetailId}`;
+
+              productDetails.push({
+                id: String(productDetailId),
+                name: variantName,
+                image: variantImage,
+                barcode: variantDetail.barcode || "",
+                price:
+                  typeof variantDetail.sellingPrice === "number"
+                    ? variantDetail.sellingPrice
+                    : Number(variantDetail.sellingPrice) || 0,
+                available: variantDetail.availableQuantity || 0,
+                variantId: String(productDetailId),
+              });
+              console.log(`Loaded variant directly: ${variantName}`);
             }
-          }
+          });
           
           console.log(`Successfully loaded ${productDetails.length} product details`);
           console.log("Product details:", productDetails);
@@ -1516,12 +1533,9 @@ const AdminCreateVoucherProduct: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {confirmedProducts
-                          .slice(
-                            (appliedProductsPage - 1) * 5,
-                            appliedProductsPage * 5
-                          )
-                          .map((product) => (
+                        {paginatedProducts.map((product) => {
+                          const formattedPrice = formatPriceDisplay(product.price);
+                          return (
                             <tr
                               key={product.id}
                               className="border-b border-[#e7e7e7] last:border-b-0"
@@ -1533,6 +1547,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                       src={product.image}
                                       alt={product.name}
                                       className="w-full h-full object-cover"
+                                      loading="lazy"
+                                      decoding="async"
                                       onError={(e) => {
                                         (
                                           e.target as HTMLImageElement
@@ -1547,17 +1563,13 @@ const AdminCreateVoucherProduct: React.FC = () => {
                               </td>
                               <td className="px-[16px] py-[12px] text-right w-[20%]">
                                 <span className="font-semibold text-[14px] text-[#272424]">
-                                  {formatPriceDisplay(product.price)}
+                                  {formattedPrice}
                                 </span>
                               </td>
                               <td className="px-[16px] py-[12px] text-center w-[10%]">
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setConfirmedProducts((prev) =>
-                                      prev.filter((p) => p.id !== product.id)
-                                    );
-                                  }}
+                                  onClick={() => handleRemoveProduct(product.id)}
                                   className="p-[8px] hover:bg-[#f5f5f5] rounded-[6px] transition-colors inline-flex items-center justify-center"
                                 >
                                   <Icon
@@ -1568,7 +1580,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                          );
+                        })}
                       </tbody>
                     </table>
 
@@ -1717,6 +1730,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
                         const isExpanded = expandedProducts.has(product.id);
                         const variants = productVariantsMap[product.id] ?? [];
                         const isLoadingVariants = variantLoadingMap[product.id] ?? false;
+                        // Memoize formatted price để tránh tính toán lại
+                        const formattedProductPrice = formatPriceDisplay(product.price);
                         
                         return (
                           <React.Fragment key={product.id}>
@@ -1742,6 +1757,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                         src={product.image}
                                         alt={product.name}
                                         className="w-full h-full object-cover rounded-[4px]"
+                                        loading="lazy"
+                                        decoding="async"
                                         onError={(e) => {
                                           (e.target as HTMLImageElement).style.display = "none";
                                         }}
@@ -1761,7 +1778,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                               </td>
                               <td className="pl-[2px] pr-[10px] py-[8px]">
                                 <span className="font-semibold text-[12px] text-[#272424]">
-                                  {formatPriceDisplay(product.price)}
+                                  {formattedProductPrice}
                                 </span>
                               </td>
                             </tr>
@@ -1791,6 +1808,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
                               const isVariantSelected = selectedVariants.has(variantIdStr);
                               const variantPrice = formatPrice(variant.sellingPrice);
                               const checkboxChecked = isVariantApplied || isVariantSelected;
+                              // Memoize formatted variant price
+                              const formattedVariantPrice = formatPriceDisplay(variantPrice);
                               
                               return (
                                 <tr
@@ -1825,7 +1844,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                   </td>
                                   <td className="pl-[2px] pr-[10px] py-[8px]">
                                     <span className="font-semibold text-[12px] text-[#272424]">
-                                      {formatPriceDisplay(variantPrice)}
+                                      {formattedVariantPrice}
                                     </span>
                                   </td>
                                 </tr>

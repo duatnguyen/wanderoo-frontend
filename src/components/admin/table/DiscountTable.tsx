@@ -46,7 +46,9 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
     {
       key: "name",
       title: "Tên voucher | Mã voucher",
-      className: "min-w-[200px]",
+      width: "280px",
+      minWidth: "280px",
+      className: "",
       render: (_, voucher: Voucher) => (
         <div className="flex gap-[10px] items-center">
           <div className="flex items-center justify-center w-[24px] h-[24px] flex-shrink-0">
@@ -64,7 +66,11 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
                 </p>
               </div>
               <div className="font-medium text-[13px] text-[#272424] leading-[1.4] min-w-0">
-                <p className="mb-0 truncate">{voucher.name}</p>
+                <p className="mb-0 truncate" title={voucher.name}>
+                  {voucher.name.length > 25 
+                    ? `${voucher.name.substring(0, 25)}...` 
+                    : voucher.name}
+                </p>
                 <p className="truncate">Mã voucher: {voucher.code}</p>
               </div>
             </div>
@@ -75,10 +81,11 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
     {
       key: "type",
       title: "Loại mã",
-      minWidth: "120px",
-      className: "text-center",
+      width: "140px",
+      minWidth: "140px",
+      className: "text-center justify-center",
       render: (_, voucher: Voucher) => (
-        <div className="text-center">
+        <div className="text-center w-full flex items-center justify-center">
           {voucher.type === "Voucher khách hàng mới" ? (
             <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
               Voucher khách<br/>hàng mới
@@ -93,11 +100,12 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
     },
     {
       key: "products",
-title: "SP áp dụng",
-      minWidth: "120px",
-      className: "text-center",
+      title: "SP áp dụng",
+      width: "150px",
+      minWidth: "150px",
+      className: "text-center justify-center",
       render: (_, voucher: Voucher) => (
-        <div className="text-center">
+        <div className="text-center w-full flex items-center justify-center">
           <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
             {voucher.products}
           </p>
@@ -107,10 +115,11 @@ title: "SP áp dụng",
     {
       key: "discount",
       title: "Giảm giá",
-      minWidth: "100px",
-      className: "text-center",
+      width: "120px",
+      minWidth: "120px",
+      className: "text-center justify-center",
       render: (_, voucher: Voucher) => (
-        <div className="text-center">
+        <div className="text-center w-full flex items-center justify-center">
           <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
             {voucher.discount}
           </p>
@@ -120,10 +129,11 @@ title: "SP áp dụng",
     {
       key: "maxUsage",
       title: "Tổng lượt sử dụng tối đa",
-      minWidth: "140px",
-      className: "text-center",
+      width: "130px",
+      minWidth: "130px",
+      className: "text-center justify-center",
       render: (_, voucher: Voucher) => (
-        <div className="text-center">
+        <div className="text-center w-full flex items-center justify-center">
           <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
             {voucher.maxUsage}
           </p>
@@ -133,10 +143,11 @@ title: "SP áp dụng",
     {
       key: "used",
       title: "Đã dùng",
-      minWidth: "80px",
-      className: "text-center",
+      width: "130px",
+      minWidth: "130px",
+      className: "text-center justify-center",
       render: (_, voucher: Voucher) => (
-        <div className="text-center">
+        <div className="text-center w-full flex items-center justify-center">
           <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
             {voucher.used}
           </p>
@@ -146,10 +157,11 @@ title: "SP áp dụng",
     {
       key: "display",
       title: "Hiển thị",
-      minWidth: "100px",
-      className: "text-center",
+      width: "140px",
+      minWidth: "140px",
+      className: "text-center justify-center",
       render: (_, voucher: Voucher) => (
-        <div className="text-center">
+        <div className="text-center w-full flex items-center justify-center">
           <p className="font-medium text-[13px] text-[#272424] leading-[1.4]">
             {voucher.display}
           </p>
@@ -159,55 +171,61 @@ title: "SP áp dụng",
     {
       key: "dates",
       title: "Thời gian lưu",
-      minWidth: "160px",
-      className: "text-center",
+      width: "220px",
+      minWidth: "220px",
+      className: "text-center justify-center",
       render: (_, voucher: Voucher) => (
-        <div className="text-center font-medium text-[13px] text-[#272424] leading-[1.4]">
-          <p className="mb-0">{voucher.startDate} -</p>
-          <p>{voucher.endDate}</p>
+        <div className="text-center w-full flex items-center justify-center font-medium text-[13px] text-[#272424] leading-[1.4]">
+          <div>
+            <p className="mb-0">{voucher.startDate} -</p>
+            <p>{voucher.endDate}</p>
+          </div>
         </div>
       ),
     },
     {
       key: "actions",
       title: "Thao tác",
-      minWidth: "100px",
-      className: "text-center",
+      width: "120px",
+      minWidth: "120px",
+      className: "text-center justify-center",
       render: (_, voucher: Voucher) => (
-        <div className="text-center font-semibold text-[13px] text-[#1a71f6] leading-[1.4]">
-          {onEdit && (
-            <p 
-              className="mb-0 hover:opacity-70 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(voucher);
-              }}
-            >
-              Chỉnh sửa
-            </p>
-          )}
-          {onViewOrders && (
-            <p 
-              className="mb-0 hover:opacity-70 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewOrders(voucher);
-              }}
-            >
-              Đơn hàng
-            </p>
-          )}
-          {onEnd && voucher.status !== "Đã kết thúc" && (
-            <p
-              className="hover:opacity-70 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEnd(voucher);
-              }}
-            >
-              Kết thúc
-            </p>
-          )}
+        <div className="text-center w-full flex items-center justify-center font-semibold text-[13px] text-[#1a71f6] leading-[1.4]">
+          <div>
+            {onEdit && (
+              <p 
+                className="mb-0 hover:opacity-70 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(voucher);
+                }}
+              >
+                Chỉnh sửa
+              </p>
+            )}
+            {onViewOrders && (
+              <p 
+                className="mb-0 hover:opacity-70 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewOrders(voucher);
+                }}
+              >
+                Đơn hàng
+              </p>
+            )}
+            {onEnd && voucher.status !== "Đã kết thúc" && (
+              <p
+                className="hover:opacity-70 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEnd(voucher);
+                }}
+              >
+                Kết thúc
+              </p>
+            )}
+          </div>
         </div>
       ),
     },

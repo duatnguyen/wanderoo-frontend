@@ -148,10 +148,8 @@ const AdminCustomerDetail = () => {
       case "email":
         if (!trimmedValue) {
           error = undefined;
-        } else if (trimmedValue.length < 6 || trimmedValue.length > 30) {
-          error = "Email phải từ 6 đến 30 ký tự.";
         } else if (!EMAIL_REGEX.test(trimmedValue)) {
-          error = "Email không hợp lệ.";
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
         }
         break;
       case "birthdate":
@@ -603,8 +601,30 @@ const AdminCustomerDetail = () => {
     );
   }
 
+  const resetFormData = () => {
+    if (customer) {
+      setFormData({
+        name: customer.name || "",
+        phone: customer.phone || "",
+        birthdate: customer.birthday
+          ? new Date(customer.birthday).toISOString().split("T")[0]
+          : "",
+        gender: customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ",
+        email: customer.email || "",
+      });
+      setFormErrors({});
+      setApiError(null);
+    }
+  };
+
   const handleEditClick = () => {
+    resetFormData(); // Reset form to original values when opening modal
     setIsEditModalOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    resetFormData(); // Reset form to original values when canceling
+    setIsEditModalOpen(false);
   };
 
   const handleSave = () => {
@@ -638,9 +658,9 @@ const AdminCustomerDetail = () => {
     updateCustomerMutation.mutate(updateData);
   };
 
-  const handleAddressEditClick = () => {
+  const resetAddressData = () => {
     if (defaultAddress) {
-      // Edit existing address
+      // Reset to existing address
       const provinceName = normalizeAddressPart(defaultAddress.provinceName) || normalizeAddressPart((defaultAddress as any).province);
       const districtName = normalizeAddressPart(defaultAddress.districtName) || normalizeAddressPart((defaultAddress as any).district);
       const wardName = normalizeAddressPart(defaultAddress.wardName) || normalizeAddressPart((defaultAddress as any).ward);
@@ -658,7 +678,7 @@ const AdminCustomerDetail = () => {
         districtId: defaultAddress.districtId || null,
       });
     } else {
-      // Create new address
+      // Reset to new address form
       setAddressData({
         id: null,
         name: customer.name,
@@ -672,7 +692,16 @@ const AdminCustomerDetail = () => {
         districtId: null,
       });
     }
+  };
+
+  const handleAddressEditClick = () => {
+    resetAddressData(); // Reset address data to original values when opening modal
     setIsAddressModalOpen(true);
+  };
+
+  const handleCancelAddressEdit = () => {
+    resetAddressData(); // Reset address data to original values when canceling
+    setIsAddressModalOpen(false);
   };
 
   const handleAddressSave = () => {
@@ -1141,7 +1170,7 @@ const AdminCustomerDetail = () => {
             backgroundColor: "rgba(255, 255, 255, 0.7)",
             backdropFilter: "blur(8px)",
           }}
-          onClick={() => setIsEditModalOpen(false)}
+          onClick={handleCancelEdit}
         >
           <div
             className="bg-white rounded-[8px] p-[24px] w-[520px] shadow-2xl animate-scaleIn"
@@ -1259,7 +1288,7 @@ const AdminCustomerDetail = () => {
               <div className="flex gap-[12px] justify-end mt-[4px]">
                 <Button
                   variant="secondary"
-                  onClick={() => setIsEditModalOpen(false)}
+                  onClick={handleCancelEdit}
                 >
                   Hủy bỏ
                 </Button>
@@ -1284,7 +1313,7 @@ const AdminCustomerDetail = () => {
             backgroundColor: "rgba(255, 255, 255, 0.7)",
             backdropFilter: "blur(8px)",
           }}
-          onClick={() => setIsAddressModalOpen(false)}
+          onClick={handleCancelAddressEdit}
         >
           <div
             className="bg-white rounded-[8px] p-[24px] w-[520px] shadow-2xl animate-scaleIn"
@@ -1460,7 +1489,7 @@ const AdminCustomerDetail = () => {
               <div className="flex gap-[12px] justify-end mt-[4px]">
                 <Button
                   variant="secondary"
-                  onClick={() => setIsAddressModalOpen(false)}
+                  onClick={handleCancelAddressEdit}
                 >
                   Hủy bỏ
                 </Button>

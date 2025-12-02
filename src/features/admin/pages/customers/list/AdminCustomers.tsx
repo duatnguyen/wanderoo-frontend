@@ -161,7 +161,7 @@ const AdminCustomers: React.FC = () => {
 
   // Enable/Disable customer mutations
   const enableMutation = useMutation({
-    mutationFn: (ids: number[]) => enableCustomerAccounts({ ids }),
+    mutationFn: (ids: number[]) => enableCustomerAccounts({ getAll: ids }),
     onSuccess: () => {
       toast.success("Kích hoạt khách hàng thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
@@ -175,7 +175,7 @@ const AdminCustomers: React.FC = () => {
   });
 
   const disableMutation = useMutation({
-    mutationFn: (ids: number[]) => disableCustomerAccounts({ ids }),
+    mutationFn: (ids: number[]) => disableCustomerAccounts({ getAll: ids }),
     onSuccess: () => {
       toast.success("Ngừng kích hoạt khách hàng thành công");
       queryClient.invalidateQueries({ queryKey: ["admin-customers"] });

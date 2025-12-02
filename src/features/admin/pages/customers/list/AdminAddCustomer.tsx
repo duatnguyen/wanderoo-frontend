@@ -23,7 +23,7 @@ import type {
   WardResponse,
 } from "@/types";
 
-type CustomerField = "name" | "phone" | "birthdate" | "email" | "username";
+type CustomerField = "name" | "phone" | "birthdate" | "email" | "username" | "addressName" | "addressPhone" | "province" | "district" | "ward" | "location";
 type FormErrors = Partial<Record<CustomerField, string>>;
 type CustomerFormData = {
   name: string;
@@ -85,6 +85,35 @@ const AdminAddCustomer = () => {
   };
 
   const validateField = (field: CustomerField, value: string) => {
+    return validateFieldWithData(field, value, formData);
+  };
+
+  const handleFieldChange = (field: CustomerField, value: string) => {
+    const updatedFormData = {
+      ...formData,
+      [field]: value,
+    };
+    setFormData(updatedFormData);
+    setApiError(null);
+    
+    // Validate the changed field with updated formData
+    validateFieldWithData(field, value, updatedFormData);
+    
+    // If address field changes, re-validate related address fields
+    if (field === "province" || field === "district" || field === "ward" || field === "location" || field === "addressName" || field === "addressPhone") {
+      // Re-validate all address fields when one changes
+      setTimeout(() => {
+        validateFieldWithData("addressName", updatedFormData.addressName, updatedFormData);
+        validateFieldWithData("addressPhone", updatedFormData.addressPhone, updatedFormData);
+        validateFieldWithData("province", updatedFormData.province, updatedFormData);
+        validateFieldWithData("district", updatedFormData.district, updatedFormData);
+        validateFieldWithData("ward", updatedFormData.ward, updatedFormData);
+        validateFieldWithData("location", updatedFormData.location, updatedFormData);
+      }, 0);
+    }
+  };
+  
+  const validateFieldWithData = (field: CustomerField, value: string, currentFormData: CustomerFormData) => {
     let error: string | undefined;
     const trimmedValue = value.trim();
 
@@ -112,12 +141,8 @@ const AdminAddCustomer = () => {
         break;
       }
       case "email":
-        if (trimmedValue) {
-          if (trimmedValue.length < 6 || trimmedValue.length > 30) {
-            error = "Email phải từ 6 đến 30 ký tự.";
-          } else if (!EMAIL_REGEX.test(trimmedValue)) {
-            error = "Email không hợp lệ.";
-          }
+        if (trimmedValue && !EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
         }
         break;
       case "username":
@@ -138,6 +163,57 @@ const AdminAddCustomer = () => {
           }
         }
         break;
+      case "addressName":
+        // Validate only if address is being filled (at least one address field is filled)
+        const hasAddressData = currentFormData.province || currentFormData.district || currentFormData.ward || currentFormData.location.trim() || currentFormData.addressPhone.trim();
+        if (hasAddressData && !trimmedValue) {
+          error = "Vui lòng nhập họ tên người nhận.";
+        } else if (trimmedValue && trimmedValue.length < 3) {
+          error = "Họ tên người nhận phải có ít nhất 3 ký tự.";
+        } else if (trimmedValue && !NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên người nhận không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "addressPhone": {
+        const hasAddressData = currentFormData.province || currentFormData.district || currentFormData.ward || currentFormData.location.trim() || currentFormData.addressName.trim();
+        if (hasAddressData && !trimmedValue) {
+          error = "Vui lòng nhập số điện thoại người nhận.";
+          break;
+        }
+        if (trimmedValue) {
+          const digits = trimmedValue.replace(/\D/g, "");
+          if (!/^\d+$/.test(trimmedValue)) {
+            error = "Số điện thoại chỉ được chứa chữ số.";
+          } else if (digits.length < 10 || digits.length > 13) {
+            error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+          }
+        }
+        break;
+      }
+      case "province":
+        const hasOtherAddressData = currentFormData.district || currentFormData.ward || currentFormData.location.trim() || currentFormData.addressName.trim() || currentFormData.addressPhone.trim();
+        if (hasOtherAddressData && !trimmedValue) {
+          error = "Vui lòng chọn tỉnh/thành phố.";
+        }
+        break;
+      case "district":
+        if (currentFormData.province && !trimmedValue) {
+          error = "Vui lòng chọn quận/huyện.";
+        }
+        break;
+      case "ward":
+        if (currentFormData.district && !trimmedValue) {
+          error = "Vui lòng chọn phường/xã.";
+        }
+        break;
+      case "location":
+        const hasAddressFields = currentFormData.province || currentFormData.district || currentFormData.ward || currentFormData.addressName.trim() || currentFormData.addressPhone.trim();
+        if (hasAddressFields && !trimmedValue) {
+          error = "Vui lòng nhập địa chỉ cụ thể.";
+        } else if (trimmedValue && trimmedValue.length < 5) {
+          error = "Địa chỉ cụ thể phải có ít nhất 5 ký tự.";
+        }
+        break;
       default:
         break;
     }
@@ -146,17 +222,10 @@ const AdminAddCustomer = () => {
     return error;
   };
 
-  const handleFieldChange = (field: CustomerField, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-    setApiError(null);
-    validateField(field, value);
-  };
-
   const validateForm = () => {
     let isValid = true;
+    
+    // Validate contact information
     (["name", "phone", "email", "username", "birthdate"] as CustomerField[]).forEach(
       (field) => {
         const error = validateField(field, formData[field]);
@@ -165,6 +234,50 @@ const AdminAddCustomer = () => {
         }
       }
     );
+    
+    // Validate address fields if any address data is provided
+    const hasAddressData = formData.province || formData.district || formData.ward || 
+                          formData.location.trim() || formData.addressName.trim() || 
+                          formData.addressPhone.trim();
+    
+    if (hasAddressData) {
+      // If user starts filling address, all required fields must be filled
+      (["addressName", "addressPhone", "province", "district", "ward", "location"] as CustomerField[]).forEach(
+        (field) => {
+          const error = validateField(field, formData[field] || "");
+          if (error) {
+            isValid = false;
+          }
+        }
+      );
+      
+      // Additional validation: if province is selected, district and ward must be selected
+      if (formData.province && (!formData.district || !formData.ward)) {
+        if (!formData.district) {
+          setFieldError("district", "Vui lòng chọn quận/huyện.");
+          isValid = false;
+        }
+        if (!formData.ward) {
+          setFieldError("ward", "Vui lòng chọn phường/xã.");
+          isValid = false;
+        }
+      }
+      
+      // Validate provinceId, districtId, wardCode are set
+      if (formData.province && !formData.provinceId) {
+        setFieldError("province", "Vui lòng chọn tỉnh/thành phố hợp lệ.");
+        isValid = false;
+      }
+      if (formData.district && !formData.districtId) {
+        setFieldError("district", "Vui lòng chọn quận/huyện hợp lệ.");
+        isValid = false;
+      }
+      if (formData.ward && !formData.wardCode.trim()) {
+        setFieldError("ward", "Vui lòng chọn phường/xã hợp lệ.");
+        isValid = false;
+      }
+    }
+    
     return isValid;
   };
 
@@ -239,33 +352,66 @@ const AdminAddCustomer = () => {
   }, [wardsData]);
 
   const handleProvinceSelect = (province: ProvinceResponse) => {
-    setFormData((prev) => ({
-      ...prev,
+    const updatedFormData = {
+      ...formData,
       province: province.provinceName,
       provinceId: province.provinceId,
       district: "",
       districtId: null,
       ward: "",
       wardCode: "",
-    }));
+    };
+    setFormData(updatedFormData);
+    setFieldError("province", undefined);
+    setFieldError("district", undefined);
+    setFieldError("ward", undefined);
+    // Re-validate address fields
+    setTimeout(() => {
+      validateFieldWithData("province", province.provinceName, updatedFormData);
+      validateFieldWithData("district", "", updatedFormData);
+      validateFieldWithData("ward", "", updatedFormData);
+      validateFieldWithData("addressName", updatedFormData.addressName, updatedFormData);
+      validateFieldWithData("addressPhone", updatedFormData.addressPhone, updatedFormData);
+      validateFieldWithData("location", updatedFormData.location, updatedFormData);
+    }, 0);
   };
 
   const handleDistrictSelect = (district: DistrictResponse) => {
-    setFormData((prev) => ({
-      ...prev,
+    const updatedFormData = {
+      ...formData,
       district: district.districtName,
       districtId: district.districtId,
       ward: "",
       wardCode: "",
-    }));
+    };
+    setFormData(updatedFormData);
+    setFieldError("district", undefined);
+    setFieldError("ward", undefined);
+    // Re-validate address fields
+    setTimeout(() => {
+      validateFieldWithData("district", district.districtName, updatedFormData);
+      validateFieldWithData("ward", "", updatedFormData);
+      validateFieldWithData("addressName", updatedFormData.addressName, updatedFormData);
+      validateFieldWithData("addressPhone", updatedFormData.addressPhone, updatedFormData);
+      validateFieldWithData("location", updatedFormData.location, updatedFormData);
+    }, 0);
   };
 
   const handleWardSelect = (ward: WardResponse) => {
-    setFormData((prev) => ({
-      ...prev,
+    const updatedFormData = {
+      ...formData,
       ward: ward.wardName,
       wardCode: ward.wardCode,
-    }));
+    };
+    setFormData(updatedFormData);
+    setFieldError("ward", undefined);
+    // Re-validate address fields
+    setTimeout(() => {
+      validateFieldWithData("ward", ward.wardName, updatedFormData);
+      validateFieldWithData("addressName", updatedFormData.addressName, updatedFormData);
+      validateFieldWithData("addressPhone", updatedFormData.addressPhone, updatedFormData);
+      validateFieldWithData("location", updatedFormData.location, updatedFormData);
+    }, 0);
   };
 
   const provinceLabel = useMemo(() => {
@@ -624,11 +770,14 @@ const AdminAddCustomer = () => {
               <FormInput
                 value={formData.addressName}
                 onChange={(e) =>
-                  setFormData({ ...formData, addressName: e.target.value })
+                  handleFieldChange("addressName", e.target.value)
                 }
                 placeholder="Nhập họ và tên (mặc định là tên khách hàng)"
-                containerClassName="h-[36px] px-[12px] py-0"
+                containerClassName={`h-[36px] px-[12px] py-0 ${formErrors.addressName ? "border-red-500" : ""}`}
               />
+              {formErrors.addressName && (
+                <p className="text-sm text-red-500">{formErrors.addressName}</p>
+              )}
             </div>
             <div className="flex flex-col gap-[8px]">
               <label className="font-semibold text-[#272424] text-[14px]">
@@ -637,11 +786,14 @@ const AdminAddCustomer = () => {
               <FormInput
                 value={formData.addressPhone}
                 onChange={(e) =>
-                  setFormData({ ...formData, addressPhone: e.target.value })
+                  handleFieldChange("addressPhone", e.target.value)
                 }
                 placeholder="Nhập số điện thoại (mặc định là số điện thoại khách hàng)"
-                containerClassName="h-[36px] px-[12px] py-0"
+                containerClassName={`h-[36px] px-[12px] py-0 ${formErrors.addressPhone ? "border-red-500" : ""}`}
               />
+              {formErrors.addressPhone && (
+                <p className="text-sm text-red-500">{formErrors.addressPhone}</p>
+              )}
             </div>
           </div>
 
@@ -654,7 +806,7 @@ const AdminAddCustomer = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border ${isProvinceError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] cursor-pointer`}
+                    className={`bg-white border ${isProvinceError || formErrors.province ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] cursor-pointer`}
                   >
                     <span
                       className={`text-[14px] font-semibold ${
@@ -676,6 +828,9 @@ const AdminAddCustomer = () => {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              {formErrors.province && (
+                <p className="text-sm text-red-500">{formErrors.province}</p>
+              )}
             </div>
 
             <div className="flex flex-col gap-[8px]">
@@ -685,7 +840,7 @@ const AdminAddCustomer = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border ${isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${
+                    className={`bg-white border ${isDistrictError || formErrors.district ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${
                       !formData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
                     }`}
                   >
@@ -713,6 +868,9 @@ const AdminAddCustomer = () => {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              {formErrors.district && (
+                <p className="text-sm text-red-500">{formErrors.district}</p>
+              )}
             </div>
 
             <div className="flex flex-col gap-[8px]">
@@ -722,7 +880,7 @@ const AdminAddCustomer = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border ${isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${
+                    className={`bg-white border ${isWardError || formErrors.ward ? "border-[#ff4d4f]" : "border-[#d1d1d1]"} flex items-center justify-between h-[40px] px-[10px] rounded-[10px] ${
                       !formData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
                     }`}
                   >
@@ -750,6 +908,9 @@ const AdminAddCustomer = () => {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              {formErrors.ward && (
+                <p className="text-sm text-red-500">{formErrors.ward}</p>
+              )}
             </div>
           </div>
 
@@ -761,11 +922,14 @@ const AdminAddCustomer = () => {
             <FormInput
               value={formData.location}
               onChange={(e) =>
-                setFormData({ ...formData, location: e.target.value })
+                handleFieldChange("location", e.target.value)
               }
               placeholder="Nhập số nhà, tên đường..."
-              containerClassName="h-[36px] px-[12px] py-0"
+              containerClassName={`h-[36px] px-[12px] py-0 ${formErrors.location ? "border-red-500" : ""}`}
             />
+            {formErrors.location && (
+              <p className="text-sm text-red-500">{formErrors.location}</p>
+            )}
           </div>
         </div>
       </div>

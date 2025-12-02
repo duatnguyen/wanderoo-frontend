@@ -172,12 +172,8 @@ const AdminStaffDetail: React.FC = () => {
         break;
       }
       case "email":
-        if (trimmedValue) {
-          if (trimmedValue.length < 6 || trimmedValue.length > 30) {
-            error = "Email phải từ 6 đến 30 ký tự.";
-          } else if (!EMAIL_REGEX.test(trimmedValue)) {
-            error = "Email không hợp lệ.";
-          }
+        if (trimmedValue && !EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
         }
         break;
       case "password":
