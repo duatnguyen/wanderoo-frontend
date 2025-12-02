@@ -407,6 +407,8 @@ const AdminCustomerDetail = () => {
   const {
     data: addressesData,
     refetch: refetchAddresses,
+    isLoading: isLoadingAddresses,
+    isError: isErrorAddresses,
   } = useQuery({
     queryKey: ["admin-customer-addresses", customerId],
     queryFn: () => getCustomerAddresses(Number(customerId)),
@@ -454,35 +456,35 @@ const AdminCustomerDetail = () => {
         keywords: string[];
         translatedMessage: string;
       }> = [
-        {
-          field: "phone",
-          keywords: [
-            "phone number must contain only digits",
-            "phone number must be between 10 and 13 digits",
-          ],
-          translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
-        },
-        {
-          field: "phone",
-          keywords: ["phone number already exists", "duplicate entry", "constraint `phone`"],
-          translatedMessage: "Số điện thoại đã tồn tại.",
-        },
-        {
-          field: "email",
-          keywords: ["email already exists"],
-          translatedMessage: "Email đã tồn tại.",
-        },
-        {
-          field: "name",
-          keywords: ["name must not contain special characters"],
-          translatedMessage: "Họ tên không được chứa ký tự đặc biệt.",
-        },
-        {
-          field: "birthdate",
-          keywords: ["birthday must be in the past"],
-          translatedMessage: "Ngày sinh không được lớn hơn hiện tại.",
-        },
-      ];
+          {
+            field: "phone",
+            keywords: [
+              "phone number must contain only digits",
+              "phone number must be between 10 and 13 digits",
+            ],
+            translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
+          },
+          {
+            field: "phone",
+            keywords: ["phone number already exists", "duplicate entry", "constraint `phone`"],
+            translatedMessage: "Số điện thoại đã tồn tại.",
+          },
+          {
+            field: "email",
+            keywords: ["email already exists"],
+            translatedMessage: "Email đã tồn tại.",
+          },
+          {
+            field: "name",
+            keywords: ["name must not contain special characters"],
+            translatedMessage: "Họ tên không được chứa ký tự đặc biệt.",
+          },
+          {
+            field: "birthdate",
+            keywords: ["birthday must be in the past"],
+            translatedMessage: "Ngày sinh không được lớn hơn hiện tại.",
+          },
+        ];
 
       const matchedFieldError = fieldErrorTranslations.find(({ keywords }) =>
         keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
@@ -556,6 +558,7 @@ const AdminCustomerDetail = () => {
 
   // Initialize default address when addresses are loaded
   useEffect(() => {
+    console.log("addressesData:", addressesData);
     if (addressesData?.addresses && addressesData.addresses.length > 0) {
       // Find default address or use first address
       const defaultAddr =
@@ -565,6 +568,7 @@ const AdminCustomerDetail = () => {
             addr.isDefault === "true" ||
             addr.isDefault === "Địa chỉ mặc định"
         ) || addressesData.addresses[0];
+      console.log("defaultAddr:", defaultAddr);
       setDefaultAddress(defaultAddr as any);
     } else {
       setDefaultAddress(null);
@@ -641,11 +645,9 @@ const AdminCustomerDetail = () => {
       email: emailValue || undefined,
       username: customer.username, // Keep existing username
       password: undefined,
-      address: customer.address || "", // Keep existing address
       gender: formData.gender === "Nam" ? "MALE" : "FEMALE", // Convert to backend format
       birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : (customer.birthday ? new Date(customer.birthday).toISOString() : undefined),
-      // Note: address field is for contact address, not delivery address
-      // Delivery address is managed separately via Address entity
+      // Note: delivery address is managed separately via Address entity
     };
 
     console.log("Updating customer with data:", updateData);
@@ -836,7 +838,7 @@ const AdminCustomerDetail = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex gap-[32px] items-center">
                 <div className="flex flex-col items-center gap-[4px]">
                   <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
@@ -849,9 +851,9 @@ const AdminCustomerDetail = () => {
                         const total = ordersData.orders.reduce((sum: number, order: any) => {
                           return sum + (order.totalAmount || 0);
                         }, 0);
-                        return new Intl.NumberFormat('vi-VN', { 
-                          style: 'currency', 
-                          currency: 'VND' 
+                        return new Intl.NumberFormat('vi-VN', {
+                          style: 'currency',
+                          currency: 'VND'
                         }).format(total);
                       }
                       // Nếu đang loading hoặc chưa có data
@@ -912,10 +914,10 @@ const AdminCustomerDetail = () => {
                       // Format date
                       const orderDate = order.createdAt
                         ? new Date(order.createdAt).toLocaleDateString("vi-VN", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
                         : "";
 
                       // Map payment status
@@ -981,11 +983,10 @@ const AdminCustomerDetail = () => {
                       return (
                         <div
                           key={order.id}
-                          className={`flex items-center justify-between px-[16px] py-[8px] ${
-                            index < ordersData.orders.length - 1
+                          className={`flex items-center justify-between px-[16px] py-[8px] ${index < ordersData.orders.length - 1
                               ? "border-b border-[#d1d1d1]"
                               : ""
-                          }`}
+                            }`}
                         >
                           <div className="flex flex-col gap-[4px]">
                             <p className="font-semibold text-[#1a71f6] text-[12px] leading-[1.5] cursor-pointer hover:underline">
@@ -1124,33 +1125,45 @@ const AdminCustomerDetail = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-[16px]">
-                <div className="flex flex-col gap-[4px]">
-                  <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
-                    Người nhận
-                  </p>
-                  <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {defaultAddress?.name || customer.name}
-                  </p>
+              {isLoadingAddresses ? (
+                <div className="flex items-center justify-center py-4">
+                  <p className="text-[#737373] text-[14px]">Đang tải địa chỉ...</p>
                 </div>
-                <div className="flex flex-col gap-[4px]">
-                  <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
-                    Số điện thoại
-                  </p>
-                  <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
-                    {defaultAddress?.phone || customer.phone}
-                  </p>
+              ) : isErrorAddresses ? (
+                <div className="flex items-center justify-center py-4">
+                  <p className="text-[#dc3545] text-[14px]">Không thể tải địa chỉ</p>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-[16px]">
+                    <div className="flex flex-col gap-[4px]">
+                      <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                        Người nhận
+                      </p>
+                      <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
+                        {defaultAddress?.name || customer.name}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-[4px]">
+                      <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                        Số điện thoại
+                      </p>
+                      <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
+                        {defaultAddress?.phone || customer.phone}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="flex flex-col gap-[4px]">
-                <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
-                  Địa chỉ chi tiết
-                </p>
-                <p className="font-semibold text-[#272424] text-[15px] leading-[1.5] break-words">
-                  {formattedDefaultAddress}
-                </p>
-              </div>
+                  <div className="flex flex-col gap-[4px]">
+                    <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                      Địa chỉ chi tiết
+                    </p>
+                    <p className="font-semibold text-[#272424] text-[15px] leading-[1.5] break-words">
+                      {formattedDefaultAddress}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1286,8 +1299,8 @@ const AdminCustomerDetail = () => {
                 >
                   Hủy bỏ
                 </Button>
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   onClick={handleSave}
                   disabled={updateCustomerMutation.isPending}
                 >
@@ -1363,9 +1376,8 @@ const AdminCustomerDetail = () => {
                         } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] cursor-pointer`}
                     >
                       <span
-                        className={`text-[14px] ${
-                          addressData.province ? "text-[#272424]" : "text-[#888888]"
-                        }`}
+                        className={`text-[14px] ${addressData.province ? "text-[#272424]" : "text-[#888888]"
+                          }`}
                       >
                         {provinceLabel}
                       </span>
@@ -1390,16 +1402,13 @@ const AdminCustomerDetail = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <div
-                      className={`bg-white border ${
-                        isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
-                      } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${
-                        !addressData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                      }`}
+                      className={`bg-white border ${isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                        } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${!addressData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                        }`}
                     >
                       <span
-                        className={`text-[14px] ${
-                          addressData.district ? "text-[#272424]" : "text-[#888888]"
-                        }`}
+                        className={`text-[14px] ${addressData.district ? "text-[#272424]" : "text-[#888888]"
+                          }`}
                       >
                         {districtLabel}
                       </span>
@@ -1430,16 +1439,13 @@ const AdminCustomerDetail = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <div
-                      className={`bg-white border ${
-                        isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
-                      } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${
-                        !addressData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
-                      }`}
+                      className={`bg-white border ${isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                        } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${!addressData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                        }`}
                     >
                       <span
-                        className={`text-[14px] ${
-                          addressData.ward ? "text-[#272424]" : "text-[#888888]"
-                        }`}
+                        className={`text-[14px] ${addressData.ward ? "text-[#272424]" : "text-[#888888]"
+                          }`}
                       >
                         {wardLabel}
                       </span>
@@ -1487,8 +1493,8 @@ const AdminCustomerDetail = () => {
                 >
                   Hủy bỏ
                 </Button>
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   onClick={handleAddressSave}
                   disabled={updateAddressMutation.isPending || createAddressMutation.isPending}
                 >

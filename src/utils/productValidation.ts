@@ -13,18 +13,18 @@ export const productValidationRules: ValidationRules = {
     { required: true, message: "Mô tả sản phẩm là bắt buộc" },
     { minLength: 10, message: "Mô tả phải có ít nhất 10 ký tự" }
   ],
-  costPrice: [
-    { pattern: /^\d+$/, message: "Giá vốn phải là số" }
-  ],
   sellingPrice: [
-    { pattern: /^\d+$/, message: "Giá bán phải là số" }
+    { required: true, message: "Giá bán là bắt buộc" },
+    { pattern: /^\d+(\.\d+)?$/, message: "Giá bán phải là số hợp lệ" }
+  ],
+  costPrice: [
+    { pattern: /^\d+(\.\d+)?$/, message: "Giá vốn phải là số hợp lệ" }
   ],
   inventory: [
     { pattern: /^\d+$/, message: "Tồn kho phải là số nguyên" }
   ],
   weight: [
-    { required: true, message: "Cân nặng là bắt buộc" },
-    { pattern: /^\d+(\.\d+)?$/, message: "Cân nặng phải là số" }
+    { pattern: /^\d+(\.\d+)?$/, message: "Cân nặng phải là số hợp lệ" }
   ]
 };
 

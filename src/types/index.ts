@@ -49,6 +49,7 @@ export type {
   CheckoutOrderItemResponse,
   AddItemToOrderRequest,
   UpdateItemQuantityRequest,
+  UpdateVariantQuantityRequest,
   AssignCustomerToOrderRequest,
   RemoveItemFromDraftOrderRequest,
   GetStationsRequest,

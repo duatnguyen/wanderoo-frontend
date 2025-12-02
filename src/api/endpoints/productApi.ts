@@ -27,6 +27,7 @@ import type {
   BrandResponse,
   UpdateProductDisplayRequest,
   UpdateItemQuantityRequest,
+  UpdateVariantQuantityRequest,
 } from '../../types';
 
 type ProductListQuery = {
@@ -310,7 +311,7 @@ export const updateSellingQuantity = async (quantityData: VariantQuantityUpdateR
 };
 
 export const updateVariantQuantityPrivate = async (
-  request: UpdateItemQuantityRequest
+  request: UpdateVariantQuantityRequest
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
     '/auth/v1/private/product/variant/quantity',

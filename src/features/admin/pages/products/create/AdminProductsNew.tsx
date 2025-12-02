@@ -409,8 +409,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
     try {
       await updateVariantQuantityPrivate({
-        productDetailId: variantId,
-        quantity: quantity,
+        id: variantId,
+        totalQuantity: quantity,
       });
       toast.success("Đã cập nhật tồn kho phiên bản");
       setInventoryErrors((prev) => {
@@ -455,11 +455,21 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
     // Validate form
     const formErrors = validateForm(formData);
+    
+    // Custom validation cho category và brand (bắt buộc)
+    if (!formData.categoryId) {
+      formErrors.category = "Vui lòng chọn danh mục";
+    }
+    
+    if (!formData.brandId || !formData.brand) {
+      formErrors.brand = "Vui lòng chọn thương hiệu";
+    }
 
     setErrors(formErrors);
 
     if (Object.keys(formErrors).length > 0) {
       console.log("Form has errors:", formErrors);
+      toast.error("Vui lòng kiểm tra lại thông tin form");
       return;
     }
 
@@ -500,7 +510,9 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           categoryId: formData.categoryId!,
         };
 
+        console.log("Creating product with payload:", payload);
         const creationResponse = await createProductPrivate(payload);
+        console.log("Creation response:", creationResponse);
         const newProductId = creationResponse?.data;
 
         if (typeof newProductId === "number") {
@@ -509,23 +521,38 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           setVariantStatusMessage(null);
           toast.success("Thêm sản phẩm thành công!");
         } else {
+          console.warn("Unexpected response format:", creationResponse);
           setVariantStatusMessage(null);
           toast.success("Thêm sản phẩm thành công nhưng không lấy được dữ liệu phiên bản.");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting form:", error);
+      console.error("Error response:", error?.response);
+      
+      const errorMessage = error?.response?.data?.message || error?.message || 
+        (isEditMode ? "Không thể cập nhật sản phẩm. Vui lòng thử lại." : "Không thể thêm sản phẩm. Vui lòng thử lại.");
+      
       setVariantStatusMessage(null);
-      toast.error(
-        isEditMode
-          ? "Không thể cập nhật sản phẩm. Vui lòng thử lại."
-          : "Không thể thêm sản phẩm. Vui lòng thử lại."
-      );
-      setErrors({
-        submit: isEditMode
-          ? "Có lỗi xảy ra khi cập nhật sản phẩm. Vui lòng thử lại."
-          : "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại.",
-      });
+      toast.error(errorMessage);
+      
+      // Hiển thị lỗi cụ thể nếu có
+      if (error?.response?.data?.errors) {
+        const backendErrors = error.response.data.errors;
+        const mappedErrors: Record<string, string> = {};
+        
+        Object.keys(backendErrors).forEach(field => {
+          mappedErrors[field] = backendErrors[field];
+        });
+        
+        setErrors(mappedErrors);
+      } else {
+        setErrors({
+          submit: isEditMode
+            ? "Có lỗi xảy ra khi cập nhật sản phẩm. Vui lòng thử lại."
+            : "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại.",
+        });
+      }
     } finally {
       setVariantStatusMessage(null);
       setIsSubmitting(false);
