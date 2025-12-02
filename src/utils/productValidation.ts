@@ -13,16 +13,6 @@ export const productValidationRules: ValidationRules = {
     { required: true, message: "Mô tả sản phẩm là bắt buộc" },
     { minLength: 10, message: "Mô tả phải có ít nhất 10 ký tự" }
   ],
-  sellingPrice: [
-    { required: true, message: "Giá bán là bắt buộc" },
-    { pattern: /^\d+(\.\d+)?$/, message: "Giá bán phải là số hợp lệ" }
-  ],
-  costPrice: [
-    { pattern: /^\d+(\.\d+)?$/, message: "Giá vốn phải là số hợp lệ" }
-  ],
-  inventory: [
-    { pattern: /^\d+$/, message: "Tồn kho phải là số nguyên" }
-  ],
   weight: [
     { pattern: /^\d+(\.\d+)?$/, message: "Cân nặng phải là số hợp lệ" }
   ]
@@ -69,24 +59,6 @@ export const validateForm = (formData: ProductFormData): FormErrors => {
       errors[field] = error;
     }
   });
-
-  // Custom validation for price comparison
-  if (formData.costPrice && formData.sellingPrice) {
-    const cost = parseFloat(formData.costPrice);
-    const selling = parseFloat(formData.sellingPrice);
-    if (selling <= cost) {
-      errors.sellingPrice = "Giá bán phải lớn hơn giá vốn";
-    }
-  }
-
-  // Custom validation for inventory vs available
-  if (formData.inventory && formData.available) {
-    const inventory = parseInt(formData.inventory);
-    const available = parseInt(formData.available);
-    if (available > inventory) {
-      errors.available = "Số lượng có thể bán không được lớn hơn tồn kho";
-    }
-  }
   
   return errors;
 };

@@ -197,8 +197,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     (isViewMode
       ? "Chi tiết sản phẩm"
       : isEditMode
-      ? "Chỉnh sửa sản phẩm"
-      : "Thêm sản phẩm mới");
+        ? "Chỉnh sửa sản phẩm"
+        : "Thêm sản phẩm mới");
 
   const getFieldBorderClass = (error?: string, hasValue?: boolean) => {
     if (error) return "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]";
@@ -369,9 +369,9 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       prev.map((v) =>
         v.id === versionId
           ? {
-              ...v,
-              inventory: sanitized,
-            }
+            ...v,
+            inventory: sanitized,
+          }
           : v
       )
     );
@@ -455,12 +455,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
     // Validate form
     const formErrors = validateForm(formData);
-    
+
     // Custom validation cho category và brand (bắt buộc)
     if (!formData.categoryId) {
       formErrors.category = "Vui lòng chọn danh mục";
     }
-    
+
     if (!formData.brandId || !formData.brand) {
       formErrors.brand = "Vui lòng chọn thương hiệu";
     }
@@ -498,7 +498,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         await updateProductPrivate(updatePayload);
         setVariantStatusMessage(null);
         toast.success("Đã cập nhật sản phẩm thành công!");
-        
+
         // Refresh variants
         await fetchProductVariants(productId, 0, VARIANT_PAGE_SIZE);
       } else {
@@ -535,22 +535,22 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     } catch (error: any) {
       console.error("Error submitting form:", error);
       console.error("Error response:", error?.response);
-      
-      const errorMessage = error?.response?.data?.message || error?.message || 
+
+      const errorMessage = error?.response?.data?.message || error?.message ||
         (isEditMode ? "Không thể cập nhật sản phẩm. Vui lòng thử lại." : "Không thể thêm sản phẩm. Vui lòng thử lại.");
-      
+
       setVariantStatusMessage(null);
       toast.error(errorMessage);
-      
+
       // Hiển thị lỗi cụ thể nếu có
       if (error?.response?.data?.errors) {
         const backendErrors = error.response.data.errors;
         const mappedErrors: Record<string, string> = {};
-        
+
         Object.keys(backendErrors).forEach(field => {
           mappedErrors[field] = backendErrors[field];
         });
-        
+
         setErrors(mappedErrors);
       } else {
         setErrors({
@@ -1406,30 +1406,30 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         isViewMode
                           ? undefined
                           : (menu) => (
-                              <>
-                                {menu}
-                                <div className="px-3 py-2 border-t border-gray-100">
-                                  {categoryHasMore ? (
-                                    <button
-                                      type="button"
-                                      onClick={handleCategoryLoadMore}
-                                      disabled={categoryLoading}
-                                      className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
-                                    >
-                                      {categoryLoading ? (
-                                        <Spin size="small" />
-                                      ) : (
-                                        "Tải thêm danh mục..."
-                                      )}
-                                    </button>
-                                  ) : (
-                                    <span className="text-xs text-gray-400">
-                                      Đã tải tất cả danh mục
-                                    </span>
-                                  )}
-                                </div>
-                              </>
-                            )
+                            <>
+                              {menu}
+                              <div className="px-3 py-2 border-t border-gray-100">
+                                {categoryHasMore ? (
+                                  <button
+                                    type="button"
+                                    onClick={handleCategoryLoadMore}
+                                    disabled={categoryLoading}
+                                    className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
+                                  >
+                                    {categoryLoading ? (
+                                      <Spin size="small" />
+                                    ) : (
+                                      "Tải thêm danh mục..."
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-400">
+                                    Đã tải tất cả danh mục
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )
                       }
                       options={categoryOptions}
                       popupClassName="category-select-dropdown"
@@ -1455,9 +1455,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         disabled={isViewMode}
                       >
                         <span
-                          className={`text-[14px] font-semibold ${
-                            formData.brand ? "text-[#272424]" : "text-[#888888]"
-                          }`}
+                          className={`text-[14px] font-semibold ${formData.brand ? "text-[#272424]" : "text-[#888888]"
+                            }`}
                         >
                           {formData.brand || "Chọn thương hiệu"}
                         </span>
@@ -1570,8 +1569,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   onChange={(e) =>
                     handleInputChange("description", e.target.value)
                   }
-                readOnly={isViewMode}
-                disabled={isViewMode}
+                  readOnly={isViewMode}
+                  disabled={isViewMode}
                 />
               </FormField>
             </div>
@@ -1703,9 +1702,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                     return (
                       <div
                         key={`${attribute.name}-${index}`}
-                        className={`border rounded-[12px] px-4 py-3 flex flex-col gap-2 transition-all ${
-                          isEditingAttribute ? "border-[#1a71f6] bg-[#f5f9ff]" : "border-[#e7e7e7]"
-                        }`}
+                        className={`border rounded-[12px] px-4 py-3 flex flex-col gap-2 transition-all ${isEditingAttribute ? "border-[#1a71f6] bg-[#f5f9ff]" : "border-[#e7e7e7]"
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="w-[28%] min-w-[200px]">
@@ -1896,11 +1894,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         type="button"
                         onClick={handleSubmitNewAttribute}
                         disabled={!canSubmitAttribute}
-                        className={`px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${
-                          canSubmitAttribute
+                        className={`px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${canSubmitAttribute
                             ? "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
                             : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                        }`}
+                          }`}
                       >
                         {editingAttributeIndex !== null ? "Cập nhật" : "Thêm"}
                       </button>
@@ -1995,7 +1992,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                           selectedVersions.size === versions.length
                         }
                         onChange={handleSelectAll}
-                      disabled={isViewMode}
+                        disabled={isViewMode}
                       />
                     </div>
                     <p className="text-[14px] font-bold text-[#272424] font-montserrat">
@@ -2049,7 +2046,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                           <CustomCheckbox
                             checked={selectedVersions.has(version.id)}
                             onChange={() => handleVersionToggle(version.id)}
-                          disabled={isViewMode}
+                            disabled={isViewMode}
                           />
                         </div>
                         <div className="w-[44px] h-[44px] rounded-[12px] bg-[#f5f5f5] overflow-hidden flex items-center justify-center">
@@ -2095,11 +2092,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                                   <input
                                     type="text"
                                     inputMode="numeric"
-                                    className={`flex-1 text-right text-[14px] font-semibold font-montserrat bg-transparent border-b outline-none transition-colors ${
-                                      inventoryErrors[version.id]
+                                    className={`flex-1 text-right text-[14px] font-semibold font-montserrat bg-transparent border-b outline-none transition-colors ${inventoryErrors[version.id]
                                         ? "border-red-500 text-red-600"
                                         : "border-[#d4d4d8] text-[#272424] focus:border-[#1a71f6]"
-                                    }`}
+                                      }`}
                                     value={version.inventory || ""}
                                     placeholder="0"
                                     onChange={(e) =>
@@ -2144,11 +2140,10 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                                   </button>
                                   <button
                                     type="button"
-                                    className={`px-3 h-[28px] rounded-[999px] text-[12px] font-semibold transition-colors flex items-center justify-center ${
-                                      updatingInventoryIds.has(version.id) || !createdProductId
+                                    className={`px-3 h-[28px] rounded-[999px] text-[12px] font-semibold transition-colors flex items-center justify-center ${updatingInventoryIds.has(version.id) || !createdProductId
                                         ? "bg-[#e5edff] text-[#1a71f6] cursor-not-allowed"
                                         : "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
-                                    } ${isViewMode ? "cursor-not-allowed opacity-60" : ""}`}
+                                      } ${isViewMode ? "cursor-not-allowed opacity-60" : ""}`}
                                     disabled={
                                       isViewMode ||
                                       updatingInventoryIds.has(version.id) ||
