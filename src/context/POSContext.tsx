@@ -100,16 +100,6 @@ export const POSProvider: React.FC<POSProviderProps> = ({
     },
     []
   );
-  const setOrderHandlers = useCallback(
-    (handlers: {
-      onOrderAdd?: () => void;
-      onOrderClose?: (orderId: string) => void;
-      onOrderSelect?: (orderId: string) => void;
-    }) => {
-      setOrderHandlersState(handlers);
-    },
-    []
-  );
 
   return (
     <POSContext.Provider

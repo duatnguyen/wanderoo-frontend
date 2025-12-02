@@ -22,8 +22,8 @@ import type {
   CategoryChildResponse,
   CategoryParentResponse,
   CategoryStatus,
-  ProductResponse,
 } from "@/types";
+import type { ProductResponse } from "@/types/products";
 
 type UpdateCategoryVariables = {
   payload: {

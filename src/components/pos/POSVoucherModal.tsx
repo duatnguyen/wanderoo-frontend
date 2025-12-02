@@ -88,6 +88,22 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
     };
   };
 
+  // Debug function to test API directly
+  const testAPI = async () => {
+    try {
+      console.log("Testing API directly...");
+      const token = localStorage.getItem("accessToken");
+      console.log("Token exists:", !!token);
+      
+      const result = await searchDiscountsByKeyword();
+      console.log("Direct API call result:", result);
+      return result;
+    } catch (error) {
+      console.error("Direct API test failed:", error);
+      throw error;
+    }
+  };
+
   // Fetch all discounts from API when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -96,18 +112,22 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       setError(null);
       setVoucherCode("");
       setSearchError(null);
-      
+
+      // Debug log
+      console.log("Modal opened, fetching discounts...");
+      testAPI();
+
       searchDiscountsByKeyword()
         .then((discounts: DiscountResponse[]) => {
           const vouchers = discounts.map(convertDiscountToVoucher);
           setActiveVoucher((prev) => {
             const selectedStillEligible =
               selectedVoucherId &&
-              vouchers.some(
-                (voucher) =>
-                  voucher.id === selectedVoucherId &&
-                  isVoucherEligible(voucher)
-              )
+                vouchers.some(
+                  (voucher) =>
+                    voucher.id === selectedVoucherId &&
+                    isVoucherEligible(voucher)
+                )
                 ? selectedVoucherId
                 : null;
             if (!prev) return selectedStillEligible;
@@ -134,7 +154,10 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
         })
         .catch((err) => {
           console.error("Error fetching discounts:", err);
-          setError("Không thể tải danh sách mã giảm giá. Vui lòng thử lại.");
+          const errorMessage = err?.response?.data?.message || 
+                              err?.message || 
+                              "Không thể tải danh sách mã giảm giá. Vui lòng thử lại.";
+          setError(`API Error: ${errorMessage}`);
           setIsLoading(false);
         });
     }
@@ -197,7 +220,7 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
         ) {
           setActiveVoucher(null);
         }
-        
+
         setSections([
           {
             id: "discount",
@@ -209,7 +232,10 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
         setIsSearching(false);
       } catch (err: any) {
         console.error("Error searching discounts:", err);
-        setSearchError("Không thể tìm kiếm mã giảm giá. Vui lòng thử lại.");
+        const errorMessage = err?.response?.data?.message || 
+                            err?.message || 
+                            "Không thể tìm kiếm mã giảm giá. Vui lòng thử lại.";
+        setSearchError(`Search API Error: ${errorMessage}`);
         setIsSearching(false);
       }
     }, 300);
@@ -267,13 +293,31 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
           <h3 className="text-[18px] font-semibold text-gray-900">
             Chọn mã giảm giá
           </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors text-2xl leading-none"
-            aria-label="Đóng"
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                console.log("Testing API...");
+                try {
+                  const result = await testAPI();
+                  console.log("API Test Success:", result);
+                  alert(`API Test Success: Found ${result.length} discounts`);
+                } catch (error: any) {
+                  console.error("API Test Failed:", error);
+                  alert(`API Test Failed: ${error?.message || 'Unknown error'}`);
+                }
+              }}
+              className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+            >
+              Test API
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors text-2xl leading-none"
+              aria-label="Đóng"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         {/* Voucher Code Input */}
@@ -341,7 +385,10 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                       })
                       .catch((err) => {
                         console.error("Error fetching discounts:", err);
-                        setError("Không thể tải danh sách mã giảm giá. Vui lòng thử lại.");
+                        const errorMessage = err?.response?.data?.message || 
+                                            err?.message || 
+                                            "Không thể tải danh sách mã giảm giá. Vui lòng thử lại.";
+                        setError(`Retry API Error: ${errorMessage}`);
                         setIsLoading(false);
                       });
                   }}
@@ -357,126 +404,117 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
             </div>
           ) : (
             sections.map((section, index) => (
-            <React.Fragment key={section.id}>
-              <div className="space-y-3">
-                <div>
-                  <h4 className="text-[15px] font-semibold text-gray-900">
-                    {section.title}
-                  </h4>
-                  <p className="text-gray-500 text-[13px]">
-                    {section.subtitle}
-                  </p>
-                </div>
+              <React.Fragment key={section.id}>
                 <div className="space-y-3">
-                  {(expandedSections[section.id]
-                    ? section.vouchers
-                    : section.vouchers.slice(0, 2)
-                  ).map((voucher) => {
-                    const isSelected = activeVoucher === voucher.id;
-                    const eligible = isVoucherEligible(voucher);
-                    return (
-                      <label
-                        key={voucher.id}
-                        className={`flex items-stretch rounded-2xl border ${
-                          isSelected
-                            ? "border-[#E04D30] shadow-[0_8px_20px_rgba(224,77,48,0.12)]"
-                            : "border-gray-200 hover:border-[#E04D30]/60"
-                        } bg-white transition-colors ${
-                          eligible ? "cursor-pointer" : "cursor-not-allowed opacity-50"
-                        }`}
-                      >
-                        <div
-                          className={`flex-1 px-4 py-3 text-[13px] ${
-                            isSelected ? "text-[#E04D30]" : "text-gray-900"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={`font-semibold uppercase tracking-wide ${
-                                isSelected ? "text-[#E04D30]" : "text-[#1B5CF0]"
-                              }`}
-                            >
-                              {voucher.code}
-                            </span>
-                            <span
-                              className={`${
-                                isSelected ? "text-[#E04D30]" : "text-gray-500"
-                              }`}
-                            >
-                              HSD: {voucher.expiry}
-                            </span>
-                          </div>
-                          <div className="mt-3 space-y-1">
-                            <p
-                              className={`font-semibold leading-snug ${
-                                isSelected ? "text-[#E04D30]" : "text-gray-900"
-                              }`}
-                            >
-                              {voucher.title}
-                            </p>
-                            <p
-                              className={`${
-                                isSelected ? "text-[#E04D30]" : "text-gray-600"
-                              }`}
-                            >
-                              Đơn tối thiểu {voucher.minimumOrderLabel}
-                            </p>
-                            {!eligible && (
-                              <p className="text-xs text-[#E04D30]">
-                                Chưa đạt điều kiện sử dụng
-                              </p>
-                            )}
-                            {voucher.description && (
-                              <p
-                                className={`${
-                                  isSelected ? "text-[#E04D30]" : "text-gray-500"
-                                }`}
-                              >
-                                {voucher.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-center px-4 border-l border-gray-100">
-                          <input
-                            type="radio"
-                            name="voucher"
-                            className="h-5 w-5 text-[#E04D30] focus:ring-[#E04D30]"
-                            checked={isSelected}
-                            disabled={!eligible}
-                            onChange={() => setActiveVoucher(voucher.id)}
-                          />
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-                {section.vouchers.length > 2 && (
-                  <div className="flex justify-center pt-1">
-                    <button
-                      type="button"
-                      onClick={() => toggleSectionExpand(section.id)}
-                      className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      <span>
-                        {expandedSections[section.id]
-                          ? "Thu gọn"
-                          : "Xem thêm"}
-                      </span>
-                      <span
-                        className={`inline-block transition-transform ${
-                          expandedSections[section.id] ? "rotate-180" : ""
-                        }`}
-                      >
-                        ▼
-                      </span>
-                    </button>
+                  <div>
+                    <h4 className="text-[15px] font-semibold text-gray-900">
+                      {section.title}
+                    </h4>
+                    <p className="text-gray-500 text-[13px]">
+                      {section.subtitle}
+                    </p>
                   </div>
-                )}
-              </div>
-              {index < sections.length - 1 && <hr className="border-gray-200" />}
-            </React.Fragment>
-          ))
+                  <div className="space-y-3">
+                    {(expandedSections[section.id]
+                      ? section.vouchers
+                      : section.vouchers.slice(0, 2)
+                    ).map((voucher) => {
+                      const isSelected = activeVoucher === voucher.id;
+                      const eligible = isVoucherEligible(voucher);
+                      return (
+                        <label
+                          key={voucher.id}
+                          className={`flex items-stretch rounded-2xl border ${isSelected
+                              ? "border-[#E04D30] shadow-[0_8px_20px_rgba(224,77,48,0.12)]"
+                              : "border-gray-200 hover:border-[#E04D30]/60"
+                            } bg-white transition-colors ${eligible ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                            }`}
+                        >
+                          <div
+                            className={`flex-1 px-4 py-3 text-[13px] ${isSelected ? "text-[#E04D30]" : "text-gray-900"
+                              }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span
+                                className={`font-semibold uppercase tracking-wide ${isSelected ? "text-[#E04D30]" : "text-[#1B5CF0]"
+                                  }`}
+                              >
+                                {voucher.code}
+                              </span>
+                              <span
+                                className={`${isSelected ? "text-[#E04D30]" : "text-gray-500"
+                                  }`}
+                              >
+                                HSD: {voucher.expiry}
+                              </span>
+                            </div>
+                            <div className="mt-3 space-y-1">
+                              <p
+                                className={`font-semibold leading-snug ${isSelected ? "text-[#E04D30]" : "text-gray-900"
+                                  }`}
+                              >
+                                {voucher.title}
+                              </p>
+                              <p
+                                className={`${isSelected ? "text-[#E04D30]" : "text-gray-600"
+                                  }`}
+                              >
+                                Đơn tối thiểu {voucher.minimumOrderLabel}
+                              </p>
+                              {!eligible && (
+                                <p className="text-xs text-[#E04D30]">
+                                  Chưa đạt điều kiện sử dụng
+                                </p>
+                              )}
+                              {voucher.description && (
+                                <p
+                                  className={`${isSelected ? "text-[#E04D30]" : "text-gray-500"
+                                    }`}
+                                >
+                                  {voucher.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-center px-4 border-l border-gray-100">
+                            <input
+                              type="radio"
+                              name="voucher"
+                              className="h-5 w-5 text-[#E04D30] focus:ring-[#E04D30]"
+                              checked={isSelected}
+                              disabled={!eligible}
+                              onChange={() => setActiveVoucher(voucher.id)}
+                            />
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {section.vouchers.length > 2 && (
+                    <div className="flex justify-center pt-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleSectionExpand(section.id)}
+                        className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
+                      >
+                        <span>
+                          {expandedSections[section.id]
+                            ? "Thu gọn"
+                            : "Xem thêm"}
+                        </span>
+                        <span
+                          className={`inline-block transition-transform ${expandedSections[section.id] ? "rotate-180" : ""
+                            }`}
+                        >
+                          ▼
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {index < sections.length - 1 && <hr className="border-gray-200" />}
+              </React.Fragment>
+            ))
           )}
         </div>
 
@@ -486,18 +524,18 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
             <p className="text-xs text-[#E04D30]">{eligibilityMessage}</p>
           )}
           <div className="flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors"
-          >
-            Trở lại
-          </button>
-          <button
-            onClick={handleApply}
-            className="px-5 py-2 rounded-lg bg-[#E04D30] text-white font-semibold hover:bg-[#c53b1d] transition-colors"
-          >
-            OK
-          </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors"
+            >
+              Trở lại
+            </button>
+            <button
+              onClick={handleApply}
+              className="px-5 py-2 rounded-lg bg-[#E04D30] text-white font-semibold hover:bg-[#c53b1d] transition-colors"
+            >
+              OK
+            </button>
           </div>
         </div>
       </div>

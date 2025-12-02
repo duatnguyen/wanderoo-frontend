@@ -44,10 +44,17 @@ export const searchDiscountByCode = async (code: string): Promise<DiscountRespon
 };
 
 export const searchDiscountsByKeyword = async (keyword?: string): Promise<DiscountResponse[]> => {
-  const response = await api.get<ApiResponse<DiscountResponse[]>>('/auth/v1/private/sale/pos/discounts/search-by-keyword', {
-    params: { keyword }
-  });
-  return response.data.data ?? [];
+  try {
+    console.log('Searching discounts by keyword:', keyword);
+    const response = await api.get<ApiResponse<DiscountResponse[]>>('/auth/v1/private/sale/pos/discounts/search-by-keyword', {
+      params: keyword ? { keyword } : {}
+    });
+    console.log('searchDiscountsByKeyword response:', response.data);
+    return response.data.data ?? [];
+  } catch (error) {
+    console.error('Error in searchDiscountsByKeyword:', error);
+    throw error;
+  }
 };
 
 export const getDraftOrderDetail = async (orderId: number): Promise<DraftOrderDetailResponse> => {

@@ -15,18 +15,6 @@ export interface UserResponse {
 
 export interface AddressResponse {
   id: number;
-  street: string;
-  wardCode: string;
-  wardName: string;
-  districtId: number;
-  districtName: string;
-  provinceName: string;
-  fullAddress?: string;
-  name: string; // User name (fallback)
-  phone: string; // User phone (fallback)
-  receiverName?: string | null; // Receiver name from address
-  receiverPhone?: string | null; // Receiver phone from address
-  isDefault: string | boolean; // Backend returns "Địa chỉ mặc định" or "Địa chỉ không mặc định" as string
   name: string;
   phone: string;
   receiverName?: string | null;
@@ -145,8 +133,6 @@ export interface AddressCreationRequest {
   fullAddress?: string;
   name: string;
   phone: string;
-  wardCode: string;
-  districtId: number;
 }
 
 export interface AddressUpdateRequest extends AddressCreationRequest {
@@ -174,9 +160,6 @@ export interface CustomerCreationRequest {
   password?: string;
   name: string;
   phone: string;
-  address?: string;
-  gender?: "MALE" | "FEMALE" | "OTHER";
-  birthday?: string;
   address?: string;
   gender?: "MALE" | "FEMALE" | "OTHER" | null;
   birthday?: string | null;

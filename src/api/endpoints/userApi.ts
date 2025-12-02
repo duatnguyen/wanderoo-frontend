@@ -19,6 +19,7 @@ import type {
   SelectAllRequest,
 } from "../../types";
 import type { CustomerResponse } from "../../types/api";
+import type { AdminProfileDetailResponse, AdminProfileUpdateRequest, AdminPasswordUpdateRequest } from "../../types/auth";
 
 export type AllowedRole =
   | "ADMIN"
@@ -58,6 +59,52 @@ export const changePassword = async (
   const response = await api.put<ApiResponse<null>>(
     "/auth/v1/private/users/change-password",
     passwordData
+  );
+  return response.data;
+};
+
+// Admin Profile API
+export const getAdminProfile = async (): Promise<AdminProfileDetailResponse> => {
+  const response = await api.get<ApiResponse<AdminProfileDetailResponse>>(
+    "/auth/v1/private/users/admin/profile"
+  );
+  return response.data.data;
+};
+
+export const updateAdminProfile = async (
+  profileData: AdminProfileUpdateRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/users/admin/profile",
+    profileData
+  );
+  return response.data;
+};
+
+export const updateAdminPassword = async (
+  passwordData: AdminPasswordUpdateRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.put<ApiResponse<null>>(
+    "/auth/v1/private/users/admin/change-password",
+    passwordData
+  );
+  return response.data;
+};
+
+export const uploadAdminAvatar = async (
+  file: File
+): Promise<ApiResponse<string>> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await api.post<ApiResponse<string>>(
+    "/auth/v1/private/users/admin/avatar",
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
   );
   return response.data;
 };
@@ -349,11 +396,6 @@ export const deleteCustomer = async (
 export const disableCustomerAccounts = async (
   selectData: SelectAllRequest
 ): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/account/customer/disable",
-    selectData
-  );
-export const disableCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
   console.log("disableCustomerAccounts API call:", selectData);
   const response = await api.delete<ApiResponse<null>>('/auth/v1/private/account/customer/disable/all', {
     data: selectData,
@@ -365,11 +407,6 @@ export const disableCustomerAccounts = async (selectData: SelectAllRequest): Pro
 export const enableCustomerAccounts = async (
   selectData: SelectAllRequest
 ): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/account/customer/enable",
-    selectData
-  );
-export const enableCustomerAccounts = async (selectData: SelectAllRequest): Promise<ApiResponse<null>> => {
   console.log("enableCustomerAccounts API call:", selectData);
   const response = await api.put<ApiResponse<null>>('/auth/v1/private/account/customer/enable/all', selectData);
   console.log("enableCustomerAccounts API response:", response.data);

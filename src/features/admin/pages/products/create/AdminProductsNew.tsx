@@ -323,14 +323,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         const mappedVersions: ProductVersion[] =
           response.variants?.map((variant) => ({
             id: String(variant.id),
+            combination: [], // Add required combination property
             name: variant.nameDetail || variant.skuDetail || `Phiên bản #${variant.id}`,
             price:
               variant.sellingPrice !== undefined && variant.sellingPrice !== null
                 ? String(variant.sellingPrice)
-                : "",
-            costPrice:
-              variant.importPrice !== undefined && variant.importPrice !== null
-                ? String(variant.importPrice)
                 : "",
             // inventory mapping với totalQuantity (tồn kho)
             inventory:
@@ -345,9 +342,6 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
               variant.posSoldQuantity !== undefined && variant.posSoldQuantity !== null
                 ? String(variant.posSoldQuantity)
                 : "",
-            image: variant.imageUrl ?? null,
-            sku: variant.skuDetail ?? "",
-            barcode: variant.barcode ?? "",
           })) ?? [];
 
         setVersions(mappedVersions);
@@ -415,8 +409,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
     try {
       await updateVariantQuantityPrivate({
-        id: variantId,
-        totalQuantity: quantity,
+        productDetailId: variantId,
+        quantity: quantity,
       });
       toast.success("Đã cập nhật tồn kho phiên bản");
       setInventoryErrors((prev) => {
@@ -480,14 +474,6 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
     try {
       const toFloat = (value: string): number => parseFloat(value) || 0;
-      const toOptionalFloat = (value: string): number | undefined => {
-        const parsed = parseFloat(value);
-        return Number.isNaN(parsed) ? undefined : parsed;
-      };
-      const toOptionalInt = (value: string): number | undefined => {
-        const parsed = parseInt(value, 10);
-        return Number.isNaN(parsed) ? undefined : parsed;
-      };
 
       if (isEditMode && productId) {
         // Update existing product
@@ -495,18 +481,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           id: productId,
           name: formData.productName.trim(),
           description: formData.description.trim(),
+          price: toFloat(formData.sellingPrice),
           categoryId: formData.categoryId!,
-          brandId: formData.brandId!,
-          images: images.map((img) => img.url).filter(Boolean),
-          attributes: attributes.length > 0 ? attributes : [],
-          packagedWeight: toFloat(formData.weight),
-          length: toFloat(formData.length),
-          width: toFloat(formData.width),
-          height: toFloat(formData.height),
-          importPrice: toOptionalFloat(formData.costPrice),
-          sellingPrice: toOptionalFloat(formData.sellingPrice),
-          totalQuantity: toOptionalInt(formData.inventory),
-          // availableQuantity được tính riêng theo luồng khác
         };
 
         await updateProductPrivate(updatePayload);
@@ -520,18 +496,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         const payload: ProductCreateRequest = {
           name: formData.productName.trim(),
           description: formData.description.trim(),
+          price: toFloat(formData.sellingPrice),
           categoryId: formData.categoryId!,
-          brandId: formData.brandId!,
-          images: images.map((img) => img.url).filter(Boolean),
-          attributes: attributes.length > 0 ? attributes : [],
-          packagedWeight: toFloat(formData.weight),
-          length: toFloat(formData.length),
-          width: toFloat(formData.width),
-          height: toFloat(formData.height),
-          importPrice: toOptionalFloat(formData.costPrice),
-          sellingPrice: toOptionalFloat(formData.sellingPrice),
-          totalQuantity: toOptionalInt(formData.inventory),
-          // availableQuantity không nhập ở form tạo sản phẩm
         };
 
         const creationResponse = await createProductPrivate(payload);
@@ -743,7 +709,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       });
 
       const mappedOptions =
-        response.content?.map((item) => ({
+        response.categoryChildResponseList?.map((item: any) => ({
           value: item.id,
           label: item.name,
         })) ?? [];
@@ -1138,7 +1104,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         webQuantity: version.webQuantity || "",
         posQuantity: version.posQuantity || "",
         image: version.image || "",
-        sku: version.sku,
+        sku: version.sku || "",
       });
       setEditVersionError("");
       setShowEditVersionModal(true);

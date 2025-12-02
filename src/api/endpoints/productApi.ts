@@ -26,7 +26,7 @@ import type {
   ProductCategoryPageResponse,
   BrandResponse,
   UpdateProductDisplayRequest,
-  UpdateVariantQuantityRequest,
+  UpdateItemQuantityRequest,
 } from '../../types';
 
 type ProductListQuery = {
@@ -310,7 +310,7 @@ export const updateSellingQuantity = async (quantityData: VariantQuantityUpdateR
 };
 
 export const updateVariantQuantityPrivate = async (
-  request: UpdateVariantQuantityRequest
+  request: UpdateItemQuantityRequest
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
     '/auth/v1/private/product/variant/quantity',
@@ -332,22 +332,13 @@ export const getChildCategories = async (parentId: number): Promise<CategoryChil
 
 export const getCategoryChildOptions = async (
   params?: { page?: number; size?: number }
-): Promise<CategoryChildPageResponse & { categoryChildResponseList?: CategoryChildPageResponse["content"] }> => {
-  const response = await api.get<ApiResponse<CategoryChildPageResponse & { categoryChildResponseList?: CategoryChildPageResponse["content"] }>>(
+): Promise<CategoryChildPageResponse> => {
+  const response = await api.get<ApiResponse<CategoryChildPageResponse>>(
     '/auth/v1/private/attribute/category-child',
     { params }
   );
 
-  const data = response.data.data;
-  const content =
-    data.content ??
-    (data.categoryChildResponseList as CategoryChildPageResponse["content"]) ??
-    [];
-
-  return {
-    ...data,
-    content,
-  };
+  return response.data.data;
 };
 
 export const createParentCategory = async (categoryData: CategoryParentCreateRequest): Promise<ApiResponse<number>> => {

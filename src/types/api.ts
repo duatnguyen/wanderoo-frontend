@@ -510,18 +510,6 @@ export interface ProductCreateRequest {
   images?: string[];
   name: string;
   categoryId: number;
-  brandId: number;
-  description: string;
-  attributes?: ProductAttributeInputRequest[];
-  packagedWeight: number;
-  length: number;
-  width: number;
-  height: number;
-  importPrice?: number;
-  sellingPrice?: number;
-  totalQuantity?: number;
-  availableQuantity?: number;
-  categoryId: number;
   brandId?: number;
   description: string;
   attributes?: ProductAttributeInputRequest[];
@@ -1239,11 +1227,6 @@ export interface VariantUpdateRequest {
   importPrice?: number;
   totalQuantity?: number;
   availableQuantity?: number;
-  imageUrl?: string[];
-  barcode?: string;
-  sellingPrice?: number;
-  importPrice?: number;
-  totalQuantity?: number;
   websiteSoldQuantity?: number;
   posSoldQuantity?: number;
 }
@@ -1298,9 +1281,6 @@ export interface CustomerCreationRequest {
   password?: string;
   name: string;
   phone: string;
-  address?: string;
-  gender?: "MALE" | "FEMALE" | "OTHER";
-  birthday?: string;
   address?: string;
   gender?: "MALE" | "FEMALE" | "OTHER" | null;
   birthday?: string | null;

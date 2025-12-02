@@ -207,15 +207,33 @@ const OrderDetailTab: React.FC = () => {
     if (!orderData) return null;
 
     const incomingOrder = location.state?.order;
-    const statusLabel = incomingOrder?.statusLabel ||
-      (orderData.status === "COMPLETE" ? "Đã giao hàng" :
-        orderData.status === "SHIPPING" ? "Đang vận chuyển" :
-          orderData.status === "PROCESSING" ? "Đang xử lý" :
-            orderData.status === "CONFIRMED" ? "Đã xác nhận" :
-              orderData.status === "SHIPPING_FAILED" ? "Giao hàng thất bại" :
-                orderData.status === "RETURNED" ? "Đã trả hàng" :
-                  orderData.status === "REFUND" ? "Hoàn trả" :
-                    orderData.status === "CANCELED" ? "Đã hủy" : "Chờ xác nhận");
+    // Consistent status mapping with admin view
+    const getStatusDisplayName = (status: string) => {
+      switch (status) {
+        case "PENDING":
+          return "Chờ xác nhận";
+        case "CONFIRMED":
+          return "Đã xác nhận";
+        case "PROCESSING":
+          return "Đang xử lý";
+        case "SHIPPING":
+          return "Đang giao hàng";
+        case "COMPLETE":
+          return "Đã hoàn thành";
+        case "SHIPPING_FAILED":
+          return "Giao hàng thất bại";
+        case "RETURNED":
+          return "Đã trả hàng";
+        case "REFUND":
+          return "Hoàn tiền";
+        case "CANCELED":
+          return "Đã hủy";
+        default:
+          return "Chờ xác nhận";
+      }
+    };
+
+    const statusLabel = incomingOrder?.statusLabel || getStatusDisplayName(orderData.status || "");
 
     const products: ProductType[] = (orderData.orderDetails || []).map((detail: any, idx: number) => ({
       id: detail.id?.toString() || detail.productDetailId?.toString() || String(idx + 1),
@@ -278,10 +296,42 @@ const OrderDetailTab: React.FC = () => {
 
   const currentStatus = order ? mapOrderStatusToChipStatus(order.statusKey) : "default";
 
-  // Get order status timeline steps (old timeline - based on order status)
+  // Get order status timeline steps (enhanced timeline - handles all order statuses)
   const getOrderStatusTimelineSteps = (): TimelineStep[] => {
     if (!order || !orderData) return [];
 
+    // Get dates from order data
+    const createdAt = orderData.createdAt ? formatTimelineDate(orderData.createdAt) : "";
+    const updatedAt = orderData.updatedAt ? formatTimelineDate(orderData.updatedAt) : "";
+    const status = order.statusKey?.toUpperCase() || "";
+
+    // Handle special cases for canceled/failed orders
+    if (status === "CANCELED") {
+      return [
+        { label: "Đặt hàng thành công", completed: true, date: createdAt },
+        { label: "Đã hủy đơn hàng", completed: true, date: updatedAt },
+      ];
+    }
+
+    if (status === "SHIPPING_FAILED") {
+      return [
+        { label: "Đặt hàng thành công", completed: true, date: createdAt },
+        { label: "Đã xác nhận", completed: true, date: updatedAt || createdAt },
+        { label: "Đang vận chuyển", completed: true, date: updatedAt },
+        { label: "Giao hàng thất bại", completed: true, date: updatedAt },
+      ];
+    }
+
+    if (status === "RETURNED" || status === "REFUND") {
+      return [
+        { label: "Đặt hàng thành công", completed: true, date: createdAt },
+        { label: "Đã xác nhận", completed: true, date: updatedAt || createdAt },
+        { label: "Đang vận chuyển", completed: true, date: updatedAt },
+        { label: status === "RETURNED" ? "Đã trả hàng" : "Đã hoàn tiền", completed: true, date: updatedAt },
+      ];
+    }
+
+    // Normal flow timeline for successful orders
     const steps: TimelineStep[] = [
       { label: "Đặt hàng thành công", completed: false },
       { label: "Đã xác nhận", completed: false },
@@ -289,24 +339,18 @@ const OrderDetailTab: React.FC = () => {
       { label: "Đã nhận hàng", completed: false },
     ];
 
-    // Get dates from order data
-    const createdAt = orderData.createdAt ? formatTimelineDate(orderData.createdAt) : "";
-    const updatedAt = orderData.updatedAt ? formatTimelineDate(orderData.updatedAt) : "";
-
-    // Determine completed steps based on order status
-    const status = order.statusKey?.toUpperCase() || "";
-
-    // At least "Đặt hàng thành công" is always completed
+    // Step 1: Order placed - always completed
     steps[0].completed = true;
     steps[0].date = createdAt;
 
-    // Only mark "Đã xác nhận" as completed if status is NOT PENDING
-    if (status === "CONFIRMED" || status === "PROCESSING" || status === "SHIPPING" || status === "COMPLETE") {
+    // Step 2: Confirmed - completed if status is CONFIRMED or later
+    if (["CONFIRMED", "PROCESSING", "SHIPPING", "COMPLETE"].includes(status)) {
       steps[1].completed = true;
       steps[1].date = updatedAt || createdAt;
     }
 
-    if (status === "SHIPPING" || status === "COMPLETE" || status === "SHIPPING_FAILED" || status === "RETURNED") {
+    // Step 3: Shipping - completed if status is SHIPPING or COMPLETE
+    if (["SHIPPING", "COMPLETE"].includes(status)) {
       steps[2].completed = true;
       // Use shipping detail date if available, otherwise use updatedAt
       if (order.shippingDetail && order.shippingDetail.log && Array.isArray(order.shippingDetail.log) && order.shippingDetail.log.length > 0) {
@@ -322,6 +366,7 @@ const OrderDetailTab: React.FC = () => {
       }
     }
 
+    // Step 4: Delivered - completed only if status is COMPLETE
     if (status === "COMPLETE") {
       steps[3].completed = true;
       // Use latest shipping log date if available
@@ -469,8 +514,9 @@ const OrderDetailTab: React.FC = () => {
       return;
     }
 
-    // Confirm cancellation
-    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) {
+    // Confirm cancellation with detailed message
+    const confirmMessage = `Bạn có chắc chắn muốn hủy đơn hàng #${order.code}?\n\nLưu ý: Sau khi hủy, đơn hàng sẽ không thể khôi phục được.`;
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -483,12 +529,39 @@ const OrderDetailTab: React.FC = () => {
         duration: 3000,
       });
 
-      // Refresh order data
-      window.location.reload();
+      // Invalidate and refetch order data for better UX
+      await queryClient.invalidateQueries({ 
+        queryKey: ["customerOrderDetail", orderCode] 
+      });
+      
+      // Also invalidate the orders list if user navigates back
+      await queryClient.invalidateQueries({ 
+        queryKey: ["customerOrders"] 
+      });
+      
+      setIsCancellingOrder(false);
+      
+      // Optional: Navigate back to orders list after successful cancellation
+      // Uncomment the line below if you want to redirect after cancellation
+      // navigate("/user/profile/orders", { state: { activeTab: "cancelled" } });
     } catch (error: any) {
       console.error("Error canceling order:", error);
+      
+      // Provide specific error messages based on status codes
+      let errorMessage = "Không thể hủy đơn hàng. Vui lòng thử lại.";
+      
+      if (error?.response?.status === 400) {
+        errorMessage = error?.response?.data?.message || "Đơn hàng không thể hủy trong trạng thái hiện tại.";
+      } else if (error?.response?.status === 404) {
+        errorMessage = "Không tìm thấy đơn hàng.";
+      } else if (error?.response?.status === 403) {
+        errorMessage = "Bạn không có quyền hủy đơn hàng này.";
+      } else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
       toast.error("Hủy đơn hàng thất bại", {
-        description: error?.response?.data?.message || "Không thể hủy đơn hàng. Vui lòng thử lại.",
+        description: errorMessage,
         duration: 4000,
       });
       setIsCancellingOrder(false);
@@ -835,8 +908,8 @@ const OrderDetailTab: React.FC = () => {
               )}
             </div>
 
-            {/* Order Status Timeline (Old Timeline - Overview) */}
-            <OrderTimeline steps={orderStatusTimelineSteps} />
+            {/* Order Status Timeline (Enhanced Timeline - Overview) */}
+            <OrderTimeline steps={orderStatusTimelineSteps} orderStatus={order.statusKey || ""} />
 
             {/* Shipping Timeline (New Timeline - Detailed) - Only show if shippingDetail exists */}
             {order.shippingDetail && (
