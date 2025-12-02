@@ -38,6 +38,7 @@ import {
   updateVariantPrivate,
   updateProductPrivate,
   updateSellingQuantityPrivate,
+  updateVariantQuantityPrivate,
 } from "@/api/endpoints/productApi";
 import {
   getBrandList,
@@ -176,6 +177,9 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     (initialVersions?.length ?? 0) > 0
   );
   const [variantStatusMessage, setVariantStatusMessage] = useState<string | null>(null);
+  const [inventoryErrors, setInventoryErrors] = useState<Record<string, string>>({});
+  const [updatingInventoryIds, setUpdatingInventoryIds] = useState<Set<string>>(new Set());
+  const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null);
   const [variantError, setVariantError] = useState<string | null>(null);
   const [isVariantLoading, setIsVariantLoading] = useState(false);
   const [variantPagination, setVariantPagination] = useState<VariantPaginationState>(
@@ -363,6 +367,84 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     },
     []
   );
+
+  const handleVersionInventoryChange = (versionId: string, rawValue: string) => {
+    if (isViewMode) return;
+    const sanitized = sanitizeNumeric(rawValue, false);
+    setVersions((prev) =>
+      prev.map((v) =>
+        v.id === versionId
+          ? {
+              ...v,
+              inventory: sanitized,
+            }
+          : v
+      )
+    );
+    setInventoryErrors((prev) => {
+      if (!prev[versionId]) return prev;
+      const next = { ...prev };
+      delete next[versionId];
+      return next;
+    });
+  };
+
+  const handleInventorySubmit = async (versionId: string) => {
+    if (!createdProductId || isViewMode) return;
+
+    const version = versions.find((v) => v.id === versionId);
+    if (!version) return;
+
+    const quantity = version.inventory ? parseInt(version.inventory, 10) : 0;
+    if (isNaN(quantity) || quantity < 0) {
+      toast.error("Tồn kho phải là số không âm");
+      return;
+    }
+
+    const variantId = parseInt(versionId, 10);
+    if (isNaN(variantId)) {
+      toast.error("ID phiên bản không hợp lệ");
+      return;
+    }
+
+    setUpdatingInventoryIds((prev) => {
+      const next = new Set(prev);
+      next.add(versionId);
+      return next;
+    });
+
+    try {
+      await updateVariantQuantityPrivate({
+        id: variantId,
+        totalQuantity: quantity,
+      });
+      toast.success("Đã cập nhật tồn kho phiên bản");
+      setInventoryErrors((prev) => {
+        if (!prev[versionId]) return prev;
+        const next = { ...prev };
+        delete next[versionId];
+        return next;
+      });
+      setEditingInventoryId(null);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const message =
+        axiosError.response?.data?.message ??
+        "Không thể cập nhật tồn kho phiên bản. Vui lòng thử lại.";
+      console.error("Không thể cập nhật tồn kho phiên bản:", message);
+      setInventoryErrors((prev) => ({
+        ...prev,
+        [versionId]: message,
+      }));
+      toast.error(message);
+    } finally {
+      setUpdatingInventoryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(versionId);
+        return next;
+      });
+    }
+  };
 
   // Load variants when in edit mode
   useEffect(() => {
@@ -2003,11 +2085,128 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                           </p>
                           <p className="text-xs text-gray-500">Giá bán</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
-                            {version.inventory || "0"}
-                          </p>
-                          <p className="text-xs text-gray-500">Tồn kho</p>
+                        <div className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-col items-end gap-1">
+                            {editingInventoryId === version.id ? (
+                              <div className="bg-white border border-[#e5e7eb] rounded-[12px] shadow-sm px-3 py-2 min-w-[220px]">
+                                <p className="text-[11px] text-gray-500 text-left mb-1">
+                                  Chỉnh sửa tồn kho
+                                </p>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className={`flex-1 text-right text-[14px] font-semibold font-montserrat bg-transparent border-b outline-none transition-colors ${
+                                      inventoryErrors[version.id]
+                                        ? "border-red-500 text-red-600"
+                                        : "border-[#d4d4d8] text-[#272424] focus:border-[#1a71f6]"
+                                    }`}
+                                    value={version.inventory || ""}
+                                    placeholder="0"
+                                    onChange={(e) =>
+                                      handleVersionInventoryChange(version.id, e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleInventorySubmit(version.id);
+                                      }
+                                      if (e.key === "Escape") {
+                                        e.preventDefault();
+                                        setEditingInventoryId(null);
+                                        setInventoryErrors((prev) => {
+                                          if (!prev[version.id]) return prev;
+                                          const next = { ...prev };
+                                          delete next[version.id];
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                    autoFocus
+                                    disabled={isViewMode}
+                                  />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    className="px-3 h-[28px] rounded-[999px] text-[12px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingInventoryId(null);
+                                      setInventoryErrors((prev) => {
+                                        if (!prev[version.id]) return prev;
+                                        const next = { ...prev };
+                                        delete next[version.id];
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    Hủy
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`px-3 h-[28px] rounded-[999px] text-[12px] font-semibold transition-colors flex items-center justify-center ${
+                                      updatingInventoryIds.has(version.id) || !createdProductId
+                                        ? "bg-[#e5edff] text-[#1a71f6] cursor-not-allowed"
+                                        : "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
+                                    } ${isViewMode ? "cursor-not-allowed opacity-60" : ""}`}
+                                    disabled={
+                                      isViewMode ||
+                                      updatingInventoryIds.has(version.id) ||
+                                      !createdProductId
+                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleInventorySubmit(version.id);
+                                    }}
+                                  >
+                                    {updatingInventoryIds.has(version.id) ? (
+                                      <svg
+                                        className="w-4 h-4 animate-spin"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                      >
+                                        <circle
+                                          className="opacity-25"
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="currentColor"
+                                          strokeWidth="4"
+                                        />
+                                        <path
+                                          className="opacity-75"
+                                          fill="currentColor"
+                                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                        />
+                                      </svg>
+                                    ) : (
+                                      "Lưu"
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-end gap-1 text-[14px] font-semibold font-montserrat text-[#272424] hover:text-[#1a71f6]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isViewMode) return;
+                                  setEditingInventoryId(version.id);
+                                }}
+                              >
+                                <span>{version.inventory || "0"}</span>
+                              </button>
+                            )}
+                            {inventoryErrors[version.id] ? (
+                              <p className="text-xs text-red-500">
+                                {inventoryErrors[version.id]}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-gray-500">Tồn kho</p>
+                            )}
+                          </div>
                         </div>
                         <div className="text-right">
                           <p className="text-[14px] font-semibold text-[#272424] font-montserrat">

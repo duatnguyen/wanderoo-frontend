@@ -1043,6 +1043,11 @@ export interface VariantQuantityUpdateRequest {
   quantity: number;
 }
 
+export interface UpdateVariantQuantityRequest {
+  id: number;
+  totalQuantity: number;
+}
+
 export interface EmployeeResponse extends UserResponse {
   department: string;
   position: string;
