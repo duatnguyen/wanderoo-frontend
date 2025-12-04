@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { BrandResponse } from "../../../types";
+import { formatCurrencyInput, parseCurrencyInput } from "../../../utils/formatCurrencyInput";
 
 export type FilterState = {
   keyword: string;
@@ -30,6 +31,63 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   onPriceChange,
   onBrandToggle,
 }) => {
+  // Local state for formatted display values
+  const [minPriceDisplay, setMinPriceDisplay] = useState<string>("");
+  const [maxPriceDisplay, setMaxPriceDisplay] = useState<string>("");
+
+  // Update display values when filters change (from external source, e.g., reset)
+  useEffect(() => {
+    if (filters.minPrice) {
+      const formatted = formatCurrencyInput(filters.minPrice);
+      setMinPriceDisplay(formatted);
+    } else {
+      setMinPriceDisplay("");
+    }
+  }, [filters.minPrice]);
+
+  useEffect(() => {
+    if (filters.maxPrice) {
+      const formatted = formatCurrencyInput(filters.maxPrice);
+      setMaxPriceDisplay(formatted);
+    } else {
+      setMaxPriceDisplay("");
+    }
+  }, [filters.maxPrice]);
+
+  const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    
+    // Only allow digits and dots (for formatting)
+    const cleaned = inputValue.replace(/[^\d.]/g, "");
+    
+    // Parse to get numeric value (remove all non-digits)
+    const parsedValue = parseCurrencyInput(cleaned);
+    
+    // Format for display
+    const formatted = parsedValue ? formatCurrencyInput(parsedValue) : "";
+    
+    setMinPriceDisplay(formatted);
+    // Save raw numeric value (without formatting)
+    onPriceChange("minPrice", parsedValue);
+  };
+
+  const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    
+    // Only allow digits and dots (for formatting)
+    const cleaned = inputValue.replace(/[^\d.]/g, "");
+    
+    // Parse to get numeric value (remove all non-digits)
+    const parsedValue = parseCurrencyInput(cleaned);
+    
+    // Format for display
+    const formatted = parsedValue ? formatCurrencyInput(parsedValue) : "";
+    
+    setMaxPriceDisplay(formatted);
+    // Save raw numeric value (without formatting)
+    onPriceChange("maxPrice", parsedValue);
+  };
+
   return (
     <div className="space-y-6">
       {/* Khoảng giá */}
@@ -39,17 +97,19 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         </h4>
         <div className="flex items-center gap-3">
           <input
-            type="number"
-            value={filters.minPrice}
-            onChange={(e) => onPriceChange("minPrice", e.target.value)}
+            type="text"
+            inputMode="numeric"
+            value={minPriceDisplay}
+            onChange={handleMinPriceChange}
             placeholder="Từ"
             className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm text-[#454545] placeholder:text-gray-400 focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-colors"
           />
           <span className="text-gray-400 text-sm font-medium">-</span>
           <input
-            type="number"
-            value={filters.maxPrice}
-            onChange={(e) => onPriceChange("maxPrice", e.target.value)}
+            type="text"
+            inputMode="numeric"
+            value={maxPriceDisplay}
+            onChange={handleMaxPriceChange}
             placeholder="Đến"
             className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm text-[#454545] placeholder:text-gray-400 focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-colors"
           />
