@@ -1,662 +1,638 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import type { DateRange } from "react-day-picker";
 import {
   PageContainer,
   ContentCard,
   PageHeader,
+  TabMenuWithBadge,
   TabMenu,
-  OrderTableHeader,
+  OrderTable,
+  type OrderTableColumn,
+  type TabItemWithBadge,
+  type TabItem,
 } from "@/components/common";
-import type { TabItem } from "@/components/common";
-import { ChipStatus } from "@/components/ui/chip-status";
-import { DetailIcon } from "@/components/icons";
+import { Pagination } from "@/components/ui/pagination";
+import { SearchBar } from "@/components/ui/search-bar";
 import {
-  otherStatusOrders,
-  STATUS_CHIP_MAP,
-  TABLE_COLUMNS,
-  type OtherStatusOrder,
-  type ReturnStatus,
-  type ShippingInfo,
-  type TableColumnId,
-} from "./orderOtherStatusData";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import CaretDown from "@/components/ui/caret-down";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, XCircle } from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import type { ChipStatusKey } from "@/components/ui/chip-status";
 
-type ReturnStatusTab = "ALL" | ReturnStatus;
-type CancelStatusTab = "ALL" | "PROCESSING" | "PROCESSED";
-type FailedStatusTab =
-  | "ALL"
-  | "RETURNING_TO_SELLER"
-  | "RETURNED_TO_SELLER"
-  | "RETURN_FAILED";
-type MainTabValue = "ALL" | "RETURN" | "CANCEL" | "FAILED";
+type ReturnOrderCategory = "RETURN" | "CANCEL" | "FAILED";
+type ReturnOrderStatus = "UNDER_REVIEW" | "RETURNING" | "COMPLETED" | "INVALID";
+type ReturnStatusFilter = ReturnOrderStatus | "DELIVERED";
+type RefundStatus = "WAITING" | "PARTIAL" | "DONE";
 
-const MAIN_TABS: TabItem[] = [
+interface ReturnOrder {
+  id: string;
+  orderCode: string;
+  createdAt: string;
+  customerId: string;
+  customerName: string;
+  customerUsername: string;
+  productName: string;
+  productVariant?: string;
+  productImage?: string;
+  totalAmount: number;
+  paymentMethod: string;
+  reason: string;
+  buyerOptions: string[];
+  statusLabel: string;
+  statusKey: ReturnOrderStatus;
+  resolutionNote: string;
+  forwardShippingStatus: string;
+  returnShippingStatus: string;
+  refundStatus: RefundStatus;
+  refundStatusLabel: string;
+  source: "Website" | "POS";
+  category: ReturnOrderCategory;
+  sourceNote?: string;
+}
+
+const mockReturnOrders: ReturnOrder[] = [
+  {
+    id: "RET-202411-001",
+    orderCode: "WEB-0001",
+    createdAt: "25/11/2025 13:01",
+    customerId: "KH-002845",
+    customerName: "Nguyễn Thảo",
+    customerUsername: "nguyenthao",
+    productName: "Áo khoác trekking nữ Wander Shield",
+    productVariant: "Màu xanh ngọc · Size M",
+    totalAmount: 1890000,
+    paymentMethod: "Tiền mặt",
+    reason: "Lý do trả hàng: Màu sắc thực tế không đúng như mô tả",
+    buyerOptions: [
+      "Trả hàng & hoàn tiền",
+      "Hoàn tiền ngay khi xác nhận",
+    ],
+    statusLabel: "Đang chờ xét duyệt",
+    statusKey: "UNDER_REVIEW",
+    resolutionNote: "Đã hoàn tiền tạm giữ cho người mua",
+    forwardShippingStatus: "Đã hoàn thành",
+    returnShippingStatus: "Chờ lấy hàng",
+    refundStatus: "WAITING",
+    refundStatusLabel: "Chưa hoàn tiền",
+    source: "Website",
+    category: "RETURN",
+    sourceNote: "Tạo từ Website · Ưu tiên đồng bộ kho",
+  },
+  {
+    id: "RET-202411-002",
+    orderCode: "POS-1205",
+    createdAt: "24/11/2025 18:30",
+    customerId: "KH-001523",
+    customerName: "Trần Đăng",
+    customerUsername: "trandangk",
+    productName: "Giày leo núi Nam Summit Pro",
+    productVariant: "Màu đen · Size 41",
+    totalAmount: 2350000,
+    paymentMethod: "Tiền mặt",
+    reason: "Lý do trả hàng: Bị rộng, khách muốn đổi size khác",
+    buyerOptions: [
+      "Trả hàng & hoàn tiền",
+    ],
+    statusLabel: "Đang trả hàng",
+    statusKey: "RETURNING",
+    resolutionNote: "Có 1 phương án do người mua chọn: Trả hàng & hoàn tiền",
+    forwardShippingStatus: "Với ở POS sẽ luôn đã hoàn thành",
+    returnShippingStatus: "Đang giao",
+    refundStatus: "PARTIAL",
+    refundStatusLabel: "Đã hoàn tiền 1 phần",
+    source: "Website",
+    category: "RETURN",
+    sourceNote: "Tạo từ POS · Giao cùng ngày",
+  },
+];
+
+const primaryTabs: TabItemWithBadge[] = [
   { id: "ALL", label: "Tất cả" },
   { id: "RETURN", label: "Đơn Trả hàng Hoàn tiền" },
   { id: "CANCEL", label: "Đơn Hủy" },
   { id: "FAILED", label: "Đơn Giao hàng không thành công" },
 ];
 
-const RETURN_STATUS_TABS: Array<{ id: ReturnStatusTab; label: string }> = [
+const statusTabs: TabItem[] = [
   { id: "ALL", label: "Tất cả" },
-  { id: "PENDING_REVIEW", label: "Đang chờ xét duyệt" },
+  { id: "UNDER_REVIEW", label: "Đang chờ xét duyệt" },
   { id: "RETURNING", label: "Đang trả hàng" },
-  { id: "REFUNDED", label: "Đã hoàn tiền cho người mua" },
-  { id: "INVALID", label: "Yêu cầu bị hủy/không hợp lệ" },
+  { id: "DELIVERED", label: "Giao thành công" },
+  { id: "COMPLETED", label: "Đã hoàn tiền cho người mua" },
+  { id: "INVALID", label: "Yêu cầu bị huỷ/không hợp lệ" },
 ];
 
-const CANCEL_STATUS_TABS: Array<{ id: CancelStatusTab; label: string }> = [
+const cancelSubTabs: TabItem[] = [
   { id: "ALL", label: "Tất cả" },
   { id: "PROCESSING", label: "Đang xử lý" },
   { id: "PROCESSED", label: "Đã xử lý" },
 ];
 
-const FAILED_STATUS_TABS: Array<{ id: FailedStatusTab; label: string }> = [
-  { id: "ALL", label: "Tất cả" },
-  { id: "RETURNING_TO_SELLER", label: "Đang trả hàng cho người bán" },
-  { id: "RETURNED_TO_SELLER", label: "Đã trả hàng cho người bán" },
-  { id: "RETURN_FAILED", label: "Trả hàng k thành công" },
-];
+const PAGE_SIZE = 5;
 
-const currencyFormatter = new Intl.NumberFormat("vi-VN", {
-  style: "currency",
-  currency: "VND",
-});
-
-const formatCurrency = (value: number) =>
-  currencyFormatter.format(value).replace(" ₫", "₫");
-
-type ReturnStatusCounter = Record<ReturnStatus | "ALL", number>;
-type CancelStatusCounter = Record<CancelStatusTab, number>;
-type FailedStatusCounter = Record<FailedStatusTab, number>;
-
-const createEmptyReturnCounts = (): ReturnStatusCounter => ({
-  ALL: 0,
-  PENDING_REVIEW: 0,
-  RETURNING: 0,
-  REFUNDED: 0,
-  INVALID: 0,
-});
-
-const createEmptyCancelCounts = (): CancelStatusCounter => ({
-  ALL: 0,
-  PROCESSING: 0,
-  PROCESSED: 0,
-});
-
-const createEmptyFailedCounts = (): FailedStatusCounter => ({
-  ALL: 0,
-  RETURNING_TO_SELLER: 0,
-  RETURNED_TO_SELLER: 0,
-  RETURN_FAILED: 0,
-});
+interface OtherStatusNavigationState {
+  pathname?: string;
+  activePrimaryTab?: ReturnOrderCategory | "ALL";
+  activeStatusTab?: "ALL" | ReturnOrderStatus;
+  activeCancelSubTab?: "ALL" | "PROCESSING" | "PROCESSED";
+  activeFailedSubTab?: "ALL";
+  searchTerm?: string;
+}
 
 const AdminOrderOtherStatus = () => {
-  document.title = "Đơn trạng thái khác | Wanderoo";
+  document.title = "Trả hàng/Hoàn tiền/Huỷ | Wanderoo";
+
   const navigate = useNavigate();
-  const [activeMainTab, setActiveMainTab] = useState<MainTabValue>("RETURN");
-  const [activeStatusTab, setActiveStatusTab] =
-    useState<ReturnStatusTab>("ALL");
-  const [activeCancelStatusTab, setActiveCancelStatusTab] =
-    useState<CancelStatusTab>("ALL");
-  const [activeFailedStatusTab, setActiveFailedStatusTab] =
-    useState<FailedStatusTab>("ALL");
+  const location = useLocation();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [activePrimaryTab, setActivePrimaryTab] = useState<ReturnOrderCategory | "ALL">("ALL");
+  const [activeStatusTab, setActiveStatusTab] = useState<"ALL" | ReturnStatusFilter>("ALL");
+  const [activeCancelSubTab, setActiveCancelSubTab] = useState<
+    "ALL" | "PROCESSING" | "PROCESSED"
+  >("ALL");
+  const [activeFailedSubTab, setActiveFailedSubTab] = useState<"ALL">("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Filter states
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("ALL");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
-    if (activeMainTab !== "RETURN" && activeStatusTab !== "ALL") {
-      setActiveStatusTab("ALL");
+    const preservedState = (location.state as { returnTo?: OtherStatusNavigationState } | null)
+      ?.returnTo;
+    if (preservedState) {
+      if (preservedState.activePrimaryTab) {
+        setActivePrimaryTab(preservedState.activePrimaryTab);
+      }
+      if (preservedState.activeStatusTab) {
+        setActiveStatusTab(preservedState.activeStatusTab);
+      }
+      if (preservedState.activeCancelSubTab) {
+        setActiveCancelSubTab(preservedState.activeCancelSubTab);
+      }
+      if (preservedState.activeFailedSubTab) {
+        if (preservedState.activeFailedSubTab === "ALL") {
+          setActiveFailedSubTab(preservedState.activeFailedSubTab);
+        }
+      }
+      if (typeof preservedState.searchTerm === "string") {
+        setSearchTerm(preservedState.searchTerm);
+      }
+      navigate(location.pathname, { replace: true, state: null });
     }
-  }, [activeMainTab, activeStatusTab]);
+  }, [location.pathname, location.state, navigate]);
+
+  const tabCounts = useMemo(() => {
+    return mockReturnOrders.reduce(
+      (acc, order) => {
+        acc.ALL += 1;
+        acc[order.category] += 1;
+        return acc;
+      },
+      {
+        ALL: 0,
+        RETURN: 0,
+        CANCEL: 0,
+        FAILED: 0,
+      } as Record<"ALL" | ReturnOrderCategory, number>
+    );
+  }, []);
+
+  const decoratedPrimaryTabs = useMemo(
+    () =>
+      primaryTabs.map((tab) => ({
+        ...tab,
+        count: tabCounts[tab.id as keyof typeof tabCounts],
+      })),
+    [tabCounts]
+  );
 
   useEffect(() => {
-    if (activeMainTab !== "CANCEL" && activeCancelStatusTab !== "ALL") {
-      setActiveCancelStatusTab("ALL");
-    }
-  }, [activeMainTab, activeCancelStatusTab]);
-
-  useEffect(() => {
-    if (activeMainTab !== "FAILED" && activeFailedStatusTab !== "ALL") {
-      setActiveFailedStatusTab("ALL");
-    }
-  }, [activeMainTab, activeFailedStatusTab]);
-
-  const returnStatusCounts = useMemo(() => {
-    return otherStatusOrders.reduce((acc, order) => {
-      if (order.category === "RETURN") {
-        acc.ALL += 1;
-        acc[order.statusKey] = (acc[order.statusKey] || 0) + 1;
-      }
-      return acc;
-    }, createEmptyReturnCounts());
-  }, []);
-
-  const cancelStatusCounts = useMemo(() => {
-    return otherStatusOrders.reduce((acc, order) => {
-      if (order.category === "CANCEL") {
-        acc.ALL += 1;
-        // Determine if order is processed or processing
-        // Processed: refund completed or order fully cancelled
-        // Processing: refund pending or order cancellation in progress
-        const isProcessed =
-          order.forwardShipping?.chip === "completed" ||
-          order.statusDescription?.toLowerCase().includes("đã") ||
-          (order.refundAmount > 0 &&
-            order.statusDescription?.toLowerCase().includes("hoàn"));
-        if (isProcessed) {
-          acc.PROCESSED += 1;
-        } else {
-          acc.PROCESSING += 1;
-        }
-      }
-      return acc;
-    }, createEmptyCancelCounts());
-  }, []);
-
-  const failedStatusCounts = useMemo(() => {
-    return otherStatusOrders.reduce((acc, order) => {
-      if (order.category === "FAILED") {
-        acc.ALL += 1;
-        // Categorize failed orders based on return shipping status
-        const returnShipping = order.returnShipping;
-        if (returnShipping) {
-          if (
-            returnShipping.chip === "return" ||
-            returnShipping.label?.toLowerCase().includes("đang trả") ||
-            returnShipping.label?.toLowerCase().includes("đang trả hàng")
-          ) {
-            acc.RETURNING_TO_SELLER += 1;
-          } else if (
-            returnShipping.chip === "completed" ||
-            returnShipping.label?.toLowerCase().includes("đã trả") ||
-            returnShipping.label?.toLowerCase().includes("đã nhận")
-          ) {
-            acc.RETURNED_TO_SELLER += 1;
-          } else if (
-            returnShipping.chip === "cancelled" ||
-            returnShipping.label?.toLowerCase().includes("không thành công") ||
-            returnShipping.label?.toLowerCase().includes("thất bại")
-          ) {
-            acc.RETURN_FAILED += 1;
-          } else {
-            // Default to returning if status is unclear
-            acc.RETURNING_TO_SELLER += 1;
-          }
-        } else {
-          // If no return shipping info, default to returning
-          acc.RETURNING_TO_SELLER += 1;
-        }
-      }
-      return acc;
-    }, createEmptyFailedCounts());
-  }, []);
-
-  const filteredOrders = useMemo(() => {
-    const base = otherStatusOrders.filter((order) => {
-      if (activeMainTab === "ALL") return true;
-      return order.category === activeMainTab;
-    });
-
-    if (activeMainTab === "RETURN" && activeStatusTab !== "ALL") {
-      return base.filter((order) => order.statusKey === activeStatusTab);
-    }
-
-    if (activeMainTab === "CANCEL" && activeCancelStatusTab !== "ALL") {
-      return base.filter((order) => {
-        const isProcessed =
-          order.forwardShipping?.chip === "completed" ||
-          order.statusDescription?.toLowerCase().includes("đã") ||
-          (order.refundAmount > 0 &&
-            order.statusDescription?.toLowerCase().includes("hoàn"));
-
-        if (activeCancelStatusTab === "PROCESSED") {
-          return isProcessed;
-        } else if (activeCancelStatusTab === "PROCESSING") {
-          return !isProcessed;
-        }
-        return true;
-      });
-    }
-
-    if (activeMainTab === "FAILED" && activeFailedStatusTab !== "ALL") {
-      return base.filter((order) => {
-        const returnShipping = order.returnShipping;
-        if (!returnShipping) {
-          return activeFailedStatusTab === "RETURNING_TO_SELLER";
-        }
-
-        if (activeFailedStatusTab === "RETURNING_TO_SELLER") {
-          return (
-            returnShipping.chip === "return" ||
-            returnShipping.label?.toLowerCase().includes("đang trả") ||
-            returnShipping.label?.toLowerCase().includes("đang trả hàng")
-          );
-        } else if (activeFailedStatusTab === "RETURNED_TO_SELLER") {
-          return (
-            returnShipping.chip === "completed" ||
-            returnShipping.label?.toLowerCase().includes("đã trả") ||
-            returnShipping.label?.toLowerCase().includes("đã nhận")
-          );
-        } else if (activeFailedStatusTab === "RETURN_FAILED") {
-          return (
-            returnShipping.chip === "cancelled" ||
-            returnShipping.label?.toLowerCase().includes("không thành công") ||
-            returnShipping.label?.toLowerCase().includes("thất bại")
-          );
-        }
-        return true;
-      });
-    }
-
-    return base;
+    setCurrentPage(1);
   }, [
-    activeMainTab,
+    activePrimaryTab,
     activeStatusTab,
-    activeCancelStatusTab,
-    activeFailedStatusTab,
+    activeCancelSubTab,
+    activeFailedSubTab,
+    searchTerm,
   ]);
 
-  const handleViewDetail = (order: OtherStatusOrder) => {
-    navigate(`/admin/orders/otherstatus/${order.id}`, {
-      state: { order },
+  useEffect(() => {
+    if (activePrimaryTab !== "CANCEL") {
+      setActiveCancelSubTab("ALL");
+    }
+    if (activePrimaryTab !== "FAILED") {
+      setActiveFailedSubTab("ALL");
+    }
+    if (activePrimaryTab === "ALL" && activeStatusTab !== "ALL") {
+      setActiveStatusTab("ALL");
+    }
+  }, [activePrimaryTab]);
+
+  const filteredOrders = useMemo(() => {
+    return mockReturnOrders.filter((order) => {
+      const matchPrimary =
+        activePrimaryTab === "ALL" || order.category === activePrimaryTab;
+
+      let matchStatus = true;
+      if (activePrimaryTab === "CANCEL") {
+        const isCashCancel = order.paymentMethod === "Tiền mặt";
+        if (activeCancelSubTab === "PROCESSING") {
+          matchStatus = !isCashCancel && order.statusKey !== "COMPLETED";
+        } else if (activeCancelSubTab === "PROCESSED") {
+          matchStatus = isCashCancel || order.statusKey === "COMPLETED";
+        } else {
+          matchStatus = true;
+        }
+      } else if (activePrimaryTab === "FAILED") {
+        matchStatus = true;
+      } else {
+        if (activeStatusTab === "ALL") {
+          matchStatus = true;
+        } else if (activeStatusTab === "DELIVERED") {
+          matchStatus =
+            order.orderCode !== "WEB-0042" &&
+            order.orderCode !== "POS-2211" &&
+            order.returnShippingStatus.trim().startsWith("Đã");
+        } else if (activeStatusTab === "RETURNING") {
+          matchStatus = order.statusKey === "RETURNING" && order.orderCode !== "WEB-0043";
+        } else {
+          matchStatus = order.statusKey === activeStatusTab;
+        }
+      }
+
+      const normalizedSearch = searchTerm.trim().toLowerCase();
+      const matchSearch =
+        normalizedSearch.length === 0 ||
+        order.orderCode.toLowerCase().includes(normalizedSearch) ||
+        order.customerId.toLowerCase().includes(normalizedSearch) ||
+        order.customerName.toLowerCase().includes(normalizedSearch) ||
+        order.productName.toLowerCase().includes(normalizedSearch);
+
+      return matchPrimary && matchStatus && matchSearch;
+    });
+  }, [
+    activePrimaryTab,
+    activeStatusTab,
+    activeCancelSubTab,
+    activeFailedSubTab,
+    searchTerm,
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  // Payment method filter options
+  const paymentMethodOptions = [
+    { value: "ALL", label: "Tất cả phương thức" },
+    { value: "CASH", label: "Tiền mặt" },
+    { value: "BANKING", label: "Chuyển khoản" },
+  ];
+
+  const getPaymentMethodFilterLabel = (value: string) => {
+    return paymentMethodOptions.find((opt) => opt.value === value)?.label || "Tất cả phương thức";
+  };
+
+  // Simulate async data fetching
+  const fetchReturnOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching return orders:", err);
+      setError("Không thể tải danh sách đơn trả hàng. Vui lòng thử lại.");
+      toast.error("Không thể tải danh sách đơn trả hàng");
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReturnOrders();
+  }, [fetchReturnOrders, activePrimaryTab, activeStatusTab, activeCancelSubTab, paymentMethodFilter, dateRange]);
+
+  const handleViewDetail = (order: ReturnOrder) => {
+    navigate(`/admin/orders/${order.orderCode}`, {
+      state: {
+        fakeOrder: order,
+        returnTo: {
+          pathname: "/admin/orders/otherstatus",
+          activePrimaryTab,
+          activeStatusTab,
+          activeCancelSubTab,
+          activeFailedSubTab,
+          searchTerm,
+        },
+      },
     });
   };
 
-  const renderProductCell = (order: OtherStatusOrder) => (
-    <div className="flex flex-col gap-3">
-      <p className="text-[11px] font-semibold uppercase text-[#737373]">
-        Tên sản phẩm
-      </p>
-      {order.products.map((product) => (
-        <div key={product.id} className="flex items-start gap-3">
-          <div className="w-[60px] h-[60px] rounded-[10px] border border-dashed border-[#cfcfcf] bg-[#fafafa] flex items-center justify-center overflow-hidden">
-            {product.image ? (
-              <img
-                src={product.image}
-                alt={product.name}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-[10px] text-[#9b9b9b] text-center px-1">
-                No image
-              </span>
-            )}
-          </div>
-          <div className="flex flex-col gap-1">
-            <p className="font-montserrat font-semibold text-[13px] text-[#272424] leading-snug">
-              {product.name}
-            </p>
-            <p className="font-montserrat text-[12px] text-[#555] leading-snug">
-              Phân loại hàng (Nếu có):{" "}
-              <span className="font-semibold">
-                {product.variant || product.classification || "Không có"}
-              </span>
-            </p>
-            <p className="font-montserrat text-[12px] text-[#8c8c8c] leading-snug">
-              x{product.quantity} •{" "}
-              {formatCurrency(product.price * product.quantity)}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const renderAmountCell = (order: OtherStatusOrder) => {
-    const totalItems = order.products.reduce(
-      (acc, product) => acc + product.quantity,
-      0
-    );
-    const totalAmount = order.products.reduce(
-      (sum, product) => sum + product.price * product.quantity,
-      0
-    );
-
-    return (
-      <div className="flex flex-col gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase text-[#737373]">
-            Tổng tiền sản phẩm trong đơn
-          </p>
-          <p className="font-montserrat font-bold text-[16px] text-[#e04d30]">
-            {formatCurrency(totalAmount)}
-          </p>
-        </div>
-        <div className="text-[12px] text-[#555]">
-          <p>
-            Hoàn tiền dự kiến:{" "}
-            <span className="font-semibold text-[#272424]">
-              {formatCurrency(order.refundAmount)}
-            </span>
-          </p>
-          <p>Số lượng sản phẩm: {totalItems}</p>
-        </div>
-      </div>
-    );
+  // Helper functions for OrderTable
+  const getPaymentTypeStatus = (paymentType: string): ChipStatusKey => {
+    if (paymentType === "Tiền mặt") return "cash";
+    if (paymentType === "Chuyển khoản") return "transfer";
+    return "default";
   };
 
-  const renderReasonCell = (order: OtherStatusOrder) => (
-    <div className="flex flex-col gap-2">
-      <p className="font-montserrat font-semibold text-[13px] text-[#272424]">
-        {order.reason}
-      </p>
-      <p className="text-[12px] text-[#555]">
-        Người tạo yêu cầu:{" "}
-        <span className="font-semibold">{order.customerName}</span>
-      </p>
-      {order.reasonTags && order.reasonTags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {order.reasonTags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-[#ffd4c9] bg-[#fff4f0] px-2 py-0.5 text-[11px] font-semibold text-[#e04d30]"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderResolutionCell = (order: OtherStatusOrder) => (
-    <div className="flex flex-col gap-2">
-      <p className="text-[12px] text-[#555]">{order.optionDescription}</p>
-      <ol className="list-decimal pl-4 text-[12px] text-[#272424] space-y-1">
-        {order.options.map((option) => (
-          <li key={option}>{option}</li>
-        ))}
-      </ol>
-    </div>
-  );
-
-  const renderShippingCell = (
-    shipping: ShippingInfo,
-    alignTimeline = false
-  ) => (
-    <div className="flex flex-col gap-2">
-      <ChipStatus
-        status={shipping.chip}
-        labelOverride={shipping.label}
-        size="small"
-      />
-      {shipping.note && (
-        <p className="text-[12px] text-[#555]">{shipping.note}</p>
-      )}
-      {shipping.timeline && (
-        <ol
-          className={`list-decimal pl-4 text-[11px] text-[#737373] space-y-0.5 ${
-            alignTimeline ? "min-h-[72px]" : ""
-          }`}
-        >
-          {shipping.timeline.map((step: string) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-
-  const renderStatusCell = (order: OtherStatusOrder) => (
-    <div className="flex flex-col gap-2">
-      <ChipStatus
-        status={STATUS_CHIP_MAP[order.statusKey]}
-        labelOverride={order.statusLabel}
-        size="small"
-      />
-      <p className="text-[12px] text-[#555]">{order.statusDescription}</p>
-      <p className="text-[11px] text-[#8c8c8c]">
-        Cập nhật: {order.lastUpdated}
-      </p>
-    </div>
-  );
-
-  const renderSourceCell = (order: OtherStatusOrder) => {
-    const isWebsite = order.source === "Website";
-
-    return (
-      <div className="flex flex-col gap-2">
-        <span
-          className={`rounded-full px-3 py-1 text-[12px] font-semibold ${
-            isWebsite
-              ? "bg-[#e6f0ff] text-[#1a56db]"
-              : "bg-[#fff1d6] text-[#c27803]"
-          }`}
-        >
-          {order.source}
-        </span>
-        <p className="text-[12px] text-[#555]">{order.sourceNote}</p>
-      </div>
-    );
+  const getProcessingStatus = (status: string): ChipStatusKey => {
+    if (status === "Đã hoàn thành") return "completed";
+    if (status === "Đang trả hàng") return "shipping";
+    if (status === "Đang chờ xét duyệt") return "pending";
+    if (status === "Yêu cầu không hợp lệ") return "cancelled";
+    return "default";
   };
 
-  const renderActionCell = (order: OtherStatusOrder) => (
-    <div className="flex flex-col gap-3">
-      <button
-        className="flex items-center gap-2 text-[12px] font-semibold text-[#1a71f6] hover:underline"
-        onClick={() => handleViewDetail(order)}
-      >
-        <DetailIcon size={16} color="#1a71f6" />
-        Xem chi tiết
-      </button>
-      <button className="text-[12px] font-semibold text-[#272424] underline-offset-2 hover:underline">
-        Xem lịch sử xử lý
-      </button>
-    </div>
-  );
-
-  const columnRenderer: Record<
-    TableColumnId,
-    (order: OtherStatusOrder) => ReactNode
-  > = {
-    product: renderProductCell,
-    amount: renderAmountCell,
-    reason: renderReasonCell,
-    resolution: renderResolutionCell,
-    status: renderStatusCell,
-    forward: (order) => renderShippingCell(order.forwardShipping, true),
-    return: (order) => renderShippingCell(order.returnShipping),
-    source: renderSourceCell,
-    action: renderActionCell,
+  const getPaymentStatus = (paymentStatus: string): ChipStatusKey => {
+    if (paymentStatus === "Đã hoàn tiền đủ") return "paid";
+    if (paymentStatus === "Chưa hoàn tiền") return "unpaid";
+    if (paymentStatus === "Đã hoàn tiền 1 phần") return "transfer";
+    return "default";
   };
 
-  const renderOrderMetaRow = (order: OtherStatusOrder) => (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ececec] bg-[#f6f8fb] px-4 py-3">
-      <div className="flex flex-wrap items-center gap-4 text-[12px] font-semibold text-[#4a4a4a]">
-        <span className="flex items-center gap-1">
-          <span className="text-[#7b7b7b]">ID khách hàng:</span>
-          <span className="text-[#1a71f6]">{order.customerId}</span>
-        </span>
-        <span className="hidden h-3 w-px bg-[#d9d9d9] sm:block" />
-        <span className="flex items-center gap-1">
-          <span className="text-[#7b7b7b]">Mã đơn hàng:</span>
-          <span className="text-[#272424]">{order.orderCode}</span>
-        </span>
-      </div>
-      <p className="text-[12px] font-medium text-[#8c8c8c]">
-        Cập nhật gần nhất:{" "}
-        <span className="font-semibold text-[#272424]">
-          {order.lastUpdated}
-        </span>
-      </p>
-    </div>
-  );
+  // Transform ReturnOrder data to match OrderTable interface
+  const transformedOrders = useMemo(() => {
+    return paginatedOrders.map((order) => ({
+      id: order.orderCode,
+      customer: {
+        name: order.customerName,
+        username: order.customerUsername,
+        image: order.productImage || "",
+        orderCode: order.orderCode,
+      },
+      products: [{
+        id: 1,
+        name: order.productName,
+        price: `${Number(order.totalAmount).toLocaleString("vi-VN")}₫`,
+        unitPrice: order.totalAmount,
+        quantity: 1,
+        image: order.productImage || "",
+        sku: order.orderCode,
+        variantAttributes: order.productVariant ? [{
+          groupName: "Phân loại",
+          value: order.productVariant,
+          groupLevel: 1,
+        }] : [],
+      }],
+      paymentType: order.paymentMethod,
+      status: order.statusLabel,
+      paymentStatus: order.refundStatusLabel,
+      category: order.source,
+      date: order.createdAt,
+      tabStatus: order.statusKey,
+      totalAmount: order.totalAmount,
+      shippingFee: 0,
+      itemsCount: 1,
+    }));
+  }, [paginatedOrders]);
+
+  // Order table columns definition
+  const orderTableColumns: OrderTableColumn[] = [
+    {
+      title: "Đơn hàng",
+      width: "flex-1",
+      minWidth: "min-w-[300px]",
+      className: "justify-start",
+    },
+    {
+      title: "Nguồn",
+      width: "w-[90px]",
+      minWidth: "min-w-[80px]",
+      className: "justify-start",
+    },
+    {
+      title: "Thanh toán",
+      width: "w-[120px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
+    },
+    {
+      title: "TT Đơn hàng",
+      width: "w-[140px]",
+      minWidth: "min-w-[140px]",
+      className: "justify-start",
+    },
+    {
+      title: "TT Hoàn tiền",
+      width: "w-[135px]",
+      minWidth: "min-w-[130px]",
+      className: "justify-start",
+    },
+    {
+      title: "Tổng tiền",
+      width: "w-[150px]",
+      minWidth: "min-w-[120px]",
+      className: "justify-start",
+    },
+    {
+      title: "Thao tác",
+      width: "w-[125px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
+    },
+  ];
+
+  // Handle view detail for OrderTable
+  const handleOrderTableViewDetail = (
+    orderId: string,
+    orderStatus: string,
+    orderSource: string
+  ) => {
+    const order = paginatedOrders.find(o => o.orderCode === orderId);
+    if (order) {
+      handleViewDetail(order);
+    }
+  };
 
   return (
-    <PageContainer className="flex flex-col gap-6">
-      <PageHeader
-        title="Đơn Trả hàng / Trạng thái khác"
-        subtitle="Theo dõi toàn bộ yêu cầu trả hàng, hủy và giao hàng thất bại trong cùng một bảng điều khiển."
-      />
+    <PageContainer className="flex flex-col gap-3 w-full max-w-full">
+      <div className="flex flex-col gap-0 w-full">
+        <PageHeader title="Trả hàng/Hoàn tiền/Huỷ" />
 
-      <ContentCard className="bg-white border border-[#dcdcdc] rounded-[20px] p-[20px] flex flex-col gap-6">
-        <div className="flex flex-col gap-4">
-          <TabMenu
-            tabs={MAIN_TABS}
-            activeTab={activeMainTab}
-            onTabChange={(tabId) => {
-              setActiveMainTab(tabId as MainTabValue);
-            }}
-            variant="underline"
-            className="border-none"
-          />
+        <TabMenuWithBadge
+          tabs={decoratedPrimaryTabs}
+          activeTab={activePrimaryTab}
+          onTabChange={(tabId) => setActivePrimaryTab(tabId as ReturnOrderCategory | "ALL")}
+          className="min-w-[700px]"
+        />
 
-          {activeMainTab === "RETURN" && (
-            <div className="rounded-[14px] border border-[#f2f2f2] bg-[#fbfbfb] px-4 py-3">
-              <div className="flex flex-wrap gap-4">
-                {RETURN_STATUS_TABS.map((tab) => {
-                  const isActive = activeStatusTab === tab.id;
-                  const count = returnStatusCounts[tab.id];
-
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveStatusTab(tab.id)}
-                      className={`flex items-center gap-2 border-b-2 pb-1 text-[13px] font-semibold transition-colors ${
-                        isActive
-                          ? "border-[#e04d30] text-[#e04d30]"
-                          : "border-transparent text-[#737373] hover:text-[#e04d30]"
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] ${
-                          isActive
-                            ? "bg-[#ffe3dd] text-[#e04d30]"
-                            : "bg-[#f1f1f1] text-[#737373]"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
+        <ContentCard>
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center min-h-[400px] w-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e04d30] mx-auto mb-4"></div>
+                <p className="text-gray-600">Đang tải danh sách đơn trả hàng...</p>
               </div>
             </div>
           )}
 
-          {activeMainTab === "CANCEL" && (
-            <div className="rounded-[14px] border border-[#f2f2f2] bg-[#fbfbfb] px-4 py-3">
-              <div className="flex flex-wrap gap-4">
-                {CANCEL_STATUS_TABS.map((tab) => {
-                  const isActive = activeCancelStatusTab === tab.id;
-                  const count = cancelStatusCounts[tab.id];
-
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveCancelStatusTab(tab.id)}
-                      className={`flex items-center gap-2 border-b-2 pb-1 text-[13px] font-semibold transition-colors ${
-                        isActive
-                          ? "border-[#e04d30] text-[#e04d30]"
-                          : "border-transparent text-[#737373] hover:text-[#e04d30]"
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] ${
-                          isActive
-                            ? "bg-[#ffe3dd] text-[#e04d30]"
-                            : "bg-[#f1f1f1] text-[#737373]"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {activeMainTab === "FAILED" && (
-            <div className="rounded-[14px] border border-[#f2f2f2] bg-[#fbfbfb] px-4 py-3">
-              <div className="flex flex-wrap gap-4">
-                {FAILED_STATUS_TABS.map((tab) => {
-                  const isActive = activeFailedStatusTab === tab.id;
-                  const count = failedStatusCounts[tab.id];
-
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveFailedStatusTab(tab.id)}
-                      className={`flex items-center gap-2 border-b-2 pb-1 text-[13px] font-semibold transition-colors ${
-                        isActive
-                          ? "border-[#e04d30] text-[#e04d30]"
-                          : "border-transparent text-[#737373] hover:text-[#e04d30]"
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] ${
-                          isActive
-                            ? "bg-[#ffe3dd] text-[#e04d30]"
-                            : "bg-[#f1f1f1] text-[#737373]"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between rounded-[12px] border border-dashed border-[#e7e7e7] bg-[#fffdfc] px-4 py-3">
-          <p className="text-[13px] text-[#555]">
-            Hiển thị{" "}
-            <span className="font-semibold text-[#272424]">
-              {filteredOrders.length} yêu cầu
-            </span>{" "}
-            phù hợp với bộ lọc hiện tại.
-          </p>
-          <p className="text-[12px] text-[#8c8c8c]">
-            Cập nhật dữ liệu gần nhất: 20/11/2025 08:00
-          </p>
-        </div>
-
-        <div className="w-full overflow-x-auto">
-          <div className="min-w-[1200px] flex flex-col gap-4">
-            <div className="border border-[#ededed] rounded-[14px] overflow-hidden w-fit">
-              <OrderTableHeader columns={TABLE_COLUMNS} className="w-full" />
-            </div>
-            {filteredOrders.length === 0 ? (
-              <div className="border border-dashed border-[#d9d9d9] rounded-[16px] bg-[#fdfdfd] px-6 py-10 text-center">
-                <p className="font-montserrat text-[16px] font-semibold text-[#272424]">
-                  Chưa có yêu cầu nào cho bộ lọc này
-                </p>
-                <p className="text-[13px] text-[#737373] mt-2">
-                  Vui lòng chọn lại tab khác hoặc kiểm tra bộ lọc trạng thái.
-                </p>
-              </div>
-            ) : (
-              filteredOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="border border-[#e5e5e5] rounded-[16px] bg-white shadow-[0px_6px_18px_rgba(39,36,36,0.08)] w-fit"
+          {/* Error State */}
+          {error && !loading && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+              <div className="text-red-600 mb-4">
+                <svg
+                  className="w-12 h-12 mx-auto mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <div className="flex flex-col w-full">
-                    {renderOrderMetaRow(order)}
-                    <div className="flex w-full">
-                      {TABLE_COLUMNS.map((column, index) => (
-                        <div
-                          key={`${order.id}-${column.id}`}
-                          className={`px-4 py-5 ${column.width} ${
-                            column.minWidth || ""
-                          } ${index > 0 ? "border-l border-[#f2f2f2]" : ""}`}
-                        >
-                          {columnRenderer[column.id](order)}
-                        </div>
-                      ))}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">
+                Không thể tải dữ liệu
+              </h3>
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={fetchReturnOrders}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Thử lại
+              </button>
+            </div>
+          )}
+
+          {/* Content when loaded successfully */}
+          {!loading && !error && (
+            <div className="flex flex-col gap-4 w-full">
+              {/* Filters Section */}
+              <div className="flex gap-[8px] items-center w-full flex-wrap">
+                {/* Search Bar */}
+                <SearchBar
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Tìm mã đơn, ID khách hoặc tên sản phẩm..."
+                  className="flex-1 min-w-0 max-w-[400px]"
+                />
+
+                {/* Payment Method Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
+                      <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
+                        {getPaymentMethodFilterLabel(paymentMethodFilter)}
+                      </span>
+                      <CaretDown className="text-[#e04d30]" />
                     </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </ContentCard>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {paymentMethodOptions.map((option) => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        onClick={() => setPaymentMethodFilter(option.value)}
+                      >
+                        {option.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Date Range Filter */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
+                      <CalendarIcon className="h-4 w-4 text-[#e04d30]" />
+                      <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "dd/MM/yyyy")} - {format(dateRange.to, "dd/MM/yyyy")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "dd/MM/yyyy")
+                          )
+                        ) : (
+                          "Chọn ngày"
+                        )}
+                      </span>
+                      {dateRange?.from && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDateRange(undefined);
+                          }}
+                          className="ml-1 text-[#e04d30] hover:text-[#d63924]"
+                        >
+                          <XCircle className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      className="rounded-md border"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {activePrimaryTab === "CANCEL" ? (
+                <TabMenu
+                  tabs={cancelSubTabs}
+                  activeTab={activeCancelSubTab}
+                  onTabChange={(tabId) => setActiveCancelSubTab(tabId as "ALL" | "PROCESSING" | "PROCESSED")}
+                  variant="underline"
+                  className="overflow-x-auto"
+                />
+              ) : (
+                <TabMenu
+                  tabs={
+                    activePrimaryTab === "ALL" || activePrimaryTab === "FAILED"
+                      ? [{ id: "ALL", label: "Tất cả" }]
+                      : statusTabs
+                  }
+                  activeTab={activeStatusTab}
+                  onTabChange={(tabId) => setActiveStatusTab(tabId as "ALL" | ReturnStatusFilter)}
+                  variant="underline"
+                  className="overflow-x-auto"
+                />
+              )}
+
+              {/* Order Table */}
+              <OrderTable
+                columns={orderTableColumns}
+                orders={transformedOrders}
+                onViewDetail={handleOrderTableViewDetail}
+                getPaymentTypeStatus={getPaymentTypeStatus}
+                getProcessingStatus={getProcessingStatus}
+                getPaymentStatus={getPaymentStatus}
+              />
+
+              <Pagination
+                current={currentPage}
+                total={totalPages}
+                onChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </ContentCard>
+      </div>
     </PageContainer>
   );
 };
