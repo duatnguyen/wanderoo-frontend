@@ -155,15 +155,11 @@ const Header: React.FC<HeaderProps> = ({
 
   const handleCategoryClick = (categoryId: string, mainCategoryId?: string) => {
     if (mainCategoryId) {
+      // Click vào danh mục con → navigate đến trang sản phẩm
       navigate(`/shop/category/${mainCategoryId}/${categoryId}`);
     } else {
-      const parent = mainCategories.find((cat) => cat.id === categoryId);
-      const firstChild = parent?.subcategories?.[0];
-      if (firstChild) {
-        navigate(`/shop/category/${categoryId}/${firstChild.id}`);
-      } else {
-        navigate(`/shop/category/${categoryId}`);
-      }
+      // Click vào danh mục cha → navigate đến trang danh mục con (không tự động chọn con đầu tiên)
+      navigate(`/shop/category/${categoryId}`);
     }
     setIsCategoryDropdownOpen(false);
   };

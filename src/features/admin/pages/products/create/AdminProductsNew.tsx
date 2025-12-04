@@ -323,6 +323,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         const mappedVersions: ProductVersion[] =
           response.variants?.map((variant) => ({
             id: String(variant.id),
+            combination: [], // Required field, empty array as default
             name: variant.nameDetail || variant.skuDetail || `Phiên bản #${variant.id}`,
             price:
               variant.sellingPrice !== undefined && variant.sellingPrice !== null

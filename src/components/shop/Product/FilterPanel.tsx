@@ -1,0 +1,94 @@
+import React from "react";
+import type { BrandResponse } from "../../../types";
+
+export type FilterState = {
+  keyword: string;
+  minPrice: string;
+  maxPrice: string;
+  brandIds: number[];
+};
+
+export const DEFAULT_FILTERS: FilterState = {
+  keyword: "",
+  minPrice: "",
+  maxPrice: "",
+  brandIds: [],
+};
+
+type FilterPanelProps = {
+  filters: FilterState;
+  brands: BrandResponse[];
+  isBrandLoading: boolean;
+  onPriceChange: (field: "minPrice" | "maxPrice", value: string) => void;
+  onBrandToggle: (brandId: number) => void;
+};
+
+const FilterPanel: React.FC<FilterPanelProps> = ({
+  filters,
+  brands,
+  isBrandLoading,
+  onPriceChange,
+  onBrandToggle,
+}) => {
+  return (
+    <div className="space-y-6">
+      {/* Khoảng giá */}
+      <section>
+        <h4 className="text-sm font-semibold text-[#0b1f3a] mb-3">
+          Khoảng giá (VNĐ)
+        </h4>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            value={filters.minPrice}
+            onChange={(e) => onPriceChange("minPrice", e.target.value)}
+            placeholder="Từ"
+            className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm text-[#454545] placeholder:text-gray-400 focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-colors"
+          />
+          <span className="text-gray-400 text-sm font-medium">-</span>
+          <input
+            type="number"
+            value={filters.maxPrice}
+            onChange={(e) => onPriceChange("maxPrice", e.target.value)}
+            placeholder="Đến"
+            className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm text-[#454545] placeholder:text-gray-400 focus:outline-none focus:border-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 transition-colors"
+          />
+        </div>
+      </section>
+
+      {/* Thương hiệu */}
+      <section>
+        <h4 className="text-sm font-semibold text-[#0b1f3a] mb-3">Thương hiệu</h4>
+        {isBrandLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <p className="text-xs text-gray-400">Đang tải...</p>
+          </div>
+        ) : brands.length === 0 ? (
+          <div className="flex items-center justify-center py-4">
+            <p className="text-xs text-gray-400">Chưa có thương hiệu</p>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            {brands.map((brand) => (
+              <label
+                key={brand.id}
+                className="flex cursor-pointer items-center gap-3 text-sm text-[#454545] hover:text-[#1c3b6c] transition-colors group"
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.brandIds.includes(brand.id)}
+                  onChange={() => onBrandToggle(brand.id)}
+                  className="size-5 rounded border-2 border-gray-300 text-[#f97316] focus:ring-2 focus:ring-[#f97316]/20 focus:ring-offset-0 cursor-pointer transition-all group-hover:border-[#f97316]"
+                />
+                <span className="flex-1">{brand.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+};
+
+export default FilterPanel;
+

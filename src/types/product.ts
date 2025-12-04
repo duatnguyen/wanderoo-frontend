@@ -34,6 +34,10 @@ export interface ProductVersion {
   inventory: string;
   webQuantity: string;
   posQuantity: string;
+  sku?: string;
+  barcode?: string;
+  image?: string | null;
+  costPrice?: string;
 }
 
 export interface EditingVersion {
@@ -46,6 +50,7 @@ export interface EditingVersion {
   webQuantity: string;
   posQuantity: string;
   image: string;
+  sku?: string;
 }
 
 export interface ProductImage {
