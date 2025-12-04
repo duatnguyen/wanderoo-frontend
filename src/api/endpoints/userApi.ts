@@ -271,9 +271,12 @@ export const deleteEmployee = async (
 export const disableEmployeeAccounts = async (
   selectData: SelectAllRequest
 ): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/account/employee/disable",
-    selectData
+  // Backend batch-disable endpoint expects DELETE /employee/disable/all with body SelectAllRequest
+  const response = await api.delete<ApiResponse<null>>(
+    "/auth/v1/private/account/employee/disable/all",
+    {
+      data: selectData,
+    }
   );
   return response.data;
 };
@@ -281,8 +284,9 @@ export const disableEmployeeAccounts = async (
 export const enableEmployeeAccounts = async (
   selectData: SelectAllRequest
 ): Promise<ApiResponse<null>> => {
+  // Backend batch-enable endpoint expects PUT /employee/enable/all with body SelectAllRequest
   const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/account/employee/enable",
+    "/auth/v1/private/account/employee/enable/all",
     selectData
   );
   return response.data;

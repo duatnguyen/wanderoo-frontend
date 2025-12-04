@@ -706,12 +706,32 @@ const AdminCustomerDetail = () => {
     console.log("handleAddressSave called with addressData:", addressData);
 
     // Validation
-    if (!addressData.name.trim()) {
+    const trimmedName = addressData.name.trim();
+    if (!trimmedName) {
       toast.error("Vui lòng nhập tên người nhận");
       return;
     }
-    if (!addressData.phone.trim()) {
+    if (trimmedName.length < 3) {
+      toast.error("Tên người nhận phải có ít nhất 3 ký tự");
+      return;
+    }
+    if (!NAME_REGEX.test(trimmedName)) {
+      toast.error("Tên người nhận không được chứa ký tự đặc biệt");
+      return;
+    }
+
+    const rawPhone = addressData.phone.trim();
+    if (!rawPhone) {
       toast.error("Vui lòng nhập số điện thoại");
+      return;
+    }
+    const phoneDigits = rawPhone.replace(/\D/g, "");
+    if (!/^\d+$/.test(rawPhone)) {
+      toast.error("Số điện thoại chỉ được chứa chữ số.");
+      return;
+    }
+    if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+      toast.error("Số điện thoại phải có từ 10 đến 13 chữ số.");
       return;
     }
     if (!addressData.province.trim()) {
@@ -747,12 +767,17 @@ const AdminCustomerDetail = () => {
     const finalDistrictId = addressData.districtId;
 
     const street = addressData.location.trim();
+    // Normalize phone to digits only (max 13) to match backend schema for receiver_phone
+    const normalizedPhone = addressData.phone
+      .trim()
+      .replace(/\D/g, "")
+      .slice(0, 13);
     const wardName = addressData.ward.trim();
     const districtName = addressData.district.trim();
     const provinceName = addressData.province.trim();
     const payloadCommon = {
       name: addressData.name.trim(),
-      phone: addressData.phone.trim(),
+      phone: normalizedPhone,
       street,
       wardCode: finalWardCode,
       wardName,

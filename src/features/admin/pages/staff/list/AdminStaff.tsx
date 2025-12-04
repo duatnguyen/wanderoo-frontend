@@ -26,12 +26,11 @@ const toAbsoluteImageUrl = (url?: string | null) => {
   return url.startsWith("http") ? url : `${BASE_URL}${url}`;
 };
 
+// Restrict displayed roles to 3 employee positions
 const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Quản trị viên",
   MANAGER: "Quản lý",
   EMPLOYEE: "Nhân viên",
   OPERATIONS_MANAGER: "Quản lý vận hành",
-  CUSTOMER: "Khách hàng",
 };
 
 const getRoleLabel = (staff: EmployeeResponse) => {

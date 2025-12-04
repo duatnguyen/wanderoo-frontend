@@ -12,9 +12,8 @@ interface RoleDropdownProps {
 
 const defaultRoleOptions = [
   "Quản lý",
-  "Quản lý hệ thống",
   "Nhân viên",
-  "Nhân viên thu ngân",
+  "Quản lý vận hành",
 ];
 
 const RoleDropdown: React.FC<RoleDropdownProps> = ({

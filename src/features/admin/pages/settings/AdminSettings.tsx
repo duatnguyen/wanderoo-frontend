@@ -85,6 +85,9 @@ const AdminSettings: React.FC = () => {
     hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(passwordData.newPassword),
   };
 
+  // Profile-level error (e.g., invalid name)
+  const [profileError, setProfileError] = useState<string | null>(null);
+
   // Inline editing states
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPhone, setEditingPhone] = useState(false);
@@ -109,9 +112,20 @@ const AdminSettings: React.FC = () => {
       toast.success("Cập nhật hồ sơ thành công");
       queryClient.invalidateQueries({ queryKey: ["adminProfile"] });
       setImagePreview(null);
+      setProfileError(null);
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Cập nhật hồ sơ thất bại");
+      const backendMessage =
+        error?.response?.data?.message ||
+        (Array.isArray(error?.response?.data?.errors) && error.response.data.errors[0]) ||
+        error?.response?.data?.detail ||
+        error?.message;
+
+      if (backendMessage) {
+        setProfileError(backendMessage);
+      }
+
+      toast.error(backendMessage || "Cập nhật hồ sơ thất bại");
     },
   });
 
@@ -199,6 +213,19 @@ const AdminSettings: React.FC = () => {
     if (!profileData) return;
 
     try {
+      // Frontend validation for name (required, no digits)
+      const trimmedName = formData.name.trim();
+      if (!trimmedName) {
+        setProfileError("Tên không được để trống.");
+        return;
+      }
+      if (/\d/.test(trimmedName)) {
+        setProfileError("Tên không được chứa số.");
+        return;
+      }
+
+      setProfileError(null);
+
       const imageUrl = formData.image_url || profileData.image_url || "";
       if (!imageUrl) {
         toast.error("Vui lòng chọn ảnh đại diện");
@@ -207,7 +234,7 @@ const AdminSettings: React.FC = () => {
 
       const updateData: AdminProfileUpdateRequest = {
         id: profileData.id,
-        name: formData.name,
+        name: trimmedName,
         phone: profileData.phone, // Keep existing phone
         image_url: imageUrl,
         gender: formData.gender,
@@ -218,7 +245,13 @@ const AdminSettings: React.FC = () => {
       await updateProfile(updateData);
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      const errorMessage = error?.response?.data?.message || error?.message || "Cập nhật hồ sơ thất bại";
+      const errorMessage =
+        error?.response?.data?.message ||
+        (Array.isArray(error?.response?.data?.errors) && error.response.data.errors[0]) ||
+        error?.response?.data?.detail ||
+        error?.message ||
+        "Cập nhật hồ sơ thất bại";
+      setProfileError(errorMessage);
       toast.error(errorMessage);
     }
   };
@@ -527,16 +560,28 @@ const AdminSettings: React.FC = () => {
                 </div>
 
                 {/* Tên */}
-                <div className="flex items-center justify-between">
-                  <label className="text-gray-700 font-medium min-w-[200px] text-right mr-8">
-                    Tên
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-gray-700 font-medium min-w-[200px] text-right mr-8">
+                      Tên
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        if (profileError) setProfileError(null);
+                      }}
+                      className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                        profileError
+                          ? "border-red-500 focus:ring-red-500"
+                          : "border-gray-300 focus:ring-blue-500 focus:border-transparent"
+                      }`}
+                    />
+                  </div>
+                  {profileError && (
+                    <p className="text-sm text-red-500 text-right mr-8">{profileError}</p>
+                  )}
                 </div>
 
                 {/* Email */}

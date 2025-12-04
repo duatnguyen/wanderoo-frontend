@@ -25,9 +25,8 @@ type FormErrors = Partial<Record<keyof StaffFormData, string>>;
 
 const ROLE_TO_USER_TYPE: Record<string, AllowedRole> = {
   "Quản lý": "MANAGER",
-  "Quản lý hệ thống": "ADMIN",
   "Nhân viên": "EMPLOYEE",
-  "Nhân viên thu ngân": "EMPLOYEE",
+  "Quản lý vận hành": "OPERATIONS_MANAGER",
 };
 
 const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
@@ -140,8 +139,9 @@ const AdminStaffNew: React.FC = () => {
             error = "Ngày sinh không hợp lệ.";
           } else if (inputDate > today) {
             error = "Ngày sinh không được lớn hơn hiện tại.";
-          } else if (getAge(inputDate) < 18) {
-            error = "Nhân viên phải từ 18 tuổi trở lên.";
+          } else if (getAge(inputDate) < 17) {
+            // > 16 tuổi => tối thiểu 17 tuổi
+            error = "Nhân viên phải trên 16 tuổi.";
           }
         }
         break;
@@ -397,6 +397,11 @@ const AdminStaffNew: React.FC = () => {
                   } big-native-picker`}
                   containerClassName="h-[36px] px-[12px] py-0"
                 />
+                {formErrors.dateOfBirth && (
+                  <p className="text-sm text-red-500">
+                    {formErrors.dateOfBirth}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-[8px]">
