@@ -341,9 +341,14 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
 
       {/* Placeholder message above action buttons */}
       {showPlaceholderMessage && totalAttributes > 0 && !hasSelectedAllAttributes && (
-        <p className="text-[14px] font-semibold text-[#e9502c] text-left pt-2">
-          Vui lòng chọn phân loại hàng
-        </p>
+        <div className="bg-[#fff2f2] border border-[#fecaca] rounded-lg p-3 mt-2">
+          <p className="text-[14px] font-medium text-[#dc2626] flex items-center gap-2">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            Vui lòng chọn đầy đủ phân loại hàng trước khi thêm vào giỏ
+          </p>
+        </div>
       )}
 
       <div className="flex flex-wrap gap-3 pt-2">
@@ -355,10 +360,10 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             isLoadingVariant ||
             isAddingToCart
           }
-          className={`!h-12 !border-2 !text-[14px] !font-semibold !px-6 rounded-md flex items-center justify-center gap-2 transition-colors ${
+          className={`!h-12 !border-2 !text-[14px] !font-semibold !px-6 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 min-w-[160px] ${
             hasSelectedAllAttributes && isInStock && !isLoadingVariant
-              ? "!bg-[#fff2eb] !border-[#e9502c] !text-[#e9502c] hover:!bg-[#ffe8d9]"
-              : "!bg-gray-200 !border-gray-300 !text-gray-400 cursor-not-allowed"
+              ? "!bg-[#e9502c] !border-[#e9502c] !text-white hover:!bg-[#d63e1f] hover:shadow-lg transform hover:scale-[1.02]"
+              : "!bg-gray-200 !border-gray-300 !text-gray-500 cursor-not-allowed"
           }`}
         >
           {isAddingToCart ? (

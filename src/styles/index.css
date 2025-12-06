@@ -1,6 +1,15 @@
 @import "tailwindcss";
 @import "./animations.css";
 
+/* Global styles */
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {

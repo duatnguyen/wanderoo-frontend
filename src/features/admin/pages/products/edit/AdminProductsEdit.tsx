@@ -9,7 +9,7 @@ import type {
 } from "@/types/product";
 import { PageContainer, ContentCard } from "@/components/common";
 import { getProductDetailPrivate, getProductVariantsPrivate } from "@/api/endpoints/productApi";
-import type { ProductDetailsResponse, ProductVariantListResponse } from "@/types";
+import type { ProductDetailsResponse } from "@/types";
 import { toast } from "sonner";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
@@ -100,16 +100,21 @@ const AdminProductsEdit: React.FC = () => {
   // Helper function to get full image URL
   const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
     if (!imageUrl) return undefined;
+    
     // If already a full URL (http/https), return as is
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
     }
-    // If relative path, add base URL
+    
+    // If relative path starting with /, add base URL
     if (imageUrl.startsWith('/')) {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
       return `${baseUrl}${imageUrl}`;
     }
-    return imageUrl;
+    
+    // If relative path not starting with /, assume it's from uploads
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    return `${baseUrl}/static/${imageUrl}`;
   };
 
   const initialImages: ProductImage[] = useMemo(() => {
@@ -138,6 +143,7 @@ const AdminProductsEdit: React.FC = () => {
 
     return variants.map((variant) => ({
       id: String(variant.id),
+      combination: variant.combination || [],
       name: variant.nameDetail || variant.skuDetail || `Phiên bản #${variant.id}`,
       price:
         variant.sellingPrice !== undefined && variant.sellingPrice !== null

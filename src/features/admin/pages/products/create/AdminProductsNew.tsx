@@ -40,7 +40,7 @@ import {
   updateSellingQuantityPrivate,
   updateVariantQuantityPrivate,
 } from "@/api/endpoints/productApi";
-import { uploadProductImages, uploadFile } from "@/api/endpoints";
+import { uploadProductImages, uploadFile } from "@/api/endpoints/fileApi";
 import {
   getBrandList,
   createBrand as createBrandApi,

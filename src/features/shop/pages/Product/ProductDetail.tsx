@@ -13,7 +13,7 @@ import CustomerReviews from "../../../../components/shop/Product/CustomerReviews
 import RelatedProducts from "../../../../components/shop/Product/RelatedProducts";
 import { getProductDetail, getProductVariants } from "../../../../api/endpoints/productApi";
 import { getSuggestionProducts, type HomepageProductResponse } from "../../../../api/endpoints/homepageApi";
-import type { ProductDetailsResponse, VariantDetailIdResponse } from "../../../../types";
+import type { ProductDetailsResponse, VariantDetailIdResponse, VariantDetailIdRequest } from "../../../../types";
 
 type EnrichedProduct = Product & {
   priceRange?: {
@@ -110,16 +110,21 @@ const formatDiscountValue = (discountValue: string | null | undefined): string |
 // Helper function to get full image URL
 const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
   if (!imageUrl) return undefined;
+  
   // If already a full URL (http/https), return as is
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
     return imageUrl;
   }
-  // If relative path, add base URL
+  
+  // If relative path starting with /, add base URL
   if (imageUrl.startsWith('/')) {
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
     return `${baseUrl}${imageUrl}`;
   }
-  return imageUrl;
+  
+  // If relative path not starting with /, assume it's from uploads
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  return `${baseUrl}/static/${imageUrl}`;
 };
 
 const mapProductResponseToProduct = (
@@ -198,8 +203,9 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>([]);
-  const [variantData, setVariantData] = useState<VariantDetailIdResponse | null>(null);
+  const [variantData, setVariantData] = useState<any>(null);
   const [isLoadingVariant, setIsLoadingVariant] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const productFromState = (location.state as { product?: Product })?.product;
 
@@ -242,7 +248,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
       return getProductDetail(Number(productId));
     },
     enabled: Boolean(productId),
-  });
+  }) as { data: ProductDetailsResponse | undefined };
 
   // Reset selected attributes when product changes
   useEffect(() => {
@@ -315,6 +321,8 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
 
   useEffect(() => {
     setSelectedImageIndex(0);
+    // Scroll to top when product changes
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [product.id]);
 
   const handleQuantityChange = (change: number) => {
@@ -325,9 +333,38 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     }
   };
 
-  const handleAddToCart = () => {
-    if (!variantData) return;
-    addToCart(product, quantity);
+  const handleAddToCart = async () => {
+    // Check if product has attributes but no variant is selected
+    const hasAttributes = productDetail?.attributes && productDetail.attributes.length > 0;
+    if (hasAttributes && !variantData) {
+      // Show error message or prevent adding to cart
+      return;
+    }
+    
+    setIsAddingToCart(true);
+    try {
+      // Use variant data if available, otherwise use main product
+      const productToAdd = variantData ? {
+        ...product,
+        id: variantData.productDetailId,
+        name: product.name, // Keep original product name
+        price: parseFloat(variantData.productDetailDiscountPrice || variantData.productDetailPrice || '0'),
+        imageUrl: product.imageUrl, // Keep original product image
+        stock: variantData.productDetailQuantity || product.stock,
+        sku: variantData.productDetailSku || product.sku
+      } : product;
+      
+      await addToCart(productToAdd, quantity);
+      
+      // Optional: Show success toast or notification
+      // toast.success('Đã thêm sản phẩm vào giỏ hàng');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      // Optional: Show error toast
+      // toast.error('Có lỗi xảy ra khi thêm vào giỏ hàng');
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   const handleAttributeSelect = (attributeIndex: number, valueId: number) => {
@@ -394,6 +431,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   onAttributeSelect={handleAttributeSelect}
                   variantData={variantData}
                   isLoadingVariant={isLoadingVariant}
+                  isAddingToCart={isAddingToCart}
                 />
               </div>
             </div>

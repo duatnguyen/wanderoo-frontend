@@ -18,10 +18,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   PageContainer,
   ContentCard,
-  PageHeader,
 } from "@/components/common";
 import { formatCurrencyVND } from "./utils/formatCurrency";
-import { CardContent } from "@/components/ui/card";
 
 function ArrowLeftIcon() {
   return (

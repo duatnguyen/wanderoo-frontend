@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfigProvider } from "antd";
+import { Toaster } from "sonner";
 
 import { router } from "./app/router"; // createBrowserRouter(...)
 import { AuthProvider } from "./context/AuthContext";
@@ -38,6 +39,12 @@ export default function App() {
             </Suspense>
           </ErrorBoundary>
         </AuthProvider>
+        <Toaster 
+          richColors
+          position="top-right"
+          closeButton
+          duration={3000}
+        />
       </QueryClientProvider>
     </ConfigProvider>
   );

@@ -494,15 +494,25 @@ const POSPage: React.FC = () => {
   }, [draftOrderId, loadDraftOrderDetail]);
 
   const handleCheckout = useCallback(
-    async (data: { paymentMethod: "cash" | "transfer"; amountPaid: number }) => {
+    async (data: { paymentMethod: "cash" | "transfer" | "vnpay"; amountPaid: number }) => {
       if (!draftOrderId) {
         throw new Error("Không tìm thấy hóa đơn để thanh toán");
       }
       try {
         setIsRefreshing(true);
-        await checkoutOrder(draftOrderId, { cashReceived: data.amountPaid });
-        setError(null);
-        await initializeDraftOrder();
+        
+        // Xử lý khác nhau theo phương thức thanh toán
+        if (data.paymentMethod === "vnpay") {
+          // VNPay: Không cần gọi checkoutOrder ngay, chỉ thông báo thành công
+          // VNPay sẽ callback và hoàn tất đơn hàng
+          setError(null);
+          // Không initializeDraftOrder ngay, chờ callback từ VNPay
+        } else {
+          // Cash/Transfer: xử lý như cũ
+          await checkoutOrder(draftOrderId, { cashReceived: data.amountPaid });
+          setError(null);
+          await initializeDraftOrder();
+        }
       } catch (err) {
         console.error("Không thể thanh toán", err);
         const message =
@@ -716,6 +726,7 @@ const POSPage: React.FC = () => {
             totalAmount={totalAmount}
             finalAmount={finalAmount}
             orderDiscountAmount={orderDetail?.orderDiscountAmount ?? 0}
+            productCount={orderDetail?.items?.length ?? 0}
             onCheckout={handleCheckout}
             assignedCustomer={{
               name: orderDetail?.customerName,

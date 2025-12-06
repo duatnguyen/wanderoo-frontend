@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Trash2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import CheckoutModal from "./CheckoutModal";
 import POSVoucherModal from "./POSVoucherModal";
 
@@ -9,8 +10,9 @@ export type POSOrderSummaryProps = {
   totalAmount: number;
   finalAmount: number;
   orderDiscountAmount?: number;
+  productCount?: number;
   onCheckout?: (data: {
-    paymentMethod: "cash" | "transfer";
+    paymentMethod: "cash" | "transfer" | "vnpay";
     amountPaid: number;
     change: number;
   }) => Promise<void> | void;
@@ -28,6 +30,7 @@ const POSOrderSummaryComponent: React.FC<POSOrderSummaryProps> = ({
   totalAmount = 0,
   finalAmount = 0,
   orderDiscountAmount = 0,
+  productCount = 0,
   onCheckout,
   assignedCustomer,
   onClearAssignedCustomer,
@@ -51,15 +54,33 @@ const POSOrderSummaryComponent: React.FC<POSOrderSummaryProps> = ({
     setIsCheckoutModalOpen(true);
   };
 
+  // Validation: không cho thanh toán nếu chưa có sản phẩm hoặc tổng tiền <= 0
+  const canCheckout = productCount > 0 && finalAmount > 0;
+  const checkoutButtonText =
+    productCount === 0
+      ? "Chưa có sản phẩm"
+      : finalAmount <= 0
+        ? "Giá trị đơn hàng không hợp lệ"
+        : "Thanh toán";
+
   const handleCompleteCheckout = async (data: {
-    paymentMethod: "cash" | "transfer";
+    paymentMethod: "cash" | "transfer" | "vnpay";
     amountPaid: number;
     change: number;
   }) => {
     try {
       await onCheckout?.(data);
+      // Hiển thị toast thành công
+      toast.success("Thanh toán thành công!", {
+        description: `Phương thức: ${data.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'} - ${new Intl.NumberFormat("vi-VN").format(data.amountPaid)}đ`,
+        duration: 4000,
+      });
     } catch (error) {
       console.error("Không thể thanh toán:", error);
+      // Hiển thị toast lỗi
+      toast.error("Thanh toán thất bại!", {
+        description: "Vui lòng thử lại sau ít phút",
+      });
     }
   };
 
@@ -140,9 +161,15 @@ const POSOrderSummaryComponent: React.FC<POSOrderSummaryProps> = ({
           <div className="mt-auto pt-4">
             <Button
               onClick={handleCheckoutClick}
-              className="w-full px-8 py-2.5 bg-[#e04d30] hover:bg-[#d04327] text-white"
+              disabled={!canCheckout}
+              className={cn(
+                "w-full px-8 py-2.5 text-white transition-all",
+                canCheckout
+                  ? "bg-[#e04d30] hover:bg-[#d04327]"
+                  : "bg-gray-400 cursor-not-allowed opacity-60"
+              )}
             >
-              <span className="text-sm font-bold">Thanh toán</span>
+              <span className="text-sm font-bold">{checkoutButtonText}</span>
             </Button>
           </div>
         </div>
@@ -153,6 +180,7 @@ const POSOrderSummaryComponent: React.FC<POSOrderSummaryProps> = ({
         isOpen={isCheckoutModalOpen}
         onClose={() => setIsCheckoutModalOpen(false)}
         finalAmount={finalAmount}
+        draftOrderId={draftOrderId}
         onComplete={handleCompleteCheckout}
       />
 
