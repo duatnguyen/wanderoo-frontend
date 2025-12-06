@@ -9,6 +9,21 @@ interface ProductImagesProps {
 
 const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
 
+// Helper function to get full image URL
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl) return undefined;
+  // If already a full URL (http/https), return as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  // If relative path, add base URL
+  if (imageUrl.startsWith('/')) {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    return `${baseUrl}${imageUrl}`;
+  }
+  return imageUrl;
+};
+
 const ProductImages: React.FC<ProductImagesProps> = ({
   product,
   selectedImageIndex,
@@ -24,9 +39,13 @@ const ProductImages: React.FC<ProductImagesProps> = ({
     if (!baseImages.length) {
       return [FALLBACK_IMAGE];
     }
-    return baseImages.map((image) =>
-      image && image.trim().length > 0 ? image : FALLBACK_IMAGE
-    );
+    return baseImages.map((image) => {
+      if (!image || image.trim().length === 0) {
+        return FALLBACK_IMAGE;
+      }
+      // Convert relative URL to full URL
+      return getImageUrl(image) || image;
+    });
   }, [product.images, product.imageUrl]);
 
   useEffect(() => {

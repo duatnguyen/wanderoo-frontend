@@ -40,6 +40,7 @@ import {
   updateSellingQuantityPrivate,
   updateVariantQuantityPrivate,
 } from "@/api/endpoints/productApi";
+import { uploadProductImages, uploadFile } from "@/api/endpoints";
 import {
   getBrandList,
   createBrand as createBrandApi,
@@ -159,6 +160,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const editVersionFileInputRef = useRef<HTMLInputElement>(null);
+  const [editingVersionImageFile, setEditingVersionImageFile] = useState<File | null>(null);
   const [brandOptions, setBrandOptions] = useState<{ id: number; name: string }[]>([]);
   const [showBrandModal, setShowBrandModal] = useState(false);
   const [newBrandName, setNewBrandName] = useState("");
@@ -510,15 +512,47 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     try {
       const toFloat = (value: string): number => parseFloat(value) || 0;
 
+      // Upload images first if they are base64 (new uploads)
+      let imageUrls: string[] = [];
+      if (images.length > 0) {
+        const base64Images = images.filter(img => img.url.startsWith('data:image'));
+        const existingUrls = images.filter(img => !img.url.startsWith('data:image')).map(img => img.url);
+
+        if (base64Images.length > 0) {
+          setVariantStatusMessage("Đang tải ảnh lên server...");
+          const filesToUpload = base64Images
+            .filter(img => img.file)
+            .map(img => img.file!);
+
+          if (filesToUpload.length > 0) {
+            const uploadedUrls = await uploadProductImages(filesToUpload);
+            imageUrls = [...existingUrls, ...uploadedUrls];
+          } else {
+            imageUrls = existingUrls;
+          }
+        } else {
+          imageUrls = existingUrls;
+        }
+      }
+
       if (isEditMode && productId) {
         // Update existing product
-        const updatePayload = {
+        const updatePayload: any = {
           id: productId,
           name: formData.productName.trim(),
           description: formData.description.trim(),
-          price: toFloat(formData.sellingPrice),
           categoryId: formData.categoryId!,
+          brandId: formData.brandId!,
+          packagedWeight: formData.weight ? toFloat(formData.weight) : 1.0,
+          length: formData.length ? toFloat(formData.length) : 1.0,
+          width: formData.width ? toFloat(formData.width) : 1.0,
+          height: formData.height ? toFloat(formData.height) : 1.0,
         };
+
+        // Add images if uploaded
+        if (imageUrls.length > 0) {
+          updatePayload.images = imageUrls;
+        }
 
         await updateProductPrivate(updatePayload);
         setVariantStatusMessage(null);
@@ -526,6 +560,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
         // Refresh variants
         await fetchProductVariants(productId, 0, VARIANT_PAGE_SIZE);
+
+        // Call onBack to refresh product list if provided
+        if (onBack) {
+          onBack();
+        }
       } else {
         // Create new product
         const payload: ProductCreateRequest = {
@@ -545,7 +584,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           // Optional fields
           ...(formData.costPrice && { importPrice: toFloat(formData.costPrice) }),
           ...(formData.sellingPrice && { sellingPrice: toFloat(formData.sellingPrice) }),
-          ...(images.length > 0 && { images: images.map(img => img.url) }),
+          ...(imageUrls.length > 0 && { images: imageUrls }),
           ...(formData.inventory && { totalQuantity: parseInt(formData.inventory) || 0 }),
           ...(formData.available && { availableQuantity: parseInt(formData.available) || 0 }),
         };
@@ -1302,15 +1341,21 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     if (!file || !editingVersion) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert(`${file.name} vượt quá dung lượng 2MB`);
+      toast.error(`${file.name} vượt quá dung lượng 2MB`);
+      event.target.value = "";
       return;
     }
 
     if (!file.type.startsWith("image/")) {
-      alert(`${file.name} không phải là file hình ảnh`);
+      toast.error(`${file.name} không phải là file hình ảnh`);
+      event.target.value = "";
       return;
     }
 
+    // Lưu file để upload sau
+    setEditingVersionImageFile(file);
+
+    // Preview với base64
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result;
@@ -1331,6 +1376,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     setEditVersionError("");
     setEditVersionFieldErrors({});
     setIsSubmittingEditVersion(false);
+    setEditingVersionImageFile(null);
   };
 
   const handleEditVersionConfirm = async () => {
@@ -1397,8 +1443,23 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         }
       }
 
+      // Upload image if it's a new file, otherwise use existing URL
       if (editingVersion.image && editingVersion.image.trim()) {
-        updateData.imageUrl = [editingVersion.image];
+        if (editingVersionImageFile) {
+          // Upload new image file
+          try {
+            const uploadedUrl = await uploadFile(editingVersionImageFile, 'products');
+            updateData.imageUrl = [uploadedUrl];
+          } catch (error) {
+            toast.error("Không thể tải ảnh lên server");
+            setIsSubmittingEditVersion(false);
+            return;
+          }
+        } else if (!editingVersion.image.startsWith('data:image')) {
+          // Already a URL (not base64), use it directly
+          updateData.imageUrl = [editingVersion.image];
+        }
+        // If base64 but no file, skip (shouldn't happen but safe fallback)
       }
 
       // Parse từ formatted string (300 -> 300)
@@ -1419,6 +1480,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       setEditingVersion(null);
       setEditVersionError("");
       setEditVersionFieldErrors({});
+      setEditingVersionImageFile(null);
 
       if (createdProductId) {
         fetchProductVariants(

@@ -80,6 +80,21 @@ const formatDiscountValue = (discountValue: string | null | undefined): string |
   return `-${discountStr}`;
 };
 
+// Helper function to get full image URL
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl) return undefined;
+  // If already a full URL (http/https), return as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  // If relative path, add base URL
+  if (imageUrl.startsWith('/')) {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    return `${baseUrl}${imageUrl}`;
+  }
+  return imageUrl;
+};
+
 const ProductCard: React.FC<ProductCardProps> = ({
   name,
   price,
@@ -97,8 +112,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const stars = Array.from({ length: 5 }, (_, i) => i < Math.round(rating));
 
   const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
-  const displayImage =
-    imageUrl && imageUrl.trim().length > 0 ? imageUrl : FALLBACK_IMAGE;
+  const displayImage = imageUrl && imageUrl.trim().length > 0 
+    ? (getImageUrl(imageUrl) || imageUrl) 
+    : FALLBACK_IMAGE;
 
   // Format discount value for display (prioritize discountValue from API)
   const displayDiscount = discountValue 

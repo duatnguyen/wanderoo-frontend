@@ -10,7 +10,7 @@ import {
   type TabItemWithBadge,
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   getAllProductsPrivate,
   getActiveProductsPrivate,
@@ -77,10 +77,25 @@ const mapVariant = (
   costPrice: formatCurrency(variant.importPrice),
 });
 
+// Helper function to get full image URL
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl) return undefined;
+  // If already a full URL (http/https), return as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  // If relative path, add base URL
+  if (imageUrl.startsWith('/')) {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    return `${baseUrl}${imageUrl}`;
+  }
+  return imageUrl;
+};
+
 const mapProductToUi = (product: AdminProductResponse): ProductWithStatus => ({
   id: String(product.id),
   name: product.name,
-  image: product.imageUrl,
+  image: getImageUrl(product.imageUrl),
   sku: product.sku,
   barcode: "---",
   inventory: toNumber(product.totalQuantity),
@@ -95,6 +110,7 @@ const mapProductToUi = (product: AdminProductResponse): ProductWithStatus => ({
 
 const AdminProducts: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState<ProductWithStatus[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [searchValue, setSearchValue] = useState("");
@@ -197,11 +213,11 @@ const AdminProducts: React.FC = () => {
         setProducts(mappedProducts);
         setTotalPages(
           response?.totalPages ??
-            response?.totalPage ??
-            Math.max(
-              1,
-              Math.ceil((response?.totalProducts ?? 1) / itemsPerPage)
-            )
+          response?.totalPage ??
+          Math.max(
+            1,
+            Math.ceil((response?.totalProducts ?? 1) / itemsPerPage)
+          )
         );
       }
     } catch (error) {
@@ -222,6 +238,15 @@ const AdminProducts: React.FC = () => {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // Refresh when coming back from edit page
+  useEffect(() => {
+    if (location.state?.refresh) {
+      fetchProducts();
+      // Clear the refresh flag
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate, fetchProducts]);
 
   const tabsWithCounts: TabItemWithBadge[] = useMemo(
     () => [
@@ -402,8 +427,8 @@ const AdminProducts: React.FC = () => {
         data.websiteEnabled && data.posEnabled
           ? "BOTH"
           : data.websiteEnabled
-          ? "WEBSITE"
-          : "POS";
+            ? "WEBSITE"
+            : "POS";
 
       await updateProductDisplayPrivate({
         ids: selectedProductIds,
@@ -490,9 +515,9 @@ const AdminProducts: React.FC = () => {
           prev.map((product) =>
             product.id === productId
               ? {
-                  ...product,
-                  variants: mappedVariants,
-                }
+                ...product,
+                variants: mappedVariants,
+              }
               : product
           )
         );
