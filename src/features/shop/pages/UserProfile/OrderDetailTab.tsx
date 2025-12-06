@@ -241,7 +241,17 @@ const OrderDetailTab: React.FC = () => {
       imageUrl: FALLBACK_IMAGE,
       name: detail.snapshotProductName || "Sản phẩm không tên",
       price: detail.snapshotProductPrice || 0,
-      variant: detail.snapshotVariantAttributes?.map((attr: any) => attr?.value || attr?.name).filter(Boolean).join(", ") || undefined,
+      variant: detail.snapshotVariantAttributes
+        ?.map((attr: any) => {
+          // Format as "name: value" for better clarity
+          if (attr?.name && attr?.value) {
+            return `${attr.name}: ${attr.value}`;
+          }
+          // Fallback to just value if name is missing
+          return attr?.value || attr?.name;
+        })
+        .filter(Boolean)
+        .join(" • ") || undefined,
       quantity: detail.quantity || 1,
       sku: detail.snapshotProductSku || undefined,
       isReviewed: false,
@@ -757,7 +767,7 @@ const OrderDetailTab: React.FC = () => {
         </div>
 
         {/* Product Details */}
-        <div className="space-y-4">
+        <div className="space-y-4 w-full">
           {order.products.map((product: ProductType, index: number) => (
             <div key={product.id} className="flex flex-col sm:flex-row gap-4 p-3 bg-white rounded-lg border border-gray-200">
               <div className="flex-shrink-0">
@@ -790,9 +800,14 @@ const OrderDetailTab: React.FC = () => {
                         </span>
                       )}
                       {product.variant && (
-                        <span className="inline-block px-3 py-1 rounded-full bg-blue-100 text-sm font-medium text-blue-700">
-                          {product.variant}
-                        </span>
+                        <div className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+                          <svg className="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-semibold text-blue-800">
+                            {product.variant}
+                          </span>
+                        </div>
                       )}
                     </div>
                     {product.sku && (

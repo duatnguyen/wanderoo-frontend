@@ -181,7 +181,7 @@ export const useCustomerOrderWebSocket = (options: UseCustomerOrderWebSocketOpti
         if (notificationMessage) {
           toast.info(notificationMessage, {
             description: notificationDescription,
-            duration: 5000,
+            duration: 3000, // Reduced from 5000 to prevent notification spam
           });
         }
       }
@@ -205,18 +205,22 @@ export const useCustomerOrderWebSocket = (options: UseCustomerOrderWebSocketOpti
       console.error('[useCustomerOrderWebSocket] WebSocket error:', error);
     },
     onStateChange: (newState) => {
-      console.log('[useCustomerOrderWebSocket] WebSocket state changed:', newState);
+      if (import.meta.env.DEV) {
+        console.log('[useCustomerOrderWebSocket] WebSocket state changed:', newState);
+      }
     },
   });
 
-  // Debug logging
-  console.log('[useCustomerOrderWebSocket] Configuration:', {
-    enabled,
-    orderCode,
-    topics,
-    isConnected,
-    state,
-  });
+  // Debug logging only in development
+  if (import.meta.env.DEV) {
+    console.log('[useCustomerOrderWebSocket] Configuration:', {
+      enabled,
+      orderCode,
+      topics,
+      isConnected,
+      state,
+    });
+  }
 
   return {
     state,

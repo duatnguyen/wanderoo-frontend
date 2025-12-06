@@ -48,7 +48,7 @@ export type MessageHandler<T = any> = (message: T) => void;
 export type ErrorHandler = (error: Error | Event) => void;
 
 /**
- * WebSocket client wrapper for STOMP over SockJS
+ * WebSocket client wrapper for STOMP over SockJS with performance optimizations
  */
 class WebSocketClient {
   private client: Client | null = null;
@@ -56,8 +56,8 @@ class WebSocketClient {
   private state: WebSocketState = WebSocketState.DISCONNECTED;
   private stateListeners: Set<(state: WebSocketState) => void> = new Set();
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 3000; // 3 seconds
+  private maxReconnectAttempts = 3; // Reduced from 5 to prevent excessive retries
+  private reconnectDelay = 5000; // Increased from 3s to 5s to reduce frequency
 
   /**
    * Get current connection state
@@ -87,37 +87,57 @@ class WebSocketClient {
   }
 
   /**
-   * Connect to WebSocket server
+   * Connect to WebSocket server with improved connection management
    */
   connect(token?: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Check if already connected
       if (this.client?.connected) {
+        console.log('[WebSocket] Already connected, reusing connection');
         resolve();
+        return;
+      }
+
+      // Check if already connecting
+      if (this.state === WebSocketState.CONNECTING) {
+        console.log('[WebSocket] Connection already in progress');
+        // Wait a bit and check again
+        setTimeout(() => {
+          if (this.client?.connected) {
+            resolve();
+          } else {
+            reject(new Error('Connection timeout while connecting'));
+          }
+        }, 5000);
         return;
       }
 
       // Disconnect existing client if any
       this.disconnect();
 
-      // Create SockJS connection
-      const socket = new SockJS(`${WS_BASE_URL}/ws`);
+      try {
+        // Create SockJS connection with error handling
+        const socket = new SockJS(`${WS_BASE_URL}/ws`);
 
-      // Create STOMP client
-      this.client = new Client({
-        webSocketFactory: () => socket,
-        debug: (str) => {
-          if (import.meta.env.DEV) {
-            console.log('[STOMP]', str);
-          }
-        },
-        reconnectDelay: this.reconnectDelay,
-        heartbeatIncoming: 4000,
-        heartbeatOutgoing: 4000,
-        onConnect: () => {
-          console.log('[WebSocket] Connected');
-          this.setState(WebSocketState.CONNECTED);
-          this.reconnectAttempts = 0;
-          resolve();
+        // Create STOMP client with optimized settings
+        this.client = new Client({
+          webSocketFactory: () => socket,
+          debug: (str) => {
+            if (import.meta.env.DEV) {
+              console.log('[STOMP]', str);
+            }
+          },
+          reconnectDelay: this.reconnectDelay,
+          // Reduced heartbeat frequency to prevent overload
+          heartbeatIncoming: 10000, // Increased from 4s to 10s
+          heartbeatOutgoing: 10000, // Increased from 4s to 10s
+          // Connection timeout
+          connectionTimeout: 10000, // 10 seconds
+          onConnect: () => {
+            console.log('[WebSocket] Connected successfully');
+            this.setState(WebSocketState.CONNECTED);
+            this.reconnectAttempts = 0;
+            resolve();
         },
         onStompError: (frame) => {
           console.error('[WebSocket] STOMP error:', frame);
@@ -145,11 +165,17 @@ class WebSocketClient {
         });
       }
 
-      // Set connecting state
-      this.setState(WebSocketState.CONNECTING);
+        // Set connecting state
+        this.setState(WebSocketState.CONNECTING);
 
-      // Activate client
-      this.client.activate();
+        // Activate client
+        this.client.activate();
+        
+      } catch (error) {
+        console.error('[WebSocket] Failed to create connection:', error);
+        this.setState(WebSocketState.ERROR);
+        reject(error);
+      }
     });
   }
 

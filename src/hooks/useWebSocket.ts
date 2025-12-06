@@ -84,31 +84,71 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     };
   }, [autoConnect, onError]);
 
-  // Subscribe to topics
+  // Subscribe to topics with improved performance and deduplication
   useEffect(() => {
     if (!isConnected || topics.length === 0) {
       return;
     }
 
+    // Create a message handler with throttling to prevent overload
+    const throttledMessageHandler = (() => {
+      let lastProcessTime = 0;
+      const throttleMs = 100; // 100ms throttle
+      let pendingMessage: any = null;
+      let timeoutId: NodeJS.Timeout | null = null;
+
+      return (message: any) => {
+        const currentTime = Date.now();
+        pendingMessage = message;
+
+        // If enough time has passed, process immediately
+        if (currentTime - lastProcessTime >= throttleMs) {
+          lastProcessTime = currentTime;
+          onMessage?.(message);
+          pendingMessage = null;
+        } else {
+          // Otherwise, debounce to process the latest message
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          timeoutId = setTimeout(() => {
+            if (pendingMessage) {
+              lastProcessTime = Date.now();
+              onMessage?.(pendingMessage);
+              pendingMessage = null;
+            }
+            timeoutId = null;
+          }, throttleMs - (currentTime - lastProcessTime));
+        }
+      };
+    })();
+
+    // Subscribe to new topics only
+    const newSubscriptions = new Map<string, () => void>();
+    
     topics.forEach((topic) => {
       if (subscriptionsRef.current.has(topic)) {
         return; // Already subscribed
       }
 
       try {
-        const unsubscribe = websocketClient.subscribe(topic, (message) => {
-          onMessage?.(message);
-        });
+        const unsubscribe = websocketClient.subscribe(topic, throttledMessageHandler);
         subscriptionsRef.current.set(topic, unsubscribe);
+        newSubscriptions.set(topic, unsubscribe);
+        console.log(`[useWebSocket] Subscribed to topic: ${topic}`);
       } catch (error) {
         console.error(`[useWebSocket] Error subscribing to ${topic}:`, error);
         onError?.(error as Error);
       }
     });
 
+    // Cleanup function only for new subscriptions
     return () => {
-      subscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
-      subscriptionsRef.current.clear();
+      newSubscriptions.forEach((unsubscribe, topic) => {
+        unsubscribe();
+        subscriptionsRef.current.delete(topic);
+        console.log(`[useWebSocket] Unsubscribed from topic: ${topic}`);
+      });
     };
   }, [isConnected, topics, onMessage, onError]);
 

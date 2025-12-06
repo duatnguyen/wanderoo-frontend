@@ -192,10 +192,28 @@ const AdminOrders: React.FC = () => {
     // fetchOrderCounts();
   }, [activeTab, currentPage, paymentStatusFilter, paymentMethodFilter, dateRange, location.pathname]);
 
-  // WebSocket message handler（用 useCallback 保证引用稳定，避免每次 render 重建）
+  // WebSocket message handler with performance optimizations
   const handleWebSocketMessage = useCallback(
     (message: CustomerOrderResponse) => {
+      // Early return if message is invalid or incomplete
+      if (!message || !message.code) {
+        console.warn("[AdminOrders] Received invalid WebSocket message:", message);
+        return;
+      }
+
+      // Pre-calculate filter conditions to avoid repeated computations
+      const orderSource = getOrderSource();
+      const shouldShowOrderBySource = 
+        orderSource === 'ALL' || 
+        (orderSource === 'POS' && message.source === 'POS') ||
+        (orderSource === 'WEBSITE' && message.source === 'WEBSITE');
+      
+      const shouldShowOrderByStatus = 
+        activeTab === 'ALL' || 
+        message.status === activeTab;
+
       let isNewOrder = false;
+      let shouldUpdateCounts = false;
       
       // Update order in the list if it exists or add new order
       setOrders((prevOrders) => {
@@ -204,26 +222,26 @@ const AdminOrders: React.FC = () => {
         );
         
         if (orderIndex >= 0) {
-          // Update existing order
-          const updatedOrders = [...prevOrders];
-          updatedOrders[orderIndex] = message;
-          return updatedOrders;
+          // Update existing order - only if something actually changed
+          const existingOrder = prevOrders[orderIndex];
+          if (JSON.stringify(existingOrder) !== JSON.stringify(message)) {
+            const updatedOrders = [...prevOrders];
+            updatedOrders[orderIndex] = message;
+            
+            // Check if status changed to update counts
+            if (existingOrder.status !== message.status) {
+              shouldUpdateCounts = true;
+            }
+            
+            return updatedOrders;
+          }
+          return prevOrders; // No changes, return existing array
         } else {
-          // This is a new order
+          // This is a potentially new order
           isNewOrder = true;
           
-          // Check if this is a new order that should be displayed in current tab
-          const orderSource = getOrderSource();
-          const shouldShowOrder = 
-            orderSource === 'ALL' || 
-            (orderSource === 'POS' && message.source === 'POS') ||
-            (orderSource === 'WEBSITE' && message.source === 'WEBSITE');
-          
-          const orderMatchesStatusTab = 
-            activeTab === 'ALL' || 
-            message.status === activeTab;
-          
-          if (shouldShowOrder && orderMatchesStatusTab) {
+          // Only add to list if it matches current filters
+          if (shouldShowOrderBySource && shouldShowOrderByStatus) {
             // Add new order to the beginning of the list (most recent first)
             const updatedOrders = [message, ...prevOrders];
             
@@ -232,28 +250,42 @@ const AdminOrders: React.FC = () => {
               updatedOrders.splice(10);
             }
             
-            // Show toast notification for new order
-            toast.success(`Đơn hàng mới: #${message.code}`, {
-              description: `Khách hàng: ${message.userInfo?.name || 'N/A'}`,
-              duration: 5000,
-            });
+            // Show toast notification for new order (throttled)
+            const toastKey = `new-order-${message.code}`;
+            if (!sessionStorage.getItem(toastKey)) {
+              sessionStorage.setItem(toastKey, Date.now().toString());
+              // Clear after 5 seconds to allow duplicate notifications later
+              setTimeout(() => sessionStorage.removeItem(toastKey), 5000);
+              
+              toast.success(`Đơn hàng mới: #${message.code}`, {
+                description: `Khách hàng: ${message.userInfo?.name || 'N/A'}`,
+                duration: 3000, // Reduced from 5000 to prevent notification spam
+              });
+            }
             
+            shouldUpdateCounts = true;
             return updatedOrders;
           }
         }
+        
         // If order doesn't match current filters, keep current data
         return prevOrders;
       });
       
-      // Update order counts when receiving new orders
-      if (isNewOrder) {
+      // Update order counts only when necessary
+      if (shouldUpdateCounts && (isNewOrder || message.status)) {
         setOrderCounts(prevCounts => {
           const statusKey = message.status?.toLowerCase() as keyof OrderCountResponse;
-          return {
-            ...prevCounts,
-            all: prevCounts.all + 1,
-            [statusKey]: (prevCounts[statusKey] || 0) + 1
-          };
+          const newCounts = { ...prevCounts };
+          
+          if (isNewOrder) {
+            newCounts.all = prevCounts.all + 1;
+            if (statusKey && prevCounts[statusKey] !== undefined) {
+              newCounts[statusKey] = (prevCounts[statusKey] || 0) + 1;
+            }
+          }
+          
+          return newCounts;
         });
       }
     },
