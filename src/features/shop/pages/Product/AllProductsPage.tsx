@@ -107,7 +107,7 @@ const AllProductsPage: React.FC = () => {
               <div className="flex flex-1 items-center gap-3">
                 <input
                   type="text"
-                  placeholder="Tìm sản phẩm..."
+                  placeholder="Tìm kiếm theo tên hoặc thuộc tính, ví dụ tìm kiếm thuộc tính: màu sắc: be"
                   value={filters.keyword}
                   onChange={handleKeywordChange}
                   className="flex-1 rounded-2xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f97316] transition-all"
