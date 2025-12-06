@@ -87,9 +87,6 @@ const POSCreateReturnOrder = lazy(
 const POSInventoryLookup = lazy(
   () => import("../../features/pos/pages/inventory/InventoryLookup")
 );
-const POSCashBook = lazy(
-  () => import("../../features/pos/pages/cashbook/CashBook")
-);
 
 const AdminWarehouseReturnsImport = lazy(
   () =>
@@ -689,14 +686,6 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <POSInventoryLookup />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "pos/cashbook",
-    element: (
-      <LazyWrapper>
-        <POSCashBook />
       </LazyWrapper>
     ),
   },

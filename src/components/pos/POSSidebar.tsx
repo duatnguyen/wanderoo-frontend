@@ -5,14 +5,12 @@ import { ShoppingCartSidebarIcon } from "./icons/ShoppingCartSidebarIcon";
 import { FileInvoiceSidebarIcon } from "./icons/FileInvoiceSidebarIcon";
 import { PackageSearchSidebarIcon } from "./icons/PackageSearchSidebarIcon";
 import { ReturnSidebarIcon } from "./icons/ReturnSidebarIcon";
-import { UsdCircleSidebarIcon } from "./icons/UsdCircleSidebarIcon";
 
 export type POSSidebarItemId =
   | "cart"
   | "invoices"
   | "products"
-  | "receipts"
-  | "payments";
+  | "receipts";
 
 export type POSSidebarProps = {
   activeItem?: POSSidebarItemId;
@@ -51,12 +49,6 @@ const sidebarItems: Array<{
     label: "Receipts",
     rotated: true,
     to: "/pos/returns",
-  },
-  {
-    id: "payments",
-    icon: UsdCircleSidebarIcon,
-    label: "Payments",
-    to: "/pos/cashbook",
   },
 ];
 

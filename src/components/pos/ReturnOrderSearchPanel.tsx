@@ -136,7 +136,10 @@ export const ReturnOrderSearchPanel: React.FC<ReturnOrderSearchPanelProps> = ({
 
       {/* Create Button */}
       <div className="p-4 border-t border-[#e7e7e7]">
-        <Button onClick={onCreateReturnOrder} className="w-full">
+        <Button 
+          onClick={onCreateReturnOrder} 
+          className="w-full bg-[#e04d30] hover:bg-[#d04327] text-white"
+        >
           <Plus className="w-4 h-4" />
           <span>Tạo đơn hàng trả</span>
         </Button>

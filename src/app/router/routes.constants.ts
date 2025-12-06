@@ -12,7 +12,6 @@ export const POS_ROUTES = {
   SALES: "/pos/sales",
   ORDERS: "/pos/orders",
   INVENTORY: "/pos/inventory",
-  CASHBOOK: "/pos/cashbook",
 
   // Return order routes
   RETURNS: {

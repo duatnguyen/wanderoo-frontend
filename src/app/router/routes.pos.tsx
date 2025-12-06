@@ -22,9 +22,6 @@ const ReturnOrderManagement = lazy(
 const CreateReturnOrder = lazy(
   () => import("../../features/pos/pages/returns/CreateReturnOrder")
 );
-const CashBook = lazy(
-  () => import("../../features/pos/pages/cashbook/CashBook")
-);
 
 type PosRouteGuardProps = {
   children: ReactElement;
@@ -102,16 +99,6 @@ export const posRoutes: RouteObject[] = [
     element: withPosAuth(
       <LazyWrapper>
         <CreateReturnOrder />
-      </LazyWrapper>
-    ),
-  },
-
-  // Cash Book / Financial Management
-  {
-    path: "cashbook",
-    element: withPosAuth(
-      <LazyWrapper>
-        <CashBook />
       </LazyWrapper>
     ),
   },
