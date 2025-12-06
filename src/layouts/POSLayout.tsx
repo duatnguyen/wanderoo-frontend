@@ -12,7 +12,6 @@ const POSLayoutContent: React.FC = () => {
   const isOrderManagementPage = location.pathname.includes("/orders");
   const isReturnOrderPage = location.pathname.includes("/returns");
   const isCreateReturnOrderPage = location.pathname.includes("/returns/create");
-  const isCashBookPage = location.pathname.includes("/cashbook");
 
   const {
     activeSidebarItem,
@@ -41,15 +40,12 @@ const POSLayoutContent: React.FC = () => {
       setActiveSidebarItem("products" as POSSidebarItemId);
     } else if (isReturnOrderPage) {
       setActiveSidebarItem("receipts" as POSSidebarItemId);
-    } else if (isCashBookPage) {
-      setActiveSidebarItem("payments" as POSSidebarItemId);
     }
   }, [
     location.pathname,
     isOrderManagementPage,
     isInventoryPage,
     isReturnOrderPage,
-    isCashBookPage,
     setActiveSidebarItem,
   ]);
 
@@ -102,9 +98,7 @@ const POSLayoutContent: React.FC = () => {
                 ? "Tra cứu tồn kho"
                 : isReturnOrderPage
                   ? "Trả hàng"
-                  : isCashBookPage
-                    ? "Sổ Qũy"
-                    : "Bán hàng"
+                  : "Bán hàng"
         }
         searchValue={
           location.pathname.includes("/sales") ? searchValue : undefined

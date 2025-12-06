@@ -20,7 +20,6 @@ export const usePOSNavigation = () => {
     goToSales: () => navigate(POS_ROUTES.SALES),
     goToOrders: () => navigate(POS_ROUTES.ORDERS),
     goToInventory: () => navigate(POS_ROUTES.INVENTORY),
-    goToCashBook: () => navigate(POS_ROUTES.CASHBOOK),
     goToReturns: () => navigate(POS_ROUTES.RETURNS.BASE),
     goToCreateReturn: (orderId: string) =>
       navigate(POS_ROUTES.RETURNS.CREATE(orderId)),
@@ -29,7 +28,6 @@ export const usePOSNavigation = () => {
     isOnSales: () => location.pathname === POS_ROUTES.SALES,
     isOnOrders: () => location.pathname === POS_ROUTES.ORDERS,
     isOnInventory: () => location.pathname === POS_ROUTES.INVENTORY,
-    isOnCashBook: () => location.pathname === POS_ROUTES.CASHBOOK,
     isOnReturns: () => location.pathname.startsWith(POS_ROUTES.RETURNS.BASE),
 
     // Current path
@@ -140,9 +138,6 @@ export const useBreadcrumb = () => {
               path: POS_ROUTES.RETURNS.CREATE(pathSegments[3]),
             });
           }
-          break;
-        case "cashbook":
-          breadcrumbs.push({ label: "Cash Book", path: POS_ROUTES.CASHBOOK });
           break;
       }
     }

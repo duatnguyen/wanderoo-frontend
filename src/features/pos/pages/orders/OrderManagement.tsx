@@ -90,6 +90,7 @@ const OrderManagement: React.FC = () => {
           id: product.id.toString(),
           name: product.productName,
           image: product.productImage,
+          sku: product.productSku,
           variant: product.category,
           price: product.unitPrice || 0,
           originalPrice: product.originalPrice ?? product.unitPrice ?? 0,

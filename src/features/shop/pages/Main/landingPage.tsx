@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
-import CategoryTabMenu from "../../../../components/shop/CategoryTabMenu";
 import Button from "../../../../components/shop/Button";
 import { useCart } from "../../../../context/CartContext";
 import { useAuth } from "../../../../context/AuthContext";
@@ -37,44 +36,6 @@ const LandingPage: React.FC = () => {
     queryClient.removeQueries({ queryKey: ["homepageNewest"] });
   }, [queryClient]);
 
-  // Sample categories data
-  const categories = [
-    {
-      id: "tent",
-      label: "Lều cắm trại",
-      subcategories: [],
-    },
-    {
-      id: "shoes",
-      label: "Giày",
-      subcategories: [],
-    },
-    {
-      id: "sandals",
-      label: "Dép Sandal",
-      subcategories: [],
-    },
-    {
-      id: "chair",
-      label: "Ghế gấp gọn",
-      subcategories: [],
-    },
-    {
-      id: "hat",
-      label: "Mũ leo núi",
-      subcategories: [],
-    },
-    {
-      id: "backpack",
-      label: "Balo leo núi",
-      subcategories: [],
-    },
-    {
-      id: "sleeping-bag",
-      label: "Túi ngủ",
-      subcategories: [],
-    },
-  ];
 
   // Fetch homepage products from API
   const { data: topDiscountProducts = [] } = useQuery({
@@ -309,13 +270,6 @@ const LandingPage: React.FC = () => {
       <BannerSection />
 
       <FlashSaleSection products={flashSaleProducts} />
-
-      {/* Category Filter Section */}
-      <section className="w-full bg-white pt-4 pb-2">
-        <div className="max-w-[1200px] mx-auto px-4">
-          <CategoryTabMenu categories={categories} />
-        </div>
-      </section>
 
       <FeaturedProductsSection products={featuredProducts} />
 

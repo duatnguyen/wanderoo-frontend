@@ -140,7 +140,7 @@ const POSOrderSummaryComponent: React.FC<POSOrderSummaryProps> = ({
           <div className="mt-auto pt-4">
             <Button
               onClick={handleCheckoutClick}
-              className="w-full px-8 py-2.5"
+              className="w-full px-8 py-2.5 bg-[#e04d30] hover:bg-[#d04327] text-white"
             >
               <span className="text-sm font-bold">Thanh toán</span>
             </Button>

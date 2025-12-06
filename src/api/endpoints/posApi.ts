@@ -26,6 +26,7 @@ export interface ProductOrderDetailResponse {
   id: number;
   productName: string;
   productImage?: string;
+  productSku?: string; // SKU sản phẩm (mã sản phẩm)
   category?: string;
   unitPrice: number; // Giá sau giảm (discounted price)
   originalPrice?: number; // Giá gốc (original price)

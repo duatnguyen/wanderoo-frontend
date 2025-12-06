@@ -6,6 +6,7 @@ export type POSProduct = {
   id: string;
   name: string;
   image?: string;
+  sku?: string; // SKU sản phẩm (mã sản phẩm)
   category?: string;
   variant?: string;
   price: number; // Giá sau giảm (discounted price)

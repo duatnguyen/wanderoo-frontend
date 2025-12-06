@@ -76,6 +76,7 @@ const CreateReturnOrder: React.FC = () => {
             id: product.id.toString(),
             name: product.productName,
             image: product.productImage,
+            sku: product.productSku,
             variant: product.category,
             price: product.unitPrice || 0,
             quantity: product.quantity || 0,
@@ -364,11 +365,11 @@ const CreateReturnOrder: React.FC = () => {
                               </span>
                             </p>
                           )}
-                          <p className="text-sm text-[#272424]">
-                            {formatCurrency(
-                              calculateDiscountedPrice(item.product.price)
-                            )}
-                          </p>
+                          {item.product.sku && (
+                            <p className="text-sm text-[#272424]">
+                              SKU: {item.product.sku}
+                            </p>
+                          )}
                         </div>
                         {/* Điều chỉnh số lượng theo style ảnh 2 */}
                         <div className="flex items-center gap-2.5">
@@ -565,15 +566,10 @@ const CreateReturnOrder: React.FC = () => {
               <label className="block text-sm font-medium text-[#272424] mb-2">
                 Số tiền
               </label>
-              <div className="bg-gray-50 border-2 border-[#e04d30] rounded-lg p-4 flex items-center gap-2">
-                <input
-                  type="number"
-                  value={refundAmount}
-                  onChange={(e) => setRefundAmount(Number(e.target.value))}
-                  className="flex-1 bg-transparent border-0 outline-none text-sm font-semibold text-[#272424]"
-                  placeholder="0"
-                />
-                <span className="text-sm font-semibold text-[#272424]">đ</span>
+              <div className="bg-gray-50 border-2 border-[#e04d30] rounded-lg p-4 flex items-center justify-end gap-2">
+                <span className="bg-transparent text-sm font-semibold text-[#272424]">
+                  {formatCurrency(refundAmount)}
+                </span>
               </div>
             </div>
           </div>
