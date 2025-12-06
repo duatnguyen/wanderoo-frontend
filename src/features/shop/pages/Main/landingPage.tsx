@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import CategoryTabMenu from "../../../../components/shop/CategoryTabMenu";
@@ -26,6 +27,7 @@ const LandingPage: React.FC = () => {
   const { getCartCount } = useCart();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const displayName = user?.name?.trim() || user?.username || "Thanh";
   const avatarUrl = user?.avatar || undefined;
   const queryClient = useQueryClient();
@@ -334,7 +336,7 @@ const LandingPage: React.FC = () => {
               size="md"
               shape="rounded"
               className="px-6 py-3"
-              onClick={() => console.log("See more all products")}
+              onClick={() => navigate("/shop/products/all")}
             >
               Xem thêm
             </Button>

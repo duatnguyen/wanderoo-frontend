@@ -150,6 +150,7 @@ export const useProductCategoryFilters = (
 
   const products = productQuery.data?.productCategoryResponseList ?? [];
   const totalPages = productQuery.data?.totalPages ?? 1;
+  const totalElements = productQuery.data?.totalElements ?? 0;
 
   // Debug: Log data structure
   useEffect(() => {

@@ -64,6 +64,7 @@ const ProductCategoryListing: React.FC = () => {
     childCategory,
     products,
     totalPages,
+    totalElements,
     isLoading,
     isError,
     error,
@@ -210,6 +211,8 @@ const ProductCategoryListing: React.FC = () => {
                   <Pagination
                     currentPage={page}
                     totalPages={totalPages}
+                    totalElements={totalElements}
+                    pageSize={12} // PAGE_SIZE from hook
                     onPageChange={setPage}
                     label="Trang"
                   />

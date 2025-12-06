@@ -66,6 +66,7 @@ export {
   getProductDetail,
   getProductVariants,
   getPublicProductsByCategory,
+  getAllPublicProducts,
   createProduct,
   getAllProducts,
   getActiveProducts,
