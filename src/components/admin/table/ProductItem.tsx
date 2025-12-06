@@ -158,6 +158,29 @@ const ProductItem: React.FC<ProductItemProps> = ({
                         </span>
                     </div>
 
+                    {/* Display */}
+                    <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/12 min-w-20">
+                        {product.display ? (
+                            <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${
+                                    product.display === "WEBSITE"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : product.display === "POS"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-purple-100 text-purple-800"
+                                }`}
+                            >
+                                {product.display === "WEBSITE"
+                                    ? "Website"
+                                    : product.display === "POS"
+                                    ? "POS"
+                                    : "Cả hai"}
+                            </span>
+                        ) : (
+                            <span className="text-gray-400 text-[10px]">---</span>
+                        )}
+                    </div>
+
                     {/* Actions */}
                     <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
                         <button
@@ -265,6 +288,11 @@ const ProductItem: React.FC<ProductItemProps> = ({
                             <span className="font-medium text-[#272424] text-[10px] leading-[1.4] text-center">
                                 {variant.costPrice}
                             </span>
+                        </div>
+
+                        {/* Empty Display Column for variants */}
+                        <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/12 min-w-20">
+                            <span className="text-gray-400 text-[10px]">---</span>
                         </div>
 
                         {/* Empty Actions Column */}

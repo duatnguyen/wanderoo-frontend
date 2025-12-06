@@ -89,6 +89,7 @@ const mapProductToUi = (product: AdminProductResponse): ProductWithStatus => ({
   posQuantity: toNumber(product.posSoldQuantity),
   sellingPrice: formatPriceDisplay(product.sellingPrice),
   costPrice: formatPriceDisplay(product.importPrice),
+  display: product.display as "WEBSITE" | "POS" | "BOTH" | undefined,
   status: product.display === "ACTIVE" ? "active" : "inactive",
 });
 
