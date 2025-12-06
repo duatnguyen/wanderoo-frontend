@@ -23,17 +23,15 @@ import {
 import type { EmployeeResponse } from "@/types";
 import { toast } from "sonner";
 
-// Map UserType to Vietnamese role labels
+// Map UserType to Vietnamese role labels (restricted to 3 employee roles)
 const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Quản trị viên",
   MANAGER: "Quản lý",
   EMPLOYEE: "Nhân viên",
   OPERATIONS_MANAGER: "Quản lý vận hành",
 };
 
-// Map Vietnamese role labels to UserType enum
+// Map Vietnamese role labels to UserType enum (same 3 roles)
 const ROLE_TO_USER_TYPE: Record<string, AllowedRole> = {
-  "Quản trị viên": "ADMIN",
   "Quản lý": "MANAGER",
   "Nhân viên": "EMPLOYEE",
   "Quản lý vận hành": "OPERATIONS_MANAGER",
@@ -200,8 +198,9 @@ const AdminStaffDetail: React.FC = () => {
             error = "Ngày sinh không hợp lệ.";
           } else if (inputDate > today) {
             error = "Ngày sinh không được lớn hơn hiện tại.";
-          } else if (getAge(inputDate) < 18) {
-            error = "Nhân viên phải từ 18 tuổi trở lên.";
+          } else if (getAge(inputDate) < 17) {
+            // > 16 tuổi => tối thiểu 17 tuổi
+            error = "Nhân viên phải trên 16 tuổi.";
           }
         }
         break;

@@ -19,10 +19,15 @@ export interface HomepageProductResponse {
   productId: number;
   name: string;
   image?: string;
-  originalPrice?: number | null;
-  salePrice?: number | null;
-  discountPercent?: number | null;
+  originalPrice?: number | null; // For backward compatibility (import_price)
+  salePrice?: number | null; // For backward compatibility (selling_price)
+  discountPercent?: number | null; // For backward compatibility
   soldQuantity?: number | null;
+  // New fields for newest products (similar to ProductCategoryItemResponse)
+  rating?: number | null; // Average rating
+  minSellingPrice?: number | null; // Minimum selling price
+  discountSellingPrice?: number | null; // Discounted selling price
+  discountValue?: string | null; // Discount value string (e.g., "-35%")
 }
 
 // Homepage APIs
@@ -34,7 +39,7 @@ export const getHomepageBanners = async (): Promise<HomepageBannerResponse[]> =>
 };
 
 export const getTopDiscountProducts = async (
-  limit: number = 5
+  limit: number = 12
 ): Promise<HomepageProductResponse[]> => {
   const response = await apiClient.get<ApiResponse<HomepageProductResponse[]>>(
     '/public/v1/homepage/products/top-discount',
@@ -45,7 +50,7 @@ export const getTopDiscountProducts = async (
 
 export const getBestSellerProducts = async (
   year?: number,
-  limit: number = 5
+  limit: number = 6
 ): Promise<HomepageProductResponse[]> => {
   const params: Record<string, any> = { limit };
   if (year) params.year = year;
@@ -58,17 +63,36 @@ export const getBestSellerProducts = async (
 };
 
 export const getNewestProducts = async (
-  limit: number = 5
+  limit: number = 6
 ): Promise<HomepageProductResponse[]> => {
+  console.log("=== API Call: getNewestProducts ===");
+  console.log("Request limit parameter:", limit);
+  console.log("Request URL:", '/public/v1/homepage/products/newest');
+  console.log("Request params:", { limit });
+  
   const response = await apiClient.get<ApiResponse<HomepageProductResponse[]>>(
     '/public/v1/homepage/products/newest',
-    { params: { limit } }
+    { 
+      params: { limit },
+      paramsSerializer: (params) => {
+        console.log("=== Params Serializer ===", params);
+        return new URLSearchParams(params as any).toString();
+      }
+    }
   );
-  return response.data.data;
+  
+  console.log("=== API Response ===");
+  console.log("Full response:", response);
+  console.log("Response data:", response.data);
+  console.log("Response data.data:", response.data.data);
+  console.log("Response data.data length:", response.data.data?.length);
+  console.log("Response data.data items:", response.data.data?.map((p: any) => ({ id: p.productId, name: p.name })));
+  
+  return response.data.data || [];
 };
 
 export const getSuggestionProducts = async (
-  size: number = 15
+  size: number = 12
 ): Promise<HomepageProductResponse[]> => {
   const response = await apiClient.get<ApiResponse<HomepageProductResponse[]>>(
     '/public/v1/homepage/products/suggestions',

@@ -1,12 +1,11 @@
 import React from "react";
-import { useParams, Navigate } from "react-router-dom";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import ProductCard from "../../../../components/shop/ProductCard";
 import Pagination from "../../../../components/shop/Pagination";
 import FilterSidebar from "../../../../components/shop/Product/FilterSidebar";
 import SortDropdown, { SORT_OPTIONS } from "../../../../components/shop/Product/SortDropdown";
-import { useProductCategoryFilters } from "../../../../hooks/useProductCategoryFilters";
+import { useAllProductsFilters } from "../../../../hooks/useAllProductsFilters";
 import { useCart } from "../../../../context/CartContext";
 import { useAuth } from "../../../../context/AuthContext";
 import type { ProductCategoryItemResponse } from "../../../../types";
@@ -43,25 +42,15 @@ const getProductDisplayInfo = (product: ProductCategoryItemResponse) => {
   };
 };
 
-const ProductCategoryListing: React.FC = () => {
+const AllProductsPage: React.FC = () => {
   const { getCartCount } = useCart();
   const { user } = useAuth();
-  const { parentId, categoryId } = useParams();
-
-  // Debug logging
-  React.useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log("ProductCategoryListing - URL Params:", { parentId, categoryId });
-    }
-  }, [parentId, categoryId]);
 
   // Use custom hook để quản lý tất cả logic
   const {
     filters,
     sortOption,
     page,
-    parentCategory,
-    childCategory,
     products,
     totalPages,
     totalElements,
@@ -76,25 +65,7 @@ const ProductCategoryListing: React.FC = () => {
     handleBrandToggle,
     resetFilters,
     setPage,
-  } = useProductCategoryFilters(parentId, categoryId);
-
-  // Nếu không có categoryId (chỉ có parentId) → redirect về trang chủ
-  // Vì danh mục cha không có sản phẩm, chỉ có danh mục con mới có sản phẩm
-  if (!categoryId && parentId) {
-    return <Navigate to="/shop" replace />;
-  }
-
-  // Nếu không có cả parentId và categoryId → redirect về trang chủ
-  if (!parentId && !categoryId) {
-    return <Navigate to="/shop" replace />;
-  }
-
-  // Format breadcrumb: uppercase với "/"
-  const breadcrumbText = parentCategory?.name && childCategory?.name
-    ? `${parentCategory.name.toUpperCase()} / ${childCategory.name.toUpperCase()}`
-    : parentCategory?.name
-    ? parentCategory.name.toUpperCase()
-    : "";
+  } = useAllProductsFilters();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f2f6fb] to-white">
@@ -107,13 +78,11 @@ const ProductCategoryListing: React.FC = () => {
       {/* Breadcrumb & Title Section */}
       <section className="bg-white">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6">
-          {breadcrumbText && (
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#1c3b6c]">
-              {breadcrumbText}
-            </p>
-          )}
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#1c3b6c]">
+            TẤT CẢ SẢN PHẨM
+          </p>
           <h1 className="text-2xl font-semibold text-[#0f1f3d]">
-            {childCategory?.name ?? parentCategory?.name ?? "Danh mục sản phẩm"}
+            Tất cả sản phẩm
           </h1>
         </div>
       </section>
@@ -200,6 +169,7 @@ const ProductCategoryListing: React.FC = () => {
                         originalPrice={originalPrice}
                         rating={product.rating}
                         discountPercent={discountPercent}
+                        discountValue={product.discountValue}
                         className="w-[167px]"
                       />
                     );
@@ -212,7 +182,7 @@ const ProductCategoryListing: React.FC = () => {
                     currentPage={page}
                     totalPages={totalPages}
                     totalElements={totalElements}
-                    pageSize={12} // PAGE_SIZE from hook
+                    pageSize={12}
                     onPageChange={setPage}
                     label="Trang"
                   />
@@ -228,4 +198,5 @@ const ProductCategoryListing: React.FC = () => {
   );
 };
 
-export default ProductCategoryListing;
+export default AllProductsPage;
+

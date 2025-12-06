@@ -9,7 +9,10 @@ interface TodaySuggestionsSectionProps {
 const TodaySuggestionsSection: React.FC<TodaySuggestionsSectionProps> = ({
   products,
 }) => {
-  const displayProducts = products.slice(0, 15);
+  // Filter valid products and ensure exactly 12 items
+  const displayProducts = products
+    .filter((p): p is Product => !!p && !!p.id && !!p.name && !!p.imageUrl)
+    .slice(0, 12);
 
   return (
     <section className="w-full pt-8 pb-4">
@@ -29,6 +32,7 @@ const TodaySuggestionsSection: React.FC<TodaySuggestionsSectionProps> = ({
               originalPrice={product.originalPrice}
               rating={product.rating}
               discountPercent={product.discountPercent}
+              discountValue={product.discountValue}
               product={product}
             />
           ))}

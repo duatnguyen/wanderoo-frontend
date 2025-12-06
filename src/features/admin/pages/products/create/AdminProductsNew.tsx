@@ -40,6 +40,7 @@ import {
   updateSellingQuantityPrivate,
   updateVariantQuantityPrivate,
 } from "@/api/endpoints/productApi";
+import { uploadProductImages, uploadFile } from "@/api/endpoints";
 import {
   getBrandList,
   createBrand as createBrandApi,
@@ -153,11 +154,13 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
   const [showEditVersionModal, setShowEditVersionModal] = useState(false);
   const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(null);
   const [editVersionError, setEditVersionError] = useState("");
+  const [editVersionFieldErrors, setEditVersionFieldErrors] = useState<Record<string, string>>({});
   const [isSubmittingEditVersion, setIsSubmittingEditVersion] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const editVersionFileInputRef = useRef<HTMLInputElement>(null);
+  const [editingVersionImageFile, setEditingVersionImageFile] = useState<File | null>(null);
   const [brandOptions, setBrandOptions] = useState<{ id: number; name: string }[]>([]);
   const [showBrandModal, setShowBrandModal] = useState(false);
   const [newBrandName, setNewBrandName] = useState("");
@@ -300,6 +303,22 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     return value.replace(/\D/g, "");
   };
 
+  // Helper: Format số với dấu chấm ngăn cách hàng nghìn (200000 -> 200.000)
+  const formatNumberWithDots = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined || value === "") return "";
+    const numStr = typeof value === "number" ? value.toString() : value.toString().replace(/\./g, "");
+    if (!numStr || numStr === "0") return "";
+    const num = parseInt(numStr, 10);
+    if (isNaN(num)) return "";
+    return num.toLocaleString("vi-VN");
+  };
+
+  // Helper: Parse số từ formatted string (200.000 -> 200000)
+  const parseFormattedNumber = (value: string): string => {
+    if (!value) return "";
+    return value.replace(/\./g, "");
+  };
+
   const handleNumericInputChange = (
     field: keyof ProductFormData,
     rawValue: string,
@@ -342,6 +361,14 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
               variant.posSoldQuantity !== undefined && variant.posSoldQuantity !== null
                 ? String(variant.posSoldQuantity)
                 : "",
+            // Thêm các trường còn thiếu
+            costPrice:
+              variant.importPrice !== undefined && variant.importPrice !== null
+                ? String(variant.importPrice)
+                : "",
+            barcode: variant.barcode || "",
+            sku: variant.skuDetail || "",
+            image: variant.imageUrl || null,
           })) ?? [];
 
         setVersions(mappedVersions);
@@ -485,15 +512,47 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     try {
       const toFloat = (value: string): number => parseFloat(value) || 0;
 
+      // Upload images first if they are base64 (new uploads)
+      let imageUrls: string[] = [];
+      if (images.length > 0) {
+        const base64Images = images.filter(img => img.url.startsWith('data:image'));
+        const existingUrls = images.filter(img => !img.url.startsWith('data:image')).map(img => img.url);
+
+        if (base64Images.length > 0) {
+          setVariantStatusMessage("Đang tải ảnh lên server...");
+          const filesToUpload = base64Images
+            .filter(img => img.file)
+            .map(img => img.file!);
+
+          if (filesToUpload.length > 0) {
+            const uploadedUrls = await uploadProductImages(filesToUpload);
+            imageUrls = [...existingUrls, ...uploadedUrls];
+          } else {
+            imageUrls = existingUrls;
+          }
+        } else {
+          imageUrls = existingUrls;
+        }
+      }
+
       if (isEditMode && productId) {
         // Update existing product
-        const updatePayload = {
+        const updatePayload: any = {
           id: productId,
           name: formData.productName.trim(),
           description: formData.description.trim(),
-          price: toFloat(formData.sellingPrice),
           categoryId: formData.categoryId!,
+          brandId: formData.brandId!,
+          packagedWeight: formData.weight ? toFloat(formData.weight) : 1.0,
+          length: formData.length ? toFloat(formData.length) : 1.0,
+          width: formData.width ? toFloat(formData.width) : 1.0,
+          height: formData.height ? toFloat(formData.height) : 1.0,
         };
+
+        // Add images if uploaded
+        if (imageUrls.length > 0) {
+          updatePayload.images = imageUrls;
+        }
 
         await updateProductPrivate(updatePayload);
         setVariantStatusMessage(null);
@@ -501,6 +560,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
         // Refresh variants
         await fetchProductVariants(productId, 0, VARIANT_PAGE_SIZE);
+
+        // Call onBack to refresh product list if provided
+        if (onBack) {
+          onBack();
+        }
       } else {
         // Create new product
         const payload: ProductCreateRequest = {
@@ -520,7 +584,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           // Optional fields
           ...(formData.costPrice && { importPrice: toFloat(formData.costPrice) }),
           ...(formData.sellingPrice && { sellingPrice: toFloat(formData.sellingPrice) }),
-          ...(images.length > 0 && { images: images.map(img => img.url) }),
+          ...(imageUrls.length > 0 && { images: imageUrls }),
           ...(formData.inventory && { totalQuantity: parseInt(formData.inventory) || 0 }),
           ...(formData.available && { availableQuantity: parseInt(formData.available) || 0 }),
         };
@@ -1090,8 +1154,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     const initialValues: Record<string, string> = {};
     selectedVersions.forEach((versionId) => {
       const version = versions.find((v) => v.id === versionId);
-      if (version) {
-        initialValues[versionId] = version.price || ""; // Use existing price if available
+      if (version && version.price) {
+        // Format giá trị với dấu chấm
+        initialValues[versionId] = formatNumberWithDots(version.price);
+      } else {
+        initialValues[versionId] = "";
       }
     });
     setPriceValues(initialValues);
@@ -1101,18 +1168,24 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
 
   const handlePriceChange = (versionId: string, value: string) => {
     if (isViewMode) return;
+    // Chỉ cho phép số và format với dấu chấm
+    const sanitized = sanitizeNumeric(value, false);
+    const formatted = formatNumberWithDots(sanitized);
     setPriceValues((prev) => ({
       ...prev,
-      [versionId]: value,
+      [versionId]: formatted,
     }));
   };
 
   const handleApplyAllPrice = () => {
     if (isViewMode) return;
     if (applyAllPrice) {
+      // Format giá trị với dấu chấm
+      const sanitized = sanitizeNumeric(applyAllPrice, false);
+      const formatted = formatNumberWithDots(sanitized);
       const updatedValues: Record<string, string> = {};
       selectedVersions.forEach((versionId) => {
-        updatedValues[versionId] = applyAllPrice;
+        updatedValues[versionId] = formatted;
       });
       setPriceValues(updatedValues);
     }
@@ -1124,12 +1197,70 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     setApplyAllPrice("");
   };
 
-  const handlePriceConfirm = () => {
-    // TODO: Save price values
-    console.log("Price values:", priceValues);
-    setShowPriceModal(false);
-    setPriceValues({});
-    setApplyAllPrice("");
+  const handlePriceConfirm = async () => {
+    if (isViewMode || !createdProductId) return;
+
+    // Validate và collect price updates
+    const updates: Array<{ variantId: number; sellingPrice: number }> = [];
+
+    for (const [versionId, priceValue] of Object.entries(priceValues)) {
+      if (!priceValue || !priceValue.trim()) continue;
+
+      // Parse giá trị (có thể có dấu chấm hoặc không)
+      const parsedValue = parseFormattedNumber(priceValue);
+      const sellingPrice = parseFloat(parsedValue);
+
+      if (isNaN(sellingPrice) || sellingPrice < 0) {
+        toast.error(`Giá không hợp lệ cho phiên bản ${versionId}`);
+        return;
+      }
+
+      const variantId = parseInt(versionId, 10);
+      if (isNaN(variantId)) {
+        toast.error(`ID phiên bản không hợp lệ: ${versionId}`);
+        return;
+      }
+
+      updates.push({ variantId, sellingPrice });
+    }
+
+    if (updates.length === 0) {
+      toast.error("Vui lòng nhập ít nhất một giá");
+      return;
+    }
+
+    try {
+      // Update tất cả các biến thể được chọn
+      await Promise.all(
+        updates.map(({ variantId, sellingPrice }) =>
+          updateVariantPrivate({
+            id: variantId,
+            sellingPrice: sellingPrice,
+          } as any)
+        )
+      );
+
+      toast.success(`Đã cập nhật giá cho ${updates.length} phiên bản thành công`);
+
+      // Refresh danh sách biến thể
+      await fetchProductVariants(
+        createdProductId,
+        variantPagination.page,
+        variantPagination.pageSize
+      );
+
+      setShowPriceModal(false);
+      setPriceValues({});
+      setApplyAllPrice("");
+    } catch (error) {
+      console.error("Error updating prices:", error);
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage =
+        axiosError?.response?.data?.message || axiosError?.message;
+      const finalMessage =
+        backendMessage || "Không thể cập nhật giá. Vui lòng thử lại.";
+      toast.error(finalMessage);
+    }
   };
 
   const handleVersionRowClick = (versionId: string) => {
@@ -1150,16 +1281,52 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       });
       setEditVersionError("");
       setShowEditVersionModal(true);
+    } else {
+      console.warn("Version not found:", versionId);
+      toast.error("Không tìm thấy phiên bản sản phẩm");
     }
   };
 
   const handleEditVersionChange = (field: string, value: string) => {
     if (editingVersion) {
       setEditVersionError("");
-      setEditingVersion({
-        ...editingVersion,
-        [field]: value,
-      });
+
+      // Validate và format cho các trường số (trừ barcode)
+      if (field !== "barcode" && field !== "name" && field !== "image" && field !== "sku") {
+        // Chỉ cho phép số
+        const sanitized = sanitizeNumeric(value, false);
+
+        // Format với dấu chấm khi hiển thị
+        const formatted = formatNumberWithDots(sanitized);
+
+        // Clear error khi có giá trị
+        if (sanitized && editVersionFieldErrors[field]) {
+          setEditVersionFieldErrors((prev) => {
+            const next = { ...prev };
+            delete next[field];
+            return next;
+          });
+        }
+
+        // Set error nếu required và empty
+        if ((field === "costPrice" || field === "sellingPrice" || field === "webQuantity" || field === "posQuantity") && !sanitized) {
+          setEditVersionFieldErrors((prev) => ({
+            ...prev,
+            [field]: "Trường này là bắt buộc",
+          }));
+        }
+
+        setEditingVersion({
+          ...editingVersion,
+          [field]: formatted, // Lưu formatted value để hiển thị
+        });
+      } else {
+        // Barcode và các trường khác không format
+        setEditingVersion({
+          ...editingVersion,
+          [field]: value,
+        });
+      }
     }
   };
 
@@ -1174,15 +1341,21 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     if (!file || !editingVersion) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert(`${file.name} vượt quá dung lượng 2MB`);
+      toast.error(`${file.name} vượt quá dung lượng 2MB`);
+      event.target.value = "";
       return;
     }
 
     if (!file.type.startsWith("image/")) {
-      alert(`${file.name} không phải là file hình ảnh`);
+      toast.error(`${file.name} không phải là file hình ảnh`);
+      event.target.value = "";
       return;
     }
 
+    // Lưu file để upload sau
+    setEditingVersionImageFile(file);
+
+    // Preview với base64
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result;
@@ -1201,19 +1374,45 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     setShowEditVersionModal(false);
     setEditingVersion(null);
     setEditVersionError("");
+    setEditVersionFieldErrors({});
     setIsSubmittingEditVersion(false);
+    setEditingVersionImageFile(null);
   };
 
   const handleEditVersionConfirm = async () => {
     if (!editingVersion) return;
 
     setEditVersionError("");
+
+    // Validate required fields
+    const fieldErrors: Record<string, string> = {};
+    if (!editingVersion.costPrice || !parseFormattedNumber(editingVersion.costPrice)) {
+      fieldErrors.costPrice = "Trường này là bắt buộc";
+    }
+    if (!editingVersion.sellingPrice || !parseFormattedNumber(editingVersion.sellingPrice)) {
+      fieldErrors.sellingPrice = "Trường này là bắt buộc";
+    }
+    if (!editingVersion.webQuantity || !parseFormattedNumber(editingVersion.webQuantity)) {
+      fieldErrors.webQuantity = "Trường này là bắt buộc";
+    }
+    if (!editingVersion.posQuantity || !parseFormattedNumber(editingVersion.posQuantity)) {
+      fieldErrors.posQuantity = "Trường này là bắt buộc";
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setEditVersionFieldErrors(fieldErrors);
+      toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
+      setIsSubmittingEditVersion(false);
+      return;
+    }
+
     setIsSubmittingEditVersion(true);
 
     try {
       const variantId = parseInt(editingVersion.id, 10);
       if (isNaN(variantId)) {
         toast.error("ID phiên bản không hợp lệ");
+        setIsSubmittingEditVersion(false);
         return;
       }
 
@@ -1227,25 +1426,45 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       }
 
       if (editingVersion.sellingPrice && editingVersion.sellingPrice.trim()) {
-        const sellingPrice = parseFloat(editingVersion.sellingPrice);
+        // Parse từ formatted string (200.000 -> 200000)
+        const parsedValue = parseFormattedNumber(editingVersion.sellingPrice);
+        const sellingPrice = parseFloat(parsedValue);
         if (!isNaN(sellingPrice)) {
           updateData.sellingPrice = sellingPrice;
         }
       }
 
       if (editingVersion.costPrice && editingVersion.costPrice.trim()) {
-        const importPrice = parseFloat(editingVersion.costPrice);
+        // Parse từ formatted string (200.000 -> 200000)
+        const parsedValue = parseFormattedNumber(editingVersion.costPrice);
+        const importPrice = parseFloat(parsedValue);
         if (!isNaN(importPrice)) {
           updateData.importPrice = importPrice;
         }
       }
 
+      // Upload image if it's a new file, otherwise use existing URL
       if (editingVersion.image && editingVersion.image.trim()) {
-        updateData.imageUrl = [editingVersion.image];
+        if (editingVersionImageFile) {
+          // Upload new image file
+          try {
+            const uploadedUrl = await uploadFile(editingVersionImageFile, 'products');
+            updateData.imageUrl = [uploadedUrl];
+          } catch (error) {
+            toast.error("Không thể tải ảnh lên server");
+            setIsSubmittingEditVersion(false);
+            return;
+          }
+        } else if (!editingVersion.image.startsWith('data:image')) {
+          // Already a URL (not base64), use it directly
+          updateData.imageUrl = [editingVersion.image];
+        }
+        // If base64 but no file, skip (shouldn't happen but safe fallback)
       }
 
-      const webQty = parseInt(editingVersion.webQuantity || "0", 10);
-      const posQty = parseInt(editingVersion.posQuantity || "0", 10);
+      // Parse từ formatted string (300 -> 300)
+      const webQty = parseInt(parseFormattedNumber(editingVersion.webQuantity || "0"), 10);
+      const posQty = parseInt(parseFormattedNumber(editingVersion.posQuantity || "0"), 10);
 
       await Promise.all([
         updateVariantPrivate(updateData),
@@ -1260,6 +1479,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
       setShowEditVersionModal(false);
       setEditingVersion(null);
       setEditVersionError("");
+      setEditVersionFieldErrors({});
+      setEditingVersionImageFile(null);
 
       if (createdProductId) {
         fetchProductVariants(
@@ -1850,9 +2071,12 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         }}
                         containerClassName="h-[40px] px-3"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter" && newAttributeName.trim() && newAttributeValues.length > 0) {
+                          if (e.key === "Enter") {
                             e.preventDefault();
-                            handleSubmitNewAttribute();
+                            e.stopPropagation();
+                            if (newAttributeName.trim() && newAttributeValues.length > 0) {
+                              handleSubmitNewAttribute();
+                            }
                           }
                         }}
                       />
@@ -1904,8 +2128,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         onClick={handleSubmitNewAttribute}
                         disabled={!canSubmitAttribute}
                         className={`px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${canSubmitAttribute
-                            ? "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
-                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                          ? "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
+                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
                           }`}
                       >
                         {editingAttributeIndex !== null ? "Cập nhật" : "Thêm"}
@@ -2007,7 +2231,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                     <p className="text-[14px] font-bold text-[#272424] font-montserrat">
                       {selectedCount > 0
                         ? `Đã chọn ${selectedCount} phiên bản`
-                        : `${variantPagination.total.toLocaleString("vi-VN")} phiên bản`}
+                        : "Chọn"}
                     </p>
                   </div>
                   {!isViewMode && selectedCount > 0 && (
@@ -2102,8 +2326,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                                     type="text"
                                     inputMode="numeric"
                                     className={`flex-1 text-right text-[14px] font-semibold font-montserrat bg-transparent border-b outline-none transition-colors ${inventoryErrors[version.id]
-                                        ? "border-red-500 text-red-600"
-                                        : "border-[#d4d4d8] text-[#272424] focus:border-[#1a71f6]"
+                                      ? "border-red-500 text-red-600"
+                                      : "border-[#d4d4d8] text-[#272424] focus:border-[#1a71f6]"
                                       }`}
                                     value={version.inventory || ""}
                                     placeholder="0"
@@ -2150,8 +2374,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                                   <button
                                     type="button"
                                     className={`px-3 h-[28px] rounded-[999px] text-[12px] font-semibold transition-colors flex items-center justify-center ${updatingInventoryIds.has(version.id) || !createdProductId
-                                        ? "bg-[#e5edff] text-[#1a71f6] cursor-not-allowed"
-                                        : "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
+                                      ? "bg-[#e5edff] text-[#1a71f6] cursor-not-allowed"
+                                      : "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
                                       } ${isViewMode ? "cursor-not-allowed opacity-60" : ""}`}
                                     disabled={
                                       isViewMode ||
@@ -2760,7 +2984,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                       type="text"
                       placeholder="0"
                       value={applyAllPrice}
-                      onChange={(e) => setApplyAllPrice(e.target.value)}
+                      onChange={(e) => {
+                        const sanitized = sanitizeNumeric(e.target.value, false);
+                        const formatted = formatNumberWithDots(sanitized);
+                        setApplyAllPrice(formatted);
+                      }}
                       className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
                     />
                     <div className="flex items-center gap-2.5">
@@ -2873,7 +3101,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                       onChange={(e) =>
                         handleEditVersionChange("barcode", e.target.value)
                       }
-                      containerClassName="h-[36px] px-4"
+                      containerClassName="h-[36px] px-4 border-gray-200"
                     />
                   </div>
 
@@ -2881,9 +3109,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                   <div className="flex gap-4">
                     <div className="flex-1 flex flex-col gap-1.5">
                       <div className="flex items-center gap-1">
-                        <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                          *
-                        </span>
+                        {!editingVersion.costPrice || !parseFormattedNumber(editingVersion.costPrice) ? (
+                          <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                            *
+                          </span>
+                        ) : null}
                         <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
                           Giá vốn
                         </label>
@@ -2894,15 +3124,27 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         onChange={(e) =>
                           handleEditVersionChange("costPrice", e.target.value)
                         }
-                        containerClassName="h-[36px] px-4"
+                        containerClassName={`h-[36px] px-4 transition-all ${editVersionFieldErrors.costPrice
+                          ? "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]"
+                          : editingVersion.costPrice
+                            ? "border-[#52c41a]"
+                            : ""
+                          }`}
                       />
+                      {editVersionFieldErrors.costPrice && (
+                        <p className="text-[12px] text-[#ff4d4f] mt-0.5">
+                          {editVersionFieldErrors.costPrice}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex-1 flex flex-col gap-1.5">
                       <div className="flex items-center gap-1">
-                        <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                          *
-                        </span>
+                        {!editingVersion.sellingPrice || !parseFormattedNumber(editingVersion.sellingPrice) ? (
+                          <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                            *
+                          </span>
+                        ) : null}
                         <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
                           Giá bán
                         </label>
@@ -2916,8 +3158,18 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                             e.target.value
                           )
                         }
-                        containerClassName="h-[36px] px-4"
+                        containerClassName={`h-[36px] px-4 transition-all ${editVersionFieldErrors.sellingPrice
+                          ? "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]"
+                          : editingVersion.sellingPrice
+                            ? "border-[#52c41a]"
+                            : ""
+                          }`}
                       />
+                      {editVersionFieldErrors.sellingPrice && (
+                        <p className="text-[12px] text-[#ff4d4f] mt-0.5">
+                          {editVersionFieldErrors.sellingPrice}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -2926,9 +3178,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                     <div className="flex gap-4">
                       <div className="flex-1 flex flex-col gap-1.5">
                         <div className="flex items-center gap-1">
-                          <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                            *
-                          </span>
+                          {!editingVersion.webQuantity || !parseFormattedNumber(editingVersion.webQuantity) ? (
+                            <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                              *
+                            </span>
+                          ) : null}
                           <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
                             SL bán trên WEBSITE
                           </label>
@@ -2939,15 +3193,27 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                           onChange={(e) =>
                             handleEditVersionChange("webQuantity", e.target.value)
                           }
-                          containerClassName="h-[36px] px-4"
+                          containerClassName={`h-[36px] px-4 transition-all ${editVersionFieldErrors.webQuantity
+                            ? "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]"
+                            : editingVersion.webQuantity
+                              ? "border-[#52c41a]"
+                              : ""
+                            }`}
                         />
+                        {editVersionFieldErrors.webQuantity && (
+                          <p className="text-[12px] text-[#ff4d4f] mt-0.5">
+                            {editVersionFieldErrors.webQuantity}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex-1 flex flex-col gap-1.5">
                         <div className="flex items-center gap-1">
-                          <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
-                            *
-                          </span>
+                          {!editingVersion.posQuantity || !parseFormattedNumber(editingVersion.posQuantity) ? (
+                            <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                              *
+                            </span>
+                          ) : null}
                           <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
                             SL bán trên POS
                           </label>
@@ -2958,8 +3224,18 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                           onChange={(e) =>
                             handleEditVersionChange("posQuantity", e.target.value)
                           }
-                          containerClassName="h-[36px] px-4"
+                          containerClassName={`h-[36px] px-4 transition-all ${editVersionFieldErrors.posQuantity
+                            ? "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]"
+                            : editingVersion.posQuantity
+                              ? "border-[#52c41a]"
+                              : ""
+                            }`}
                         />
+                        {editVersionFieldErrors.posQuantity && (
+                          <p className="text-[12px] text-[#ff4d4f] mt-0.5">
+                            {editVersionFieldErrors.posQuantity}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

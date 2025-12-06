@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
 import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import { getRelatedProducts } from "../../data/productsData";
 import type { Product } from "../../data/productsData";
 import { useCart } from "../../../../context/CartContext";
-import { useAuth } from "../../../../context/AuthContext";
 import ProductImages from "../../../../components/shop/Product/ProductImages";
 import ProductInfo from "../../../../components/shop/Product/ProductInfo";
 import ProductDescription from "../../../../components/shop/Product/ProductDescription";
@@ -15,7 +13,6 @@ import CustomerReviews from "../../../../components/shop/Product/CustomerReviews
 import RelatedProducts from "../../../../components/shop/Product/RelatedProducts";
 import { getProductDetail, getProductVariants } from "../../../../api/endpoints/productApi";
 import { getSuggestionProducts, type HomepageProductResponse } from "../../../../api/endpoints/homepageApi";
-import { addToCart as addToCartRequest } from "../../../../api/endpoints/cartApi";
 import type { ProductDetailsResponse, VariantDetailIdResponse } from "../../../../types";
 
 type EnrichedProduct = Product & {
@@ -29,6 +26,7 @@ type EnrichedProduct = Product & {
   };
   sku?: string;
   status?: string;
+  discountValue?: string; // Formatted discount value from API
 };
 
 const parsePriceRange = (priceString?: string | null) => {
@@ -65,6 +63,65 @@ const buildVariantOptions = (
     }));
 };
 
+// Helper function to format discount value for display (shared with ProductInfo)
+const formatDiscountValue = (discountValue: string | null | undefined): string | undefined => {
+  if (!discountValue) return undefined;
+  const discountStr = discountValue.toString().trim();
+
+  // Check if it's a percentage (contains "%")
+  if (discountStr.includes("%")) {
+    // For percentage, just ensure it starts with "-"
+    if (discountStr.startsWith("-")) {
+      return discountStr;
+    }
+    return `-${discountStr}`;
+  }
+
+  // For VND amount (contains "đ" or "Đ")
+  if (discountStr.includes("đ") || discountStr.includes("Đ")) {
+    // Extract the number part (may have negative sign)
+    const numberMatch = discountStr.match(/(-?\d+)/);
+    if (numberMatch) {
+      const number = Math.abs(parseInt(numberMatch[1], 10)); // Get absolute value
+      // Format number with thousand separator (.)
+      const formattedNumber = number.toLocaleString("vi-VN");
+      // Determine if original had "-" prefix
+      const hasMinus = discountStr.startsWith("-");
+      // Get the currency symbol (đ or Đ) - preserve original case
+      const currencySymbol = discountStr.includes("Đ") ? "Đ" : "đ";
+      return hasMinus ? `-${formattedNumber}${currencySymbol}` : `-${formattedNumber}${currencySymbol}`;
+    }
+  }
+
+  // If it's just a number without currency, assume it's percentage
+  const numberMatch = discountStr.match(/(-?\d+)/);
+  if (numberMatch) {
+    const hasMinus = discountStr.startsWith("-");
+    return hasMinus ? `${discountStr}%` : `-${discountStr}%`;
+  }
+
+  // Fallback: ensure it starts with "-"
+  if (discountStr.startsWith("-")) {
+    return discountStr;
+  }
+  return `-${discountStr}`;
+};
+
+// Helper function to get full image URL
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl) return undefined;
+  // If already a full URL (http/https), return as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  // If relative path, add base URL
+  if (imageUrl.startsWith('/')) {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    return `${baseUrl}${imageUrl}`;
+  }
+  return imageUrl;
+};
+
 const mapProductResponseToProduct = (
   apiProduct: ProductDetailsResponse,
   fallbackId: string | number
@@ -75,12 +132,12 @@ const mapProductResponseToProduct = (
   const originalPriceRange = discountedRange && baseRange ? baseRange : undefined;
   const normalizedImages =
     apiProduct.images && apiProduct.images.length > 0
-      ? apiProduct.images
+      ? apiProduct.images.map(img => getImageUrl(img) || img)
       : [""];
 
   return {
     id: apiProduct.id ?? fallbackId,
-    imageUrl: normalizedImages[0] || "",
+    imageUrl: normalizedImages[0] ? (getImageUrl(normalizedImages[0]) || normalizedImages[0]) : "",
     images: normalizedImages,
     name: apiProduct.name ?? "Đang cập nhật",
     price: priceRange?.min ?? 0,
@@ -90,7 +147,8 @@ const mapProductResponseToProduct = (
     category: apiProduct.categoryResponse?.name || undefined,
     brand: apiProduct.brandResponse?.name || undefined,
     variantOptions: buildVariantOptions(apiProduct.attributes),
-    discountPercent: extractDiscountPercent(apiProduct.discountValue),
+    discountPercent: extractDiscountPercent(apiProduct.discountValue), // Keep for backward compatibility
+    discountValue: apiProduct.discountValue ? formatDiscountValue(apiProduct.discountValue) : undefined, // New field for formatted display
     priceRange,
     originalPriceRange,
     sku: apiProduct.barcode || undefined,
@@ -107,7 +165,7 @@ const convertHomepageProductToProduct = (item: HomepageProductResponse): Product
   return {
     id: item.productId,
     name: item.name,
-    imageUrl: item.image || "",
+    imageUrl: item.image ? (getImageUrl(item.image) || item.image) : "",
     price: salePrice,
     originalPrice,
     discountPercent:
@@ -136,14 +194,12 @@ const ProductDetail: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToCart, getCartCount } = useCart();
-  const { isAuthenticated } = useAuth();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedAttributeIds, setSelectedAttributeIds] = useState<number[]>([]);
   const [variantData, setVariantData] = useState<VariantDetailIdResponse | null>(null);
   const [isLoadingVariant, setIsLoadingVariant] = useState(false);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const productFromState = (location.state as { product?: Product })?.product;
 
@@ -198,7 +254,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
   // Fetch variant when all attributes are selected
   const fetchVariant = useCallback(async () => {
     if (!productId || !productDetail) return;
-    
+
     const totalAttributes = productDetail.attributes?.length || 0;
     if (totalAttributes === 0) {
       // Product has no attributes, no need to fetch variant
@@ -207,9 +263,9 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     }
 
     // Check if all attributes are selected (all IDs > 0)
-    const allSelected = selectedAttributeIds.length === totalAttributes && 
-                        selectedAttributeIds.every(id => id > 0);
-    
+    const allSelected = selectedAttributeIds.length === totalAttributes &&
+      selectedAttributeIds.every(id => id > 0);
+
     if (!allSelected) {
       setVariantData(null);
       return;
@@ -263,58 +319,15 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change;
-    const maxStock = variantData?.productDetailQuantity ?? product.stock ?? 999;
+    const maxStock = product.stock || 999;
     if (newQuantity >= 1 && newQuantity <= maxStock) {
       setQuantity(newQuantity);
     }
   };
 
-  const extractErrorMessage = (error: unknown) => {
-    if (
-      error &&
-      typeof error === "object" &&
-      "response" in error &&
-      typeof (error as any).response?.data?.message === "string"
-    ) {
-      return (error as any).response.data.message as string;
-    }
-    if (error instanceof Error) {
-      return error.message;
-    }
-    return "Không thể thêm sản phẩm vào giỏ hàng. Vui lòng thử lại.";
-  };
-
-  const handleAddToCart = async () => {
-    if (!productId) return;
-
-    if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
-      navigate("/login", { state: { from: location.pathname } });
-      return;
-    }
-
-    const totalAttributes = productDetail?.attributes?.length || 0;
-
-    if (totalAttributes === 0) {
-      toast.error("Sản phẩm chưa được cấu hình phân loại. Vui lòng thử lại sau.");
-      return;
-    }
-
-    if (!variantData?.productDetailId) {
-      toast.error("Vui lòng chọn đầy đủ phân loại hàng");
-      return;
-    }
-
-    setIsAddingToCart(true);
-    try {
-      await addToCartRequest(variantData.productDetailId, quantity);
-      addToCart(product, quantity, variantData.productDetailId.toString());
-      toast.success("Đã thêm sản phẩm vào giỏ hàng");
-    } catch (error) {
-      toast.error(extractErrorMessage(error));
-    } finally {
-      setIsAddingToCart(false);
-    }
+  const handleAddToCart = () => {
+    if (!variantData) return;
+    addToCart(product, quantity);
   };
 
   const handleAttributeSelect = (attributeIndex: number, valueId: number) => {
@@ -381,7 +394,6 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   onAttributeSelect={handleAttributeSelect}
                   variantData={variantData}
                   isLoadingVariant={isLoadingVariant}
-                  isAddingToCart={isAddingToCart}
                 />
               </div>
             </div>

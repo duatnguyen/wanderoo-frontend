@@ -66,6 +66,7 @@ export {
   getProductDetail,
   getProductVariants,
   getPublicProductsByCategory,
+  getAllPublicProducts,
   createProduct,
   getAllProducts,
   getActiveProducts,
@@ -204,3 +205,9 @@ export {
   cancelPosReturnOrder,
   completePosReturnOrder,
 } from './posApi';
+
+// File API exports
+export {
+  uploadFile,
+  uploadProductImages,
+} from './fileApi';

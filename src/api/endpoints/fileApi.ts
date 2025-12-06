@@ -15,3 +15,18 @@ export const uploadFile = async (file: File, folder = 'misc'): Promise<string> =
   return response.data.data;
 };
 
+export const uploadProductImages = async (files: File[]): Promise<string[]> => {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append('files', file);
+  });
+
+  const response = await api.post<ApiResponse<string[]>>('/files/products', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data.data;
+};
+

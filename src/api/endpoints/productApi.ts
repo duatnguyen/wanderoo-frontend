@@ -78,6 +78,18 @@ export const getPublicProductsByCategory = async (
   return response.data.data;
 };
 
+export const getAllPublicProducts = async (
+  params?: PublicProductListQuery
+): Promise<ProductCategoryPageResponse> => {
+  const response = await api.get<ApiResponse<ProductCategoryPageResponse>>(
+    `/auth/v1/public/product/all`,
+    {
+      params,
+    }
+  );
+  return response.data.data;
+};
+
 export const getPublicCategoryBrands = async (): Promise<BrandResponse[]> => {
   const response = await api.get<ApiResponse<BrandResponse[]>>(
     `/auth/v1/public/product/brands`

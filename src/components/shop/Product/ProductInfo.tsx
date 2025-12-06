@@ -93,30 +93,61 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         ? `${formatCurrencyVND(discountPriceRange.min)} - ${formatCurrencyVND(discountPriceRange.max)}`
         : `${formatCurrencyVND(priceRange.min)} - ${formatCurrencyVND(priceRange.max)}`,
       originalPrice: hasDiscount ? `${formatCurrencyVND(priceRange.min)} - ${formatCurrencyVND(priceRange.max)}` : null,
-      discountPercent: pd.discountValue ? extractDiscountPercent(pd.discountValue) : undefined,
+      discountDisplayValue: pd.discountValue ? formatDiscountValue(pd.discountValue) : undefined,
       showDiscount: !!hasDiscount,
     };
   };
 
-  // Helper function to extract discount percent
-  const extractDiscountPercent = (discountValue: string | null | undefined): number | undefined => {
+  // Helper function to format discount value for display
+  // API returns: "-35%" or "-1000đ" or "35%" or "1000đ" or "-1000Đ"
+  // Display format: "-35%" or "-1.000đ" (with thousand separator for VND)
+  const formatDiscountValue = (discountValue: string | null | undefined): string | undefined => {
     if (!discountValue) return undefined;
-    const discountStr = discountValue.toString();
-    const match = discountStr.match(/(\d+(?:\.\d+)?)%/);
-    if (match) {
-      return Math.round(Number(match[1]));
+    const discountStr = discountValue.toString().trim();
+    
+    // Check if it's a percentage (contains "%")
+    if (discountStr.includes("%")) {
+      // For percentage, just ensure it starts with "-"
+      if (discountStr.startsWith("-")) {
+        return discountStr;
+      }
+      return `-${discountStr}`;
     }
-    const numMatch = discountStr.match(/(\d+(?:\.\d+)?)/);
-    if (numMatch) {
-      return Math.round(Number(numMatch[1]));
+    
+    // For VND amount (contains "đ" or "Đ")
+    if (discountStr.includes("đ") || discountStr.includes("Đ")) {
+      // Extract the number part (may have negative sign)
+      const numberMatch = discountStr.match(/(-?\d+)/);
+      if (numberMatch) {
+        const number = Math.abs(parseInt(numberMatch[1], 10)); // Get absolute value
+        // Format number with thousand separator (.)
+        const formattedNumber = number.toLocaleString("vi-VN");
+        // Determine if original had "-" prefix
+        const hasMinus = discountStr.startsWith("-");
+        // Get the currency symbol (đ or Đ) - preserve original case
+        const currencySymbol = discountStr.includes("Đ") ? "Đ" : "đ";
+        return hasMinus ? `-${formattedNumber}${currencySymbol}` : `-${formattedNumber}${currencySymbol}`;
+      }
     }
-    return undefined;
+    
+    // If it's just a number without currency, assume it's percentage
+    const numberMatch = discountStr.match(/(-?\d+)/);
+    if (numberMatch) {
+      const hasMinus = discountStr.startsWith("-");
+      return hasMinus ? `${discountStr}%` : `-${discountStr}%`;
+    }
+    
+    // Fallback: ensure it starts with "-"
+    if (discountStr.startsWith("-")) {
+      return discountStr;
+    }
+    return `-${discountStr}`;
   };
 
   // Price display logic
   let currentPrice: string;
   let originalPrice: string | null = null;
-  let discountPercent: number | undefined;
+  let discountDisplayValue: string | undefined; // Format: "-35%" or "-1000đ"
   let showDiscount = false;
   let showPlaceholderMessage = false; // Flag to show "Vui lòng chọn phân loại hàng" below
 
@@ -133,7 +164,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       if (pdPrice) {
         currentPrice = pdPrice.currentPrice;
         originalPrice = pdPrice.originalPrice;
-        discountPercent = pdPrice.discountPercent;
+        discountDisplayValue = pdPrice.discountDisplayValue;
         showDiscount = pdPrice.showDiscount;
       } else {
         currentPrice = "Vui lòng chọn phân loại hàng";
@@ -143,7 +174,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       // No discount: show only original price
       currentPrice = formatCurrencyVND(originalPriceNum);
       originalPrice = null;
-      discountPercent = undefined;
+      discountDisplayValue = undefined;
       showDiscount = false;
     } else {
       // Has discount: show discounted price, strikethrough original, show discount tag
@@ -151,7 +182,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         ? formatCurrencyVND(discountPriceNum) 
         : formatCurrencyVND(originalPriceNum);
       originalPrice = formatCurrencyVND(originalPriceNum);
-      discountPercent = extractDiscountPercent(variantData.discountValue);
+      discountDisplayValue = formatDiscountValue(variantData.discountValue);
       showDiscount = true;
     }
   } else {
@@ -160,7 +191,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     if (pdPrice) {
       currentPrice = pdPrice.currentPrice;
       originalPrice = pdPrice.originalPrice;
-      discountPercent = pdPrice.discountPercent;
+      discountDisplayValue = pdPrice.discountDisplayValue;
       showDiscount = pdPrice.showDiscount;
       
       // Show placeholder message if attributes exist but not all selected
@@ -177,8 +208,11 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         : product.originalPrice
         ? formatCurrencyVND(product.originalPrice)
         : null;
-      discountPercent = product.discountPercent;
-      showDiscount = !!discountPercent;
+      // Fallback: if product has discountPercent, format it as percentage
+      discountDisplayValue = product.discountPercent 
+        ? `-${product.discountPercent}%`
+        : undefined;
+      showDiscount = !!discountDisplayValue;
       
       if (totalAttributes > 0 && !hasSelectedAllAttributes) {
         showPlaceholderMessage = true;
@@ -262,9 +296,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
                 {originalPrice}
               </span>
             )}
-            {discountPercent && showDiscount && (
+            {discountDisplayValue && showDiscount && (
               <span className="rounded-[4px] bg-[#e9502c] px-2 py-1 text-[14px] font-semibold text-white uppercase">
-                -{discountPercent}%
+                {discountDisplayValue}
               </span>
             )}
           </div>

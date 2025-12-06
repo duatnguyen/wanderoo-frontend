@@ -263,6 +263,12 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                     </span>
                 </div>
 
+                <div className="flex h-full items-center justify-center px-[12px] py-[14px] w-1/12 min-w-20">
+                    <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
+                        Hiển thị
+                    </span>
+                </div>
+
                 <div className="flex gap-[4px] h-full items-center justify-center px-[12px] py-[14px] w-1/8 min-w-20">
                     <span className="font-semibold text-[#272424] text-[12px] leading-[1.4] text-center">
                         Thao tác

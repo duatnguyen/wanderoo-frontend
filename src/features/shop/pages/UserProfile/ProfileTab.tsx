@@ -111,13 +111,23 @@ const ProfileTab: React.FC = () => {
         if (!editingField) return;
         const payloadKey = fieldConfig[editingField].payloadKey;
         const overrides: Partial<UserUpdateRequest> = {};
+
         if (payloadKey === "name") {
-            overrides.name = pendingValue;
+            const trimmed = pendingValue.trim();
+
+            // Validate: name must not contain digits
+            if (/\d/.test(trimmed)) {
+                setErrorMessage("Tên không được chứa số.");
+                return;
+            }
+
+            overrides.name = trimmed;
         } else if (payloadKey === "email") {
             overrides.email = pendingValue;
         } else if (payloadKey === "phone") {
             overrides.phone = pendingValue;
         }
+
         const payload = buildProfilePayload(overrides);
 
         setIsSaving(true);
@@ -130,9 +140,17 @@ const ProfileTab: React.FC = () => {
             setPendingValue("");
             // Clear success message after 3 seconds
             setTimeout(() => setSuccessMessage(null), 3000);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to update profile", error);
-            setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
+
+            const backendMessage =
+                error?.response?.data?.message ||
+                (Array.isArray(error?.response?.data?.errors) && error.response.data.errors[0]) ||
+                error?.response?.data?.detail;
+
+            setErrorMessage(
+                backendMessage || "Không thể lưu thay đổi. Vui lòng thử lại."
+            );
         } finally {
             setIsSaving(false);
         }

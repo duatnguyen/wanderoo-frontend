@@ -23,5 +23,6 @@ export interface Product {
   posQuantity: number;
   sellingPrice: string;
   costPrice: string;
+  display?: "WEBSITE" | "POS" | "BOTH";
   variants?: ProductVariant[];
 }

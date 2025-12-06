@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import ProductCard from "../ProductCard";
 import type { Product } from "../../../features/shop/data/productsData";
 
@@ -9,6 +10,12 @@ interface FeaturedProductsSectionProps {
 const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = ({
   products,
 }) => {
+  const displayProducts = products.slice(0, 6); // Display exactly 6 products
+
+  console.log("=== FeaturedProductsSection ===");
+  console.log("Total products received:", products.length);
+  console.log("Display products count:", displayProducts.length);
+
   return (
     <section className="w-full pt-2 pb-6">
       <div className="max-w-[1200px] mx-auto px-4">
@@ -20,20 +27,16 @@ const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = ({
               </h2>
             </div>
           </div>
-          <a
-            href="#"
+          <Link
+            to="/shop/products/all"
             className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
-            onClick={(e) => {
-              e.preventDefault();
-              console.log("See all featured products");
-            }}
           >
             Xem tất cả &gt;&gt;
-          </a>
+          </Link>
         </div>
 
         <div className="grid grid-cols-6 gap-4">
-          {products.map((product) => (
+          {displayProducts.map((product) => (
             <ProductCard
               key={product.id}
               id={product.id}
@@ -43,6 +46,7 @@ const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = ({
               originalPrice={product.originalPrice}
               rating={product.rating}
               discountPercent={product.discountPercent}
+              discountValue={product.discountValue}
               product={product}
             />
           ))}

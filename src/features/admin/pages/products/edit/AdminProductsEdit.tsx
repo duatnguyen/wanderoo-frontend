@@ -97,13 +97,28 @@ const AdminProductsEdit: React.FC = () => {
     };
   }, [productDetail]);
 
+  // Helper function to get full image URL
+  const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+    if (!imageUrl) return undefined;
+    // If already a full URL (http/https), return as is
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    // If relative path, add base URL
+    if (imageUrl.startsWith('/')) {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      return `${baseUrl}${imageUrl}`;
+    }
+    return imageUrl;
+  };
+
   const initialImages: ProductImage[] = useMemo(() => {
     if (!productDetail) return [];
 
     if (productDetail.images && productDetail.images.length > 0) {
       return productDetail.images.map((img, index) => ({
         id: `img-${index}-${Date.now()}`,
-        url: img,
+        url: getImageUrl(img) || img,
       }));
     }
 
@@ -147,14 +162,14 @@ const AdminProductsEdit: React.FC = () => {
         variant.posSoldQuantity !== null
           ? String(variant.posSoldQuantity)
           : "",
-      image: variant.imageUrl ?? null,
+      image: variant.imageUrl ? getImageUrl(variant.imageUrl) ?? null : null,
       sku: variant.skuDetail ?? "",
       barcode: variant.barcode ?? "",
     }));
   }, [variants]);
 
   const handleBack = () => {
-    navigate("/admin/products/all");
+    navigate("/admin/products/all", { state: { refresh: true } });
   };
 
   // Loading state
