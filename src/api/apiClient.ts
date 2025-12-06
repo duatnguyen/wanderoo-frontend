@@ -4,6 +4,7 @@ import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'a
 
 // Base API configuration
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+console.log('🔗 API BASE_URL:', BASE_URL, 'VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
 
 const PUBLIC_ENDPOINT_PREFIXES = [
   '/auth/v1/public',

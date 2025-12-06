@@ -28,7 +28,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   const addToCart = useCallback(
     async (product: Product, quantity: number, variant?: string) => {
       try {
+        console.log('🛒 Adding to cart - productId:', product.id, 'quantity:', quantity);
+        
+        // Check authentication status
+        const accessToken = localStorage.getItem('accessToken');
+        
+        if (!accessToken) {
+          toast.error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!');
+          return;
+        }
+        
         // Call API to add to cart
+        // Backend expects productDetailId, not productId
         await addToCartApi(Number(product.id), quantity);
 
         // Update local state on success
@@ -64,7 +75,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         toast.success('Đã thêm sản phẩm vào giỏ hàng thành công!');
       } catch (error) {
         console.error('Error adding to cart:', error);
-        toast.error('Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại.');
+        
+        // Show specific error message based on error type
+        const errorMessage = (error as any)?.response?.data?.message;
+        if (errorMessage?.includes('exceeds available stock')) {
+          toast.error('Số lượng yêu cầu vượt quá hàng tồn kho website!');
+        } else if (errorMessage?.includes('out of stock for website sales')) {
+          toast.error('Sản phẩm đã hết hàng trên website!');
+        } else if (errorMessage?.includes('not found')) {
+          toast.error('Sản phẩm không tồn tại!');
+        } else if ((error as any)?.response?.status === 401) {
+          toast.error('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!');
+        } else {
+          toast.error('Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại.');
+        }
+        
         throw error;
       }
     },

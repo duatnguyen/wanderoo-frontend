@@ -27,14 +27,63 @@ export const addToCart = async (
   productDetailId: number,
   quantity: number = 1
 ): Promise<ApiResponse<null>> => {
-  const response = await api.post<ApiResponse<null>>(
-    "/auth/v1/private/checkout/cart",
-    null,
-    {
-      params: { productDetailId, quantity },
+  console.log('🛒 Adding to cart:', { productDetailId, quantity });
+  
+  try {
+    console.log('🛒 Attempting to add to cart...');
+    console.log('🔗 Request URL will be:', `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/auth/v1/private/checkout/cart?productDetailId=${productDetailId}&quantity=${quantity}`);
+    
+    // Log the access token for debugging
+    const token = localStorage.getItem('accessToken');
+    console.log('🔑 Using token:', token ? `${token.substring(0, 50)}...` : 'NO TOKEN');
+    
+    const response = await api.post<ApiResponse<null>>(
+      "/auth/v1/private/checkout/cart",
+      null,
+      {
+        params: { productDetailId, quantity },
+      }
+    );
+    
+    console.log('✅ Add to cart success:', response.data);
+    return response.data;
+  } catch (error) {
+    const errorInfo = {
+      productDetailId,
+      quantity,
+      error: error instanceof Error ? error.message : String(error),
+      status: (error as any)?.response?.status,
+      responseData: (error as any)?.response?.data
+    };
+    
+    console.error('❌ Add to cart failed:', errorInfo);
+    
+    // Log full error response for debugging
+    if ((error as any)?.response) {
+      console.error('📋 Full error response:', {
+        status: (error as any).response.status,
+        statusText: (error as any).response.statusText,
+        data: (error as any).response.data,
+        headers: (error as any).response.headers
+      });
     }
-  );
-  return response.data;
+    
+    // Handle specific error cases
+    if ((error as any)?.response?.status === 401) {
+      console.error('🔐 Authentication required - user needs to login');
+    } else if ((error as any)?.response?.status === 500) {
+      const errorMessage = (error as any)?.response?.data?.message;
+      if (errorMessage?.includes('exceeds available stock')) {
+        console.error('📦 Stock error - not enough inventory available');
+      } else if (errorMessage?.includes('not found')) {
+        console.error('🔍 Product not found - productDetailId may not exist');
+      } else {
+        console.error('🚫 Server error - check backend logs for details');
+      }
+    }
+    
+    throw error;
+  }
 };
 
 export const updateCartItem = async (

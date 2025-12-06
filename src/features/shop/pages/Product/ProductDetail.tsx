@@ -341,6 +341,18 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
       return;
     }
     
+    // Check stock availability
+    const availableStock = variantData ? variantData.productDetailQuantity : product.stock;
+    if (quantity > availableStock) {
+      alert(`Chỉ còn ${availableStock} sản phẩm trong kho. Vui lòng giảm số lượng.`);
+      return;
+    }
+    
+    if (availableStock <= 0) {
+      alert('Sản phẩm đã hết hàng.');
+      return;
+    }
+    
     setIsAddingToCart(true);
     try {
       // Use variant data if available, otherwise use main product
