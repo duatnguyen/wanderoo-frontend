@@ -319,27 +319,6 @@ const AdminProducts: React.FC = () => {
   };
 
   // Bulk Actions Handlers
-  const handleBulkDelete = () => {
-    if (selectedProducts.size === 0) return;
-
-    const productNames = Array.from(selectedProducts)
-      .map((id) => products.find((p) => p.id === id)?.name)
-      .filter(Boolean)
-      .slice(0, 3) // Show first 3 names
-      .join(', ');
-
-    const moreCount = selectedProducts.size - 3;
-    const displayText = selectedProducts.size <= 3
-      ? productNames
-      : `${productNames}${moreCount > 0 ? ` và ${moreCount} sản phẩm khác` : ''}`;
-
-    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedProducts.size} sản phẩm?\n\n${displayText}`)) {
-      console.log('Deleting products:', Array.from(selectedProducts));
-      // TODO: Implement actual deletion
-      handleClearSelection();
-      alert(`Đã xóa ${selectedProducts.size} sản phẩm thành công!`);
-    }
-  };
 
   const buildSelectedIdPayload = (): number[] => {
     return Array.from(selectedProducts)
@@ -468,11 +447,6 @@ const AdminProducts: React.FC = () => {
         handleClearSelection();
       }
 
-      // Delete key to delete selected products
-      if (event.key === 'Delete' && selectedProducts.size > 0) {
-        event.preventDefault();
-        handleBulkDelete();
-      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -583,10 +557,6 @@ const AdminProducts: React.FC = () => {
                 <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Esc</kbd>
                 <span className="text-xs">Bỏ chọn</span>
               </span>
-              <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Del</kbd>
-                <span className="text-xs">Xóa</span>
-              </span>
             </div>
           </div>
         </div>
@@ -602,7 +572,6 @@ const AdminProducts: React.FC = () => {
             totalCount={filteredProducts.length}
             onSelectAll={handleSelectAll}
             onClearSelection={handleClearSelection}
-            onBulkDelete={handleBulkDelete}
             onBulkHide={handleBulkHide}
             onBulkExport={handleBulkExport}
             showSelectionActions={selectedProducts.size > 0}
@@ -690,15 +659,6 @@ const AdminProducts: React.FC = () => {
                 </svg>
               </button>
 
-              <button
-                onClick={handleBulkDelete}
-                className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                title="Xóa sản phẩm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
 
               <button
                 onClick={handleClearSelection}

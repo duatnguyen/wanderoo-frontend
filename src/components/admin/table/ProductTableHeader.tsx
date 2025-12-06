@@ -8,7 +8,6 @@ interface ProductTableHeaderProps {
     totalCount?: number;
     onSelectAll: (checked: boolean) => void;
     onClearSelection: () => void;
-    onBulkDelete?: () => void;
     onBulkHide?: () => void;
     onBulkShow?: () => void;
     onBulkExport?: () => void;
@@ -24,7 +23,6 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
     totalCount = 0,
     onSelectAll,
     onClearSelection,
-    onBulkDelete,
     onBulkHide,
     onBulkShow,
     onBulkExport,
@@ -161,17 +159,6 @@ const ProductTableHeader: React.FC<ProductTableHeaderProps> = ({
                             )}
                         </div>
 
-                        <button
-                            onClick={onBulkDelete}
-                            disabled={actionDisabled}
-                            className="px-4 py-2 bg-[#f44336] hover:bg-[#d32f2f] text-white rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center gap-2"
-                            title="Xóa vĩnh viễn sản phẩm đã chọn (Delete)"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Xóa ({selectedCount})
-                        </button>
                     </div>
                 </div>
             </div>
