@@ -2,7 +2,6 @@ import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import AdminSidebar from "../components/admin/AdminSidebar";
 import { SiteHeader } from "../components/admin/sidebar/site-header";
-import { Toaster } from "@/components/ui/sonner"
 
 
 const AdminLayout: React.FC = () => {
@@ -38,7 +37,6 @@ const AdminLayout: React.FC = () => {
         <SiteHeader onOpenSidebar={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-auto px-4 sm:px-8 md:px-[32px] py-4 sm:py-6 md:py-[32px] bg-[#F7F7F7] min-h-0">
           <Outlet />
-          <Toaster />
         </main>
       </div>
     </div>

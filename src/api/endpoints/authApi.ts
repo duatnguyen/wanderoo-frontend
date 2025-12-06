@@ -34,7 +34,7 @@ export const refreshToken = async (
   refreshTokenData: RefreshTokenRequest
 ): Promise<TokenResponse> => {
   const response = await api.post<ApiResponse<TokenResponse>>(
-    "/auth/v1/public/users/refresh",
+    "/auth/v1/public/users/refresh-token",
     refreshTokenData
   );
   return response.data.data;
@@ -42,7 +42,7 @@ export const refreshToken = async (
 
 export const logout = async (): Promise<ApiResponse<null>> => {
   const response = await api.post<ApiResponse<null>>(
-    "/auth/v1/private/users/logout"
+    "/auth/v1/public/users/logout"
   );
   return response.data;
 };

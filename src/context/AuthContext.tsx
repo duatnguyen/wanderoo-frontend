@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from "react";
-import { authLogin, authRegister, refreshToken as authRefreshToken } from "../api/endpoints/authApi";
+import { authLogin, authRegister, refreshToken as authRefreshToken, logout as authLogout } from "../api/endpoints/authApi";
 import { getUserInfo } from "../api/endpoints/userApi";
 import { isTokenExpired, getTimeUntilExpiry, getUserFromToken } from "../utils/jwt";
 import type {
@@ -288,11 +288,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     // Clear logout timer
     if (logoutTimerRef.current) {
       clearTimeout(logoutTimerRef.current);
       logoutTimerRef.current = null;
+    }
+
+    try {
+      // Call backend logout API if we have a token
+      if (state.token) {
+        await authLogout();
+      }
+    } catch (error) {
+      console.error("Error calling logout API:", error);
+      // Continue with logout even if API call fails
     }
 
     localStorage.removeItem("accessToken");
