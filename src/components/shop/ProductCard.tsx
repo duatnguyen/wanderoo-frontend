@@ -9,7 +9,8 @@ export type ProductCardProps = {
   price: number; // current price in VND
   originalPrice?: number; // optional old price
   rating?: number; // 0-5
-  discountPercent?: number; // e.g. 35 for -35%
+  discountPercent?: number; // For backward compatibility (e.g. 35 for -35%)
+  discountValue?: string; // Formatted discount value from API (e.g. "-35%" or "-1.000đ")
   onClick?: () => void;
   className?: string;
   product?: Product; // Full product data for navigation
@@ -31,12 +32,61 @@ const Star: React.FC<{ filled?: boolean }> = ({ filled }) => (
   </svg>
 );
 
+// Helper function to format discount value for display
+// API returns: "-35%" or "-1000đ" or "35%" or "1000đ"
+// Display format: "-35%" or "-1.000đ" (with thousand separator for VND)
+const formatDiscountValue = (discountValue: string | null | undefined): string | undefined => {
+  if (!discountValue) return undefined;
+  const discountStr = discountValue.toString().trim();
+  
+  // Check if it's a percentage (contains "%")
+  if (discountStr.includes("%")) {
+    // For percentage, just ensure it starts with "-"
+    if (discountStr.startsWith("-")) {
+      return discountStr;
+    }
+    return `-${discountStr}`;
+  }
+  
+  // For VND amount (contains "đ" or "Đ")
+  if (discountStr.includes("đ") || discountStr.includes("Đ")) {
+    // Extract ALL digits (remove all non-digit characters except minus sign)
+    const cleaned = discountStr.replace(/[^\d-]/g, "");
+    const numberMatch = cleaned.match(/(-?\d+)/);
+    if (numberMatch) {
+      const numberStr = numberMatch[1];
+      const number = Math.abs(parseInt(numberStr, 10)); // Get absolute value
+      // Format number with thousand separator (.)
+      const formattedNumber = number.toLocaleString("vi-VN");
+      // Determine if original had "-" prefix
+      const hasMinus = discountStr.startsWith("-") || numberStr.startsWith("-");
+      // Get the currency symbol (đ or Đ) - preserve original case
+      const currencySymbol = discountStr.includes("Đ") ? "Đ" : "đ";
+      return hasMinus ? `-${formattedNumber}${currencySymbol}` : `-${formattedNumber}${currencySymbol}`;
+    }
+  }
+  
+  // If it's just a number without currency, assume it's percentage
+  const numberMatch = discountStr.match(/(-?\d+)/);
+  if (numberMatch) {
+    const hasMinus = discountStr.startsWith("-");
+    return hasMinus ? `${discountStr}%` : `-${discountStr}%`;
+  }
+  
+  // Fallback: ensure it starts with "-"
+  if (discountStr.startsWith("-")) {
+    return discountStr;
+  }
+  return `-${discountStr}`;
+};
+
 const ProductCard: React.FC<ProductCardProps> = ({
   name,
   price,
   originalPrice,
   rating = 0,
   discountPercent,
+  discountValue,
   onClick,
   className = "",
   id,
@@ -49,6 +99,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
   const displayImage =
     imageUrl && imageUrl.trim().length > 0 ? imageUrl : FALLBACK_IMAGE;
+
+  // Format discount value for display (prioritize discountValue from API)
+  const displayDiscount = discountValue 
+    ? formatDiscountValue(discountValue)
+    : (discountPercent ? `-${discountPercent}%` : undefined);
 
   const handleClick = () => {
     if (onClick) {
@@ -89,7 +144,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             }}
           />
         </div>
-        {typeof discountPercent === "number" && (
+        {displayDiscount && (
           <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-xs rounded-[4px] px-1.5 py-0.5 flex items-center gap-1">
             <svg
               width="12"
@@ -100,7 +155,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             >
               <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor" />
             </svg>
-            -{discountPercent}%
+            {displayDiscount}
           </div>
         )}
       </div>

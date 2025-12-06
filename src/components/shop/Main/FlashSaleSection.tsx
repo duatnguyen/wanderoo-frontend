@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import ProductCard from "../ProductCard";
 import type { Product } from "../../../features/shop/data/productsData";
 
@@ -7,12 +7,40 @@ interface FlashSaleSectionProps {
 }
 
 const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
-  const displayProducts = products.slice(0, 5);
+  const [currentPage, setCurrentPage] = useState(0);
+  const productsPerPage = 6;
+  const totalPages = Math.ceil(products.length / productsPerPage);
+
+  // Chia products thành các trang (mỗi trang 6 sản phẩm)
+  const getPageProducts = (page: number): Product[] => {
+    const start = page * productsPerPage;
+    const end = start + productsPerPage;
+    return products.slice(start, end);
+  };
+
+  const currentProducts = getPageProducts(currentPage);
+
+  const handleNext = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  // Chỉ hiển thị nút next nếu có trang tiếp theo
+  const showNextButton = currentPage < totalPages - 1;
+  // Chỉ hiển thị nút prev nếu không phải trang đầu
+  const showPrevButton = currentPage > 0;
 
   return (
     <section className="w-full py-6">
       <div className="max-w-[1200px] mx-auto px-4">
-        <div className="bg-gray-100 rounded-lg shadow-md p-4 relative">
+        <div className="bg-gray-100 rounded-lg shadow-md p-4 relative overflow-hidden">
           <div className="mb-4">
             <h2 className="text-2xl font-bold text-red-600 uppercase flex items-center gap-1">
               F
@@ -32,43 +60,74 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
             </h2>
           </div>
 
-          <div className="grid grid-cols-6 gap-4 pr-4">
-            {displayProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                imageUrl={product.imageUrl}
-                name={product.name}
-                price={product.price}
-                originalPrice={product.originalPrice}
-                rating={product.rating}
-                discountPercent={product.discountPercent}
-                product={product}
-              />
-            ))}
-          </div>
+          <div className="relative">
+            <div className="grid grid-cols-6 gap-4 transition-transform duration-300">
+              {currentProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  imageUrl={product.imageUrl}
+                  name={product.name}
+                  price={product.price}
+                  originalPrice={product.originalPrice}
+                  rating={product.rating}
+                  discountPercent={product.discountPercent}
+                  discountValue={product.discountValue}
+                  product={product}
+                />
+              ))}
+            </div>
 
-          {/* Next button */}
-          <button
-            className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
-            aria-label="Next"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-gray-700"
-            >
-              <path
-                d="M9 18l6-6-6-6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+            {/* Previous button */}
+            {showPrevButton && (
+              <button
+                className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                aria-label="Previous"
+                onClick={handlePrev}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="text-gray-700"
+                >
+                  <path
+                    d="M15 18l-6-6 6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            )}
+
+            {/* Next button */}
+            {showNextButton && (
+              <button
+                className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                aria-label="Next"
+                onClick={handleNext}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="text-gray-700"
+                >
+                  <path
+                    d="M9 18l6-6-6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </section>

@@ -43,6 +43,7 @@ const FeaturedProductsSection: React.FC<FeaturedProductsSectionProps> = ({
               originalPrice={product.originalPrice}
               rating={product.rating}
               discountPercent={product.discountPercent}
+              discountValue={product.discountValue}
               product={product}
             />
           ))}

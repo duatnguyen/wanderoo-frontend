@@ -7,7 +7,8 @@ export interface Product {
   price: number;
   originalPrice?: number;
   rating?: number;
-  discountPercent?: number;
+  discountPercent?: number; // For backward compatibility
+  discountValue?: string; // Formatted discount value from API (e.g., "-35%" or "-1.000đ")
   description?: string;
   images?: string[];
   stock?: number;

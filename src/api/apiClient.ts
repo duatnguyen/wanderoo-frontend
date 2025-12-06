@@ -54,6 +54,15 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("accessToken");
+    
+    // Log request details for newest products endpoint
+    if (config.url?.includes('/products/newest')) {
+      console.log("=== REQUEST INTERCEPTOR: Newest Products ===");
+      console.log("URL:", config.url);
+      console.log("Params:", config.params);
+      console.log("Full config:", config);
+    }
+    
     console.log("API Request:", config.url, "Token exists:", !!token);
 
     const publicEndpoint = isPublicEndpoint(config.url);
@@ -83,6 +92,14 @@ api.interceptors.request.use(
 // Response interceptor to handle token refresh and errors
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Log response details for newest products endpoint
+    if (response.config.url?.includes('/products/newest')) {
+      console.log("=== RESPONSE INTERCEPTOR: Newest Products ===");
+      console.log("Response status:", response.status);
+      console.log("Response data:", response.data);
+      console.log("Response data.data length:", response.data?.data?.length);
+      console.log("Response data.data:", response.data?.data);
+    }
     return response;
   },
   async (error) => {
