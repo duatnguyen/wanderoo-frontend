@@ -50,7 +50,7 @@ export const getTopDiscountProducts = async (
 
 export const getBestSellerProducts = async (
   year?: number,
-  limit: number = 5
+  limit: number = 6
 ): Promise<HomepageProductResponse[]> => {
   const params: Record<string, any> = { limit };
   if (year) params.year = year;

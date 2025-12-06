@@ -82,8 +82,22 @@ const LandingPage: React.FC = () => {
 
   const currentYear = new Date().getFullYear();
   const { data: bestSellerProducts = [] } = useQuery({
-    queryKey: ["homepageBestSeller", currentYear],
-    queryFn: () => getBestSellerProducts(currentYear, 5),
+    queryKey: ["homepageBestSeller", currentYear, "limit-6"],
+    queryFn: async () => {
+      const limitValue = 6; // Explicitly set limit to 6
+      console.log("=== FETCHING BEST SELLER PRODUCTS ===");
+      console.log("Calling getBestSellerProducts with limit:", limitValue);
+      const result = await getBestSellerProducts(currentYear, limitValue);
+      console.log("=== FETCHED BEST SELLER RESULT ===", result.length, "products");
+      if (result.length !== limitValue) {
+        console.warn("⚠️ WARNING: Expected 6 products but got", result.length);
+      }
+      return result;
+    },
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
   });
 
   const { data: newestProducts = [] } = useQuery<HomepageProductResponse[]>({
@@ -245,18 +259,30 @@ const LandingPage: React.FC = () => {
   };
 
   const flashSaleProducts = topDiscountProducts.map(convertToProduct).filter(Boolean);
-  const featuredProducts = bestSellerProducts.map(convertToProduct).filter(Boolean);
+  const featuredProducts = bestSellerProducts
+    .map(convertToProduct)
+    .filter((p): p is Product => !!p && !!p.id && !!p.name)
+    .slice(0, 6); // Ensure exactly 6 products
   const newProducts = newestProducts
     .map(convertToProduct)
     .filter((p): p is Product => !!p && !!p.id && !!p.name)
     .slice(0, 6); // Ensure exactly 6 products
   const todaySuggestions = suggestionProducts.map(convertToProduct).filter(Boolean);
   
-  // Debug log for newProducts - Always log
+  // Debug log for products - Always log
   React.useEffect(() => {
     console.log("=== DEBUG Converted Products ===");
+    console.log("bestSellerProducts from API:", bestSellerProducts.length, bestSellerProducts);
+    console.log("featuredProducts after convert and filter:", featuredProducts.length, featuredProducts);
     console.log("newestProducts from API:", newestProducts.length, newestProducts);
     console.log("newProducts after convert and filter:", newProducts.length, newProducts);
+    console.log("featuredProducts details:", featuredProducts.map((p, idx) => ({ 
+      index: idx,
+      id: p.id, 
+      name: p.name, 
+      price: p.price,
+      isValid: !!p && !!p.id && !!p.name
+    })));
     console.log("newProducts details:", newProducts.map((p, idx) => ({ 
       index: idx,
       id: p.id, 
