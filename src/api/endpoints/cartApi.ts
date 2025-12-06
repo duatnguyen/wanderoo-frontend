@@ -1,6 +1,15 @@
 // src/api/endpoints/cartApi.ts - Cart management API calls
 import api from "../apiClient";
-import type { ApiResponse, CartPageResponse, SelectAllRequest, BackendCartResponse, SelectedCartWithShippingResponse } from "../../types";
+import type { 
+  ApiResponse, 
+  CartPageResponse, 
+  SelectAllRequest, 
+  BackendCartResponse, 
+  SelectedCartWithShippingResponse,
+  VoucherHistoryResponse,
+  CalculateDiscountRequest,
+  DiscountCalculationResponse
+} from "../../types";
 
 // Cart APIs
 export const getCart = async (params?: {
@@ -85,6 +94,45 @@ export const getSelectedCartItems = async (
 ): Promise<SelectedCartWithShippingResponse> => {
   const response = await api.post<ApiResponse<SelectedCartWithShippingResponse>>(
     "/auth/v1/private/checkout/cart/selected",
+    request
+  );
+  return response.data.data;
+};
+
+export const calculateShippingFeeForAddress = async (
+  addressId: number,
+  request: SelectAllRequest
+): Promise<number> => {
+  const response = await api.post<ApiResponse<number>>(
+    "/auth/v1/private/checkout/cart/shipping-fee",
+    request,
+    {
+      params: { addressId },
+    }
+  );
+  return response.data.data;
+};
+
+// Discount/Voucher APIs
+export const getAvailableVouchersForCheckout = async (): Promise<VoucherHistoryResponse[]> => {
+  const response = await api.get<ApiResponse<VoucherHistoryResponse[]>>(
+    "/public/v1/discount/voucher/available-for-checkout"
+  );
+  return response.data.data;
+};
+
+export const getMyDiscountsFromVouchers = async (): Promise<VoucherHistoryResponse[]> => {
+  const response = await api.get<ApiResponse<VoucherHistoryResponse[]>>(
+    "/public/v1/discount/voucher/my-discounts"
+  );
+  return response.data.data;
+};
+
+export const calculateDiscount = async (
+  request: CalculateDiscountRequest
+): Promise<DiscountCalculationResponse> => {
+  const response = await api.post<ApiResponse<DiscountCalculationResponse>>(
+    "/public/v1/discount/calculate-discount",
     request
   );
   return response.data.data;

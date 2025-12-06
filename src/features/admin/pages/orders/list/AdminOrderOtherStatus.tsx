@@ -27,93 +27,9 @@ import { CalendarIcon, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
+import { returnOrderService, type ReturnOrderListItem, type ReturnOrderCategory, type ReturnOrderStatus, type GetReturnOrdersParams } from "@/api/returnOrderService";
 
-type ReturnOrderCategory = "RETURN" | "CANCEL" | "FAILED";
-type ReturnOrderStatus = "UNDER_REVIEW" | "RETURNING" | "COMPLETED" | "INVALID";
 type ReturnStatusFilter = ReturnOrderStatus | "DELIVERED";
-type RefundStatus = "WAITING" | "PARTIAL" | "DONE";
-
-interface ReturnOrder {
-  id: string;
-  orderCode: string;
-  createdAt: string;
-  customerId: string;
-  customerName: string;
-  customerUsername: string;
-  productName: string;
-  productVariant?: string;
-  productImage?: string;
-  totalAmount: number;
-  paymentMethod: string;
-  reason: string;
-  buyerOptions: string[];
-  statusLabel: string;
-  statusKey: ReturnOrderStatus;
-  resolutionNote: string;
-  forwardShippingStatus: string;
-  returnShippingStatus: string;
-  refundStatus: RefundStatus;
-  refundStatusLabel: string;
-  source: "Website" | "POS";
-  category: ReturnOrderCategory;
-  sourceNote?: string;
-}
-
-const mockReturnOrders: ReturnOrder[] = [
-  {
-    id: "RET-202411-001",
-    orderCode: "WEB-0001",
-    createdAt: "25/11/2025 13:01",
-    customerId: "KH-002845",
-    customerName: "Nguyễn Thảo",
-    customerUsername: "nguyenthao",
-    productName: "Áo khoác trekking nữ Wander Shield",
-    productVariant: "Màu xanh ngọc · Size M",
-    totalAmount: 1890000,
-    paymentMethod: "Tiền mặt",
-    reason: "Lý do trả hàng: Màu sắc thực tế không đúng như mô tả",
-    buyerOptions: [
-      "Trả hàng & hoàn tiền",
-      "Hoàn tiền ngay khi xác nhận",
-    ],
-    statusLabel: "Đang chờ xét duyệt",
-    statusKey: "UNDER_REVIEW",
-    resolutionNote: "Đã hoàn tiền tạm giữ cho người mua",
-    forwardShippingStatus: "Đã hoàn thành",
-    returnShippingStatus: "Chờ lấy hàng",
-    refundStatus: "WAITING",
-    refundStatusLabel: "Chưa hoàn tiền",
-    source: "Website",
-    category: "RETURN",
-    sourceNote: "Tạo từ Website · Ưu tiên đồng bộ kho",
-  },
-  {
-    id: "RET-202411-002",
-    orderCode: "POS-1205",
-    createdAt: "24/11/2025 18:30",
-    customerId: "KH-001523",
-    customerName: "Trần Đăng",
-    customerUsername: "trandangk",
-    productName: "Giày leo núi Nam Summit Pro",
-    productVariant: "Màu đen · Size 41",
-    totalAmount: 2350000,
-    paymentMethod: "Tiền mặt",
-    reason: "Lý do trả hàng: Bị rộng, khách muốn đổi size khác",
-    buyerOptions: [
-      "Trả hàng & hoàn tiền",
-    ],
-    statusLabel: "Đang trả hàng",
-    statusKey: "RETURNING",
-    resolutionNote: "Có 1 phương án do người mua chọn: Trả hàng & hoàn tiền",
-    forwardShippingStatus: "Với ở POS sẽ luôn đã hoàn thành",
-    returnShippingStatus: "Đang giao",
-    refundStatus: "PARTIAL",
-    refundStatusLabel: "Đã hoàn tiền 1 phần",
-    source: "Website",
-    category: "RETURN",
-    sourceNote: "Tạo từ POS · Giao cùng ngày",
-  },
-];
 
 const primaryTabs: TabItemWithBadge[] = [
   { id: "ALL", label: "Tất cả" },
@@ -157,6 +73,8 @@ const AdminOrderOtherStatus = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [returnOrders, setReturnOrders] = useState<ReturnOrderListItem[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [activePrimaryTab, setActivePrimaryTab] = useState<ReturnOrderCategory | "ALL">("ALL");
   const [activeStatusTab, setActiveStatusTab] = useState<"ALL" | ReturnStatusFilter>("ALL");
   const [activeCancelSubTab, setActiveCancelSubTab] = useState<
@@ -164,7 +82,7 @@ const AdminOrderOtherStatus = () => {
   >("ALL");
   const [activeFailedSubTab, setActiveFailedSubTab] = useState<"ALL">("ALL");
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   // Filter states
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("ALL");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -195,7 +113,7 @@ const AdminOrderOtherStatus = () => {
   }, [location.pathname, location.state, navigate]);
 
   const tabCounts = useMemo(() => {
-    return mockReturnOrders.reduce(
+    return returnOrders.reduce(
       (acc, order) => {
         acc.ALL += 1;
         acc[order.category] += 1;
@@ -208,7 +126,7 @@ const AdminOrderOtherStatus = () => {
         FAILED: 0,
       } as Record<"ALL" | ReturnOrderCategory, number>
     );
-  }, []);
+  }, [returnOrders]);
 
   const decoratedPrimaryTabs = useMemo(
     () =>
@@ -241,61 +159,9 @@ const AdminOrderOtherStatus = () => {
     }
   }, [activePrimaryTab]);
 
-  const filteredOrders = useMemo(() => {
-    return mockReturnOrders.filter((order) => {
-      const matchPrimary =
-        activePrimaryTab === "ALL" || order.category === activePrimaryTab;
-
-      let matchStatus = true;
-      if (activePrimaryTab === "CANCEL") {
-        const isCashCancel = order.paymentMethod === "Tiền mặt";
-        if (activeCancelSubTab === "PROCESSING") {
-          matchStatus = !isCashCancel && order.statusKey !== "COMPLETED";
-        } else if (activeCancelSubTab === "PROCESSED") {
-          matchStatus = isCashCancel || order.statusKey === "COMPLETED";
-        } else {
-          matchStatus = true;
-        }
-      } else if (activePrimaryTab === "FAILED") {
-        matchStatus = true;
-      } else {
-        if (activeStatusTab === "ALL") {
-          matchStatus = true;
-        } else if (activeStatusTab === "DELIVERED") {
-          matchStatus =
-            order.orderCode !== "WEB-0042" &&
-            order.orderCode !== "POS-2211" &&
-            order.returnShippingStatus.trim().startsWith("Đã");
-        } else if (activeStatusTab === "RETURNING") {
-          matchStatus = order.statusKey === "RETURNING" && order.orderCode !== "WEB-0043";
-        } else {
-          matchStatus = order.statusKey === activeStatusTab;
-        }
-      }
-
-      const normalizedSearch = searchTerm.trim().toLowerCase();
-      const matchSearch =
-        normalizedSearch.length === 0 ||
-        order.orderCode.toLowerCase().includes(normalizedSearch) ||
-        order.customerId.toLowerCase().includes(normalizedSearch) ||
-        order.customerName.toLowerCase().includes(normalizedSearch) ||
-        order.productName.toLowerCase().includes(normalizedSearch);
-
-      return matchPrimary && matchStatus && matchSearch;
-    });
-  }, [
-    activePrimaryTab,
-    activeStatusTab,
-    activeCancelSubTab,
-    activeFailedSubTab,
-    searchTerm,
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
-  const paginatedOrders = filteredOrders.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  const paginatedOrders = useMemo(() => {
+    return returnOrders;
+  }, [returnOrders]);
 
   // Payment method filter options
   const paymentMethodOptions = [
@@ -308,29 +174,72 @@ const AdminOrderOtherStatus = () => {
     return paymentMethodOptions.find((opt) => opt.value === value)?.label || "Tất cả phương thức";
   };
 
-  // Simulate async data fetching
+  // Fetch return orders from API
   const fetchReturnOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const params: GetReturnOrdersParams = {
+        page: currentPage - 1, // Backend uses 0-based indexing
+        size: PAGE_SIZE,
+        sortBy: "createdAt",
+        sortDir: "desc"
+      };
+
+      // Add filters
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim();
+      }
+
+      if (activePrimaryTab !== "ALL") {
+        params.category = activePrimaryTab;
+      }
+
+      if (activeStatusTab !== "ALL") {
+        params.status = activeStatusTab;
+      }
+
+      if (paymentMethodFilter !== "ALL") {
+        // Map UI filter to backend parameter if needed
+        // params.paymentMethod = paymentMethodFilter;
+      }
+
+      if (dateRange?.from) {
+        params.fromDate = format(dateRange.from, "yyyy-MM-dd");
+      }
+
+      if (dateRange?.to) {
+        params.toDate = format(dateRange.to, "yyyy-MM-dd");
+      }
+
+      const response = await returnOrderService.getReturnOrders(params);
+
+      setReturnOrders(response.content);
+      setTotalPages(Math.max(1, response.totalPages));
       setLoading(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching return orders:", err);
-      setError("Không thể tải danh sách đơn trả hàng. Vui lòng thử lại.");
+      const errorMessage = err.message || "Không thể tải danh sách đơn trả hàng. Vui lòng thử lại.";
+      setError(errorMessage);
       toast.error("Không thể tải danh sách đơn trả hàng");
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, activePrimaryTab, activeStatusTab, activeCancelSubTab, paymentMethodFilter, dateRange, searchTerm]);
 
+  // Debounced search effect
   useEffect(() => {
-    fetchReturnOrders();
-  }, [fetchReturnOrders, activePrimaryTab, activeStatusTab, activeCancelSubTab, paymentMethodFilter, dateRange]);
+    const timeoutId = setTimeout(() => {
+      fetchReturnOrders();
+    }, searchTerm ? 500 : 0); // 500ms delay for search, immediate for other changes
 
-  const handleViewDetail = (order: ReturnOrder) => {
-    navigate(`/admin/orders/${order.orderCode}`, {
+    return () => clearTimeout(timeoutId);
+  }, [fetchReturnOrders]);
+
+  const handleViewDetail = (order: ReturnOrderListItem) => {
+    navigate(`/admin/orders/otherstatus/${order.orderCode}`, {
       state: {
-        fakeOrder: order,
+        returnOrderId: order.id,
         returnTo: {
           pathname: "/admin/orders/otherstatus",
           activePrimaryTab,
@@ -365,7 +274,7 @@ const AdminOrderOtherStatus = () => {
     return "default";
   };
 
-  // Transform ReturnOrder data to match OrderTable interface
+  // Transform ReturnOrderListItem data to match OrderTable interface
   const transformedOrders = useMemo(() => {
     return paginatedOrders.map((order) => ({
       id: order.orderCode,
@@ -450,8 +359,8 @@ const AdminOrderOtherStatus = () => {
   // Handle view detail for OrderTable
   const handleOrderTableViewDetail = (
     orderId: string,
-    orderStatus: string,
-    orderSource: string
+    _orderStatus: string,
+    _orderSource: string
   ) => {
     const order = paginatedOrders.find(o => o.orderCode === orderId);
     if (order) {
@@ -614,21 +523,50 @@ const AdminOrderOtherStatus = () => {
                 />
               )}
 
-              {/* Order Table */}
-              <OrderTable
-                columns={orderTableColumns}
-                orders={transformedOrders}
-                onViewDetail={handleOrderTableViewDetail}
-                getPaymentTypeStatus={getPaymentTypeStatus}
-                getProcessingStatus={getProcessingStatus}
-                getPaymentStatus={getPaymentStatus}
-              />
+              {/* Results summary */}
+              {returnOrders.length > 0 && (
+                <div className="text-sm text-gray-600 mb-2">
+                  Hiển thị {returnOrders.length} kết quả trên trang {currentPage}/{totalPages}
+                </div>
+              )}
 
-              <Pagination
-                current={currentPage}
-                total={totalPages}
-                onChange={setCurrentPage}
-              />
+              {/* Empty state */}
+              {returnOrders.length === 0 && !loading && !error && (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                    Không tìm thấy đơn trả hàng nào
+                  </h3>
+                  <p className="text-gray-500">
+                    {searchTerm ? "Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc" : "Chưa có đơn trả hàng nào trong hệ thống"}
+                  </p>
+                </div>
+              )}
+
+              {/* Order Table */}
+              {returnOrders.length > 0 && (
+                <OrderTable
+                  columns={orderTableColumns}
+                  orders={transformedOrders}
+                  onViewDetail={handleOrderTableViewDetail}
+                  getPaymentTypeStatus={getPaymentTypeStatus}
+                  getProcessingStatus={getProcessingStatus}
+                  getPaymentStatus={getPaymentStatus}
+                />
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination
+                  current={currentPage}
+                  total={totalPages}
+                  onChange={setCurrentPage}
+                />
+              )}
             </div>
           )}
         </ContentCard>

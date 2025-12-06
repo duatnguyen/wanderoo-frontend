@@ -636,6 +636,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
                   .map(attr => `${attr.name}: ${attr.value}`)
                   .join(" • ")
                 : undefined,
+              sku: item.snapshotProductSku || undefined,
             }))}
             formatCurrency={formatCurrency}
             summary={<PaymentSummaryWebsite orderData={orderData!} formatCurrency={formatCurrency} />}

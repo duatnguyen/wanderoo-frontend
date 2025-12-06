@@ -1,62 +1,78 @@
 import React, { useEffect, useState } from "react";
-
-type Voucher = {
-  id: string;
-  code: string;
-  title: string;
-  description: string;
-  expiry: string;
-  minimumOrder: string;
-};
-
-type VoucherSection = {
-  id: string;
-  title: string;
-  subtitle: string;
-  vouchers: Voucher[];
-};
+import type { VoucherHistoryResponse } from "../../../types";
 
 interface VoucherSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApply: (voucherId: string | null) => void;
-  selectedVoucherId: string | null;
-  sections: VoucherSection[];
+  onApply: (voucherCode: string | null) => void;
+  selectedVoucherCode: string | null;
+  vouchers?: VoucherHistoryResponse[];
+  loading?: boolean;
 }
 
 const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
   isOpen,
   onClose,
   onApply,
-  selectedVoucherId,
-  sections,
+  selectedVoucherCode,
+  vouchers = [], // Default to empty array
+  loading = false,
 }) => {
-  const [activeVoucher, setActiveVoucher] = useState<string | null>(
-    selectedVoucherId
+  const [activeVoucherCode, setActiveVoucherCode] = useState<string | null>(
+    selectedVoucherCode
   );
-  const [expandedSections, setExpandedSections] = useState<
-    Record<string, boolean>
-  >({});
+  const [manualVoucherCode, setManualVoucherCode] = useState<string>("");
+  const [showAllVouchers, setShowAllVouchers] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen) {
-      setActiveVoucher(selectedVoucherId);
+      setActiveVoucherCode(selectedVoucherCode);
+      setManualVoucherCode("");
+      setShowAllVouchers(false);
     }
-  }, [isOpen, selectedVoucherId]);
+  }, [isOpen, selectedVoucherCode]);
 
   if (!isOpen) return null;
 
   const handleApply = () => {
-    onApply(activeVoucher);
+    // Ưu tiên mã voucher thủ công nếu có, nếu không thì dùng voucher đã chọn
+    const voucherToApply = manualVoucherCode.trim() || activeVoucherCode;
+    onApply(voucherToApply);
     onClose();
   };
 
-  const toggleSectionExpand = (sectionId: string) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionId]: !prev[sectionId],
-    }));
+  const handleVoucherSelect = (voucherCode: string) => {
+    setActiveVoucherCode(voucherCode);
+    setManualVoucherCode(""); // Clear manual input when selecting from list
   };
+
+  const handleManualVoucherChange = (code: string) => {
+    setManualVoucherCode(code);
+    setActiveVoucherCode(null); // Clear selection when typing manually
+  };
+
+  const formatExpiry = (expirationDate?: string | null) => {
+    if (!expirationDate) return "Không hạn chế";
+    try {
+      const date = new Date(expirationDate);
+      return date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      });
+    } catch {
+      return "Không xác định";
+    }
+  };
+
+  const formatMinOrder = (minOrderValue?: number | null) => {
+    if (!minOrderValue) return "Không giới hạn";
+    return `₫${(minOrderValue / 1000).toFixed(0)}k`;
+  };
+
+  // Ensure vouchers is an array before calling slice
+  const safeVouchers = Array.isArray(vouchers) ? vouchers : [];
+  const displayedVouchers = showAllVouchers ? safeVouchers : safeVouchers.slice(0, 3);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
@@ -88,33 +104,54 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
               <div className="flex-1 flex items-center gap-3">
                 <input
                   type="text"
-                  placeholder="Mã Voucher"
+                  placeholder="Nhập mã voucher"
+                  value={manualVoucherCode}
+                  onChange={(e) => handleManualVoucherChange(e.target.value)}
                   className="flex-1 h-10 bg-white border border-gray-200 rounded-xl px-3 text-gray-900 focus:outline-none focus:border-[#E04D30] focus:ring-1 focus:ring-[#E04D30]"
                 />
-                <button className="h-10 px-5 rounded-xl border border-gray-200 text-gray-500 font-medium cursor-not-allowed bg-[#F5F6FA]">
-                  Lưu
+                <button 
+                  onClick={() => setManualVoucherCode("")}
+                  disabled={!manualVoucherCode.trim()}
+                  className={`h-10 px-5 rounded-xl border font-medium transition-colors ${
+                    manualVoucherCode.trim() 
+                      ? 'border-[#E04D30] text-[#E04D30] hover:bg-[#E04D30] hover:text-white' 
+                      : 'border-gray-200 text-gray-500 cursor-not-allowed bg-[#F5F6FA]'
+                  }`}
+                >
+                  {manualVoucherCode.trim() ? "Xóa" : "Lưu"}
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="h-[360px] overflow-y-auto px-5 pb-6 space-y-5">
-          {sections.map((section, index) => (
-            <React.Fragment key={section.id}>
+        <div className="h-[360px] overflow-y-auto px-5 pb-6">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-gray-500">Đang tải voucher...</div>
+            </div>
+          ) : safeVouchers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+              <div className="text-center">
+                <div className="text-4xl mb-2">🎫</div>
+                <div>Bạn chưa có voucher nào</div>
+                <div className="text-sm mt-1">Hãy tìm kiếm và thu thập voucher để tiết kiệm chi phí!</div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5">
               <div className="space-y-3">
                 <div>
                   <h4 className="text-[15px] font-semibold text-gray-900">
-                    {section.title}
+                    Voucher của bạn
                   </h4>
-                  <p className="text-gray-500">{section.subtitle}</p>
+                  <p className="text-gray-500">
+                    {safeVouchers.length} voucher có thể sử dụng
+                  </p>
                 </div>
                 <div className="space-y-3">
-                  {(expandedSections[section.id]
-                    ? section.vouchers
-                    : section.vouchers.slice(0, 2)
-                  ).map((voucher) => {
-                    const isSelected = activeVoucher === voucher.id;
+                  {displayedVouchers.map((voucher) => {
+                    const isSelected = activeVoucherCode === voucher.discountCode;
                     return (
                       <label
                         key={voucher.id}
@@ -135,14 +172,14 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
                                 isSelected ? "text-[#E04D30]" : "text-[#1B5CF0]"
                               }`}
                             >
-                              {voucher.code}
+                              {voucher.discountCode}
                             </span>
                             <span
                               className={`${
                                 isSelected ? "text-[#E04D30]" : "text-gray-500"
                               }`}
                             >
-                              HSD: {voucher.expiry}
+                              HSD: {formatExpiry(voucher.expirationDate)}
                             </span>
                           </div>
                           <div className="mt-3 space-y-1">
@@ -151,22 +188,24 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
                                 isSelected ? "text-[#E04D30]" : "text-gray-900"
                               }`}
                             >
-                              {voucher.title}
+                              {voucher.discountName || voucher.discountText}
                             </p>
                             <p
                               className={`${
                                 isSelected ? "text-[#E04D30]" : "text-gray-600"
                               }`}
                             >
-                              Đơn tối thiểu {voucher.minimumOrder}
+                              Đơn tối thiểu {formatMinOrder(voucher.minOrderValue)}
                             </p>
-                            <p
-                              className={`${
-                                isSelected ? "text-[#E04D30]" : "text-gray-500"
-                              }`}
-                            >
-                              {voucher.description}
-                            </p>
+                            {voucher.discountText && (
+                              <p
+                                className={`${
+                                  isSelected ? "text-[#E04D30]" : "text-gray-500"
+                                }`}
+                              >
+                                {voucher.discountText}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center justify-center px-4 border-l border-gray-100">
@@ -175,26 +214,26 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
                             name="voucher"
                             className="h-5 w-5 text-[#E04D30] focus:ring-[#E04D30]"
                             checked={isSelected}
-                            onChange={() => setActiveVoucher(voucher.id)}
+                            onChange={() => handleVoucherSelect(voucher.discountCode)}
                           />
                         </div>
                       </label>
                     );
                   })}
                 </div>
-                {section.vouchers.length > 2 && (
+                {safeVouchers.length > 3 && (
                   <div className="flex justify-center pt-1">
                     <button
                       type="button"
-                      onClick={() => toggleSectionExpand(section.id)}
+                      onClick={() => setShowAllVouchers(!showAllVouchers)}
                       className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
                     >
                       <span>
-                        {expandedSections[section.id] ? "Thu gọn" : "Xem thêm"}
+                        {showAllVouchers ? "Thu gọn" : `Xem thêm ${safeVouchers.length - 3} voucher`}
                       </span>
                       <span
                         className={`inline-block transition-transform ${
-                          expandedSections[section.id] ? "rotate-180" : ""
+                          showAllVouchers ? "rotate-180" : ""
                         }`}
                       >
                         ▼
@@ -203,26 +242,55 @@ const VoucherSelectionModal: React.FC<VoucherSelectionModalProps> = ({
                   </div>
                 )}
               </div>
-              {index < sections.length - 1 && (
-                <hr className="border-gray-200" />
-              )}
-            </React.Fragment>
-          ))}
+            </div>
+          )}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors"
-          >
-            Trở lại
-          </button>
-          <button
-            onClick={handleApply}
-            className="px-5 py-2 rounded-lg bg-[#E04D30] text-white font-semibold hover:bg-[#c53b1d] transition-colors"
-          >
-            OK
-          </button>
+        <div className="px-5 py-3 border-t border-gray-200 bg-gray-50">
+          {/* Option to not use any voucher */}
+          <div className="mb-3">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="voucher"
+                className="h-4 w-4 text-[#E04D30] focus:ring-[#E04D30]"
+                checked={!activeVoucherCode && !manualVoucherCode}
+                onChange={() => {
+                  setActiveVoucherCode(null);
+                  setManualVoucherCode("");
+                }}
+              />
+              <span className="text-gray-700 font-medium">
+                Không sử dụng voucher
+              </span>
+            </label>
+          </div>
+          
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm text-gray-600">
+              {manualVoucherCode ? (
+                <span>Sử dụng mã: <strong>{manualVoucherCode}</strong></span>
+              ) : activeVoucherCode ? (
+                <span>Đã chọn: <strong>{activeVoucherCode}</strong></span>
+              ) : (
+                <span>Chưa chọn voucher</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleApply}
+                className="px-5 py-2 rounded-lg bg-[#E04D30] text-white font-semibold hover:bg-[#c53b1d] transition-colors"
+              >
+                Áp dụng
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

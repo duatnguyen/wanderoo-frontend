@@ -23,7 +23,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({
       case "CANCELED":
         return {
           completedBg: "bg-red-600",
-          completedBorder: "border-red-600", 
+          completedBorder: "border-red-600",
           completedText: "text-red-600",
           line: "bg-red-300"
         };
@@ -31,7 +31,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({
         return {
           completedBg: "bg-orange-600",
           completedBorder: "border-orange-600",
-          completedText: "text-orange-600", 
+          completedText: "text-orange-600",
           line: "bg-orange-300"
         };
       case "RETURNED":
@@ -55,7 +55,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({
   const colorScheme = getTimelineColorScheme();
   return (
     <div
-      className={`bg-white rounded-lg border border-gray-200 p-4 sm:p-6 ${className}`}
+      className={`bg-white rounded-lg border border-gray-200 p-4 sm:p-6 w-full ${className}`}
     >
       <div className="relative">
         {/* Continuous horizontal line connecting all steps */}
@@ -70,11 +70,10 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({
               {/* Icon - positioned above the connecting line */}
               <div className="relative z-10">
                 <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 ${
-                    step.completed
-                      ? `${colorScheme.completedBg} text-white ${colorScheme.completedBorder}`
-                      : "bg-white border-gray-300"
-                  }`}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center border-2 ${step.completed
+                    ? `${colorScheme.completedBg} text-white ${colorScheme.completedBorder}`
+                    : "bg-white border-gray-300"
+                    }`}
                 >
                   {step.completed && (
                     <svg
@@ -97,9 +96,8 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({
               {/* Text Content */}
               <div className="flex flex-col items-center text-center mt-2">
                 <div
-                  className={`text-sm font-medium ${
-                    step.completed ? colorScheme.completedText : "text-gray-500"
-                  }`}
+                  className={`text-sm font-medium ${step.completed ? colorScheme.completedText : "text-gray-500"
+                    }`}
                 >
                   {step.label}
                 </div>

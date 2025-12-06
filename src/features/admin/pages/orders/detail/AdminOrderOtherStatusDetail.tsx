@@ -1,14 +1,41 @@
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { ArrowLeft, ClipboardCopy } from "lucide-react";
+import { ArrowLeft, ClipboardCopy, Package, RefreshCw, CheckCircle, XCircle, Clock, Truck, FileText, User, Calendar, AlertTriangle, CreditCard, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { PageContainer, ContentCard } from "@/components/common";
 import { ChipStatus } from "@/components/ui/chip-status";
-import {
-  STATUS_CHIP_MAP,
-  otherStatusOrders,
-  type OtherStatusOrder,
-  type ShippingInfo,
-} from "../list/orderOtherStatusData";
+
+// Define types for ReturnOrder from the list page
+type ReturnOrderCategory = "RETURN" | "CANCEL" | "FAILED";
+type ReturnOrderStatus = "UNDER_REVIEW" | "RETURNING" | "COMPLETED" | "INVALID";
+type RefundStatus = "WAITING" | "PARTIAL" | "DONE";
+
+interface ReturnOrder {
+  id: string;
+  orderCode: string;
+  createdAt: string;
+  customerId: string;
+  customerName: string;
+  customerUsername: string;
+  productName: string;
+  productVariant?: string;
+  productImage?: string;
+  totalAmount: number;
+  paymentMethod: string;
+  reason: string;
+  buyerOptions: string[];
+  statusLabel: string;
+  statusKey: ReturnOrderStatus;
+  resolutionNote: string;
+  forwardShippingStatus: string;
+  returnShippingStatus: string;
+  refundStatus: RefundStatus;
+  refundStatusLabel: string;
+  source: "Website" | "POS";
+  category: ReturnOrderCategory;
+  sourceNote?: string;
+}
+
+
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -16,44 +43,18 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 });
 
 const formatCurrency = (value: number) =>
-  currencyFormatter.format(value).replace(" ₫", "₫");
-
-const AddressCard = ({ label, value }: { label: string; value?: string }) => (
-  <div className="rounded-[12px] border border-[#ececec] bg-white px-4 py-3">
-    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#737373]">
-      {label}
-    </p>
-    <p className="mt-1 text-[13px] font-medium text-[#272424] leading-snug">
-      {value || "Chưa cập nhật"}
-    </p>
-  </div>
-);
-
-const InfoRow = ({ label, value }: { label: string; value?: string }) => (
-  <div className="flex flex-col gap-1 rounded-[12px] border border-[#f1f1f1] bg-[#fcfcfc] px-4 py-3">
-    <p className="text-[11px] font-semibold uppercase text-[#8c8c8c]">
-      {label}
-    </p>
-    <p className="text-[14px] font-semibold text-[#272424]">
-      {value || "Chưa cung cấp"}
-    </p>
-  </div>
-);
+  currencyFormatter.format(value).replace(" ₫", "₫");
 
 const AdminOrderOtherStatusDetail = () => {
   document.title = "Chi tiết yêu cầu trả hàng | Wanderoo";
   const navigate = useNavigate();
-  const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
   const [copied, setCopied] = useState(false);
-  const [shippingExpanded, setShippingExpanded] = useState(true);
+  const [isProductExpanded, setIsProductExpanded] = useState(true);
 
-  const orderFromState = (location.state as { order?: OtherStatusOrder })
-    ?.order;
-  const order =
-    orderFromState ||
-    otherStatusOrders.find((candidate) => candidate.id === orderId);
-  const shippingInfo = order?.forwardShipping;
+  const orderFromState = (location.state as { fakeOrder?: ReturnOrder })
+    ?.fakeOrder;
+  const order = orderFromState; // Only use data from navigation state
 
   const statusBannerStyle = useMemo(() => {
     if (!order) {
@@ -64,7 +65,7 @@ const AdminOrderOtherStatusDetail = () => {
       };
     }
     switch (order.statusKey) {
-      case "PENDING_REVIEW":
+      case "UNDER_REVIEW":
         return {
           border: "border-[#f6d7a6]",
           bg: "bg-[#fff9f0]",
@@ -76,7 +77,7 @@ const AdminOrderOtherStatusDetail = () => {
           bg: "bg-[#f2fff4]",
           heading: "text-[#1a7a33]",
         };
-      case "REFUNDED":
+      case "COMPLETED":
         return {
           border: "border-[#b8daff]",
           bg: "bg-[#f1f8ff]",
@@ -98,17 +99,14 @@ const AdminOrderOtherStatusDetail = () => {
   }, [order]);
 
   const handleCopyBankInfo = async () => {
-    if (!order?.refundAccount) return;
-    const { bankName, accountNumber, accountHolder, email } =
-      order.refundAccount;
+    if (!order) return;
+    // Mock bank info for demo
     const payload = [
-      `Tên ngân hàng: ${bankName}`,
-      `Số tài khoản: ${accountNumber}`,
-      `Chủ tài khoản: ${accountHolder}`,
-      email ? `Email: ${email}` : undefined,
-    ]
-      .filter(Boolean)
-      .join("\n");
+      `Mã đơn hàng: ${order.orderCode}`,
+      `Khách hàng: ${order.customerName}`,
+      `Số tiền hoàn: ${formatCurrency(order.totalAmount)}`,
+      `Phương thức thanh toán: ${order.paymentMethod}`,
+    ].join("\n");
 
     try {
       await navigator.clipboard.writeText(payload);
@@ -117,32 +115,6 @@ const AdminOrderOtherStatusDetail = () => {
     } catch (error) {
       console.error("Clipboard error:", error);
     }
-  };
-
-  // Check if return package has been delivered to seller (ready for inspection)
-  const canInspectGoods = useMemo(() => {
-    if (!order?.returnShipping) return false;
-    // Button appears when return shipping is completed (delivered to warehouse/seller)
-    // and status is RETURNING (package is at warehouse waiting for inspection)
-    const isDeliveredToSeller =
-      order.returnShipping.chip === "completed" ||
-      order.returnShipping.label?.toLowerCase().includes("đã hoàn thành") ||
-      order.returnShipping.label?.toLowerCase().includes("đã nhận") ||
-      order.returnShipping.note?.toLowerCase().includes("chờ nhập kho") ||
-      order.returnShipping.note?.toLowerCase().includes("đã nhận lại hàng");
-
-    const isWaitingForInspection =
-      order.statusKey === "RETURNING" ||
-      order.statusDescription?.toLowerCase().includes("chờ kiểm hàng");
-
-    return isDeliveredToSeller && isWaitingForInspection;
-  }, [order]);
-
-  const handleInspectGoods = () => {
-    // TODO: Implement API call to update order status after inspection
-    console.log("Inspect goods for order:", order?.id);
-    // This would typically open a modal or navigate to inspection page
-    // For now, we'll just log it
   };
 
   if (!order) {
@@ -166,271 +138,600 @@ const AdminOrderOtherStatusDetail = () => {
     );
   }
 
-  const bankInfo = order.refundAccount;
-  const addresses = order.addresses;
-  const preferredResolution =
-    order.preferredResolution || order.options[0] || "Trả hàng & hoàn tiền";
-
-  const renderShippingTimeline = (shipping: ShippingInfo) => {
-    if (!shipping.timeline || shipping.timeline.length === 0) return null;
-
-    return (
-      <ol className="mt-3 space-y-1 border-t border-dashed border-[#e6e6e6] pt-3 text-[12px] text-[#595959]">
-        {shipping.timeline.map((step) => (
-          <li key={step}>• {step}</li>
-        ))}
-      </ol>
-    );
-  };
-
-  const renderShippingSummary = () => {
-    if (!shippingInfo) return null;
-
-    return (
-      <div className="border-b border-[#f0f0f0] px-5 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[12px] font-semibold uppercase text-[#737373]">
-              Thông tin vận chuyển
-            </p>
-            <p className="text-[14px] font-semibold text-[#272424]">
-              {shippingInfo.label}
-            </p>
-            <p className="text-[12px] text-[#4a4a4a]">
-              GHN: {shippingInfo.note || "Mã vận đơn đang cập nhật"}
-            </p>
-          </div>
-          {shippingInfo.timeline && (
-            <button
-              onClick={() => setShippingExpanded((prev) => !prev)}
-              className="text-[12px] font-semibold text-[#1a71f6] hover:underline"
-            >
-              {shippingExpanded ? "Thu gọn" : "Mở rộng"}
-            </button>
-          )}
-        </div>
-        <div className="mt-3 rounded-[12px] border border-dashed border-[#cfcfcf] bg-[#fcfcfc] px-4 py-3">
-          {shippingInfo.timeline && shippingExpanded ? (
-            <div className="space-y-2 text-[12px] text-[#4a4a4a]">
-              <p className="font-semibold text-[#272424]">
-                {shippingInfo.timeline[0]}
-              </p>
-              {renderShippingTimeline(shippingInfo)}
-            </div>
-          ) : (
-            <p className="text-[12px] text-[#8c8c8c]">
-              Thông tin đang được cập nhật.
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const preferredResolution = order.buyerOptions[0] || "Trả hàng & hoàn tiền";
 
   return (
-    <PageContainer className="flex flex-col gap-6">
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-[13px] font-semibold text-[#1a71f6] hover:underline"
-      >
-        <ArrowLeft size={18} />
-        Quay lại danh sách
-      </button>
-
-      <ContentCard className="flex flex-col gap-6">
-        <div
-          className={`flex flex-wrap items-center justify-between gap-4 rounded-[16px] border px-5 py-4 ${statusBannerStyle.bg} ${statusBannerStyle.border}`}
-        >
-          <div className="flex flex-col gap-1">
-            <p
-              className={`text-[14px] font-semibold ${statusBannerStyle.heading}`}
+    <PageContainer>
+      <div className="flex flex-col gap-[10px] items-center w-full">
+        {/* Header */}
+        <div className="flex flex-col gap-[8px] items-start justify-center w-full">
+          <div className="flex gap-[4px] items-center">
+            <button
+              onClick={() => navigate(-1)}
+              className="relative shrink-0 size-[24px] flex items-center justify-center cursor-pointer"
             >
-              {order.statusLabel}
-              {order.forwardShipping?.label
-                ? ` • ${order.forwardShipping.label}`
-                : ""}
-            </p>
-            <p className="text-[13px] text-[#4a4a4a] max-w-[620px]">
-              {order.statusDescription}
-            </p>
-            <p className="text-[13px] text-[#555]">
-              Phương án cho người mua:{" "}
-              <span className="font-semibold text-[#272424]">
-                {preferredResolution}
-              </span>
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {canInspectGoods && (
-              <button
-                onClick={handleInspectGoods}
-                className="rounded-[10px] bg-[#272424] px-5 py-2 text-[13px] font-semibold text-white hover:bg-[#3a3a3a] transition-colors"
-              >
-                Kiểm hàng
-              </button>
-            )}
-            <ChipStatus
-              status={STATUS_CHIP_MAP[order.statusKey]}
-              labelOverride={order.statusLabel}
-            />
+              <ArrowLeft className="w-5 h-5 text-[#737373]" />
+            </button>
+            <h1 className="font-montserrat font-bold text-[#272424] text-[24px] leading-[1.5] whitespace-nowrap">
+              Chi tiết yêu cầu trả hàng
+            </h1>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[18px] border border-[#e2e2e2] bg-[#fffdfb]">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#f0f0f0] px-5 py-4">
-            <div>
-              <p className="text-[12px] font-semibold text-[#737373] uppercase">
-                Mã đơn hàng liên quan
-              </p>
-              <button className="text-[14px] font-bold text-[#1a71f6] hover:underline">
-                {order.relatedOrderCode || order.orderCode}
-              </button>
-            </div>
-            <div className="text-[12px] text-[#8c8c8c]">
-              Cập nhật:{" "}
-              <span className="font-semibold text-[#272424]">
-                {order.lastUpdated}
-              </span>
-            </div>
-          </div>
-
-          <div className="border-b border-[#f0f0f0] px-5 py-4 flex flex-col gap-3">
-            <p className="text-[13px] text-[#4a4a4a] leading-relaxed">
-              <span className="font-semibold">Lý do từ người mua:</span>{" "}
-              {order.reason}
-            </p>
-            {order.evidenceImages && (
-              <div className="flex flex-wrap gap-3">
-                {order.evidenceImages.map((src, index) => (
-                  <div
-                    key={`${src}-${index}`}
-                    className="flex h-[72px] w-[72px] items-center justify-center rounded-[10px] border border-dashed border-[#d7d7d7] bg-[#fafafa]"
-                  >
-                    <img
-                      src={src}
-                      alt={`Bằng chứng ${index + 1}`}
-                      className="h-full w-full rounded-[10px] object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {addresses && (
-            <div className="border-b border-[#f0f0f0] px-5 py-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <AddressCard
-                  label="Địa chỉ nhận hàng"
-                  value={addresses.receivingAddress}
-                />
-                <AddressCard
-                  label="Địa chỉ nhận hàng của khách"
-                  value={addresses.customerReturnAddress}
-                />
-                <AddressCard
-                  label="Địa chỉ của shop"
-                  value={addresses.shopWarehouseAddress}
-                />
-              </div>
-            </div>
-          )}
-
-          {renderShippingSummary()}
-
-          <div className="px-5 py-4">
-            <div className="w-full overflow-x-auto">
-              <div className="min-w-[720px] rounded-[16px] border border-[#ededed] bg-white">
-                <div className="grid grid-cols-[minmax(320px,1fr)_130px_110px] gap-0 border-b border-[#f3f3f3] bg-[#f8f8f8] px-4 py-3 text-[12px] font-semibold uppercase tracking-wide text-[#737373]">
-                  <span>Sản phẩm</span>
-                  <span className="text-right">Đơn giá</span>
-                  <span className="text-right">Số lượng</span>
+        {/* Status Cards */}
+        <ContentCard>
+          <div className="flex flex-col lg:flex-row gap-[16px] w-full mb-6">
+            {/* Return Status Card */}
+            <div className="flex-1 min-w-0">
+              <div
+                className={`${statusBannerStyle.bg} border-2 border-opacity-20 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200`}
+              >
+                <div className="flex items-center justify-center w-[40px] h-[40px] bg-white bg-opacity-80 rounded-full">
+                  {order.statusKey === "UNDER_REVIEW" ? (
+                    <Clock className="w-5 h-5 text-[#b5721f]" />
+                  ) : order.statusKey === "RETURNING" ? (
+                    <RotateCcw className="w-5 h-5 text-[#1a7a33]" />
+                  ) : order.statusKey === "COMPLETED" ? (
+                    <CheckCircle className="w-5 h-5 text-[#0f62c0]" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-[#c11f2f]" />
+                  )}
                 </div>
-                {order.products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="grid grid-cols-[minmax(320px,1fr)_130px_110px] items-center gap-0 border-b border-[#f5f5f5] px-4 py-4 text-[13px]"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-[60px] w-[60px] items-center justify-center overflow-hidden rounded-[12px] border border-dashed border-[#dfdfdf] bg-[#fafafa]">
-                        {product.image ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-[11px] text-[#9b9b9b]">
-                            Hình ảnh
-                          </span>
-                        )}
+                <div className="flex flex-col gap-[4px] flex-1 min-w-0">
+                  <p className="font-montserrat font-medium text-[14px] text-black text-opacity-70 leading-[1.4]">
+                    Trạng thái yêu cầu
+                  </p>
+                  <p className={`font-montserrat font-bold ${statusBannerStyle.heading} text-[18px] leading-[1.2] truncate`}>
+                    {order.statusLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Category Card */}
+            <div className="flex-1 min-w-0">
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="flex items-center justify-center w-[40px] h-[40px] bg-white rounded-full shadow-sm">
+                  {order.category === "RETURN" ? (
+                    <Package className="w-5 h-5 text-purple-600" />
+                  ) : order.category === "CANCEL" ? (
+                    <XCircle className="w-5 h-5 text-purple-600" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-purple-600" />
+                  )}
+                </div>
+                <div className="flex flex-col gap-[4px] flex-1 min-w-0">
+                  <p className="font-montserrat font-medium text-[14px] text-purple-700 leading-[1.4]">
+                    Loại yêu cầu
+                  </p>
+                  <p className="font-montserrat font-bold text-purple-800 text-[18px] leading-[1.2] truncate">
+                    {order.category === "RETURN" ? "Trả hàng" : order.category === "CANCEL" ? "Hủy đơn" : "Giao thất bại"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Order Code Card */}
+            <div className="flex-1 min-w-0">
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 box-border flex gap-[12px] items-center p-[16px] relative rounded-[12px] w-full overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="flex items-center justify-center w-[40px] h-[40px] bg-white rounded-full shadow-sm">
+                  <FileText className="w-5 h-5 text-orange-600" />
+                </div>
+                <div className="flex flex-col gap-[4px] flex-1 min-w-0">
+                  <p className="font-montserrat font-medium text-[14px] text-orange-700 leading-[1.4]">
+                    Mã đơn hàng
+                  </p>
+                  <p className="font-montserrat font-bold text-orange-800 text-[18px] leading-[1.2] truncate font-mono">
+                    #{order.orderCode}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Product Return Information Section */}
+          <div className="bg-gradient-to-br from-[#fafafa] to-white border border-[#e7e7e7] box-border relative rounded-[12px] w-full overflow-hidden min-w-0 shadow-sm transition-all duration-200 mb-6">
+            {/* Collapsed View Header */}
+            <button
+              onClick={() => setIsProductExpanded(!isProductExpanded)}
+              className="w-full px-4 py-3 bg-white hover:bg-gray-50 active:bg-gray-100 text-[#272424] rounded-t-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-expanded={isProductExpanded}
+              aria-label={isProductExpanded ? "Thu gọn thông tin sản phẩm" : "Mở rộng thông tin sản phẩm"}
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0 w-full sm:w-auto">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-50 to-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Package className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="font-montserrat font-semibold text-sm text-[#272424] leading-tight truncate">
+                      Sản phẩm trả hàng
+                    </p>
+                    <p className="font-montserrat font-bold text-base text-purple-600 leading-tight truncate">
+                      {order.productName}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Product Info Badges */}
+                <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                  {/* Desktop: Horizontal badges */}
+                  <div className="hidden sm:flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-indigo-700 bg-indigo-50 border-indigo-200">
+                      <Package className="w-3.5 h-3.5 text-indigo-600" />
+                      <span className="font-montserrat font-semibold text-[10px] text-indigo-700 whitespace-nowrap">
+                        Số lượng: 1
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-green-700 bg-green-50 border-green-200">
+                      <CreditCard className="w-3.5 h-3.5 text-green-600" />
+                      <span className="font-montserrat font-semibold text-[10px] text-green-700 whitespace-nowrap">
+                        {formatCurrency(order.totalAmount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mobile: Horizontal compact badges */}
+                  <div className="flex sm:hidden items-center gap-1.5 flex-1">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded border text-indigo-700 bg-indigo-50 border-indigo-200 flex-1 justify-center">
+                      <Package className="w-3 h-3 text-indigo-600" />
+                      <span className="font-montserrat font-semibold text-[10px] text-indigo-700 truncate">
+                        SL: 1
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 px-2 py-1 rounded border text-green-700 bg-green-50 border-green-200 flex-1 justify-center">
+                      <CreditCard className="w-3 h-3 text-green-600" />
+                      <span className="font-montserrat font-semibold text-[10px] text-green-700 truncate">
+                        {formatCurrency(order.totalAmount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Chevron Icon */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {isProductExpanded ? (
+                      <ChevronUp className="w-4 h-4 text-gray-500 transition-transform duration-200" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-gray-500 transition-transform duration-200" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Expanded View - Product Details */}
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${isProductExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+                }`}
+            >
+              <div className="px-4 sm:px-6 py-4 bg-[#fafbfc]">
+                {/* Product Card */}
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 box-border flex gap-[16px] items-center p-[20px] relative rounded-[12px] w-full overflow-hidden shadow-sm mb-4">
+                  {/* Product Image */}
+                  <div className="flex items-center justify-center w-[80px] h-[80px] bg-white rounded-[12px] shadow-sm shrink-0 overflow-hidden border-2 border-indigo-200">
+                    {order.productImage ? (
+                      <img
+                        src={order.productImage}
+                        alt={order.productName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package className="w-8 h-8 text-indigo-400" />
+                    )}
+                  </div>
+
+                  {/* Product Details */}
+                  <div className="flex flex-col gap-[8px] flex-1 min-w-0">
+                    <div className="flex flex-col gap-[4px]">
+                      <p className="font-montserrat font-bold text-[16px] text-indigo-800 leading-[1.4] truncate">
+                        {order.productName}
+                      </p>
+                      {order.productVariant && (
+                        <p className="font-montserrat font-medium text-[12px] text-indigo-600 leading-[1.4]">
+                          Phân loại: {order.productVariant}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
+                        <span className="text-[12px] font-medium text-indigo-700">
+                          Số lượng: 1
+                        </span>
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <p className="font-semibold text-[#272424]">
-                          {product.name}
-                        </p>
-                        <p className="text-[12px] text-[#737373]">
-                          Phân loại hàng (Nếu có):{" "}
-                          <span className="font-semibold">
-                            {product.variant ||
-                              product.classification ||
-                              "Không có"}
-                          </span>
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span className="text-[12px] font-medium text-purple-700">
+                          Giá trị: {formatCurrency(order.totalAmount)}
+                        </span>
                       </div>
                     </div>
-                    <p className="text-right font-semibold text-[#272424]">
-                      {formatCurrency(product.price)}
-                    </p>
-                    <p className="text-right font-semibold text-[#272424]">
-                      x{product.quantity}
-                    </p>
+
+                    {/* Product Status Badge */}
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="px-3 py-1 bg-gradient-to-r from-orange-100 to-amber-100 border border-orange-200 rounded-full">
+                        <span className="text-[11px] font-semibold text-orange-700 uppercase tracking-wide">
+                          Sản phẩm trả hàng
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                ))}
-                <div className="flex items-center justify-between gap-4 px-4 py-4 text-[14px] font-semibold text-[#272424]">
-                  <span>Tổng tiền hoàn dự kiến</span>
-                  <span>{formatCurrency(order.refundAmount)}</span>
+
+                  {/* Decorative Elements */}
+                  <div className="absolute top-4 right-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-full opacity-20"></div>
+                  </div>
+                  <div className="absolute bottom-4 right-6">
+                    <div className="w-4 h-4 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full opacity-30"></div>
+                  </div>
+                </div>
+
+                {/* Additional Product Information */}
+                <div className="space-y-2">
+                  <h3 className="font-montserrat font-semibold text-[14px] text-gray-800 mb-3">
+                    Thông tin chi tiết
+                  </h3>
+
+                  <div className="space-y-1.5">
+                    {/* Condition Note */}
+                    <div className="flex items-center justify-between py-2 px-2 rounded-md transition-colors duration-150 bg-white/60 hover:bg-white border border-transparent hover:border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <AlertTriangle className="h-[16px] w-[16px] text-[#1976d2]" />
+                        <span className="font-montserrat font-medium text-[13px] text-gray-700">
+                          Tình trạng sản phẩm
+                        </span>
+                      </div>
+                      <span className="font-montserrat font-semibold text-sm text-blue-600">
+                        Cần kiểm tra khi nhận hàng
+                      </span>
+                    </div>
+
+                    {/* Return Method */}
+                    <div className="flex items-center justify-between py-2 px-2 rounded-md transition-colors duration-150 bg-white/60 hover:bg-white border border-transparent hover:border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <RotateCcw className="h-[16px] w-[16px] text-[#7b1fa2]" />
+                        <span className="font-montserrat font-medium text-[13px] text-gray-700">
+                          Phương thức trả hàng
+                        </span>
+                      </div>
+                      <span className="font-montserrat font-semibold text-sm text-purple-600">
+                        Gửi qua đơn vị vận chuyển
+                      </span>
+                    </div>
+
+                    {/* Return Category */}
+                    <div className="flex items-center justify-between py-2 px-2 rounded-md transition-colors duration-150 bg-white/60 hover:bg-white border border-transparent hover:border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-[16px] w-[16px] text-[#dc3545]" />
+                        <span className="font-montserrat font-medium text-[13px] text-gray-700">
+                          Loại yêu cầu
+                        </span>
+                      </div>
+                      <span className="font-montserrat font-semibold text-sm text-red-600">
+                        {order.category === "RETURN" ? "Trả hàng" : order.category === "CANCEL" ? "Hủy đơn" : "Giao thất bại"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="flex items-center justify-between py-3 px-4 mt-4 border border-purple-100 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-[10px] shadow-sm">
+                    <span className="font-montserrat font-bold text-[14px] text-gray-800">
+                      Tổng giá trị sản phẩm
+                    </span>
+                    <span className="font-montserrat font-bold text-[16px] text-purple-600">
+                      {formatCurrency(order.totalAmount)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div className="rounded-[18px] border border-[#e4e4e4] bg-white px-5 py-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-[15px] font-semibold text-[#272424]">
-                Thông tin tài khoản hoàn tiền
-              </p>
-              <p className="text-[13px] text-[#737373]">
-                Bộ phận kế toán sẽ dùng thông tin này để xử lý hoàn tiền.
-              </p>
+          </div>          {/* Return Request Info Section */}
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0 mb-6">
+            {/* Header */}
+            <div className="flex items-center gap-[8px] w-full">
+              <div className="w-[4px] h-[20px] bg-[#e04d30] rounded-[2px]"></div>
+              <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                Thông tin yêu cầu trả hàng
+              </h3>
             </div>
-            {bankInfo && (
+
+            {/* Customer Info */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#e8f5e8] rounded-[8px] shrink-0">
+                <User className="h-[20px] w-[20px] text-[#28a745]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Khách hàng: {order.customerName}
+                </p>
+                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                  ID: {order.customerId} • Username: {order.customerUsername}
+                </p>
+              </div>
+            </div>
+
+            {/* Request Date */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f8f9fa] rounded-[8px] shrink-0">
+                <Calendar className="h-[20px] w-[20px] text-[#6c757d]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Ngày tạo yêu cầu
+                </p>
+                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                  {order.createdAt}
+                </p>
+              </div>
+            </div>
+
+            {/* Reason Section */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#fff3cd] rounded-[8px] shrink-0">
+                <FileText className="h-[20px] w-[20px] text-[#856404]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Lý do trả hàng
+                </p>
+                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
+                  {order.reason}
+                </p>
+              </div>
+            </div>
+
+            {/* Resolution Note */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#d1ecf1] rounded-[8px] shrink-0">
+                <AlertTriangle className="h-[20px] w-[20px] text-[#0c5460]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Ghi chú xử lý
+                </p>
+                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
+                  {order.resolutionNote}
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* Shipping Status Section */}
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0 mb-6">
+            {/* Header */}
+            <div className="flex items-center gap-[8px] w-full">
+              <div className="w-[4px] h-[20px] bg-[#17a2b8] rounded-[2px]"></div>
+              <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                Thông tin vận chuyển
+              </h3>
+            </div>
+
+            {/* Forward Shipping */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#d1ecf1] rounded-[8px] shrink-0">
+                <Truck className="h-[20px] w-[20px] text-[#0c5460]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Trạng thái giao hàng
+                </p>
+                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                  {order.forwardShippingStatus}
+                </p>
+                <p className="font-montserrat font-medium text-[11px] text-[#6c757d] leading-[1.4]">
+                  {order.sourceNote || "Thông tin vận chuyển đang cập nhật"}
+                </p>
+              </div>
+            </div>
+
+            {/* Return Shipping */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#fff3cd] rounded-[8px] shrink-0">
+                <RotateCcw className="h-[20px] w-[20px] text-[#856404]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Trạng thái trả hàng
+                </p>
+                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                  {order.returnShippingStatus}
+                </p>
+              </div>
+            </div>
+
+            {/* Preferred Resolution */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f8d7da] rounded-[8px] shrink-0">
+                <RefreshCw className="h-[20px] w-[20px] text-[#721c24]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Phương án cho người mua
+                </p>
+                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                  {preferredResolution}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Refund Information Section */}
+          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
+            {/* Header */}
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-[8px]">
+                <div className="w-[4px] h-[20px] bg-[#28a745] rounded-[2px]"></div>
+                <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                  Thông tin hoàn tiền
+                </h3>
+              </div>
               <button
                 onClick={handleCopyBankInfo}
-                className="flex items-center gap-2 rounded-[12px] border border-[#d9d9d9] bg-[#f9f9f9] px-4 py-2 text-[13px] font-semibold text-[#272424] hover:bg-white"
+                className="flex items-center gap-2 rounded-[12px] border border-[#d9d9d9] bg-[#f9f9f9] px-4 py-2 text-[13px] font-semibold text-[#272424] hover:bg-white transition-colors"
               >
                 <ClipboardCopy size={16} />
-                {copied ? "Đã sao chép" : "Copy thông tin tài khoản"}
+                {copied ? "Đã sao chép" : "Copy thông tin"}
               </button>
-            )}
+            </div>
+
+            {/* Payment Method */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#e8f5e8] rounded-[8px] shrink-0">
+                <CreditCard className="h-[20px] w-[20px] text-[#28a745]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Phương thức thanh toán gốc
+                </p>
+                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                  {order.paymentMethod}
+                </p>
+              </div>
+            </div>
+
+            {/* Refund Status */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#fff3cd] rounded-[8px] shrink-0">
+                <RefreshCw className="h-[20px] w-[20px] text-[#856404]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Trạng thái hoàn tiền
+                </p>
+                <div className="flex items-center gap-2">
+                  <ChipStatus
+                    status={order.refundStatus === "WAITING" ? "pending" : order.refundStatus === "PARTIAL" ? "transfer" : "completed"}
+                    labelOverride={order.refundStatusLabel}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Refund Amount */}
+            <div className="flex gap-[14px] items-start w-full">
+              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#d1ecf1] rounded-[8px] shrink-0">
+                <Package className="h-[20px] w-[20px] text-[#0c5460]" />
+              </div>
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                  Số tiền hoàn dự kiến
+                </p>
+                <p className="font-montserrat font-bold text-[16px] text-[#28a745] leading-[1.4]">
+                  {formatCurrency(order.totalAmount)}
+                </p>
+              </div>
+            </div>
+
+            <div className="w-full h-px bg-[#e7e7e7]"></div>
+
+            <p className="text-[12px] text-[#737373] leading-[1.4]">
+              <strong>Lưu ý:</strong> Bộ phận kế toán sẽ xử lý hoàn tiền sau khi xác nhận hàng hoàn về đầy đủ và đúng điều kiện. Thời gian hoàn tiền: 3-5 ngày làm việc.
+            </p>
           </div>
 
-          {bankInfo ? (
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <InfoRow label="Tên ngân hàng" value={bankInfo.bankName} />
-              <InfoRow label="Số tài khoản" value={bankInfo.accountNumber} />
-              <InfoRow label="Chủ tài khoản" value={bankInfo.accountHolder} />
-              <InfoRow label="Email" value={bankInfo.email} />
+          {/* Action Buttons Section */}
+          {order.statusKey === "UNDER_REVIEW" && (
+            <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
+              {/* Header */}
+              <div className="flex items-center gap-[8px] w-full">
+                <div className="w-[4px] h-[20px] bg-[#dc3545] rounded-[2px]"></div>
+                <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                  Hành động xử lý
+                </h3>
+              </div>
+
+              <div className="flex flex-wrap gap-3 items-center justify-start w-full">
+                {/* Approve Button */}
+                <button
+                  onClick={() => {
+                    console.log("Approve return request for order:", order.orderCode);
+                    // Handle approve action
+                  }}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <CheckCircle size={18} />
+                  Chấp nhận yêu cầu
+                </button>
+
+                {/* Reject Button */}
+                <button
+                  onClick={() => {
+                    console.log("Reject return request for order:", order.orderCode);
+                    // Handle reject action
+                  }}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#dc3545] hover:bg-[#c82333] px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <XCircle size={18} />
+                  Từ chối yêu cầu
+                </button>
+
+                {/* Request More Info Button */}
+                <button
+                  onClick={() => {
+                    console.log("Request more info for order:", order.orderCode);
+                    // Handle request more info action
+                  }}
+                  className="flex items-center gap-2 rounded-[12px] border-2 border-[#ffc107] bg-[#fff3cd] hover:bg-[#ffeaa7] px-6 py-3 text-[14px] font-semibold text-[#856404] transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <AlertTriangle size={18} />
+                  Yêu cầu thêm thông tin
+                </button>
+              </div>
+
+              <div className="w-full h-px bg-[#e7e7e7]"></div>
+
+              <p className="text-[12px] text-[#737373] leading-[1.4]">
+                <strong>Chú ý:</strong> Sau khi chấp nhận yêu cầu, khách hàng sẽ nhận được email hướng dẫn gửi hàng hoàn trả. Vui lòng xác nhận kỹ thông tin trước khi thực hiện.
+              </p>
             </div>
-          ) : (
-            <p className="mt-4 text-[13px] text-[#8c8c8c]">
-              Chưa có thông tin tài khoản hoàn tiền cho yêu cầu này.
-            </p>
           )}
-        </div>
-      </ContentCard>
+
+          {order.statusKey === "RETURNING" && (
+            <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
+              {/* Header */}
+              <div className="flex items-center gap-[8px] w-full">
+                <div className="w-[4px] h-[20px] bg-[#17a2b8] rounded-[2px]"></div>
+                <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                  Xác nhận hàng hoàn trả
+                </h3>
+              </div>
+
+              <div className="flex flex-wrap gap-3 items-center justify-start w-full">
+                {/* Confirm Receipt Button */}
+                <button
+                  onClick={() => {
+                    console.log("Confirm receipt for order:", order.orderCode);
+                    // Handle confirm receipt action
+                  }}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#17a2b8] hover:bg-[#138496] px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <Package size={18} />
+                  Xác nhận đã nhận hàng
+                </button>
+
+                {/* Process Refund Button */}
+                <button
+                  onClick={() => {
+                    console.log("Process refund for order:", order.orderCode);
+                    // Handle process refund action
+                  }}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <CreditCard size={18} />
+                  Xử lý hoàn tiền
+                </button>
+              </div>
+
+              <div className="w-full h-px bg-[#e7e7e7]"></div>
+
+              <p className="text-[12px] text-[#737373] leading-[1.4]">
+                <strong>Quy trình:</strong> Xác nhận đã nhận hàng hoàn trả → Kiểm tra tình trạng hàng hóa → Xử lý hoàn tiền cho khách hàng.
+              </p>
+            </div>
+          )}
+        </ContentCard>
+      </div>
     </PageContainer>
   );
 };

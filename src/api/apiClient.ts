@@ -15,6 +15,8 @@ const PUBLIC_ENDPOINT_PREFIXES = [
 // Endpoints that require authentication even though they are under /auth/v1/public
 const AUTH_REQUIRED_PUBLIC_ENDPOINTS = [
   '/auth/v1/public/orders',
+  '/public/v1/discount/calculate-discount',
+  '/public/v1/discount/voucher/my-discounts',
 ];
 
 function normalizePath(url?: string): string {

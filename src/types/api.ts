@@ -327,6 +327,30 @@ export interface ClaimVoucherRequest {
   code: string;
 }
 
+export interface CalculateDiscountRequest {
+  userId?: number; // Set by backend from authentication
+  voucherCode?: string; // Optional voucher code
+  cartItems: CartItemForDiscount[];
+  shippingFee: number;
+}
+
+export interface CartItemForDiscount {
+  productDetailId: number;
+  quantity: number;
+  price: number;
+}
+
+export interface DiscountCalculationResponse {
+  discountId?: number;
+  discountCode?: string;
+  discountName?: string;
+  discountAmount: number;
+  originalOrderValue: number;
+  finalOrderValue: number;
+  isApplicable: boolean;
+  message?: string;
+}
+
 // POS Types
 export interface SaleProductResponse {
   id: number;

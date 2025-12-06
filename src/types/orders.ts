@@ -67,6 +67,8 @@ export interface CustomerOrderResponse extends OrderResponse {
   notes?: string;
   discountOrderId?: number | null;
   discountShipId?: number | null;
+  orderDiscountAmount?: number | null;
+  productDiscountAmount?: number | null;
   cashReceived?: number | null;
   changeAmount?: number | null;
   shippingOrderCode?: string | null;

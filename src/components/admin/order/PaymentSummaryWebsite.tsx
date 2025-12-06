@@ -53,9 +53,21 @@ const PaymentSummaryWebsite: React.FC<PaymentSummaryWebsiteProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Calculate total discount amount
+  const orderDiscount = orderData?.orderDiscountAmount || 0;
+  const productDiscount = orderData?.productDiscountAmount || 0;
+  const totalDiscount = orderDiscount + productDiscount;
+
   const summaryData = [
     { label: "Tổng tiền sản phẩm", amount: orderData?.totalProductPrice || 0 },
     { label: "Tổng phí vận chuyển", amount: orderData?.shippingFee || 0 },
+    ...(totalDiscount > 0 ? [
+      { 
+        label: "Giảm giá", 
+        amount: -totalDiscount, 
+        isDiscount: true 
+      }
+    ] : []),
     { label: "Phụ phí", amount: 0 },
     {
       label: "Doanh thu đơn hàng",
@@ -94,10 +106,15 @@ const PaymentSummaryWebsite: React.FC<PaymentSummaryWebsiteProps> = ({
                 <p
                   className={`font-montserrat ${item.isTotal
                     ? "font-bold text-[16px] text-[#28a745]"
+                    : item.isDiscount
+                    ? "font-medium text-[13px] text-[#e04d30]"
                     : "font-medium text-[13px] text-[#272424]"
                     }`}
                 >
-                  {formatCurrency(item.amount)}
+                  {item.isDiscount 
+                    ? `-${formatCurrency(Math.abs(item.amount))}` 
+                    : formatCurrency(item.amount)
+                  }
                 </p>
               </div>
             ))}

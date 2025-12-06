@@ -20,7 +20,7 @@ const ProfileLayout: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8 w-full items-start flex-1 min-h-0">
+        <div className="flex flex-col lg:flex-row py-4 sm:py-6 lg:py-8 w-full items-start flex-1 min-h-0">
           {/* Overlay for mobile */}
           {isSidebarOpen && (
             <div

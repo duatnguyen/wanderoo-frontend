@@ -95,7 +95,7 @@ export const searchPublicDiscounts = async (params?: {
 
 export const getMyVouchers = async (): Promise<VoucherHistoryResponse[]> => {
     const response = await api.get<ApiResponse<VoucherHistoryResponse[]>>(
-        '/public/v1/discount/voucher/my-vouchers',
+        '/public/v1/discount/voucher/my-discounts',
     );
     return response.data.data ?? [];
 };

@@ -40,6 +40,13 @@ const getStatusDisplayName = (status: string) => {
 };
 
 // Payment Summary Component với Dropdown cho POS (dùng dữ liệu thật từ API)
+interface SummaryItem {
+  label: string;
+  amount: number;
+  isTotal?: boolean;
+  isDiscount?: boolean;
+}
+
 const PaymentSummaryPOS: React.FC<{ orderData: CustomerOrderResponse | null }> = ({
   orderData,
 }) => {
@@ -50,15 +57,21 @@ const PaymentSummaryPOS: React.FC<{ orderData: CustomerOrderResponse | null }> =
   };
 
   const totalAmount = orderData?.totalOrderPrice || 0; // Khách phải trả
+  
+  // Calculate total discount amount from API response
+  const orderDiscount = orderData?.orderDiscountAmount || 0;
+  const productDiscount = orderData?.productDiscountAmount || 0;
+  const totalDiscount = orderDiscount + productDiscount;
+
   const summaryData = [
     { label: "Tổng tiền hàng", amount: orderData?.totalProductPrice || 0 },
-    {
-      label: "Giảm giá",
-      amount:
-        (orderData?.totalProductPrice || 0) +
-        (orderData?.shippingFee || 0) -
-        (orderData?.totalOrderPrice || 0),
-    },
+    ...(totalDiscount > 0 ? [
+      {
+        label: "Giảm giá",
+        amount: totalDiscount,
+        isDiscount: true
+      }
+    ] : []),
     { label: "Khách phải trả", amount: totalAmount, isTotal: true },
     { label: "Tiền khách đưa", amount: orderData?.cashReceived || 0 },
     { label: "Tiền thừa trả khách", amount: orderData?.changeAmount || 0 },
@@ -116,10 +129,15 @@ const PaymentSummaryPOS: React.FC<{ orderData: CustomerOrderResponse | null }> =
                 <p
                   className={`font-montserrat ${item.isTotal
                     ? "font-bold text-[16px] text-[#28a745]"
+                    : item.isDiscount
+                    ? "font-medium text-[13px] text-[#e04d30]"
                     : "font-medium text-[13px] text-[#272424]"
                     }`}
                 >
-                  {formatCurrency(item.amount)}
+                  {item.isDiscount 
+                    ? `-${formatCurrency(item.amount)}` 
+                    : formatCurrency(item.amount)
+                  }
                 </p>
               </div>
             ))}
@@ -231,6 +249,7 @@ const AdminOrderDetailPOS: React.FC = () => {
         quantity,
         total: unitPrice * quantity,
         image: item.image || "/api/placeholder/80/80",
+        sku: item.snapshotProductSku,
       };
     });
 
@@ -582,6 +601,7 @@ const AdminOrderDetailPOS: React.FC = () => {
                 quantity: item.quantity,
                 total: item.total,
                 variantText: undefined,
+                sku: item.sku,
               })
             )}
             formatCurrency={formatCurrency}

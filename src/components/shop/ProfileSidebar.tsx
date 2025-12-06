@@ -137,7 +137,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
 
   return (
     <aside className="w-64 lg:w-64 h-full lg:h-auto flex-shrink-0">
-      <div className="h-full lg:h-auto p-4 sm:p-5 lg:p-6 overflow-y-auto">
+      <div className="h-full lg:h-auto p-2 sm:p-3 lg:p-3 overflow-y-auto">
         {/* Close button for mobile */}
         {onClose && (
           <div className="flex items-center justify-between mb-4 lg:hidden">

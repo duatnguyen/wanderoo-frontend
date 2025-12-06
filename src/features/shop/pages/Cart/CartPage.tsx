@@ -33,6 +33,7 @@ const CartPage: React.FC = () => {
   const [cartData, setCartData] = useState<BackendCartResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [page] = useState(1);
   const [size] = useState(20);
 
@@ -323,17 +324,22 @@ const CartPage: React.FC = () => {
   };
 
   const handleCheckout = async () => {
-    // Filter selected items to only include available ones (not out of stock and quantity doesn't exceed stock)
-    // Note: Items with available variants can be selected but need to change variant before checkout
-    const selectedAvailableItems = cartItemsDisplay.filter((item) => {
-      if (!selectedItems.has(item.id)) return false;
-      const isOutOfStock = item.websiteSoldQuantity === 0;
-      const isQuantityExceedsStock = (item.websiteSoldQuantity || 0) < item.quantity;
+    // Set loading state immediately for visual feedback
+    setIsCheckingOut(true);
+    setError(null);
 
-      // For checkout, only allow items that are not out of stock and quantity doesn't exceed stock
-      // Items with available variants should change variant first
-      return !isOutOfStock && !isQuantityExceedsStock;
-    });
+    try {
+      // Filter selected items to only include available ones (not out of stock and quantity doesn't exceed stock)
+      // Note: Items with available variants can be selected but need to change variant before checkout
+      const selectedAvailableItems = cartItemsDisplay.filter((item) => {
+        if (!selectedItems.has(item.id)) return false;
+        const isOutOfStock = item.websiteSoldQuantity === 0;
+        const isQuantityExceedsStock = (item.websiteSoldQuantity || 0) < item.quantity;
+
+        // For checkout, only allow items that are not out of stock and quantity doesn't exceed stock
+        // Items with available variants should change variant first
+        return !isOutOfStock && !isQuantityExceedsStock;
+      });
 
     const selectedCartIds = selectedAvailableItems
       .map((item) => item.cartId)
@@ -349,6 +355,7 @@ const CartPage: React.FC = () => {
 
       if (!hasAvailableItems) {
         setError("Không có sản phẩm nào có thể thanh toán. Vui lòng kiểm tra lại giỏ hàng hoặc đổi biến thể cho các sản phẩm hết hàng.");
+        setIsCheckingOut(false);
         return;
       }
 
@@ -365,6 +372,7 @@ const CartPage: React.FC = () => {
 
       if (allAvailableCartIds.length === 0) {
         setError("Không có sản phẩm nào có thể thanh toán. Vui lòng kiểm tra lại giỏ hàng.");
+        setIsCheckingOut(false);
         return;
       }
 
@@ -378,11 +386,11 @@ const CartPage: React.FC = () => {
       } catch (err: any) {
         console.error("Error getting selected items:", err);
         setError(err?.response?.data?.message || "Không thể tải thông tin sản phẩm đã chọn");
+        setIsCheckingOut(false);
       }
       return;
     }
 
-    try {
       // Get selected cart items data
       const selectedItemsData = await getSelectedCartItems({
         getAll: selectedCartIds
@@ -395,6 +403,8 @@ const CartPage: React.FC = () => {
     } catch (err: any) {
       console.error("Error getting selected items:", err);
       setError(err?.response?.data?.message || "Không thể tải thông tin sản phẩm đã chọn");
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -545,6 +555,7 @@ const CartPage: React.FC = () => {
                 onVariantChange={handleVariantChange}
                 onDeleteSelected={handleDeleteSelected}
                 onCheckout={handleCheckout}
+                isCheckoutLoading={isCheckingOut}
               />
             )}
           </div>

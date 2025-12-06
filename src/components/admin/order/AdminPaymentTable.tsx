@@ -9,6 +9,7 @@ export interface AdminPaymentItem {
   quantity: number;
   total: number;
   variantText?: string;
+  sku?: string;
 }
 
 interface AdminPaymentTableProps {
@@ -123,6 +124,11 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
                     {item.variantText && (
                       <p className="font-montserrat font-medium text-[10px] leading-[1.4] text-[#6b7280]">
                         {item.variantText}
+                      </p>
+                    )}
+                    {item.sku && (
+                      <p className="font-montserrat font-medium text-[9px] leading-[1.3] text-[#9ca3af]">
+                        SKU: <span className="font-semibold text-[#6b7280]">{item.sku}</span>
                       </p>
                     )}
                   </div>
