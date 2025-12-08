@@ -8,6 +8,10 @@ interface Product {
   name: string;
   imageUrl: string;
   classification?: string;
+  originalPrice?: number;
+  finalPrice?: number;
+  discountAmount?: number;
+  quantity?: number;
 }
 
 interface ProductReview {
@@ -187,10 +191,42 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                         {product.name}
                       </h3>
                       {product.classification && (
-                        <p className="text-[14px] text-gray-600">
+                        <p className="text-[12px] text-gray-600 mb-1">
                           Phân loại hàng: {product.classification}
                         </p>
                       )}
+                      {product.quantity && (
+                        <p className="text-[12px] text-gray-600 mb-1">
+                          Số lượng: {product.quantity}
+                        </p>
+                      )}
+                      {/* Price Information */}
+                      <div className="flex items-center gap-2">
+                        {product.finalPrice && (
+                          <span className="text-[14px] font-semibold text-blue-600">
+                            {new Intl.NumberFormat('vi-VN', { 
+                              style: 'currency', 
+                              currency: 'VND' 
+                            }).format(product.finalPrice)}
+                          </span>
+                        )}
+                        {product.discountAmount && product.discountAmount > 0 && (
+                          <>
+                            <span className="text-[12px] text-gray-500 line-through">
+                              {new Intl.NumberFormat('vi-VN', { 
+                                style: 'currency', 
+                                currency: 'VND' 
+                              }).format(product.originalPrice || 0)}
+                            </span>
+                            <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-medium">
+                              -{new Intl.NumberFormat('vi-VN', { 
+                                style: 'currency', 
+                                currency: 'VND' 
+                              }).format(product.discountAmount)}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

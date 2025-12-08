@@ -44,10 +44,13 @@ export interface OrderDetailItemResponse {
   snapshotProductName: string;
   snapshotProductSku: string;
   snapshotProductPrice: number;
+  snapshotDiscountAmount: number; // Số tiền được giảm
+  snapshotFinalPrice: number; // Giá cuối cùng sau giảm
   snapshotPackagedWeight?: number;
   snapshotLength?: number;
   snapshotWidth?: number;
   snapshotHeight?: number;
+  barcode?: string | null;
   snapshotVariantAttributes?: VariantAttribute[];
 }
 
@@ -69,6 +72,7 @@ export interface CustomerOrderResponse extends OrderResponse {
   discountShipId?: number | null;
   orderDiscountAmount?: number | null;
   productDiscountAmount?: number | null;
+  totalDiscountAmount?: number | null;
   cashReceived?: number | null;
   changeAmount?: number | null;
   shippingOrderCode?: string | null;

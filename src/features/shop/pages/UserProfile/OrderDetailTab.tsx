@@ -42,8 +42,9 @@ type ProductType = {
   id: string;
   imageUrl: string;
   name: string;
-  price: number;
-  originalPrice?: number;
+  price: number; // snapshotFinalPrice - giá sau giảm
+  originalPrice: number; // snapshotProductPrice - giá gốc
+  discountAmount?: number; // snapshotDiscountAmount - số tiền giảm
   variant?: string;
   quantity: number;
   sku?: string;
@@ -240,7 +241,9 @@ const OrderDetailTab: React.FC = () => {
       id: detail.id?.toString() || detail.productDetailId?.toString() || String(idx + 1),
       imageUrl: FALLBACK_IMAGE,
       name: detail.snapshotProductName || "Sản phẩm không tên",
-      price: detail.snapshotProductPrice || 0,
+      price: detail.snapshotFinalPrice || 0, // Giá sau giảm
+      originalPrice: detail.snapshotProductPrice || 0, // Giá gốc
+      discountAmount: detail.snapshotDiscountAmount || 0, // Số tiền giảm
       variant: detail.snapshotVariantAttributes
         ?.map((attr: any) => {
           // Format as "name: value" for better clarity
@@ -291,13 +294,13 @@ const OrderDetailTab: React.FC = () => {
       payment: {
         productQuantity: products.reduce((sum, p) => sum + p.quantity, 0),
         subtotal: orderData.totalProductPrice || 0,
+        // Individual discount amounts from backend
         orderDiscount: orderData.orderDiscountAmount || 0,
         productDiscount: orderData.productDiscountAmount || 0,
-        totalDiscount: (orderData.orderDiscountAmount || 0) + (orderData.productDiscountAmount || 0),
+        totalDiscount: orderData.totalDiscountAmount || 0,
         shipping: orderData.shippingFee || 0,
         total: orderData.totalOrderPrice || 0,
-        hasDiscount: (orderData.orderDiscountAmount && orderData.orderDiscountAmount > 0) ||
-          (orderData.productDiscountAmount && orderData.productDiscountAmount > 0),
+        hasDiscount: (orderData.totalDiscountAmount && orderData.totalDiscountAmount > 0),
       },
       shippingStatus: orderData.shippingStatus,
       shippingDetail: orderData.shippingDetail,
@@ -794,10 +797,15 @@ const OrderDetailTab: React.FC = () => {
                       <span className="text-lg font-bold text-blue-600">
                         {formatCurrencyVND(product.price)}
                       </span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">
-                          {formatCurrencyVND(product.originalPrice)}
-                        </span>
+                      {product.discountAmount && product.discountAmount > 0 && (
+                        <>
+                          <span className="text-sm text-gray-500 line-through">
+                            {formatCurrencyVND(product.originalPrice)}
+                          </span>
+                          <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
+                            -{formatCurrencyVND(product.discountAmount)}
+                          </span>
+                        </>
                       )}
                       {product.variant && (
                         <div className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
@@ -1127,10 +1135,11 @@ const OrderDetailTab: React.FC = () => {
             {/* Product Sub-section */}
             <div className="mb-6">
               <h3 className="text-base font-semibold text-gray-800 mb-4">
-                Chi tiết sản phẩm
+                Chi tiết đơn hàng
               </h3>
-              <div className="space-y-3 bg-gray-50 p-3 rounded-lg">
-                <div className="flex justify-between items-center text-gray-700">
+              <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                {/* Số lượng sản phẩm */}
+                <div className="flex justify-between items-center text-gray-700 pb-2 border-b border-gray-200">
                   <span className="flex items-center gap-2">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
@@ -1139,49 +1148,85 @@ const OrderDetailTab: React.FC = () => {
                   </span>
                   <span className="font-semibold">{order.payment.productQuantity}</span>
                 </div>
-                <div className="flex justify-between items-center text-gray-700">
-                  <span>Tổng tiền hàng</span>
-                  <span className="font-semibold">{formatCurrencyVND(order.payment.subtotal)}</span>
+
+                {/* STEP 1: Tổng tiền hàng gốc (chưa giảm giá) */}
+                <div className="flex justify-between items-center text-gray-800">
+                  <span className="flex items-center gap-2 font-medium">
+                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.51-1.31c-.562-.649-1.413-1.076-2.353-1.253V5z" clipRule="evenodd" />
+                    </svg>
+                    Tổng tiền hàng (chưa giảm giá)
+                  </span>
+                  <span className="font-bold text-gray-900">{formatCurrencyVND(order.payment.subtotal)}</span>
                 </div>
-                {order.payment.hasDiscount && (
+
+                {/* STEP 2 & 3: Các loại giảm giá */}
+                {order.payment.hasDiscount ? (
                   <>
-                    {order.payment.orderDiscount > 0 && (
-                      <div className="flex justify-between items-center text-gray-700">
-                        <span className="flex items-center gap-2">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          Giảm giá đơn hàng
-                        </span>
-                        <span className="font-semibold text-green-600">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
-                      </div>
-                    )}
+                    {/* STEP 2: Giảm giá sản phẩm */}
                     {order.payment.productDiscount > 0 && (
-                      <div className="flex justify-between items-center text-gray-700">
+                      <div className="flex justify-between items-center text-gray-700 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
                         <span className="flex items-center gap-2">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                           Giảm giá sản phẩm
                         </span>
-                        <span className="font-semibold text-green-600">-{formatCurrencyVND(order.payment.productDiscount)}</span>
+                        <span className="font-semibold text-red-600">-{formatCurrencyVND(order.payment.productDiscount)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between items-center text-gray-700 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-                      <span className="font-medium text-green-800">Tổng giảm giá</span>
-                      <span className="font-bold text-green-600 text-lg">-{formatCurrencyVND(order.payment.totalDiscount)}</span>
+                    
+                    {/* STEP 3: Giảm giá đơn hàng (voucher) */}
+                    {order.payment.orderDiscount > 0 && (
+                      <div className="flex justify-between items-center text-gray-700 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+                        <span className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                          </svg>
+                          Giảm giá đơn hàng (Voucher)
+                        </span>
+                        <span className="font-semibold text-orange-600">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
+                      </div>
+                    )}
+
+                    {/* Tổng tiền sau khi áp dụng tất cả giảm giá */}
+                    <div className="flex justify-between items-center text-gray-800 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
+                      <span className="font-medium text-green-800">
+                        Tổng tiền sau giảm giá
+                      </span>
+                      <span className="font-bold text-green-700 text-lg">
+                        {formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}
+                      </span>
                     </div>
                   </>
-                )}
-                {!order.payment.hasDiscount && (
+                ) : (
                   <div className="flex justify-between items-center text-gray-700">
-                    <span>Giảm giá</span>
+                    <span>Không có giảm giá</span>
                     <span className="font-semibold text-gray-500">0₫</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center text-gray-700">
-                  <span>Phí vận chuyển</span>
+
+                {/* STEP 4: Phí vận chuyển */}
+                <div className="flex justify-between items-center text-gray-700 border-t border-gray-200 pt-3">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                      <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1V8a1 1 0 00-.293-.707L15 4.586A1 1 0 0014.414 4H14v3z" />
+                    </svg>
+                    Phí vận chuyển
+                  </span>
                   <span className="font-semibold">{formatCurrencyVND(order.payment.shipping)}</span>
+                </div>
+
+                {/* STEP 5: Tổng cuối cùng phải trả */}
+                <div className="flex justify-between items-center text-white bg-blue-600 px-4 py-3 rounded-lg border-t-4 border-blue-700 mt-4">
+                  <span className="font-medium">
+                    Tổng số tiền phải trả
+                  </span>
+                  <span className="text-xl font-bold">
+                    {formatCurrencyVND(totalPayment)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1194,25 +1239,48 @@ const OrderDetailTab: React.FC = () => {
               <div className="space-y-4">
                 {/* Payment calculation breakdown */}
                 {order.payment.hasDiscount && (
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Tính toán thanh toán</div>
-                    <div className="space-y-1 text-sm">
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="text-sm font-semibold text-gray-700 mb-3">Chi tiết tính toán giá</div>
+                    <div className="space-y-2 text-sm">
+                      {/* Bước 1: Tổng tiền gốc */}
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Tổng tiền hàng:</span>
+                        <span className="text-gray-600">1. Tổng tiền hàng (chưa giảm giá):</span>
                         <span className="font-medium">{formatCurrencyVND(order.payment.subtotal)}</span>
                       </div>
-                      <div className="flex justify-between text-green-600">
-                        <span>Giảm giá:</span>
-                        <span className="font-medium">-{formatCurrencyVND(order.payment.totalDiscount)}</span>
+                      
+                      {/* Bước 2: Giảm giá sản phẩm */}
+                      {order.payment.productDiscount > 0 && (
+                        <div className="flex justify-between text-red-600">
+                          <span className="pl-2">2. Trừ giảm giá sản phẩm:</span>
+                          <span className="font-medium">-{formatCurrencyVND(order.payment.productDiscount)}</span>
+                        </div>
+                      )}
+                      
+                      {/* Bước 3: Giảm giá đơn hàng */}
+                      {order.payment.orderDiscount > 0 && (
+                        <div className="flex justify-between text-orange-600">
+                          <span className="pl-2">3. Trừ giảm giá đơn hàng (voucher):</span>
+                          <span className="font-medium">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
+                        </div>
+                      )}
+                      
+                      {/* Tiền sau giảm giá */}
+                      <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded">
+                        <span className="font-medium">= Tiền sau giảm giá:</span>
+                        <span className="font-semibold">{formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}</span>
                       </div>
+                      
+                      {/* Bước 4: Phí ship */}
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Phí vận chuyển:</span>
-                        <span className="font-medium">{formatCurrencyVND(order.payment.shipping)}</span>
+                        <span className="text-gray-600">4. Cộng phí vận chuyển:</span>
+                        <span className="font-medium">+{formatCurrencyVND(order.payment.shipping)}</span>
                       </div>
-                      <div className="border-t border-gray-300 pt-1 mt-2">
-                        <div className="flex justify-between font-semibold">
-                          <span>Thành tiền:</span>
-                          <span className="text-blue-600">{formatCurrencyVND(totalPayment)}</span>
+                      
+                      {/* Kết quả cuối */}
+                      <div className="border-t border-gray-300 pt-2 mt-3">
+                        <div className="flex justify-between font-semibold text-blue-700">
+                          <span>= Tổng cuối cùng phải trả:</span>
+                          <span className="text-lg">{formatCurrencyVND(totalPayment)}</span>
                         </div>
                       </div>
                     </div>
@@ -1299,6 +1367,10 @@ const OrderDetailTab: React.FC = () => {
               name: product.name,
               imageUrl: product.imageUrl,
               classification: product.variant,
+              originalPrice: product.originalPrice,
+              finalPrice: product.price,
+              discountAmount: product.discountAmount,
+              quantity: product.quantity,
             }))}
             initialReviews={productReviews}
             onSubmit={(reviews) => {

@@ -5,9 +5,11 @@ export interface AdminPaymentItem {
   id: string | number;
   name: string;
   image?: string;
-  unitPrice: number;
+  unitPrice: number; // Giá gốc (snapshotProductPrice)
+  discountAmount?: number; // Số tiền được giảm (snapshotDiscountAmount)
+  finalPrice?: number; // Giá cuối cùng sau giảm (snapshotFinalPrice) 
   quantity: number;
-  total: number;
+  total: number; // Thành tiền (finalPrice * quantity hoặc snapshotFinalPrice * quantity)
   variantText?: string;
   sku?: string;
 }
@@ -27,7 +29,7 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
 }) => {
   return (
     <div
-      className={`bg-gradient-to-br from-[#fafafa] to-[#ffffff] border border-[#e5e5e5] box-border flex flex-col gap-[12px] items-start p-[16px] sm:p-[20px] relative rounded-[12px] w-full overflow-hidden min-w-0 shadow-sm ${disabled ? "opacity-60" : ""
+      className={`bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[20px] relative rounded-[8px] w-full overflow-hidden min-w-0 ${disabled ? "opacity-60" : ""
         }`}
     >
       {/* Card header */}
@@ -55,7 +57,7 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
 
       {/* Table wrapper */}
       <div className="w-full overflow-x-auto rounded-[10px] border border-[#e7e7e7] bg-white">
-        <div className="flex flex-col items-start relative w-full min-w-[700px]">
+        <div className="flex flex-col items-start relative w-full min-w-[800px]">
           {/* Header */}
           <div className="flex items-center relative shrink-0 w-full bg-[#f9fafb] border-b border-[#e7e7e7]">
             <div className="border-r border-[#e7e7e7] relative self-stretch shrink-0 w-[60px] min-w-[60px]">
@@ -72,7 +74,12 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
             </div>
             <div className="border-r border-[#e7e7e7] box-border flex items-center justify-center py-[8px] px-[10px] relative self-stretch w-[100px] min-w-[100px]">
               <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#4b5563] text-[12px]">
-                Đơn giá
+                Đơn giá gốc
+              </p>
+            </div>
+            <div className="border-r border-[#e7e7e7] box-border flex items-center justify-center py-[8px] px-[10px] relative self-stretch w-[90px] min-w-[90px]">
+              <p className="font-montserrat font-semibold leading-[1.5] relative shrink-0 text-[#4b5563] text-[12px]">
+                Giảm giá
               </p>
             </div>
             <div className="border-r border-[#e7e7e7] box-border flex items-center justify-center py-[8px] px-[10px] relative self-stretch w-[80px] min-w-[80px]">
@@ -92,7 +99,7 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
             {items.map((item, index) => (
               <div
                 key={item.id}
-                className={`flex items-center relative shrink-0 w-full min-w-[700px] border-b border-[#f0f0f0] ${index % 2 === 0 ? "bg-white" : "bg-[#fcfcfc]"
+                className={`flex items-center relative shrink-0 w-full min-w-[800px] border-b border-[#f0f0f0] ${index % 2 === 0 ? "bg-white" : "bg-[#fcfcfc]"
                   } hover:bg-[#fff7f3] transition-colors duration-150`}
               >
                 {/* STT */}
@@ -133,11 +140,37 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
                     )}
                   </div>
                 </div>
-                {/* Unit price */}
+                {/* Original Unit price */}
                 <div className="box-border flex gap-[4px] items-center justify-center p-[10px] relative w-[100px] min-w-[100px]">
-                  <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#111827] text-[12px] text-nowrap">
-                    {formatCurrency(item.unitPrice)}
-                  </p>
+                  <div className="text-center">
+                    {item.discountAmount && item.discountAmount > 0 ? (
+                      <>
+                        <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#111827] text-[12px] text-nowrap line-through text-gray-500">
+                          {formatCurrency(item.unitPrice)}
+                        </p>
+                        <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#111827] text-[10px] text-nowrap mt-1">
+                          {formatCurrency(item.finalPrice ?? (item.unitPrice - item.discountAmount))}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#111827] text-[12px] text-nowrap">
+                        {formatCurrency(item.unitPrice)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {/* Discount Amount */}
+                <div className="box-border flex gap-[4px] items-center justify-center p-[10px] relative w-[90px] min-w-[90px]">
+                  {item.discountAmount && item.discountAmount > 0 ? (
+                    <div className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 border border-red-200 rounded text-xs font-medium text-red-600">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                      -{formatCurrency(item.discountAmount)}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">-</span>
+                  )}
                 </div>
                 {/* Quantity */}
                 <div className="box-border flex gap-[4px] items-center justify-center p-[10px] relative w-[80px] min-w-[80px]">

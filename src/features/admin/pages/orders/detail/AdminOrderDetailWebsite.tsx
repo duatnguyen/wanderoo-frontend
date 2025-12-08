@@ -25,8 +25,7 @@ import {
 
 
 import AdminPaymentTable, { type AdminPaymentItem } from '../../../../../components/admin/order/AdminPaymentTable';
-import PaymentSummaryWebsite from '../../../../../components/admin/order/PaymentSummaryWebsite';
-import PaymentInformationWebsite from '../../../../../components/admin/order/PaymentInformationWebsite';
+import PaymentDetailsCard from '../../../../../components/admin/order/PaymentDetailsCard';
 import DeliveryConfirmationPopupWebsite from '../../../../../components/admin/order/DeliveryConfirmationPopupWebsite';
 import CancelOrderConfirmationPopupWebsite from '../../../../../components/admin/order/CancelOrderConfirmationPopupWebsite';
 import ActionButtonsWebsite from '../../../../../components/admin/order/ActionButtonsWebsite';
@@ -39,7 +38,7 @@ const mapShippingStatusToLabel = (status?: string | null): string => {
   const normalized = status.toLowerCase();
   const map: Record<string, string> = {
     ready_to_pick: "Chờ lấy hàng",
-    picking: "Đang lấy hàng", 
+    picking: "Đang lấy hàng",
     cancel: "Đã hủy vận chuyển",
     money_collect_picking: "Shipper tương tác với người gửi",
     picked: "Đã lấy hàng",
@@ -221,7 +220,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
       // Nếu không có updatedOrder, nghĩa là đang sử dụng GHN shipping
       // API create shipping dùng numeric id từ orderData
       const response = await createShippingOrder(orderData.id, data);
-      
+
       // Update orderData with the response if available
       if (response && typeof response === 'object') {
         setOrderData(response);
@@ -229,7 +228,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
         // Fallback: Reload order data after confirmation theo order code
         await loadOrderDetail(orderData.code || orderCode);
       }
-      
+
       // Toast success is already shown in DeliveryConfirmationPopupWebsite
     } catch (error: any) {
       console.error("Error confirming order:", error);
@@ -291,7 +290,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
     try {
       setUpdatingShippingStatus(true);
       setShowUpdateShippingStatusDialog(false);
-      
+
       let response;
       // Sử dụng API khác nhau tùy theo shipping provider
       if (orderData.shippingProvider === "WANDEROO") {
@@ -301,7 +300,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
         // Đơn hàng GHN - sử dụng API cũ chỉ cập nhật shipping status
         response = await updateShippingStatus(orderData.id, selectedShippingStatus);
       }
-      
+
       // Update orderData with the response if available
       if (response && typeof response === 'object') {
         setOrderData(response);
@@ -309,7 +308,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
         // Fallback: Reload order data after update
         await loadOrderDetail(orderData.code || orderCode);
       }
-      
+
       setIsEditingShippingStatus(false);
       setSelectedShippingStatus("");
       toast.success("Cập nhật trạng thái vận chuyển thành công!");
@@ -627,9 +626,11 @@ const AdminOrderDetailWebsite: React.FC = () => {
               id: item.id,
               name: item.snapshotProductName || "Sản phẩm không tên",
               image: undefined,
-              unitPrice: item.snapshotProductPrice,
+              unitPrice: item.snapshotProductPrice, // Giá gốc
+              discountAmount: item.snapshotDiscountAmount, // Số tiền được giảm
+              finalPrice: item.snapshotFinalPrice, // Giá cuối cùng sau giảm
               quantity: item.quantity,
-              total: item.snapshotProductPrice * item.quantity,
+              total: item.snapshotFinalPrice * item.quantity, // Thành tiền = giá cuối cùng * số lượng
               variantText: item.snapshotVariantAttributes && item.snapshotVariantAttributes.length > 0
                 ? item.snapshotVariantAttributes
                   .sort((a, b) => (a.groupLevel || 0) - (b.groupLevel || 0))
@@ -639,13 +640,28 @@ const AdminOrderDetailWebsite: React.FC = () => {
               sku: item.snapshotProductSku || undefined,
             }))}
             formatCurrency={formatCurrency}
-            summary={<PaymentSummaryWebsite orderData={orderData!} formatCurrency={formatCurrency} />}
+            summary={
+              <div className="flex items-center w-full justify-between py-3 px-4 bg-[#f8f9fa] border-t border-[#e7e7e7]">
+                <div className="flex flex-col gap-1">
+                  <span className="font-montserrat font-bold text-[14px] text-gray-800">
+                    Tổng tiền sản phẩm (sau giảm giá)
+                  </span>
+                  <span className="font-montserrat text-[12px] text-gray-600">
+                    Tổng giảm giá: {formatCurrency((orderData.orderDetails || []).reduce((sum, item) => sum + (item.snapshotDiscountAmount * item.quantity), 0))}
+                  </span>
+                </div>
+                <span className="font-montserrat font-bold text-[16px] text-blue-600">
+                  {formatCurrency((orderData.orderDetails || []).reduce((sum, item) => sum + (item.snapshotFinalPrice * item.quantity), 0))}
+                </span>
+              </div>
+            }
             disabled={orderData!.status === "CANCELED"}
           />
 
-          {/* Payment Information Card */}
-          <PaymentInformationWebsite
+          {/* Payment Details Card */}
+          <PaymentDetailsCard
             orderData={orderData!}
+            formatCurrency={formatCurrency}
             disabled={orderData!.status === "CANCELED"}
           />
 
@@ -711,7 +727,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
               Chọn trạng thái vận chuyển mới cho đơn hàng <strong>#{orderData?.code}</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
+
           <div className="py-4">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -720,7 +736,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
                   {mapShippingStatusToLabel(orderData?.shippingStatus || "")}
                 </span>
               </div>
-              
+
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">
                   Chọn trạng thái mới:
@@ -746,11 +762,11 @@ const AdminOrderDetailWebsite: React.FC = () => {
                   )}
                 </select>
               </div>
-              
+
               {selectedShippingStatus === "DELIVERED" && (
                 <div className="bg-green-50 border border-green-200 rounded-md p-3">
                   <p className="text-sm text-green-800">
-                    <strong>Lưu ý:</strong> Khi chọn "Giao hàng thành công", đơn hàng sẽ tự động chuyển sang trạng thái "Hoàn thành" 
+                    <strong>Lưu ý:</strong> Khi chọn "Giao hàng thành công", đơn hàng sẽ tự động chuyển sang trạng thái "Hoàn thành"
                     {orderData?.method === "COD" && " và thanh toán sẽ được đánh dấu là đã hoàn thành"}.
                   </p>
                 </div>

@@ -403,10 +403,15 @@ const CheckoutPage: React.FC = () => {
         name: cartItem.productName,
         description: cartItem.attributes?.map(attr => `${attr.name}: ${attr.value}`).join(", ") || "",
         imageUrl: cartItem.imageUrl || "",
-        price: cartItem.productPrice,
+        originalPrice: cartItem.originalPrice,
+        discountedPrice: cartItem.discountedPrice,
+        productPrice: cartItem.productPrice,
+        discountValue: cartItem.discountValue,
         quantity: cartItem.quantity,
+        totalPrice: cartItem.totalPrice,
         variant: variant,
         cartId: cartItem.id, // Store cartId for checkbox selection
+        price: cartItem.productPrice, // Để tương thích với code cũ
       } as CheckoutItem & { cartId: number };
     });
   }, [cartData]);

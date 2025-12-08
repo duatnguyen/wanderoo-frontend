@@ -1,17 +1,8 @@
 import React from "react";
 import { formatCurrencyVND } from "../../../features/shop/pages/Checkout/utils/formatCurrency";
-
-type CheckoutItem = {
-  id: string;
-  name: string;
-  description?: string;
-  imageUrl: string;
-  price: number;
-  quantity: number;
-  variant?: string;
-  cartId?: number;
-};
-
+import type {
+  CheckoutItem,
+} from "../../../types/checkout";
 interface ProductsTableProps {
   items: CheckoutItem[];
 }
@@ -53,7 +44,10 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ items }) => {
                 SL
               </th>
               <th className="px-4 py-2.5 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
-                T. Tiền
+                Giảm giá
+              </th>
+              <th className="px-4 py-2.5 text-right text-xs font-bold text-gray-900 uppercase tracking-wider">
+                Thành tiền
               </th>
             </tr>
           </thead>
@@ -100,9 +94,22 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ items }) => {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <span className="text-xs font-semibold text-gray-900">
-                    {formatCurrencyVND(item.price)}
-                  </span>
+                  <div className="text-right">
+                    {item.originalPrice !== item.productPrice ? (
+                      <>
+                        <div className="text-xs text-gray-500 line-through">
+                          {formatCurrencyVND(item.originalPrice)}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          {formatCurrencyVND(item.productPrice)}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-sm font-semibold text-gray-900">
+                        {formatCurrencyVND(item.productPrice)}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="inline-flex items-center justify-center min-w-[32px] px-2 py-1 bg-gray-100 rounded">
@@ -111,9 +118,21 @@ const ProductsTable: React.FC<ProductsTableProps> = ({ items }) => {
                     </span>
                   </div>
                 </td>
+                <td className="px-4 py-3 text-center">
+                  {item.discountValue && item.originalPrice !== item.productPrice ? (
+                    <div className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 border border-red-200 rounded text-xs font-medium text-red-600">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                      </svg>
+                      {item.discountValue}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">-</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right">
                   <span className="text-sm font-bold text-[#E04D30]">
-                    {formatCurrencyVND(item.price * item.quantity)}
+                    {formatCurrencyVND(item.totalPrice)}
                   </span>
                 </td>
               </tr>

@@ -3,10 +3,16 @@ export type CheckoutItem = {
   name: string;
   description?: string;
   imageUrl: string;
-  price: number;
+  originalPrice: number;       // Giá gốc
+  discountedPrice: number;     // Giá sau giảm (đơn vị)
+  productPrice: number;        // Giá đơn vị cuối cùng (sau giảm giá)
+  discountValue?: string;      // Thông tin giảm giá (ví dụ: "-10%" hoặc "-50000đ")
   quantity: number;
+  totalPrice: number;          // Tổng tiền (sau giảm giá)
   variant?: string;
-  cartId?: number; // For checkbox selection
+  cartId?: number;
+  // Để tương thích với code cũ
+  price: number;               // Alias cho productPrice
 };
 
 export type AddressOption = {

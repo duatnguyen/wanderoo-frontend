@@ -641,6 +641,7 @@ export interface CustomerOrderResponse extends OrderResponse {
   shopDistrictName?: string | null;
   shopWardCode?: string | null;
   shopWardName?: string | null;
+  totalDiscountAmount?: number;
   orderDiscountAmount?: number;
   productDiscountAmount?: number;
 }
