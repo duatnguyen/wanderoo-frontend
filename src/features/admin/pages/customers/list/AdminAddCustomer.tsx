@@ -23,7 +23,7 @@ import type {
   WardResponse,
 } from "@/types";
 
-type CustomerField = "name" | "phone" | "birthdate" | "email" | "username" | "addressName" | "addressPhone" | "province" | "district" | "ward" | "location";
+type CustomerField = "name" | "phone" | "birthdate" | "email" | "username" | "password" | "addressName" | "addressPhone" | "province" | "district" | "ward" | "location";
 type FormErrors = Partial<Record<CustomerField, string>>;
 type CustomerFormData = {
   name: string;
@@ -160,7 +160,21 @@ const AdminAddCustomer = () => {
             error = "Ngày sinh không hợp lệ.";
           } else if (inputDate > today) {
             error = "Ngày sinh không được lớn hơn hiện tại.";
+          } else {
+            // Check if age is at least 16 years old
+            const age = today.getFullYear() - inputDate.getFullYear();
+            const monthDiff = today.getMonth() - inputDate.getMonth();
+            const dayDiff = today.getDate() - inputDate.getDate();
+            const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+            if (actualAge < 16) {
+              error = "Khách hàng phải từ 16 tuổi trở lên.";
+            }
           }
+        }
+        break;
+      case "password":
+        if (trimmedValue && trimmedValue.length < 6) {
+          error = "Mật khẩu phải có ít nhất 6 ký tự.";
         }
         break;
       case "addressName":
@@ -226,7 +240,7 @@ const AdminAddCustomer = () => {
     let isValid = true;
     
     // Validate contact information
-    (["name", "phone", "email", "username", "birthdate"] as CustomerField[]).forEach(
+    (["name", "phone", "email", "username", "birthdate", "password"] as CustomerField[]).forEach(
       (field) => {
         const error = validateField(field, formData[field]);
         if (error) {
@@ -728,7 +742,7 @@ const AdminAddCustomer = () => {
             <FormInput
               value={formData.username}
               onChange={(e) => handleFieldChange("username", e.target.value)}
-              placeholder="Nhập tên đăng nhập (không bắt buộc - tự động tạo nếu để trống)"
+              placeholder="Nhập tên đăng nhập (không bắt buộc)"
               containerClassName="h-[36px] px-[12px] py-0"
             />
             {formErrors.username && (
@@ -744,12 +758,13 @@ const AdminAddCustomer = () => {
             <FormInput
               type="password"
               value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              placeholder="Nhập mật khẩu (không bắt buộc - mặc định là số điện thoại)"
+              onChange={(e) => handleFieldChange("password", e.target.value)}
+              placeholder="Nhập mật khẩu (không bắt buộc - tối thiểu 6 ký tự nếu nhập)"
               containerClassName="h-[36px] px-[12px] py-0"
             />
+            {formErrors.password && (
+              <p className="text-sm text-red-500">{formErrors.password}</p>
+            )}
           </div>
         </div>
       </div>

@@ -27,9 +27,6 @@ const AdminCustomers = lazy(() =>
     default: module.AdminCustomers,
   }))
 );
-const AdminAccounting = lazy(
-  () => import("../../features/admin/pages/accounting/AdminAccounting")
-);
 const AdminStaff = lazy(
   () => import("../../features/admin/pages/staff/list/AdminStaff")
 );
@@ -64,12 +61,6 @@ const AdminCreateVoucherReturningCustomer = lazy(
   () =>
     import(
       "../../features/admin/pages/discounts/create/AdminCreateVoucherReturningCustomer"
-    )
-);
-const AdminCreateVoucherPrivate = lazy(
-  () =>
-    import(
-      "../../features/admin/pages/discounts/create/AdminCreateVoucherPrivate"
     )
 );
 
@@ -489,30 +480,6 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "accounting",
-    element: (
-      <LazyWrapper>
-        <AdminAccounting />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "accounting/revenue",
-    element: (
-      <LazyWrapper>
-        <AdminAccounting />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "accounting/expenses",
-    element: (
-      <LazyWrapper>
-        <AdminAccounting />
-      </LazyWrapper>
-    ),
-  },
-  {
     path: "staff",
     element: (
       <LazyWrapper>
@@ -621,14 +588,6 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminCreateVoucherReturningCustomer />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "discounts/new/private",
-    element: (
-      <LazyWrapper>
-        <AdminCreateVoucherPrivate />
       </LazyWrapper>
     ),
   },

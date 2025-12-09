@@ -870,23 +870,12 @@ const AdminCustomerDetail = () => {
                     Tổng chi tiêu
                   </p>
                   <p className="font-bold text-[#272424] text-[24px] leading-normal">
-                    {(() => {
-                      // Tính từ ordersData nếu có
-                      if (ordersData?.orders && ordersData.orders.length > 0) {
-                        const total = ordersData.orders.reduce((sum: number, order: any) => {
-                          return sum + (order.totalAmount || 0);
-                        }, 0);
-                        return new Intl.NumberFormat('vi-VN', {
+                    {customer.totalOrderAmount 
+                      ? new Intl.NumberFormat('vi-VN', {
                           style: 'currency',
                           currency: 'VND'
-                        }).format(total);
-                      }
-                      // Nếu đang loading hoặc chưa có data
-                      if (isLoadingOrders) {
-                        return "...";
-                      }
-                      return "0 ₫";
-                    })()}
+                        }).format(customer.totalOrderAmount)
+                      : "0 ₫"}
                   </p>
                 </div>
                 <div className="w-[1px] h-[40px] bg-[#d1d1d1]"></div>
@@ -895,17 +884,7 @@ const AdminCustomerDetail = () => {
                     Đơn hàng
                   </p>
                   <p className="font-bold text-[#272424] text-[24px] leading-normal">
-                    {(() => {
-                      // Lấy từ ordersData totalElements (tổng số đơn hàng)
-                      if (ordersData?.totalElements !== undefined) {
-                        return ordersData.totalElements.toString();
-                      }
-                      // Nếu đang loading
-                      if (isLoadingOrders) {
-                        return "...";
-                      }
-                      return "0";
-                    })()}
+                    {customer.totalOrders || "0"}
                   </p>
                 </div>
               </div>
