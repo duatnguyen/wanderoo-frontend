@@ -10,6 +10,7 @@ import ShopLayout from "../../layouts/ShopLayout";
 // Pages
 import Login from "../../pages/auth/Login";
 import Register from "../../pages/auth/Register";
+import VerifyEmail from "../../pages/auth/VerifyEmail";
 
 // Guards
 import AuthGuard from "./guards/AuthGuard";
@@ -47,6 +48,14 @@ export const router = createBrowserRouter([
     element: (
       <Suspense fallback={<Loading />}>
         <Register />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/verify-email",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <VerifyEmail />
       </Suspense>
     ),
   },
