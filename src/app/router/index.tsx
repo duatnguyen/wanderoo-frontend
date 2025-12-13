@@ -11,6 +11,8 @@ import ShopLayout from "../../layouts/ShopLayout";
 import Login from "../../pages/auth/Login";
 import Register from "../../pages/auth/Register";
 import VerifyEmail from "../../pages/auth/VerifyEmail";
+import ForgotPassword from "../../pages/auth/ForgotPassword";
+import ResetPassword from "../../pages/auth/ResetPassword";
 
 // Guards
 import AuthGuard from "./guards/AuthGuard";
@@ -56,6 +58,22 @@ export const router = createBrowserRouter([
     element: (
       <Suspense fallback={<Loading />}>
         <VerifyEmail />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <ForgotPassword />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <ResetPassword />
       </Suspense>
     ),
   },

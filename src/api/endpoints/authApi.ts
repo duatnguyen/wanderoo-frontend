@@ -4,6 +4,8 @@ import type {
   SignInRequest,
   UserCreationRequest,
   RefreshTokenRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
   TokenResponse,
   ApiResponse,
   UserResponse,
@@ -54,6 +56,27 @@ export const getCurrentUser = async (): Promise<UserResponse> => {
     "/auth/v1/private/users/me"
   );
   return response.data.data;
+};
+
+// Password reset APIs
+export const forgotPassword = async (
+  request: ForgotPasswordRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.post<ApiResponse<null>>(
+    "/auth/v1/public/users/forgot-password",
+    request
+  );
+  return response.data;
+};
+
+export const resetPassword = async (
+  request: ResetPasswordRequest
+): Promise<ApiResponse<null>> => {
+  const response = await api.post<ApiResponse<null>>(
+    "/auth/v1/public/users/reset-password",
+    request
+  );
+  return response.data;
 };
 
 // Alias exports for backward compatibility

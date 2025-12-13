@@ -29,6 +29,7 @@ import type {
   UpdateProductDisplayRequest,
   UpdateItemQuantityRequest,
   UpdateVariantQuantityRequest,
+  ProductSearchResponse,
 } from '../../types';
 import type { ProductCreateRequest as BackendProductCreateRequest } from '../../types/api';
 
@@ -106,6 +107,22 @@ export const getAllPublicProducts = async (
 export const getPublicCategoryBrands = async (): Promise<BrandResponse[]> => {
   const response = await api.get<ApiResponse<BrandResponse[]>>(
     `/auth/v1/public/product/brands`
+  );
+  return response.data.data ?? [];
+};
+
+export const searchProducts = async (
+  keyword: string,
+  limit: number = 10
+): Promise<ProductSearchResponse[]> => {
+  const response = await api.get<ApiResponse<ProductSearchResponse[]>>(
+    `/auth/v1/public/product/search`,
+    {
+      params: {
+        keyword: keyword.trim(),
+        limit: Math.min(limit, 20), // Max 20 results
+      },
+    }
   );
   return response.data.data ?? [];
 };

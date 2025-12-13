@@ -81,3 +81,4 @@ export type {
   ProductCategoryPageResponse,
   UpdateProductDisplayRequest,
 } from "./api";
+export type { ProductSearchResponse } from "./products";
