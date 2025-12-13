@@ -1,6 +1,13 @@
 // src/types/products.ts - Product and category types
 import type { PageResponse } from './common';
 
+export interface ProductSearchResponse {
+  id: number;
+  name: string;
+  sku: string;
+  imageUrl: string | null;
+}
+
 export interface ProductResponse {
   id: number;
   name: string;

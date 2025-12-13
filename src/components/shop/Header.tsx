@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, Menu, LogOut, User } from "lucide-react";
+import { ShoppingBag, Menu, LogOut, User, Search, X } from "lucide-react";
 import CategoryDropdown from "./CategoryDropdown";
 import shopLogo from "../../assets/icons/ShopLogo.png";
 import { useAuth } from "../../context/AuthContext";
@@ -8,6 +8,8 @@ import {
   getPublicCategoryParents,
   getPublicCategoryChildren,
 } from "../../api/endpoints/attributeApi";
+import { searchProducts } from "../../api/endpoints/productApi";
+import type { ProductSearchResponse } from "../../types";
 
 // Helper function to get full image URL (same as order/components)
 const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
@@ -90,7 +92,12 @@ const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [searchResults, setSearchResults] = useState<ProductSearchResponse[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const categoryButtonRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { user: authUser, isAuthenticated, logout } = useAuth();
 
   const resolvedUsername = authUser?.username?.trim() || "";
@@ -115,10 +122,75 @@ const Header: React.FC<HeaderProps> = ({
   const [mainCategories, setMainCategories] = useState<DropdownCategory[]>([]);
   const [childLoadingState, setChildLoadingState] = useState<Record<string, boolean>>({});
 
+  // Debounce search
+  useEffect(() => {
+    if (!searchValue.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await searchProducts(searchValue, 10);
+        setSearchResults(results);
+        setShowSearchResults(results.length > 0);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+        setShowSearchResults(false);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [searchValue]);
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchResults(false);
+      }
+    }
+
+    if (showSearchResults) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [showSearchResults]);
+
   const handleSearch = () => {
     if (!searchValue.trim()) return;
-    console.log("Search:", searchValue);
-    // navigate(`/shop/search?keyword=${encodeURIComponent(searchValue)}`);
+    
+    // Nếu có kết quả tìm kiếm, chuyển đến sản phẩm đầu tiên
+    if (searchResults.length > 0) {
+      handleProductClick(searchResults[0].id);
+    } else {
+      // Nếu không có kết quả, có thể navigate đến trang search (nếu có)
+      // Hoặc chỉ đóng dropdown
+      setShowSearchResults(false);
+    }
+  };
+
+  const handleProductClick = (productId: number) => {
+    navigate(`/shop/products/${productId}`);
+    setSearchValue("");
+    setShowSearchResults(false);
+  };
+
+  const handleClearSearch = () => {
+    setSearchValue("");
+    setSearchResults([]);
+    setShowSearchResults(false);
+    searchInputRef.current?.focus();
   };
 
   // Close dropdown when clicking outside
@@ -239,15 +311,38 @@ const Header: React.FC<HeaderProps> = ({
               onCategoryHover={handleCategoryHover}
             />
           </div>
-          <div className="flex-1 max-w-[800px]">
+          <div className="flex-1 max-w-[800px] relative" ref={searchRef}>
             <div className="flex flex-1 items-center rounded-2xl bg-white/95 px-3 py-2 shadow-[0_6px_18px_rgba(15,23,42,0.08)]">
+              <Search className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
               <input
+                ref={searchInputRef}
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch();
+                  } else if (e.key === "Escape") {
+                    setShowSearchResults(false);
+                  }
+                }}
+                onFocus={() => {
+                  if (searchResults.length > 0) {
+                    setShowSearchResults(true);
+                  }
+                }}
                 placeholder="Tìm kiếm lều, balo, phụ kiện..."
                 className="flex-1 bg-transparent text-sm text-[#1f2937] placeholder:text-gray-400 focus:outline-none"
               />
+              {searchValue && (
+                <button
+                  onClick={handleClearSearch}
+                  className="mr-2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  type="button"
+                  aria-label="Xóa tìm kiếm"
+                >
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              )}
               <div className="h-4 w-px bg-gray-200" />
               <button
                 onClick={handleSearch}
@@ -257,6 +352,59 @@ const Header: React.FC<HeaderProps> = ({
                 Tìm kiếm
               </button>
             </div>
+
+            {/* Search Results Dropdown */}
+            {showSearchResults && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-200 max-h-[400px] overflow-y-auto z-50">
+                {isSearching ? (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    Đang tìm kiếm...
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="py-2">
+                    {searchResults.map((product) => {
+                      const imageUrl = getImageUrl(product.imageUrl);
+                      
+                      return (
+                        <button
+                          key={product.id}
+                          onClick={() => handleProductClick(product.id)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                          type="button"
+                        >
+                          <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = "";
+                                  target.style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <Search className="w-6 h-6 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
+                              {product.name}
+                            </p>
+                            <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : searchValue.trim() ? (
+                  <div className="p-4 text-center text-gray-500 text-sm">
+                    Không tìm thấy sản phẩm nào
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3 pl-5">
             {/* Cart Button */}
