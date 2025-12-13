@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
-  Wallet,
   Package,
   FileText,
   ChevronDown,
@@ -39,114 +38,7 @@ const getStatusDisplayName = (status: string) => {
   }
 };
 
-// Payment Summary Component với Dropdown cho POS (dùng dữ liệu thật từ API)
-interface SummaryItem {
-  label: string;
-  amount: number;
-  isTotal?: boolean;
-  isDiscount?: boolean;
-}
 
-const PaymentSummaryPOS: React.FC<{ orderData: CustomerOrderResponse | null }> = ({
-  orderData,
-}) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
-  };
-
-  const totalAmount = orderData?.totalOrderPrice || 0; // Khách phải trả
-  
-  // Calculate total discount amount from API response
-  const orderDiscount = orderData?.orderDiscountAmount || 0;
-  const productDiscount = orderData?.productDiscountAmount || 0;
-  const totalDiscount = orderDiscount + productDiscount;
-
-  const summaryData = [
-    { label: "Tổng tiền hàng", amount: orderData?.totalProductPrice || 0 },
-    ...(totalDiscount > 0 ? [
-      {
-        label: "Giảm giá",
-        amount: totalDiscount,
-        isDiscount: true
-      }
-    ] : []),
-    { label: "Khách phải trả", amount: totalAmount, isTotal: true },
-    { label: "Tiền khách đưa", amount: orderData?.cashReceived || 0 },
-    { label: "Tiền thừa trả khách", amount: orderData?.changeAmount || 0 },
-  ];
-
-  return (
-    <div className="border border-[#e7e7e7] box-border relative rounded-bl-[6px] rounded-br-[6px] shrink-0 w-full bg-white">
-      {/* Collapsed View - Always Visible */}
-      <div
-        className="flex items-center justify-between px-[16px] py-[12px] cursor-pointer hover:bg-[#f8f9fa] transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-[8px]">
-          <div className="flex items-center justify-center w-[32px] h-[32px] bg-[#e8f5e8] rounded-[6px]">
-            <Wallet className="w-[16px] h-[16px] text-[#28a745]" />
-          </div>
-          <div className="flex flex-col">
-            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
-              Tổng thanh toán
-            </p>
-            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
-              {isExpanded ? "Ẩn chi tiết" : "Xem chi tiết"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-[8px]">
-          <p className="font-montserrat font-bold text-[18px] leading-[1.3] text-[#28a745]">
-            {formatCurrency(totalAmount)}
-          </p>
-          <div className="flex items-center justify-center w-[24px] h-[24px] text-[#737373]">
-            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </div>
-        </div>
-      </div>
-
-      {/* Expanded View - Payment Details */}
-      {isExpanded && (
-        <div className="border-t border-[#e7e7e7] px-[16px] py-[12px] bg-[#fafbfc]">
-          <div className="space-y-[8px]">
-            {summaryData.map((item, index) => (
-              <div
-                key={index}
-                className={`flex items-center justify-between py-[4px] ${item.isTotal ? "border-t border-[#e7e7e7] pt-[8px]" : ""
-                  }`}
-              >
-                <p
-                  className={`font-montserrat ${item.isTotal
-                    ? "font-semibold text-[14px] text-[#272424]"
-                    : "font-medium text-[13px] text-[#737373]"
-                    }`}
-                >
-                  {item.label}
-                </p>
-                <p
-                  className={`font-montserrat ${item.isTotal
-                    ? "font-bold text-[16px] text-[#28a745]"
-                    : item.isDiscount
-                    ? "font-medium text-[13px] text-[#e04d30]"
-                    : "font-medium text-[13px] text-[#272424]"
-                    }`}
-                >
-                  {item.isDiscount 
-                    ? `-${formatCurrency(item.amount)}` 
-                    : formatCurrency(item.amount)
-                  }
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const AdminOrderDetailPOS: React.FC = () => {
   const navigate = useNavigate();
@@ -248,7 +140,7 @@ const AdminOrderDetailPOS: React.FC = () => {
         price: unitPrice,
         quantity,
         total: unitPrice * quantity,
-        image: item.image || "/api/placeholder/80/80",
+        productImage: item.productImage || "/api/placeholder/80/80",
         sku: item.snapshotProductSku,
       };
     });
@@ -592,20 +484,145 @@ const AdminOrderDetailPOS: React.FC = () => {
 
           {/* Payment Table */}
           <AdminPaymentTable
-            items={currentOrder.items.map(
-              (item): AdminPaymentItem => ({
+            items={(orderData?.orderDetails || currentOrder.items).map(
+              (item: any): AdminPaymentItem => ({
                 id: item.id,
-                name: item.name,
-                image: item.image,
-                unitPrice: item.price,
+                name: item.snapshotProductName || item.name || "Sản phẩm không tên",
+                productImage: item.productImage,
+                unitPrice: item.snapshotProductPrice || item.price, // Giá gốc
+                discountAmount: item.snapshotDiscountAmount || 0, // Số tiền được giảm
+                finalPrice: item.snapshotFinalPrice || item.price, // Giá cuối cùng sau giảm
                 quantity: item.quantity,
-                total: item.total,
-                variantText: undefined,
-                sku: item.sku,
+                total: (item.snapshotFinalPrice || item.price) * item.quantity, // Thành tiền = giá cuối cùng * số lượng
+                variantText: item.snapshotVariantAttributes && item.snapshotVariantAttributes.length > 0
+                  ? item.snapshotVariantAttributes
+                    .sort((a: any, b: any) => (a.groupLevel || 0) - (b.groupLevel || 0))
+                    .map((attr: any) => `${attr.name}: ${attr.value}`)
+                    .join(" • ")
+                  : undefined,
+                sku: item.snapshotProductSku || item.sku || undefined,
               })
             )}
             formatCurrency={formatCurrency}
-            summary={<PaymentSummaryPOS orderData={orderData} />}
+            summary={
+              <div className="w-full border-t border-[#e7e7e7]">
+                {/* Collapsible Header with Payment Status */}
+                <div
+                  className="flex items-center w-full justify-between py-3 px-4 bg-[#f8f9fa] cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => {
+                    // Toggle expanded state - you'll need to add this state
+                    const isExpanded = document.getElementById('pos-summary')?.style.display !== 'none';
+                    const summaryEl = document.getElementById('pos-summary');
+                    if (summaryEl) {
+                      summaryEl.style.display = isExpanded ? 'none' : 'block';
+                    }
+                  }}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="font-montserrat font-bold text-[14px] text-gray-800">
+                      Chi tiết thanh toán
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-montserrat text-[12px] text-gray-600">
+                        Tổng thanh toán: {formatCurrency(orderData?.totalOrderPrice || 0)}
+                      </span>
+                      <div className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${orderData?.paymentStatus === "PAID" ? "text-green-700 bg-green-100" :
+                        orderData?.paymentStatus === "PENDING" ? "text-yellow-700 bg-yellow-100" :
+                          orderData?.paymentStatus === "FAILED" ? "text-red-700 bg-red-100" :
+                            "text-gray-700 bg-gray-100"
+                        }`}>
+                        {orderData?.paymentStatus === "PAID" ? "✓" :
+                          orderData?.paymentStatus === "PENDING" ? "⏰" :
+                            orderData?.paymentStatus === "FAILED" ? "✗" : "💵"}
+                        {orderData?.paymentStatus === "PAID" ? "Đã thanh toán" :
+                          orderData?.paymentStatus === "PENDING" ? "Chờ thanh toán" :
+                            orderData?.paymentStatus === "FAILED" ? "Thanh toán thất bại" :
+                              "Thanh toán tiền mặt"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <ChevronDown className="w-5 h-5 text-gray-600" />
+                  </div>
+                </div>
+
+                {/* Collapsible Content */}
+                <div id="pos-summary">
+                  {/* Payment Details Section */}
+                  <div className="bg-white px-4 py-4 border-t border-gray-100">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Left Column: Order Breakdown */}
+                      <div className="space-y-3">
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 h-full">
+                          <h4 className="font-montserrat font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                            <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
+                            Chi tiết đơn hàng
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600">Tổng tiền hàng</span>
+                              <span className="font-medium">{formatCurrency(orderData?.totalProductPrice || 0)}</span>
+                            </div>
+                            {((orderData?.productDiscountAmount || 0) + (orderData?.orderDiscountAmount || 0)) > 0 && (
+                              <div className="flex justify-between items-center text-green-600">
+                                <span>Giảm giá</span>
+                                <span>-{formatCurrency((orderData?.productDiscountAmount || 0) + (orderData?.orderDiscountAmount || 0))}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center font-medium border-t border-dashed border-gray-300 pt-2">
+                              <span className="text-blue-700">Khách phải trả</span>
+                              <span className="text-blue-700">{formatCurrency(orderData?.totalOrderPrice || 0)}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-1">
+                              <span className="text-gray-600">Tiền khách đưa</span>
+                              <span className="font-medium">{formatCurrency(orderData?.cashReceived || 0)}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600">Tiền thừa trả khách</span>
+                              <span className="font-medium">{formatCurrency(orderData?.changeAmount || 0)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Column: Payment Info & Staff */}
+                      <div className="space-y-3">
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 h-full flex flex-col">
+                          <div className="mb-4">
+                            <h4 className="font-montserrat font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                              <div className="w-1.5 h-4 bg-purple-500 rounded-full"></div>
+                              Thông tin thanh toán POS
+                            </h4>
+                            <div className="space-y-3">
+                              <div>
+                                <span className="text-xs text-gray-500 block mb-1">Trạng thái</span>
+                                <div className="px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 w-fit text-green-700 bg-green-50 border border-green-200">
+                                  💵 Thanh toán tiền mặt
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto border-t border-gray-200 pt-3 space-y-2">
+                            {((orderData?.productDiscountAmount || 0) + (orderData?.orderDiscountAmount || 0)) > 0 && (
+                              <div className="flex justify-between items-center text-green-600 text-xs bg-green-50 p-2 rounded">
+                                <span className="font-medium">Tổng tiết kiệm</span>
+                                <span className="font-bold">-{formatCurrency((orderData?.productDiscountAmount || 0) + (orderData?.orderDiscountAmount || 0))}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-200">
+                              <span className="font-montserrat font-bold text-gray-800">Tổng thanh toán</span>
+                              <span className="font-montserrat text-xl font-bold text-red-600">{formatCurrency(orderData?.totalOrderPrice || 0)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
             disabled={currentOrder.status === "Đã hủy"}
           />
         </ContentCard>

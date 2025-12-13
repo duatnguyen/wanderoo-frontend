@@ -1960,6 +1960,7 @@ const CheckoutPage: React.FC = () => {
         onApply={handleApplyVoucher}
         selectedVoucherId={selectedVoucherId}
         sections={voucherSections}
+        subtotal={subtotal}
       />
 
       <Footer />

@@ -3,10 +3,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import TabMenuAccount from "@/components/ui/tab-menu-account";
-import type { TabItem } from "@/components/ui/tab-menu-account";
-import { PageHeader } from "@/components/admin/table/PageHeader";
-import { PageContainer } from "@/components/admin/table/PageLayout";
 import { TableFilters } from "@/components/admin/table/TableFilters";
 import { DiscountTable } from "@/components/admin/table/DiscountTable";
 import { VoucherCreationSection } from "@/components/admin/voucher/VoucherCreationSection";
@@ -15,6 +11,15 @@ import {
   ReceiptDiscountIcon,
   TicketDiscountIcon,
 } from "@/components/icons/discount";
+
+import {
+  PageContainer,
+  ContentCard,
+  PageHeader,
+  TabMenuWithBadge,
+  type TabItemWithBadge,
+} from "@/components/common";
+
 import type {
   Voucher,
   VoucherOrder,
@@ -242,7 +247,7 @@ const voucherOrdersData: Record<
   })(),
 };
 // Tab data
-const discountTabs: TabItem[] = [
+const discountTabs: TabItemWithBadge[] = [
   { id: "all", label: "Tất cả" },
   { id: "ongoing", label: "Đang diễn ra" },
   { id: "upcoming", label: "Sắp diễn ra" },
@@ -415,19 +420,19 @@ const AdminDiscounts: React.FC = () => {
             size: 100,
           }),
         ]);
-        
+
         // Merge tất cả discounts và loại bỏ duplicate dựa trên ID
         const allDiscounts = [
           ...(ongoingData.discounts ?? []),
           ...(upcomingData.discounts ?? []),
           ...(endedData.discounts ?? []),
         ];
-        
+
         // Loại bỏ duplicate dựa trên ID
         const uniqueDiscounts = Array.from(
           new Map(allDiscounts.map((discount) => [discount.id, discount])).values()
         );
-        
+
         return {
           pageNumber: 1,
           pageSize: uniqueDiscounts.length,
@@ -436,7 +441,7 @@ const AdminDiscounts: React.FC = () => {
           discounts: uniqueDiscounts,
         };
       }
-      
+
       // Các tab khác giữ nguyên logic cũ
       return getDiscounts({
         keyword: searchTerm.trim() || undefined,
@@ -487,7 +492,7 @@ const AdminDiscounts: React.FC = () => {
     mutationFn: async (discountId: number) => {
       // Lấy chi tiết discount hiện tại
       const discountDetail = await getDiscountDetail(discountId);
-      
+
       // Tạo payload với status = DISABLE
       const payload: AdminDiscountCreateRequest = {
         name: discountDetail.name,
@@ -507,7 +512,7 @@ const AdminDiscounts: React.FC = () => {
         status: "DISABLE", // Kết thúc voucher bằng cách set status = DISABLE
         description: discountDetail.description ?? undefined,
       };
-      
+
       return updateDiscount(discountId, payload);
     },
     onSuccess: () => {
@@ -573,8 +578,8 @@ const AdminDiscounts: React.FC = () => {
       />
 
       {/* Tab Menu */}
-      <div className="w-full overflow-x-auto xl:overflow-x-visible mb-4">
-        <TabMenuAccount
+      <div className="w-full overflow-x-auto xl:overflow-x-visible mt-4">
+        <TabMenuWithBadge
           tabs={discountTabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -583,16 +588,14 @@ const AdminDiscounts: React.FC = () => {
       </div>
 
       {/* Search and Table Card */}
-      <div className="bg-white border border-[#d1d1d1] rounded-[24px] pt-[16px] px-[16px] pb-[16px] flex flex-col w-full">
+      <ContentCard>
         {/* Search and Actions */}
-        <div className="mb-3">
-          <TableFilters
-            searchValue={searchTerm}
-            onSearchChange={setSearchTerm}
-            searchPlaceholder="Tìm kiếm mã giảm giá"
-            searchClassName="flex-1 min-w-0 max-w-md"
-          />
-        </div>
+        <TableFilters
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Tìm kiếm mã giảm giá"
+          searchClassName="flex-1 min-w-0 max-w-md"
+        />
 
         {/* Voucher Table */}
         <DiscountTable
@@ -602,7 +605,7 @@ const AdminDiscounts: React.FC = () => {
           onViewOrders={handleViewOrders}
           onEnd={handleEnd}
         />
-      </div>
+      </ContentCard>
       <VoucherOrdersModal
         isOpen={isOrdersModalOpen}
         voucher={selectedVoucher}

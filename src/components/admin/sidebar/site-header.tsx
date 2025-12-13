@@ -1,12 +1,37 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/context/AuthContext";
+import { BASE_URL } from "@/api/apiClient";
 
 interface SiteHeaderProps {
   className?: string;
   onOpenSidebar?: () => void;
 }
 
+const toAbsoluteImageUrl = (url?: string | null) => {
+  if (!url) return null;
+  return url.startsWith("http") ? url : `${BASE_URL}${url}`;
+};
+
+const getInitials = (name?: string, username?: string): string => {
+  if (name && name.trim()) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name[0].toUpperCase();
+  }
+  if (username && username.trim()) {
+    return username[0].toUpperCase();
+  }
+  return "AD";
+};
+
 export function SiteHeader({ className, onOpenSidebar }: SiteHeaderProps) {
+  const { user } = useAuth();
+  const avatarUrl = user?.avatar ? toAbsoluteImageUrl(user.avatar) : null;
+  const initials = getInitials(user?.name, user?.username);
+
   return (
     <header
       className={`border-b border-gray-200 bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80 header-wanderoo rounded-t-[10px] shadow-sm ${
@@ -39,9 +64,11 @@ export function SiteHeader({ className, onOpenSidebar }: SiteHeaderProps) {
             className="h-9 w-9 p-0 hover:bg-gray-100 relative text-gray-600 hover:text-gray-900"
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage src="/api/placeholder/32/32" alt="User Avatar" />
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt={user?.name || "User Avatar"} />
+              ) : null}
               <AvatarFallback className="text-xs font-medium">
-                AD
+                {initials}
               </AvatarFallback>
             </Avatar>
             <span className="sr-only">Tài khoản người dùng</span>

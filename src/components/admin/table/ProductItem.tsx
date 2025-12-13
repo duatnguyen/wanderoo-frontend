@@ -221,9 +221,19 @@ const ProductItem: React.FC<ProductItemProps> = ({
                             <div className="w-6 h-6 flex-shrink-0"></div>
 
                             <div className="w-[60px] h-[60px] flex-shrink-0 flex items-center justify-center">
-                                <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center">
-                                    <span className="text-xs text-gray-500 font-medium">V</span>
+                              {variant.image ? (
+                                <div className="w-[44px] h-[44px] border-[0.5px] border-[#d1d1d1] rounded-[8px] bg-gray-100 overflow-hidden">
+                                  <img
+                                    src={variant.image}
+                                    alt={variant.name}
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
+                              ) : (
+                                <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center">
+                                  <span className="text-xs text-gray-500 font-medium">V</span>
+                                </div>
+                              )}
                             </div>
 
                             <div className="flex-1 flex items-center gap-2">

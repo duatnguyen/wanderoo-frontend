@@ -325,7 +325,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      const response = await authRefreshToken(storedRefreshToken);
+      const response = await authRefreshToken({ refreshToken: storedRefreshToken });
 
       if (isTokenExpired(response.accessToken)) {
         throw new Error("Received expired access token");
@@ -376,22 +376,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const profile = await getUserInfo();
       const normalizedUser: User = {
-        id: profile.id ?? state.user?.id ?? 0,
-        username: profile.username ?? state.user?.username ?? "",
-        email: profile.email ?? state.user?.email ?? "",
-        name: profile.name ?? state.user?.name ?? "",
-        phone: profile.phone ?? state.user?.phone ?? "",
-        role: state.user?.role ?? "CUSTOMER",
-        status: state.user?.status ?? "ACTIVE",
-        avatar: (profile as any).image_url ?? state.user?.avatar ?? null,
-        gender: (profile as any).gender ?? state.user?.gender ?? null,
-        dateOfBirth: (profile as any).birthday ?? state.user?.dateOfBirth ?? null,
+        id: profile.id ?? 0,
+        username: profile.username ?? "",
+        email: profile.email ?? "",
+        name: profile.name ?? "",
+        phone: profile.phone ?? "",
+        role: (profile as any).role ?? "CUSTOMER",
+        status: (profile as any).status ?? "ACTIVE",
+        avatar: (profile as any).image_url ?? null,
+        gender: (profile as any).gender ?? null,
+        dateOfBirth: (profile as any).birthday ?? null,
       };
       dispatch({ type: "PROFILE_UPDATE", payload: normalizedUser });
+      // Update localStorage
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(normalizedUser));
     } catch (error) {
-      console.error("Failed to sync profile", error);
+      console.error("Failed to refresh profile", error);
     }
   }, []);
+
+  const updateUser = useCallback((userData: Partial<User>) => {
+    if (state.user) {
+      const updatedUser = { ...state.user, ...userData };
+      dispatch({ type: "PROFILE_UPDATE", payload: updatedUser });
+      // Update localStorage
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+    }
+  }, [state.user]);
 
   useEffect(() => {
     if (state.isAuthenticated) {
@@ -406,6 +417,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     logout,
     refreshAuth,
     refreshProfile,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -121,7 +121,7 @@ const PasswordTab: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm min-h-[507px]">
+    <div className="bg-white rounded-lg border border-gray-200 min-h-[507px]">
       {/* Form Content */}
       <div className="px-4 sm:px-8 py-8">
         <div className="mb-6">
@@ -135,11 +135,10 @@ const PasswordTab: React.FC = () => {
 
         {feedback && (
           <div
-            className={`mb-6 rounded-2xl px-4 py-3 text-sm ${
-              feedback.type === "success"
+            className={`mb-6 rounded-2xl px-4 py-3 text-sm ${feedback.type === "success"
                 ? "bg-green-50 text-green-700 border border-green-100"
                 : "bg-red-50 text-red-600 border border-red-100"
-            }`}
+              }`}
           >
             {feedback.message}
           </div>
@@ -163,9 +162,8 @@ const PasswordTab: React.FC = () => {
               onTogglePassword={() =>
                 setShowCurrentPassword(!showCurrentPassword)
               }
-              className={`text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px] ${
-                errors.currentPassword ? "!border-red-500" : ""
-              }`}
+              className={`text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px] ${errors.currentPassword ? "!border-red-500" : ""
+                }`}
             />
             {errors.currentPassword && (
               <p className="text-red-500 text-sm">{errors.currentPassword}</p>
@@ -185,13 +183,12 @@ const PasswordTab: React.FC = () => {
                 showPasswordToggle
                 showPassword={showNewPassword}
                 onTogglePassword={() => setShowNewPassword(!showNewPassword)}
-                className={`text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px] ${
-                  errors.newPassword ? "!border-red-500" : ""
-                }`}
+                className={`text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px] ${errors.newPassword ? "!border-red-500" : ""
+                  }`}
               />
-            {errors.newPassword && (
-              <p className="text-red-500 text-sm">{errors.newPassword}</p>
-            )}
+              {errors.newPassword && (
+                <p className="text-red-500 text-sm">{errors.newPassword}</p>
+              )}
 
               {/* Password Requirements */}
               <div className="mt-4 p-4 bg-white rounded-2xl border border-gray-100">
@@ -200,9 +197,8 @@ const PasswordTab: React.FC = () => {
                 </p>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li
-                    className={`flex items-center gap-2 ${
-                      passwordChecks.hasLength ? "text-green-600" : ""
-                    }`}
+                    className={`flex items-center gap-2 ${passwordChecks.hasLength ? "text-green-600" : ""
+                      }`}
                   >
                     <span className="text-lg">
                       {passwordChecks.hasLength ? "✔" : "•"}
@@ -210,9 +206,8 @@ const PasswordTab: React.FC = () => {
                     Tối thiểu 8 ký tự
                   </li>
                   <li
-                    className={`flex items-center gap-2 ${
-                      passwordChecks.hasLetter ? "text-green-600" : ""
-                    }`}
+                    className={`flex items-center gap-2 ${passwordChecks.hasLetter ? "text-green-600" : ""
+                      }`}
                   >
                     <span className="text-lg">
                       {passwordChecks.hasLetter ? "✔" : "•"}
@@ -220,9 +215,8 @@ const PasswordTab: React.FC = () => {
                     Có chữ cái (hoa hoặc thường)
                   </li>
                   <li
-                    className={`flex items-center gap-2 ${
-                      passwordChecks.hasNumber ? "text-green-600" : ""
-                    }`}
+                    className={`flex items-center gap-2 ${passwordChecks.hasNumber ? "text-green-600" : ""
+                      }`}
                   >
                     <span className="text-lg">
                       {passwordChecks.hasNumber ? "✔" : "•"}
@@ -230,9 +224,8 @@ const PasswordTab: React.FC = () => {
                     Có ít nhất 1 chữ số
                   </li>
                   <li
-                    className={`flex items-center gap-2 ${
-                      passwordChecks.hasSpecial ? "text-green-600" : ""
-                    }`}
+                    className={`flex items-center gap-2 ${passwordChecks.hasSpecial ? "text-green-600" : ""
+                      }`}
                   >
                     <span className="text-lg">
                       {passwordChecks.hasSpecial ? "✔" : "•"}
@@ -271,8 +264,7 @@ const PasswordTab: React.FC = () => {
               onTogglePassword={() =>
                 setShowConfirmPassword(!showConfirmPassword)
               }
-                className={`text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px] ${
-                  errors.confirmPassword ? "!border-red-500" : ""
+              className={`text-gray-900 hover:!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30] !h-[42px] ${errors.confirmPassword ? "!border-red-500" : ""
                 }`}
             />
             {errors.confirmPassword && (

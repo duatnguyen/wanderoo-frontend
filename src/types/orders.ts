@@ -20,7 +20,7 @@ export interface OrderResponse {
   updatedAt: string;
 }
 
-export interface OrderPageResponse extends PageResponse<OrderResponse> {}
+export interface OrderPageResponse extends PageResponse<OrderResponse> { }
 
 export interface OrderDetailResponse extends OrderResponse {
   items: OrderItemResponse[];
@@ -33,7 +33,7 @@ export interface OrderItemResponse {
   price: number;
   total: number;
   name?: string; // Product name
-  image?: string; // Product image
+  productImage?: string; // Product image
 }
 
 export interface OrderDetailItemResponse {
@@ -51,6 +51,7 @@ export interface OrderDetailItemResponse {
   snapshotWidth?: number;
   snapshotHeight?: number;
   barcode?: string | null;
+  productImage?: string; // Product image URL from ProductDetail
   snapshotVariantAttributes?: VariantAttribute[];
 }
 
@@ -126,7 +127,7 @@ export interface ReviewResponse {
   createdAt: string;
 }
 
-export interface ReviewPageResponse extends PageResponse<ReviewResponse> {}
+export interface ReviewPageResponse extends PageResponse<ReviewResponse> { }
 
 export interface OrderHistoryResponse {
   id: number;
@@ -138,10 +139,10 @@ export interface OrderHistoryResponse {
 }
 
 export interface OrderHistoryPageResponse
-  extends PageResponse<OrderHistoryResponse> {}
+  extends PageResponse<OrderHistoryResponse> { }
 
 export interface OrderDetailPageResponse
-  extends PageResponse<OrderDetailResponse> {}
+  extends PageResponse<OrderDetailResponse> { }
 
 // Request types
 export interface CustomerOrderCreateRequest {

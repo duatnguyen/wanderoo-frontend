@@ -16,6 +16,13 @@ interface ExtendedProduct extends Product {
   };
 }
 
+interface VariantStockInfo {
+  productDetailId: number;
+  attributeIds: number[];
+  quantity: number;
+  imageUrl?: string | null;
+}
+
 interface ProductInfoProps {
   product: Product;
   productDetail?: ProductDetailsResponse | null;
@@ -27,6 +34,7 @@ interface ProductInfoProps {
   variantData?: VariantDetailIdResponse | null;
   isLoadingVariant?: boolean;
   isAddingToCart?: boolean;
+  variantsStock?: VariantStockInfo[];
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({
@@ -40,6 +48,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   variantData,
   isLoadingVariant = false,
   isAddingToCart = false,
+  variantsStock = [],
 }) => {
   const extendedProduct = product as ExtendedProduct;
   const attributes = productDetail?.attributes || [];
@@ -246,36 +255,86 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           </span>
         </div>
         {/* Attribute Selection */}
-        {attributes.length > 0 && attributes.map((attribute, attrIndex) => (
-          <div key={attrIndex} className="flex gap-3">
-            <span className="text-[14px] font-medium text-[#3a3a3a] shrink-0 pt-2">
-              {attribute.name}:
-            </span>
-            <div className="flex flex-wrap gap-2 items-start">
-              {attribute.values?.map((value) => {
-                const isSelected = selectedAttributeIds[attrIndex] === value.id;
-                return (
-                  <button
-                    key={value.id}
-                    type="button"
-                    onClick={() => onAttributeSelect?.(attrIndex, value.id)}
-                    disabled={isLoadingVariant}
-                    className={`px-4 py-2 rounded-md border-2 text-[14px] transition-colors bg-white ${
-                      isSelected
-                        ? "border-[#e9502c] text-[#e9502c] font-bold"
-                        : "border-[#d9d9d9] text-[#4d4d4d] hover:border-[#d9d9d9]"
-                    } ${isLoadingVariant ? "opacity-50 cursor-wait" : ""}`}
-                  >
-                    {value.value}
-                  </button>
-                );
-              })}
+        {attributes.length > 0 && attributes.map((attribute, attrIndex) => {
+          // Helper function to check if an attribute value leads to out-of-stock variants
+          const isValueOutOfStock = (valueId: number): boolean => {
+            if (variantsStock.length === 0) return false;
+            
+            // Create a test selection with this value
+            const testSelection = [...selectedAttributeIds];
+            while (testSelection.length <= attrIndex) {
+              testSelection.push(0);
+            }
+            testSelection[attrIndex] = valueId;
+            
+            // Check if all variants matching this partial selection are out of stock
+            const matchingVariants = variantsStock.filter(variant => {
+              // Check if variant's attributeIds match the test selection
+              // We need to match all selected attributes so far
+              const selectedCount = testSelection.filter(id => id > 0).length;
+              if (selectedCount === 0) return false;
+              
+              // Check if variant contains all selected attribute IDs
+              const variantAttrIds = new Set(variant.attributeIds);
+              const allSelectedMatch = testSelection
+                .filter(id => id > 0)
+                .every(id => variantAttrIds.has(id));
+              
+              return allSelectedMatch && variant.attributeIds.length === selectedCount;
+            });
+            
+            // If all matching variants are out of stock, disable this value
+            return matchingVariants.length > 0 && matchingVariants.every(v => v.quantity <= 0);
+          };
+
+          return (
+            <div key={attrIndex} className="flex gap-3">
+              <span className="text-[14px] font-medium text-[#3a3a3a] shrink-0 pt-2">
+                {attribute.name}:
+              </span>
+              <div className="flex flex-wrap gap-2 items-start">
+                {attribute.values?.map((value) => {
+                  const isSelected = selectedAttributeIds[attrIndex] === value.id;
+                  // Check if this variant is out of stock (when fully selected)
+                  const isOutOfStock = hasSelectedAllAttributes && 
+                    isSelected && 
+                    variantData && 
+                    (variantData.productDetailQuantity ?? 0) <= 0;
+                  
+                  // Check if this value leads to out-of-stock variants (pre-check)
+                  const isValueLeadsToOutOfStock = isValueOutOfStock(value.id);
+                  
+                  return (
+                    <button
+                      key={value.id}
+                      type="button"
+                      onClick={() => onAttributeSelect?.(attrIndex, value.id)}
+                      disabled={isLoadingVariant || isValueLeadsToOutOfStock}
+                      className={`px-4 py-2 rounded-md border-2 text-[14px] transition-colors bg-white relative ${
+                        isSelected
+                          ? "border-[#e9502c] text-[#e9502c] font-bold"
+                          : "border-[#d9d9d9] text-[#4d4d4d] hover:border-[#d9d9d9]"
+                      } ${isLoadingVariant ? "opacity-50 cursor-wait" : ""} ${
+                        isOutOfStock || isValueLeadsToOutOfStock ? "opacity-60 cursor-not-allowed" : ""
+                      }`}
+                      title={isValueLeadsToOutOfStock ? "Phân loại này đã hết hàng" : undefined}
+                    >
+                      {value.value}
+                      {(isOutOfStock || isValueLeadsToOutOfStock) && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                          Hết
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {isLoadingVariant && attrIndex === attributes.length - 1 && (
+                <span className="text-xs text-gray-500 ml-2">Đang tải...</span>
+              )}
             </div>
-            {isLoadingVariant && attrIndex === attributes.length - 1 && (
-              <span className="text-xs text-gray-500 ml-2">Đang tải...</span>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="rounded-lg border border-[#f4c8b5] bg-[#fff6f1] px-5 py-4">
@@ -347,6 +406,18 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             Vui lòng chọn đầy đủ phân loại hàng trước khi thêm vào giỏ
+          </p>
+        </div>
+      )}
+
+      {/* Out of stock warning for selected variant */}
+      {hasSelectedAllAttributes && variantData && (variantData.productDetailQuantity ?? 0) <= 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-2">
+          <p className="text-[14px] font-medium text-red-600 flex items-center gap-2">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            Phân loại hàng này đã hết hàng. Vui lòng chọn phân loại khác.
           </p>
         </div>
       )}

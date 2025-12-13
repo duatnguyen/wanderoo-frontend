@@ -9,12 +9,15 @@ import { ChipStatus } from "../../../../components/ui/chip-status";
 import { getCustomerOrderDetail, cancelOrder } from "../../../../api/endpoints/websiteOrderApi";
 import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
 import { useAuth } from "../../../../context/AuthContext";
+import { customerReturnOrderApi } from "../../../../api/customerReturnOrderApi";
 import { formatTimelineDate, formatOrderDate } from "../../../../utils/dateUtils";
 import type { CustomerOrderResponse } from "../../../../types";
 import { toast } from "sonner";
-import { Truck, Package } from "lucide-react";
+import { Truck, Package, X } from "lucide-react";
 import { useCustomerOrderWebSocket } from "../../../../hooks/useCustomerOrderWebSocket";
 import { useQueryClient } from "@tanstack/react-query";
+import { Select } from "antd";
+import MediaUpload from "../../../../components/shop/MediaUpload";
 import {
   PageContainer,
   ContentCard,
@@ -49,6 +52,8 @@ type ProductType = {
   quantity: number;
   sku?: string;
   isReviewed?: boolean;
+  orderDetailId?: number; // Order detail ID for return order
+  productDetailId?: number; // Product detail ID for return order
 };
 
 const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
@@ -133,6 +138,11 @@ const OrderDetailTab: React.FC = () => {
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isCancellingOrder, setIsCancellingOrder] = useState(false);
+  const [isReturnRefundModalOpen, setIsReturnRefundModalOpen] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnDescription, setReturnDescription] = useState("");
+  const [returnImages, setReturnImages] = useState<File[]>([]);
+  const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
 
   // Payment result popup state
   const [showPaymentResultModal, setShowPaymentResultModal] = useState(false);
@@ -237,28 +247,42 @@ const OrderDetailTab: React.FC = () => {
 
     const statusLabel = incomingOrder?.statusLabel || getStatusDisplayName(orderData.status || "");
 
-    const products: ProductType[] = (orderData.orderDetails || []).map((detail: any, idx: number) => ({
-      id: detail.id?.toString() || detail.productDetailId?.toString() || String(idx + 1),
-      imageUrl: FALLBACK_IMAGE,
-      name: detail.snapshotProductName || "Sản phẩm không tên",
-      price: detail.snapshotFinalPrice || 0, // Giá sau giảm
-      originalPrice: detail.snapshotProductPrice || 0, // Giá gốc
-      discountAmount: detail.snapshotDiscountAmount || 0, // Số tiền giảm
-      variant: detail.snapshotVariantAttributes
-        ?.map((attr: any) => {
-          // Format as "name: value" for better clarity
-          if (attr?.name && attr?.value) {
-            return `${attr.name}: ${attr.value}`;
-          }
-          // Fallback to just value if name is missing
-          return attr?.value || attr?.name;
-        })
-        .filter(Boolean)
-        .join(" • ") || undefined,
-      quantity: detail.quantity || 1,
-      sku: detail.snapshotProductSku || undefined,
-      isReviewed: false,
-    }));
+    const products: ProductType[] = (orderData.orderDetails || []).map((detail: any, idx: number) => {
+      // Construct full image URL if productImage exists
+      let imageUrl = FALLBACK_IMAGE;
+      if (detail.productImage && detail.productImage.trim() !== "") {
+        const productImagePath = detail.productImage.trim();
+        // If it's already a full URL, use it as is; otherwise prepend base URL
+        imageUrl = productImagePath.startsWith('http')
+          ? productImagePath
+          : `http://localhost:8080${productImagePath}`;
+      }
+
+      return {
+        id: detail.id?.toString() || detail.productDetailId?.toString() || String(idx + 1),
+        imageUrl,
+        name: detail.snapshotProductName || "Sản phẩm không tên",
+        price: (detail.snapshotProductPrice || 0) - (detail.snapshotDiscountAmount || 0), // Tính giá cuối = giá gốc - giảm giá
+        originalPrice: detail.snapshotProductPrice || 0, // Giá gốc
+        discountAmount: detail.snapshotDiscountAmount || 0, // Số tiền giảm
+        variant: detail.snapshotVariantAttributes
+          ?.map((attr: any) => {
+            // Format as "name: value" for better clarity
+            if (attr?.name && attr?.value) {
+              return `${attr.name}: ${attr.value}`;
+            }
+            // Fallback to just value if name is missing
+            return attr?.value || attr?.name;
+          })
+          .filter(Boolean)
+          .join(" • ") || undefined,
+        quantity: detail.quantity || 1,
+        sku: detail.snapshotProductSku || undefined,
+        isReviewed: false,
+        orderDetailId: detail.id, // Order detail ID
+        productDetailId: detail.productDetailId, // Product detail ID
+      };
+    });
 
     return {
       id: orderData.id?.toString() || orderId || "N/A",
@@ -772,7 +796,7 @@ const OrderDetailTab: React.FC = () => {
         {/* Product Details */}
         <div className="space-y-4 w-full">
           {order.products.map((product: ProductType, index: number) => (
-            <div key={product.id} className="flex flex-col sm:flex-row gap-4 p-3 bg-white rounded-lg border border-gray-200">
+            <div key={product.id} className="flex flex-col sm:flex-row gap-4 p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200">
               <div className="flex-shrink-0">
                 <div className="relative">
                   <img
@@ -787,56 +811,52 @@ const OrderDetailTab: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col gap-3">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                  <div className="flex-1">
-                    <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2">
-                      {product.name}
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-lg font-bold text-blue-600">
-                        {formatCurrencyVND(product.price)}
-                      </span>
-                      {product.discountAmount && product.discountAmount > 0 && (
-                        <>
-                          <span className="text-sm text-gray-500 line-through">
-                            {formatCurrencyVND(product.originalPrice)}
-                          </span>
-                          <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
-                            -{formatCurrencyVND(product.discountAmount)}
-                          </span>
-                        </>
-                      )}
-                      {product.variant && (
-                        <div className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
-                          <svg className="w-3.5 h-3.5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-sm font-semibold text-blue-800">
-                            {product.variant}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    {product.sku && (
-                      <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-                        <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                        </svg>
-                        <span className="font-medium">SKU:</span>
-                        <span className="font-semibold">{product.sku}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow-sm border">
-                    <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                    </svg>
-                    <span className="text-sm font-medium text-gray-700">
-                      SL: {product.quantity}
+              <div className="flex-1 flex flex-col justify-center gap-2">
+                <h3 className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 cursor-pointer transition-colors duration-200">
+                  {product.name}
+                </h3>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  {product.price > 0 && (
+                    <span key="price" className="text-sm font-bold text-green-600 bg-green-50 px-2.5 py-0.5 rounded border border-green-200">
+                      {formatCurrencyVND(product.price)}
                     </span>
-                  </div>
+                  )}
+                  
+                  {product.quantity > 0 && (
+                    <span className="text-sm text-gray-600 font-medium">
+                      x{product.quantity}
+                    </span>
+                  )}
+
+                  {product.variant && (
+                    <div key="variant" className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-blue-50 border border-blue-100 text-blue-700">
+                      <span className="text-xs font-medium">
+                        {product.variant}
+                      </span>
+                    </div>
+                  )}
+
+                  {product.discountAmount && product.discountAmount > 0 && product.originalPrice && product.originalPrice > 0 && product.originalPrice > product.price && (
+                     <>
+                       <span key="original" className="text-xs text-gray-500 line-through">
+                          {formatCurrencyVND(product.originalPrice)}
+                       </span>
+                       <span key="discount" className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-medium">
+                          -{formatCurrencyVND(product.discountAmount)}
+                       </span>
+                     </>
+                  )}
                 </div>
+
+                {product.sku && (
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    <span>SKU: {product.sku}</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -864,17 +884,33 @@ const OrderDetailTab: React.FC = () => {
                   {
                     id: "return-refund",
                     label: "Yêu cầu hoàn hàng/trả tiền",
-                    onClick: () => {
-                      navigate("/user/profile/return-refund/products", {
-                        state: {
-                          order: {
-                            id: order.id,
-                            code: order.code,
-                            orderDate: order.orderDate,
-                            products: order.products,
-                          },
-                        },
-                      });
+                    onClick: async () => {
+                      if (!order?.orderId) {
+                        toast.error("Không tìm thấy thông tin đơn hàng");
+                        return;
+                      }
+
+                      try {
+                        // Check if order is eligible for return
+                        const canReturn = await customerReturnOrderApi.checkReturnEligibility(order.orderId);
+                        
+                        if (!canReturn) {
+                          toast.error("Đơn hàng này không đủ điều kiện để hoàn trả", {
+                            description: "Vui lòng liên hệ với bộ phận hỗ trợ để được hỗ trợ thêm.",
+                            duration: 5000,
+                          });
+                          return;
+                        }
+
+                        // Open return refund modal
+                        setIsReturnRefundModalOpen(true);
+                      } catch (error: any) {
+                        console.error("Error checking return eligibility:", error);
+                        toast.error("Không thể kiểm tra điều kiện hoàn trả", {
+                          description: error.message || "Vui lòng thử lại sau",
+                          duration: 5000,
+                        });
+                      }
                     },
                   },
                   {
@@ -1054,7 +1090,7 @@ const OrderDetailTab: React.FC = () => {
 
         {/* Customer Information & Payment Information */}
         <div className="mt-5 flex flex-col lg:flex-row gap-6 w-full max-w-none">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 w-full">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-6 sm:px-6 sm:py-8 w-full">
             <div className="mb-6">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                 Thông tin khách hàng
@@ -1125,114 +1161,15 @@ const OrderDetailTab: React.FC = () => {
           </div>
 
           {/* Payment Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 w-full">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-6 sm:px-6 sm:py-8 w-full">
             <div className="mb-6">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                 Thông tin thanh toán
               </h2>
             </div>
 
-            {/* Product Sub-section */}
-            <div className="mb-6">
-              <h3 className="text-base font-semibold text-gray-800 mb-4">
-                Chi tiết đơn hàng
-              </h3>
-              <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                {/* Số lượng sản phẩm */}
-                <div className="flex justify-between items-center text-gray-700 pb-2 border-b border-gray-200">
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
-                    </svg>
-                    Số lượng sản phẩm
-                  </span>
-                  <span className="font-semibold">{order.payment.productQuantity}</span>
-                </div>
-
-                {/* STEP 1: Tổng tiền hàng gốc (chưa giảm giá) */}
-                <div className="flex justify-between items-center text-gray-800">
-                  <span className="flex items-center gap-2 font-medium">
-                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.51-1.31c-.562-.649-1.413-1.076-2.353-1.253V5z" clipRule="evenodd" />
-                    </svg>
-                    Tổng tiền hàng (chưa giảm giá)
-                  </span>
-                  <span className="font-bold text-gray-900">{formatCurrencyVND(order.payment.subtotal)}</span>
-                </div>
-
-                {/* STEP 2 & 3: Các loại giảm giá */}
-                {order.payment.hasDiscount ? (
-                  <>
-                    {/* STEP 2: Giảm giá sản phẩm */}
-                    {order.payment.productDiscount > 0 && (
-                      <div className="flex justify-between items-center text-gray-700 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
-                        <span className="flex items-center gap-2">
-                          <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          Giảm giá sản phẩm
-                        </span>
-                        <span className="font-semibold text-red-600">-{formatCurrencyVND(order.payment.productDiscount)}</span>
-                      </div>
-                    )}
-                    
-                    {/* STEP 3: Giảm giá đơn hàng (voucher) */}
-                    {order.payment.orderDiscount > 0 && (
-                      <div className="flex justify-between items-center text-gray-700 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
-                        <span className="flex items-center gap-2">
-                          <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                          </svg>
-                          Giảm giá đơn hàng (Voucher)
-                        </span>
-                        <span className="font-semibold text-orange-600">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
-                      </div>
-                    )}
-
-                    {/* Tổng tiền sau khi áp dụng tất cả giảm giá */}
-                    <div className="flex justify-between items-center text-gray-800 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
-                      <span className="font-medium text-green-800">
-                        Tổng tiền sau giảm giá
-                      </span>
-                      <span className="font-bold text-green-700 text-lg">
-                        {formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex justify-between items-center text-gray-700">
-                    <span>Không có giảm giá</span>
-                    <span className="font-semibold text-gray-500">0₫</span>
-                  </div>
-                )}
-
-                {/* STEP 4: Phí vận chuyển */}
-                <div className="flex justify-between items-center text-gray-700 border-t border-gray-200 pt-3">
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                      <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1V8a1 1 0 00-.293-.707L15 4.586A1 1 0 0014.414 4H14v3z" />
-                    </svg>
-                    Phí vận chuyển
-                  </span>
-                  <span className="font-semibold">{formatCurrencyVND(order.payment.shipping)}</span>
-                </div>
-
-                {/* STEP 5: Tổng cuối cùng phải trả */}
-                <div className="flex justify-between items-center text-white bg-blue-600 px-4 py-3 rounded-lg border-t-4 border-blue-700 mt-4">
-                  <span className="font-medium">
-                    Tổng số tiền phải trả
-                  </span>
-                  <span className="text-xl font-bold">
-                    {formatCurrencyVND(totalPayment)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* Payment Sub-section */}
-            <div className="border-t-2 border-gray-100 pt-6">
+            <div>
               <h3 className="text-base font-semibold text-gray-800 mb-4">
                 Thông tin thanh toán
               </h3>
@@ -1247,7 +1184,7 @@ const OrderDetailTab: React.FC = () => {
                         <span className="text-gray-600">1. Tổng tiền hàng (chưa giảm giá):</span>
                         <span className="font-medium">{formatCurrencyVND(order.payment.subtotal)}</span>
                       </div>
-                      
+
                       {/* Bước 2: Giảm giá sản phẩm */}
                       {order.payment.productDiscount > 0 && (
                         <div className="flex justify-between text-red-600">
@@ -1255,7 +1192,7 @@ const OrderDetailTab: React.FC = () => {
                           <span className="font-medium">-{formatCurrencyVND(order.payment.productDiscount)}</span>
                         </div>
                       )}
-                      
+
                       {/* Bước 3: Giảm giá đơn hàng */}
                       {order.payment.orderDiscount > 0 && (
                         <div className="flex justify-between text-orange-600">
@@ -1263,19 +1200,19 @@ const OrderDetailTab: React.FC = () => {
                           <span className="font-medium">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
                         </div>
                       )}
-                      
+
                       {/* Tiền sau giảm giá */}
                       <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded">
                         <span className="font-medium">= Tiền sau giảm giá:</span>
                         <span className="font-semibold">{formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}</span>
                       </div>
-                      
+
                       {/* Bước 4: Phí ship */}
                       <div className="flex justify-between">
                         <span className="text-gray-600">4. Cộng phí vận chuyển:</span>
                         <span className="font-medium">+{formatCurrencyVND(order.payment.shipping)}</span>
                       </div>
-                      
+
                       {/* Kết quả cuối */}
                       <div className="border-t border-gray-300 pt-2 mt-3">
                         <div className="flex justify-between font-semibold text-blue-700">
@@ -1548,6 +1485,246 @@ const OrderDetailTab: React.FC = () => {
                     Đóng
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Return/Refund Request Modal */}
+        {isReturnRefundModalOpen && order && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+              onClick={() => setIsReturnRefundModalOpen(false)}
+            />
+            
+            {/* Modal Content */}
+            <div
+              className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-200 z-10">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Yêu cầu hoàn trả hàng
+                  </h2>
+                  <button
+                    onClick={() => setIsReturnRefundModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                    aria-label="Đóng"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="mt-2 text-sm text-gray-600">
+                  Đơn hàng: #{order.code} • Ngày đặt: {order.orderDate}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-5">
+                {/* Products List */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                    Sản phẩm trong đơn hàng
+                  </h3>
+                  <div className="space-y-3">
+                    {order.products.map((product) => (
+                      <div
+                        key={product.id}
+                        className="flex gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          onError={handleImageError}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                            {product.name}
+                          </h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-sm font-semibold text-red-600">
+                              {formatCurrencyVND(product.price)}
+                            </span>
+                            {product.variant && (
+                              <span className="text-xs text-gray-600">
+                                • {product.variant}
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-500">
+                              x{product.quantity}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Form */}
+                <div className="space-y-5">
+                  {/* Reason */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lý do hoàn trả <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={returnReason}
+                      onChange={(value) => setReturnReason(value)}
+                      placeholder="Chọn lý do hoàn trả"
+                      className="w-full"
+                      size="large"
+                      options={[
+                        { value: "empty-package", label: "Thùng hàng rỗng" },
+                        { value: "not-received", label: "Chưa nhận được hàng" },
+                        { value: "broken", label: "Bể vỡ" },
+                        { value: "wrong-model", label: "Sai mẫu" },
+                        { value: "defective", label: "Hàng lỗi" },
+                        { value: "different-description", label: "Khác mô tả" },
+                        { value: "other", label: "Lý do khác" },
+                      ]}
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mô tả chi tiết <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={returnDescription}
+                      onChange={(e) => setReturnDescription(e.target.value)}
+                      placeholder="Mô tả chi tiết vấn đề bạn gặp phải..."
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                  </div>
+
+                  {/* Image Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Hình ảnh minh chứng (tùy chọn)
+                    </label>
+                    <MediaUpload
+                      accept="image"
+                      maxFiles={6}
+                      files={returnImages}
+                      onChange={setReturnImages}
+                      variant="dashed"
+                      showPreview={true}
+                      helperText="Tải lên tối đa 6 ảnh để minh chứng vấn đề"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="sticky bottom-0 bg-white px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+                <Button
+                  onClick={() => {
+                    setIsReturnRefundModalOpen(false);
+                    setReturnReason("");
+                    setReturnDescription("");
+                    setReturnImages([]);
+                  }}
+                  disabled={isSubmittingReturn}
+                  variant="outline"
+                  className="px-6"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={async () => {
+                    // Validate
+                    if (!returnReason) {
+                      toast.error("Vui lòng chọn lý do hoàn trả");
+                      return;
+                    }
+                    if (!returnDescription.trim()) {
+                      toast.error("Vui lòng nhập mô tả chi tiết");
+                      return;
+                    }
+
+                    // Validate products have required IDs
+                    const invalidProducts = order.products.filter(
+                      (p) => !p.orderDetailId || !p.productDetailId
+                    );
+                    if (invalidProducts.length > 0) {
+                      toast.error("Thông tin sản phẩm không đầy đủ. Vui lòng thử lại.");
+                      return;
+                    }
+
+                    try {
+                      setIsSubmittingReturn(true);
+
+                      // Map reason to returnType
+                      const getReturnType = (reason: string): string => {
+                        const reasonMap: Record<string, string> = {
+                          "empty-package": "EMPTY_PACKAGE",
+                          "not-received": "NOT_RECEIVED",
+                          "broken": "BROKEN",
+                          "wrong-model": "WRONG_MODEL",
+                          "defective": "DEFECTIVE",
+                          "different-description": "DIFFERENT_DESCRIPTION",
+                          "other": "OTHER",
+                        };
+                        return reasonMap[reason] || "OTHER";
+                      };
+
+                      // Prepare return order details (all products)
+                      const returnOrderDetails = order.products.map((product) => ({
+                        orderDetailId: product.orderDetailId!,
+                        productDetailId: product.productDetailId!,
+                        returnQuantity: product.quantity || 1,
+                        notes: returnDescription,
+                      }));
+
+                      // Create return order request
+                      const request = {
+                        orderId: order.orderId!,
+                        returnType: getReturnType(returnReason),
+                        reason: returnReason,
+                        notes: `${returnDescription}${returnImages.length > 0 ? `\n\nĐã đính kèm ${returnImages.length} hình ảnh minh chứng.` : ""}`,
+                        returnOrderDetails,
+                      };
+
+                      // Call API to create return order
+                      const response = await customerReturnOrderApi.createReturnOrder(request);
+
+                      toast.success("Tạo yêu cầu hoàn trả hàng thành công!", {
+                        description: `Mã yêu cầu: ${response.orderCode || response.id}`,
+                        duration: 5000,
+                      });
+
+                      // Close modal and reset form
+                      setIsReturnRefundModalOpen(false);
+                      setReturnReason("");
+                      setReturnDescription("");
+                      setReturnImages([]);
+
+                      // Refresh order data
+                      await queryClient.invalidateQueries({
+                        queryKey: ["customerOrderDetail", orderCode]
+                      });
+                    } catch (error: any) {
+                      console.error("Error creating return order:", error);
+                      toast.error("Không thể tạo yêu cầu hoàn trả hàng", {
+                        description: error.message || "Vui lòng thử lại sau",
+                        duration: 5000,
+                      });
+                    } finally {
+                      setIsSubmittingReturn(false);
+                    }
+                  }}
+                  disabled={isSubmittingReturn || !returnReason || !returnDescription.trim()}
+                  className="px-6 bg-red-600 hover:bg-red-700 disabled:bg-gray-400"
+                >
+                  {isSubmittingReturn ? "Đang xử lý..." : "Gửi yêu cầu"}
+                </Button>
               </div>
             </div>
           </div>

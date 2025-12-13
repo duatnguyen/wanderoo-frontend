@@ -9,6 +9,7 @@ interface EnhancedVoucherSelectionModalProps {
     vouchers?: VoucherHistoryResponse[];
     loading?: boolean;
     isAuthenticated?: boolean;
+    subtotal?: number; // Total order value to check voucher eligibility
 }
 
 const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps> = ({
@@ -19,6 +20,7 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
     vouchers = [],
     loading = false,
     isAuthenticated = false,
+    subtotal = 0,
 }) => {
     const [activeVoucherCode, setActiveVoucherCode] = useState<string | null>(
         selectedVoucherCode
@@ -72,6 +74,57 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
     const formatMinOrder = (minOrderValue?: number | null) => {
         if (!minOrderValue) return "Không giới hạn";
         return `₫${(minOrderValue / 1000).toFixed(0)}k`;
+    };
+
+    const formatMaxDiscount = (maxOrderValue?: number | null, type?: string) => {
+        // For PERCENT type, maxOrderValue is the maximum discount amount
+        // For FIXED type, maxOrderValue might be max order value to apply
+        if (!maxOrderValue) return null;
+        if (type === 'PERCENT') {
+            return `Tối đa giảm ₫${(maxOrderValue / 1000).toFixed(0)}k`;
+        }
+        return null;
+    };
+
+    const formatCurrency = (value: number) => {
+        return `₫${(value / 1000).toFixed(0)}k`;
+    };
+
+    // Check if voucher is eligible based on conditions
+    const isVoucherEligible = (voucher: VoucherHistoryResponse): { eligible: boolean; reason?: string } => {
+        // Check expiration date
+        if (voucher.expirationDate) {
+            const expirationDate = new Date(voucher.expirationDate);
+            const now = new Date();
+            if (expirationDate < now) {
+                return { eligible: false, reason: "Voucher đã hết hạn" };
+            }
+        }
+
+        // Check status
+        if (voucher.status !== 'AVAILABLE') {
+            if (voucher.status === 'EXPIRED') {
+                return { eligible: false, reason: "Voucher đã hết hạn" };
+            }
+            if (voucher.status === 'USED') {
+                return { eligible: false, reason: "Voucher đã được sử dụng" };
+            }
+            return { eligible: false, reason: "Voucher không khả dụng" };
+        }
+
+        // Check minimum order value
+        if (voucher.minOrderValue && subtotal < voucher.minOrderValue) {
+            const remaining = voucher.minOrderValue - subtotal;
+            return { 
+                eligible: false, 
+                reason: `Cần thêm ₫${(remaining / 1000).toFixed(0)}k để sử dụng voucher này` 
+            };
+        }
+
+        // Note: maxOrderValue is used as maximum discount amount for PERCENT type, not max order value
+        // So we don't need to check it as a condition to disable voucher
+
+        return { eligible: true };
     };
 
     // Separate vouchers into personal and public
@@ -157,7 +210,8 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                             const isSelected = activeVoucherCode === voucher.discountCode;
                                             const isExpired = voucher.status === 'EXPIRED';
                                             const isUsed = voucher.status === 'USED';
-                                            const canUse = voucher.status === 'AVAILABLE';
+                                            const eligibility = isVoucherEligible(voucher);
+                                            const canUse = eligibility.eligible && voucher.status === 'AVAILABLE';
 
                                             return (
                                                 <label
@@ -190,6 +244,11 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                                                         Đã dùng
                                                                     </span>
                                                                 )}
+                                                                {!eligibility.eligible && eligibility.reason && (
+                                                                    <span className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded">
+                                                                        {eligibility.reason}
+                                                                    </span>
+                                                                )}
                                                                 <span
                                                                     className={`text-xs ${isSelected ? "text-[#E04D30]" : "text-gray-500"
                                                                         }`}
@@ -205,15 +264,25 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                                             >
                                                                 {voucher.discountName}
                                                             </p>
-                                                            <p
-                                                                className={`${isSelected ? "text-[#E04D30]" : "text-gray-600"
-                                                                    }`}
-                                                            >
-                                                                Đơn tối thiểu {formatMinOrder(voucher.minOrderValue)}
-                                                            </p>
+                                                            <div className="space-y-1">
+                                                                <p
+                                                                    className={`text-sm ${isSelected ? "text-[#E04D30]" : "text-gray-600"
+                                                                        }`}
+                                                                >
+                                                                    Đơn tối thiểu: {formatMinOrder(voucher.minOrderValue)}
+                                                                </p>
+                                                                {(voucher as any).maxOrderValue && formatMaxDiscount((voucher as any).maxOrderValue, (voucher as any).type) && (
+                                                                    <p
+                                                                        className={`text-sm ${isSelected ? "text-[#E04D30]" : "text-blue-600"
+                                                                            }`}
+                                                                    >
+                                                                        {formatMaxDiscount((voucher as any).maxOrderValue, (voucher as any).type)}
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                             {voucher.discountText && (
                                                                 <p
-                                                                    className={`${isSelected ? "text-[#E04D30]" : "text-gray-500"
+                                                                    className={`text-xs mt-1 ${isSelected ? "text-[#E04D30]" : "text-gray-500"
                                                                         }`}
                                                                 >
                                                                     {voucher.discountText}
@@ -272,13 +341,16 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                     <div className="space-y-3">
                                         {displayedPublicVouchers.map((voucher) => {
                                             const isSelected = activeVoucherCode === voucher.discountCode;
+                                            const eligibility = isVoucherEligible(voucher);
+                                            const canUse = eligibility.eligible;
                                             return (
                                                 <label
                                                     key={voucher.id}
                                                     className={`flex items-stretch rounded-2xl border ${isSelected
                                                         ? "border-[#E04D30] shadow-[0_8px_20px_rgba(224,77,48,0.12)]"
                                                         : "border-gray-200 hover:border-[#E04D30]/60"
-                                                        } bg-white transition-colors cursor-pointer`}
+                                                        } bg-white transition-colors ${canUse ? "cursor-pointer" : "opacity-60 cursor-not-allowed"
+                                                        }`}
                                                 >
                                                     <div
                                                         className={`flex-1 px-4 py-3 text-[13px] ${isSelected ? "text-[#E04D30]" : "text-gray-900"
@@ -291,6 +363,11 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                                             >
                                                                 {voucher.discountCode}
                                                             </span>
+                                                            {!eligibility.eligible && eligibility.reason && (
+                                                                <span className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded">
+                                                                    {eligibility.reason}
+                                                                </span>
+                                                            )}
                                                             <span
                                                                 className={`text-xs ${isSelected ? "text-[#E04D30]" : "text-gray-500"
                                                                     }`}
@@ -305,22 +382,32 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                                             >
                                                                 {voucher.discountName}
                                                             </p>
-                                                            <p
-                                                                className={`${isSelected ? "text-[#E04D30]" : "text-gray-600"
-                                                                    }`}
-                                                            >
-                                                                Đơn tối thiểu {formatMinOrder(voucher.minOrderValue)}
-                                                            </p>
+                                                            <div className="space-y-1">
+                                                                <p
+                                                                    className={`text-sm ${isSelected ? "text-[#E04D30]" : "text-gray-600"
+                                                                        }`}
+                                                                >
+                                                                    Đơn tối thiểu: {formatMinOrder(voucher.minOrderValue)}
+                                                                </p>
+                                                                {(voucher as any).maxOrderValue && formatMaxDiscount((voucher as any).maxOrderValue, (voucher as any).type) && (
+                                                                    <p
+                                                                        className={`text-sm ${isSelected ? "text-[#E04D30]" : "text-blue-600"
+                                                                            }`}
+                                                                    >
+                                                                        {formatMaxDiscount((voucher as any).maxOrderValue, (voucher as any).type)}
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                             {voucher.discountText && (
                                                                 <p
-                                                                    className={`${isSelected ? "text-[#E04D30]" : "text-gray-500"
+                                                                    className={`text-xs mt-1 ${isSelected ? "text-[#E04D30]" : "text-gray-500"
                                                                         }`}
                                                                 >
                                                                     {voucher.discountText}
                                                                 </p>
                                                             )}
                                                             {!isAuthenticated && (
-                                                                <p className="text-xs text-orange-600">
+                                                                <p className="text-xs text-orange-600 mt-1">
                                                                     💡 Đăng nhập để claim voucher này
                                                                 </p>
                                                             )}
@@ -332,7 +419,8 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                                             name="voucher"
                                                             className="h-5 w-5 text-[#E04D30] focus:ring-[#E04D30]"
                                                             checked={isSelected}
-                                                            onChange={() => handleVoucherSelect(voucher.discountCode)}
+                                                            disabled={!canUse}
+                                                            onChange={() => canUse && handleVoucherSelect(voucher.discountCode)}
                                                         />
                                                     </div>
                                                 </label>

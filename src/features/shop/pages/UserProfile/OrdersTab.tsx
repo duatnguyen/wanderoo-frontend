@@ -81,14 +81,26 @@ const mapDetailToProduct = (
   orderId: number | string,
   index: number
 ): OrderProduct => {
+  // Construct full image URL if productImage exists
+  let imageUrl = FALLBACK_IMAGE;
+  if (detail.productImage && detail.productImage.trim() !== "") {
+    const productImagePath = detail.productImage.trim();
+    // If it's already a full URL, use it as is; otherwise prepend base URL
+    imageUrl = productImagePath.startsWith('http')
+      ? productImagePath
+      : `http://localhost:8080${productImagePath}`;
+  }
+
   return {
     id: detail.id?.toString() ?? `${orderId}-${index}`,
-    imageUrl: FALLBACK_IMAGE,
+    imageUrl,
     name:
       detail.snapshotProductName ??
       detail.snapshotProductSku ??
       `Sản phẩm ${index + 1}`,
-    price: detail.snapshotProductPrice ?? 0,
+    price: detail.snapshotFinalPrice ?? detail.snapshotProductPrice ?? 0,
+    originalPrice: detail.snapshotProductPrice,
+    discountAmount: detail.snapshotDiscountAmount,
     variant: buildVariantLabel(detail.snapshotVariantAttributes),
   };
 };
@@ -103,13 +115,24 @@ const mapOrderItemsToProducts = (
   }
 
   if (order.items && order.items.length > 0) {
-    return order.items.map((item, index) => ({
-      id: item.id?.toString() ?? `${order.id}-${index}`,
-      imageUrl: item.image || FALLBACK_IMAGE,
-      name: item.name ?? `Sản phẩm ${item.productId}`,
-      price: item.price ?? item.total ?? 0,
-      variant: undefined,
-    }));
+    return order.items.map((item, index) => {
+      // Construct full image URL if productImage exists
+      let imageUrl = FALLBACK_IMAGE;
+      if (item.productImage && item.productImage.trim() !== "") {
+        const productImagePath = item.productImage.trim();
+        imageUrl = productImagePath.startsWith('http')
+          ? productImagePath
+          : `http://localhost:8080${productImagePath}`;
+      }
+
+      return {
+        id: item.id?.toString() ?? `${order.id}-${index}`,
+        imageUrl,
+        name: item.name ?? `Sản phẩm ${item.productId}`,
+        price: item.price ?? item.total ?? 0,
+        variant: undefined,
+      };
+    });
   }
 
   return [

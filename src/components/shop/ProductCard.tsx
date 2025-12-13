@@ -1,6 +1,18 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import type { Product } from "../../features/shop/data/productsData";
+
+// Define Product type inline since it's only used for the optional product prop
+export interface Product {
+  id: string | number;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  imageUrl: string;
+  rating?: number;
+  discountPercent?: number;
+  discountValue?: string;
+  [key: string]: any; // Allow for additional properties
+}
 
 export type ProductCardProps = {
   id?: string | number;

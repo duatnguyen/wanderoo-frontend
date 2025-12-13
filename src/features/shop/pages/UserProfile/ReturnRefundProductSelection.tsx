@@ -15,6 +15,8 @@ interface ProductType {
   originalPrice?: number;
   variant?: string;
   quantity: number;
+  orderDetailId?: number; // Order detail ID for return order
+  productDetailId?: number; // Product detail ID for return order
 }
 
 interface OrderData {
@@ -138,6 +140,8 @@ const ReturnRefundProductSelection: React.FC = () => {
       originalPrice: selectedProduct.originalPrice,
       variant: selectedProduct.variant,
       quantity: selectedProduct.returnQuantity, // Use returnQuantity as quantity
+      orderDetailId: selectedProduct.orderDetailId, // Pass orderDetailId
+      productDetailId: selectedProduct.productDetailId, // Pass productDetailId
     }));
 
     // Navigate to return/refund request page with selected products

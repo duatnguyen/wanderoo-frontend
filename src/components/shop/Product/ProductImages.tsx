@@ -5,6 +5,7 @@ interface ProductImagesProps {
   product: Product;
   selectedImageIndex: number;
   onImageSelect: (index: number) => void;
+  variantImageUrl?: string | null; // Optional variant image URL
 }
 
 const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
@@ -33,17 +34,43 @@ const ProductImages: React.FC<ProductImagesProps> = ({
   product,
   selectedImageIndex,
   onImageSelect,
+  variantImageUrl,
 }) => {
   const imagesToRender = useMemo(() => {
-    const baseImages =
-      product.images && product.images.length > 0
-        ? product.images
-        : product.imageUrl
-        ? [product.imageUrl]
-        : [];
+    // If variant has its own image, use it as the first image
+    let baseImages: string[] = [];
+    
+    if (variantImageUrl) {
+      // Variant has its own image - use it as primary, then add product images
+      const variantImage = getImageUrl(variantImageUrl) || variantImageUrl;
+      baseImages = [variantImage];
+      
+      // Add product images if they exist and are different from variant image
+      if (product.images && product.images.length > 0) {
+        const productImages = product.images
+          .map(img => getImageUrl(img) || img)
+          .filter(img => img !== variantImage && img && img.trim().length > 0);
+        baseImages = [...baseImages, ...productImages];
+      } else if (product.imageUrl) {
+        const productImage = getImageUrl(product.imageUrl) || product.imageUrl;
+        if (productImage !== variantImage) {
+          baseImages.push(productImage);
+        }
+      }
+    } else {
+      // No variant image, use product images
+      baseImages =
+        product.images && product.images.length > 0
+          ? product.images
+          : product.imageUrl
+          ? [product.imageUrl]
+          : [];
+    }
+    
     if (!baseImages.length) {
       return [FALLBACK_IMAGE];
     }
+    
     return baseImages.map((image) => {
       if (!image || image.trim().length === 0) {
         return FALLBACK_IMAGE;
@@ -51,7 +78,7 @@ const ProductImages: React.FC<ProductImagesProps> = ({
       // Convert relative URL to full URL
       return getImageUrl(image) || image;
     });
-  }, [product.images, product.imageUrl]);
+  }, [product.images, product.imageUrl, variantImageUrl]);
 
   useEffect(() => {
     if (selectedImageIndex >= imagesToRender.length) {

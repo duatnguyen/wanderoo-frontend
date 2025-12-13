@@ -66,6 +66,18 @@ export const getProductVariants = async (variantRequest: VariantDetailIdRequest)
   return response.data.data;
 };
 
+export interface VariantStockInfoResponse {
+  productDetailId: number;
+  attributeIds: number[];
+  quantity: number;
+  imageUrl?: string | null;
+}
+
+export const getProductVariantsStock = async (productId: number): Promise<VariantStockInfoResponse[]> => {
+  const response = await api.get<ApiResponse<VariantStockInfoResponse[]>>(`/auth/v1/public/product/${productId}/variants/stock`);
+  return response.data.data;
+};
+
 export const getPublicProductsByCategory = async (
   categoryId: number,
   params?: PublicProductListQuery

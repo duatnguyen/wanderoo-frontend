@@ -20,7 +20,23 @@ import {
   getSuggestionProducts,
   type HomepageProductResponse,
 } from "../../../../api/endpoints/homepageApi";
-import type { Product } from "../../data/productsData";
+
+// Define Product interface for shop components
+interface Product {
+  id: string;
+  name: string;
+  imageUrl: string;
+  price: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  discountValue?: string;
+  rating: number;
+  stock: number;
+  category: string;
+  brand: string;
+  reviews: number;
+}
+
 
 const LandingPage: React.FC = () => {
   const { getCartCount } = useCart();
@@ -30,7 +46,7 @@ const LandingPage: React.FC = () => {
   const displayName = user?.name?.trim() || user?.username || "Thanh";
   const avatarUrl = user?.avatar || undefined;
   const queryClient = useQueryClient();
-  
+
   // Clear old cache for newest products
   React.useEffect(() => {
     queryClient.removeQueries({ queryKey: ["homepageNewest"] });
@@ -82,7 +98,7 @@ const LandingPage: React.FC = () => {
     refetchOnMount: "always",
     refetchOnWindowFocus: false,
   });
-  
+
   // Debug log - Always log để kiểm tra
   React.useEffect(() => {
     console.log("=== DEBUG Newest Products ===");
@@ -101,7 +117,7 @@ const LandingPage: React.FC = () => {
   const formatDiscountValue = (discountValue: string | null | undefined): string | undefined => {
     if (!discountValue) return undefined;
     const discountStr = discountValue.toString().trim();
-    
+
     // Check if it's a percentage (contains "%")
     if (discountStr.includes("%")) {
       // For percentage, just ensure it starts with "-"
@@ -110,7 +126,7 @@ const LandingPage: React.FC = () => {
       }
       return `-${discountStr}`;
     }
-    
+
     // For VND amount (contains "đ" or "Đ")
     if (discountStr.includes("đ") || discountStr.includes("Đ")) {
       // Extract ALL digits (remove all non-digit characters except minus sign)
@@ -128,14 +144,14 @@ const LandingPage: React.FC = () => {
         return hasMinus ? `-${formattedNumber}${currencySymbol}` : `-${formattedNumber}${currencySymbol}`;
       }
     }
-    
+
     // If it's just a number without currency, assume it's percentage
     const numberMatch = discountStr.match(/(-?\d+)/);
     if (numberMatch) {
       const hasMinus = discountStr.startsWith("-");
       return hasMinus ? `${discountStr}%` : `-${discountStr}%`;
     }
-    
+
     // Fallback: ensure it starts with "-"
     if (discountStr.startsWith("-")) {
       return discountStr;
@@ -161,7 +177,7 @@ const LandingPage: React.FC = () => {
         : item.minSellingPrice;
 
       const originalPrice = hasDiscount ? item.minSellingPrice : undefined;
-      
+
       // Parse discountPercent từ discountValue string (giống ProductCategoryListing)
       let discountPercent: number | undefined = undefined;
       if (hasDiscount && item.discountValue) {
@@ -186,25 +202,25 @@ const LandingPage: React.FC = () => {
         reviews: 0,
       };
     }
-    
+
     // Fallback cho các API khác (backward compatibility)
     const salePrice = item.salePrice ?? 0;
     const originalPrice = item.originalPrice ?? salePrice;
-    
-    const hasDiscount = 
+
+    const hasDiscount =
       item.discountPercent !== null &&
       item.discountPercent !== undefined &&
       item.discountPercent > 0 &&
       salePrice > 0 &&
       originalPrice > 0 &&
       salePrice < originalPrice;
-    
+
     const displayPrice = hasDiscount ? salePrice : (salePrice > 0 ? salePrice : originalPrice);
     const displayOriginalPrice = hasDiscount ? originalPrice : undefined;
     const discountPercent = hasDiscount && typeof item.discountPercent === "number"
       ? Math.round(item.discountPercent)
       : undefined;
-    
+
     return {
       id: item.productId?.toString?.() || `${Math.random()}`,
       name: item.name,
@@ -231,7 +247,7 @@ const LandingPage: React.FC = () => {
     .filter((p): p is Product => !!p && !!p.id && !!p.name)
     .slice(0, 6); // Ensure exactly 6 products
   const todaySuggestions = suggestionProducts.map(convertToProduct).filter(Boolean);
-  
+
   // Debug log for products - Always log
   React.useEffect(() => {
     console.log("=== DEBUG Converted Products ===");
@@ -239,17 +255,17 @@ const LandingPage: React.FC = () => {
     console.log("featuredProducts after convert and filter:", featuredProducts.length, featuredProducts);
     console.log("newestProducts from API:", newestProducts.length, newestProducts);
     console.log("newProducts after convert and filter:", newProducts.length, newProducts);
-    console.log("featuredProducts details:", featuredProducts.map((p, idx) => ({ 
+    console.log("featuredProducts details:", featuredProducts.map((p, idx) => ({
       index: idx,
-      id: p.id, 
-      name: p.name, 
+      id: p.id,
+      name: p.name,
       price: p.price,
       isValid: !!p && !!p.id && !!p.name
     })));
-    console.log("newProducts details:", newProducts.map((p, idx) => ({ 
+    console.log("newProducts details:", newProducts.map((p, idx) => ({
       index: idx,
-      id: p.id, 
-      name: p.name, 
+      id: p.id,
+      name: p.name,
       price: p.price,
       isValid: !!p && !!p.id && !!p.name
     })));

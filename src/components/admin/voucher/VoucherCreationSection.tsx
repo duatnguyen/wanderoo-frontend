@@ -1,5 +1,14 @@
 import React from "react";
 import { VoucherCreationCard } from "./VoucherCreationCard";
+import {
+  PageContainer,
+  ContentCard,
+  PageHeader,
+  OrderTable,
+  TabMenuWithBadge,
+  type OrderTableColumn,
+  type TabItemWithBadge,
+} from "@/components/common";
 
 export interface VoucherType {
   icon: React.ReactNode;
@@ -20,10 +29,9 @@ export interface VoucherCreationSectionProps {
 export const VoucherCreationSection: React.FC<VoucherCreationSectionProps> = ({
   onCreateVoucher,
   voucherTypes,
-  className = "bg-white border border-[#d1d1d1] rounded-[24px] pt-[12px] px-[24px] pb-[24px] flex flex-col w-full mb-6 overflow-x-auto",
 }) => {
   return (
-    <div className={className}>
+    <ContentCard>
       {/* Create Voucher Header */}
       <div className="flex flex-col gap-[2px] items-start justify-center px-0 py-0 w-full flex-shrink-0">
         <div className="flex gap-[20px] items-center px-0 py-0 w-full">
@@ -95,6 +103,6 @@ export const VoucherCreationSection: React.FC<VoucherCreationSectionProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </ContentCard>
   );
 };

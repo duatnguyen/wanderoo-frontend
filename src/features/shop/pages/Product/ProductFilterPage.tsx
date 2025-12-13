@@ -4,9 +4,10 @@ import Header from "../../../../components/shop/Header";
 import Footer from "../../../../components/shop/Footer";
 import ProductCard from "../../../../components/shop/ProductCard";
 import DropdownList from "../../../../components/shop/DropdownList";
-import { productsData } from "../../data/productsData";
 import { useCart } from "../../../../context/CartContext";
 import { useAuth } from "../../../../context/AuthContext";
+import { productsData } from "../../data/productsData";
+import type { Product } from "../../data/productsData";
 
 type SortOption = "popular" | "hot-deal" | "price-low-high" | "price-high-low";
 
@@ -48,7 +49,7 @@ const ProductFilterPage: React.FC = () => {
 
     // Filter products by categoryId
     return productsData.filter(
-      (product: { categoryId?: number }) => product.categoryId === categoryIdNum
+      (product) => product.categoryId === categoryIdNum
     );
   }, [categoryId]);
 

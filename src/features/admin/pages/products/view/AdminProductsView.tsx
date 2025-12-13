@@ -64,6 +64,7 @@ const mapVariants = (
 
   const versions: ProductVersion[] = variantsArray.map((variant) => ({
     id: String(variant.id),
+    combination: [], // Add empty array as default combination
     name: variant.nameDetail || variant.skuDetail || `Phiên bản #${variant.id}`,
     price:
       variant.sellingPrice !== undefined && variant.sellingPrice !== null

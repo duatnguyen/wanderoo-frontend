@@ -15,6 +15,7 @@ export type OrderProduct = {
   name: string;
   price: number;
   originalPrice?: number;
+  discountAmount?: number;
   variant?: string;
   variantColor?: string;
 };

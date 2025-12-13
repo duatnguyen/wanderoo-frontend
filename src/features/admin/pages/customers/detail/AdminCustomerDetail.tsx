@@ -834,13 +834,16 @@ const AdminCustomerDetail = () => {
               <div className="flex items-center gap-[16px] flex-1">
                 <div className="w-[70px] h-[70px] rounded-[12px] border-2 border-dashed border-[#d1d1d1] p-[4px] bg-[#f8f9fa]">
                   <Avatar className="w-full h-full rounded-[8px]">
-                    {customer.avatar ? (
-                      <AvatarImage src={customer.avatar} alt={customer.name} />
-                    ) : (
-                      <AvatarFallback className="bg-[#1a71f6] text-white text-[24px] font-bold">
-                        {customer.name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    )}
+                    {(() => {
+                      const imageUrl = customer.image_url || customer.avatar;
+                      return imageUrl ? (
+                        <AvatarImage src={imageUrl} alt={customer.name} />
+                      ) : (
+                        <AvatarFallback className="bg-[#1a71f6] text-white text-[24px] font-bold">
+                          {customer.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      );
+                    })()}
                   </Avatar>
                 </div>
                 <div className="flex flex-col gap-[4px]">
@@ -1009,8 +1012,8 @@ const AdminCustomerDetail = () => {
                         <div
                           key={order.id}
                           className={`flex items-center justify-between px-[16px] py-[8px] ${index < ordersData.orders.length - 1
-                              ? "border-b border-[#d1d1d1]"
-                              : ""
+                            ? "border-b border-[#d1d1d1]"
+                            : ""
                             }`}
                         >
                           <div className="flex flex-col gap-[4px]">

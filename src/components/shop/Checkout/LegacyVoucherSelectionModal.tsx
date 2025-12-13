@@ -27,6 +27,7 @@ interface LegacyVoucherSelectionModalProps {
     onApply: (voucherId: string | null) => void;
     selectedVoucherId: string | null;
     sections: LegacyVoucherSection[];
+    subtotal?: number; // Total order value to check voucher eligibility
 }
 
 // Wrapper component to bridge legacy props with new VoucherSelectionModal
@@ -36,6 +37,7 @@ const LegacyVoucherSelectionModal: React.FC<LegacyVoucherSelectionModalProps> = 
     onApply,
     selectedVoucherId,
     sections, // Legacy sections - we'll ignore these and fetch real data
+    subtotal = 0, // Default to 0 if not provided
 }) => {
     const { isAuthenticated } = useAuth();
     const [vouchers, setVouchers] = useState<VoucherHistoryResponse[]>([]);
@@ -43,40 +45,53 @@ const LegacyVoucherSelectionModal: React.FC<LegacyVoucherSelectionModalProps> = 
 
     // Convert DiscountPublicResponse to VoucherHistoryResponse format (for public vouchers)
     const convertPublicToVoucherFormat = (discount: any): VoucherHistoryResponse => {
+        // Use discountText from backend if available (contains formatted discount info)
+        // Otherwise use description
+        const discountText = discount.discountText || discount.description;
+        
         return {
             id: discount.id,
             discountId: discount.id,
             discountCode: discount.code,
             discountName: discount.name,
-            discountText: discount.description,
+            discountText: discountText,
             expirationDate: discount.endDate,
             minOrderValue: discount.minOrderValue,
-            maxOrderValue: discount.maxOrderValue,
+            maxOrderValue: discount.maxOrderValue, // This is max discount amount for PERCENT type
             quantity: discount.quantity,
             status: 'AVAILABLE' as any,
             statusLabel: 'Có thể sử dụng',
             createdAt: null, // Public vouchers have no createdAt
-            updatedAt: null
-        };
+            updatedAt: null,
+            // Store additional info for display
+            type: discount.type,
+            value: discount.value,
+        } as VoucherHistoryResponse & { type?: string; value?: number };
     };
 
     // Convert DiscountPublicResponse to VoucherHistoryResponse format (for personal vouchers)
     const convertPersonalToVoucherFormat = (discount: any): VoucherHistoryResponse => {
+        // Use discountText from backend if available (contains formatted discount info)
+        const discountText = discount.discountText || discount.description;
+        
         return {
             id: discount.id,
             discountId: discount.id,
             discountCode: discount.code,
             discountName: discount.name,
-            discountText: discount.discountText || discount.description,
+            discountText: discountText,
             expirationDate: discount.endDate,
             minOrderValue: discount.minOrderValue,
-            maxOrderValue: discount.maxOrderValue,
+            maxOrderValue: discount.maxOrderValue, // This is max discount amount for PERCENT type
             quantity: discount.quantity,
             status: discount.isAvailable ? 'AVAILABLE' : 'USED',
             statusLabel: discount.isAvailable ? 'Có thể sử dụng' : 'Đã sử dụng',
             createdAt: new Date().toISOString(), // Mark as personal voucher
-            updatedAt: null
-        };
+            updatedAt: null,
+            // Store additional info for display
+            type: discount.type,
+            value: discount.value,
+        } as VoucherHistoryResponse & { type?: string; value?: number };
     };
 
     // Load voucher data when modal opens
@@ -85,38 +100,33 @@ const LegacyVoucherSelectionModal: React.FC<LegacyVoucherSelectionModalProps> = 
             const loadVouchers = async () => {
                 try {
                     setLoading(true);
-
                     let allVouchers: VoucherHistoryResponse[] = [];
-
-                    // Always load public vouchers first
-                    console.log("Loading public vouchers...");
-                    const publicDiscounts = await getPublicDiscounts();
-                    console.log("Loaded public discounts:", publicDiscounts);
+                    
+                    // Only get ORDER_DISCOUNT category vouchers for checkout
+                    const publicDiscounts = await getPublicDiscounts({ category: 'ORDER_DISCOUNT' });
                     const publicVouchers = publicDiscounts.map(convertPublicToVoucherFormat);
-
+                    
                     // If authenticated, also try to get user's personal vouchers
                     if (isAuthenticated) {
                         try {
-                            console.log("User authenticated, loading personal vouchers...");
                             const myDiscountVouchers = await getMyVouchers();
-                            console.log("Loaded my discount vouchers:", myDiscountVouchers);
 
                             // Convert personal vouchers (from my-discounts API)
-                            const personalVouchers = myDiscountVouchers.map(convertPersonalToVoucherFormat);
+                            // Filter to only include ORDER_DISCOUNT category
+                            const orderDiscountVouchers = myDiscountVouchers
+                                .filter((discount: any) => discount.category === 'ORDER_DISCOUNT')
+                                .map(convertPersonalToVoucherFormat);
 
                             // Combine personal vouchers first, then public vouchers not already in personal list
-                            const personalVoucherCodes = personalVouchers.map(v => v.discountCode);
+                            const personalVoucherCodes = orderDiscountVouchers.map(v => v.discountCode);
                             const uniquePublicVouchers = publicVouchers.filter(v => !personalVoucherCodes.includes(v.discountCode));
 
-                            allVouchers = [...personalVouchers, ...uniquePublicVouchers];
-                            console.log("Combined vouchers:", allVouchers);
+                            allVouchers = [...orderDiscountVouchers, ...uniquePublicVouchers];
                         } catch (authError: any) {
-                            console.log("Failed to load personal vouchers, using public only:", authError);
                             // Continue with public vouchers only
                             allVouchers = publicVouchers;
                         }
                     } else {
-                        console.log("User not authenticated, showing public vouchers only");
                         allVouchers = publicVouchers;
                     }
 
@@ -165,6 +175,7 @@ const LegacyVoucherSelectionModal: React.FC<LegacyVoucherSelectionModalProps> = 
             vouchers={vouchers}
             loading={loading}
             isAuthenticated={isAuthenticated}
+            subtotal={subtotal}
         />
     );
 };

@@ -2,6 +2,35 @@ import { useState } from "react";
 import { ChipStatus } from "@/components/ui/chip-status";
 import { DetailIcon } from "@/components/icons";
 
+// Helper function to get full image URL
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl || imageUrl.trim() === '') return undefined;
+  
+  // Clean up the image URL
+  const cleanUrl = imageUrl.trim();
+  
+  // If already a full URL (http/https), return as is
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    return cleanUrl;
+  }
+  
+  // Get base URL from environment or default to localhost
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  
+  // If relative path starting with /, add base URL
+  if (cleanUrl.startsWith('/')) {
+    return `${baseUrl}${cleanUrl}`;
+  }
+  
+  // Handle common image paths from backend
+  if (cleanUrl.startsWith('uploads/') || cleanUrl.startsWith('static/')) {
+    return `${baseUrl}/${cleanUrl}`;
+  }
+  
+  // Default: assume it's from uploads directory
+  return `${baseUrl}/uploads/${cleanUrl}`;
+};
+
 export interface OrderTableColumn {
   title: string;
   width: string;
@@ -110,8 +139,30 @@ export const OrderTableRow = ({
         {/* Đơn hàng Column - flex-1 min-w-[300px] */}
         <div className="flex items-center gap-[10px] px-[16px] py-[12px] flex-1 min-w-[300px]">
           {/* Avatar */}
-          <div className="w-[40px] h-[40px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-montserrat font-semibold text-[14px]">
-            {(order.customer.name || "?").charAt(0).toUpperCase()}
+          <div className="w-[40px] h-[40px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-montserrat font-semibold text-[14px] overflow-hidden">
+            {order.customer.image ? (
+              <img
+                src={getImageUrl(order.customer.image)}
+                alt={order.customer.name}
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  // Fallback to letter avatar if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  const parent = target.parentElement;
+                  if (parent && !parent.querySelector('.letter-avatar')) {
+                    target.style.display = 'none';
+                    const letterDiv = document.createElement('div');
+                    letterDiv.className = 'letter-avatar flex items-center justify-center w-full h-full';
+                    letterDiv.textContent = (order.customer.name || "?").charAt(0).toUpperCase();
+                    parent.appendChild(letterDiv);
+                  }
+                }}
+              />
+            ) : (
+              <span className="letter-avatar">
+                {(order.customer.name || "?").charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           {/* Customer Info */}
           <div className="flex flex-col gap-[2px] flex-1 min-w-0">
@@ -200,17 +251,47 @@ export const OrderTableRow = ({
           >
             {/* Product Image and Info */}
             <div className="flex items-start gap-3 flex-1">
-              <div className="border border-[#d1d1d1] w-[48px] h-[48px] object-cover bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+              <div className="border border-[#d1d1d1] w-[48px] h-[48px] object-cover bg-gray-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
                 {product.image ? (
                   <img
-                    src={product.image}
+                    src={getImageUrl(product.image)}
                     alt={product.name}
                     className="w-full h-full object-cover rounded"
+                    onError={(e) => {
+                      // Better fallback handling when image fails to load
+                      const target = e.target as HTMLImageElement;
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector('.fallback-content')) {
+                        target.style.display = 'none';
+                        const fallbackDiv = document.createElement('div');
+                        fallbackDiv.className = 'fallback-content flex flex-col items-center justify-center w-full h-full bg-gray-100';
+                        
+                        if (product.sku) {
+                          fallbackDiv.innerHTML = `
+                            <svg class="w-4 h-4 text-gray-400 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="font-montserrat font-semibold text-[7px] text-gray-500 text-center px-1 leading-tight">${product.sku}</span>
+                          `;
+                        } else {
+                          fallbackDiv.innerHTML = `
+                            <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                            </svg>
+                          `;
+                        }
+                        
+                        parent.appendChild(fallbackDiv);
+                      }
+                    }}
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center w-full h-full">
+                  <div className="flex flex-col items-center justify-center w-full h-full bg-gray-100">
+                    <svg className="w-4 h-4 text-gray-400 mb-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
                     {product.sku && (
-                      <span className="font-montserrat font-semibold text-[8px] text-gray-500 text-center px-1 leading-tight">
+                      <span className="font-montserrat font-semibold text-[7px] text-gray-500 text-center px-1 leading-tight">
                         {product.sku}
                       </span>
                     )}

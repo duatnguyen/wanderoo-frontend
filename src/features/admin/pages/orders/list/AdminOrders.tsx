@@ -203,88 +203,88 @@ const AdminOrders: React.FC = () => {
 
       // Pre-calculate filter conditions to avoid repeated computations
       const orderSource = getOrderSource();
-      const shouldShowOrderBySource = 
-        orderSource === 'ALL' || 
+      const shouldShowOrderBySource =
+        orderSource === 'ALL' ||
         (orderSource === 'POS' && message.source === 'POS') ||
         (orderSource === 'WEBSITE' && message.source === 'WEBSITE');
-      
-      const shouldShowOrderByStatus = 
-        activeTab === 'ALL' || 
+
+      const shouldShowOrderByStatus =
+        activeTab === 'ALL' ||
         message.status === activeTab;
 
       let isNewOrder = false;
       let shouldUpdateCounts = false;
-      
+
       // Update order in the list if it exists or add new order
       setOrders((prevOrders) => {
         const orderIndex = prevOrders.findIndex(
           (o) => o.code === message.code || o.id === message.id
         );
-        
+
         if (orderIndex >= 0) {
           // Update existing order - only if something actually changed
           const existingOrder = prevOrders[orderIndex];
           if (JSON.stringify(existingOrder) !== JSON.stringify(message)) {
             const updatedOrders = [...prevOrders];
             updatedOrders[orderIndex] = message;
-            
+
             // Check if status changed to update counts
             if (existingOrder.status !== message.status) {
               shouldUpdateCounts = true;
             }
-            
+
             return updatedOrders;
           }
           return prevOrders; // No changes, return existing array
         } else {
           // This is a potentially new order
           isNewOrder = true;
-          
+
           // Only add to list if it matches current filters
           if (shouldShowOrderBySource && shouldShowOrderByStatus) {
             // Add new order to the beginning of the list (most recent first)
             const updatedOrders = [message, ...prevOrders];
-            
+
             // Keep only the first 10 orders to match page size
             if (updatedOrders.length > 10) {
               updatedOrders.splice(10);
             }
-            
+
             // Show toast notification for new order (throttled)
             const toastKey = `new-order-${message.code}`;
             if (!sessionStorage.getItem(toastKey)) {
               sessionStorage.setItem(toastKey, Date.now().toString());
               // Clear after 5 seconds to allow duplicate notifications later
               setTimeout(() => sessionStorage.removeItem(toastKey), 5000);
-              
+
               toast.success(`Đơn hàng mới: #${message.code}`, {
                 description: `Khách hàng: ${message.userInfo?.name || 'N/A'}`,
                 duration: 3000, // Reduced from 5000 to prevent notification spam
               });
             }
-            
+
             shouldUpdateCounts = true;
             return updatedOrders;
           }
         }
-        
+
         // If order doesn't match current filters, keep current data
         return prevOrders;
       });
-      
+
       // Update order counts only when necessary
       if (shouldUpdateCounts && (isNewOrder || message.status)) {
         setOrderCounts(prevCounts => {
           const statusKey = message.status?.toLowerCase() as keyof OrderCountResponse;
           const newCounts = { ...prevCounts };
-          
+
           if (isNewOrder) {
             newCounts.all = prevCounts.all + 1;
             if (statusKey && prevCounts[statusKey] !== undefined) {
               newCounts[statusKey] = (prevCounts[statusKey] || 0) + 1;
             }
           }
-          
+
           return newCounts;
         });
       }
@@ -475,7 +475,7 @@ const AdminOrders: React.FC = () => {
           price: formattedPrice,
           unitPrice: Number(unitPrice), // Store numeric price for calculations
           quantity: item.quantity || 0,
-          image: item.image || "", // Image if available
+          image: item.productImage || item.image || "", // Product image from API response
           sku: item.snapshotProductSku || item.sku || "",
           variantAttributes: variantAttributes,
         };

@@ -18,10 +18,13 @@ import {
   getWardsByPath,
 } from "../../../../api/endpoints/shippingApi";
 import type {
-  AddressResponse,
   AddressCreationRequest,
   AddressUpdateRequest,
 } from "../../../../types";
+import type {
+  AddressResponse,
+  AddressPageResponse,
+} from "../../../../types/auth";
 import type {
   ProvinceResponse,
   DistrictResponse,
@@ -175,21 +178,23 @@ const AddressTab: React.FC = () => {
   };
 
 
+
+
   // Fetch addresses from API
   const fetchAddresses = async () => {
     try {
       setIsLoading(true);
       const response = await getUserAddresses();
-      
+
       // Handle different response structures
       // getUserAddresses returns AddressPageResponse which has { addresses: AddressResponse[] }
       let addressesList: AddressResponse[] = [];
       if (Array.isArray(response)) {
         addressesList = response;
-      } else if (response?.addresses && Array.isArray(response.addresses)) {
-        addressesList = response.addresses;
+      } else if ((response as AddressPageResponse)?.addresses && Array.isArray((response as AddressPageResponse).addresses)) {
+        addressesList = (response as AddressPageResponse).addresses;
       }
-      
+
       const mappedAddresses: Address[] = addressesList.map(
         (addr: AddressResponse) => {
           // Format phone number - keep original format if already formatted
@@ -198,11 +203,11 @@ const AddressTab: React.FC = () => {
           if (phoneDisplay && !phoneDisplay.includes("+84") && !phoneDisplay.includes("(")) {
             // Format: (+84) 912345678
             const cleanedPhone = phoneDisplay.replace(/\D/g, "");
-            if (cleanedPhone.length >= 9) {
+            if (cleanedPhone.length >= 9 && cleanedPhone.length <= 11) {
               phoneDisplay = `(+84) ${cleanedPhone.slice(-9)}`;
             }
           }
-          
+
           // Build full address string - use fullAddress if available, otherwise build from parts
           let fullAddressString = "";
           if (addr.fullAddress) {
@@ -213,38 +218,47 @@ const AddressTab: React.FC = () => {
             if (addr.wardName) addressParts.push(addr.wardName);
             if (addr.districtName) addressParts.push(addr.districtName);
             if (addr.provinceName) addressParts.push(addr.provinceName);
+            // Fallback to legacy fields if new fields are not available
+            if (!addressParts.length) {
+              if (addr.location) addressParts.push(addr.location);
+              if (addr.ward) addressParts.push(addr.ward);
+              if (addr.district) addressParts.push(addr.district);
+              if (addr.province) addressParts.push(addr.province);
+            }
             fullAddressString = addressParts.join(", ");
           }
-          
+
           return {
             id: addr.id.toString(),
             name: addr.receiverName || addr.name || "",
             phone: phoneDisplay,
             address: fullAddressString,
-            province: addr.provinceName || "",
-            district: addr.districtName || "",
-            ward: addr.wardName || "",
-            detailAddress: addr.street || "",
+            province: addr.provinceName || addr.province || "",
+            district: addr.districtName || addr.district || "",
+            ward: addr.wardName || addr.ward || "",
+            detailAddress: addr.street || addr.location || "",
             isDefault:
               addr.isDefault === true ||
-              addr.isDefault === "Địa chỉ mặc định" ||
-              addr.isDefault === "true" ||
-              String(addr.isDefault).toLowerCase() === "true",
+              (typeof addr.isDefault === "string" && (
+                addr.isDefault === "Địa chỉ mặc định" ||
+                addr.isDefault === "true" ||
+                addr.isDefault.toLowerCase() === "true"
+              )),
             // API fields
             wardCode: addr.wardCode || "",
             districtId: addr.districtId || 0,
-            provinceName: addr.provinceName || "",
-            districtName: addr.districtName || "",
-            wardName: addr.wardName || "",
+            provinceName: addr.provinceName || addr.province || "",
+            districtName: addr.districtName || addr.district || "",
+            wardName: addr.wardName || addr.ward || "",
           };
         }
       );
-      
+
       // Sort: default addresses first
       mappedAddresses.sort((a, b) =>
         a.isDefault === b.isDefault ? 0 : a.isDefault ? -1 : 1
       );
-      
+
       setAddresses(mappedAddresses);
     } catch (error: any) {
       console.error("Error fetching addresses:", error);
@@ -269,41 +283,60 @@ const AddressTab: React.FC = () => {
           const addressDetail = await getAddressById(addressId);
 
           // Find province ID from name
-          const provinceId = addressDetail.provinceName
-            ? getProvinceIdByName(addressDetail.provinceName)
-            : null;
+          let provinceId: number | null = null;
+          if (addressDetail.provinceName) {
+            provinceId = getProvinceIdByName(addressDetail.provinceName);
+          }
 
           // Load districts if we have province
+          let districtId: number | null = null;
           if (provinceId) {
-            await fetchDistricts(provinceId);
+            try {
+              await fetchDistricts(provinceId);
 
-            // Find district ID from name
-            const districtId = addressDetail.districtName
-              ? getDistrictIdByName(addressDetail.districtName)
-              : null;
+              // Find district ID from name after districts are loaded
+              if (addressDetail.districtName) {
+                districtId = getDistrictIdByName(addressDetail.districtName);
+              }
 
-            // Load wards if we have district
-            if (districtId) {
-              await fetchWards(districtId);
+              // Load wards if we have district
+              if (districtId) {
+                try {
+                  await fetchWards(districtId);
+                } catch (error) {
+                  console.warn("Failed to load wards for district:", districtId);
+                }
+              }
+            } catch (error) {
+              console.warn("Failed to load districts for province:", provinceId);
             }
+          }
+
+          // Clean phone number safely
+          let cleanPhone = "";
+          const rawPhone = addressDetail.receiverPhone || addressDetail.phone || "";
+          if (rawPhone) {
+            cleanPhone = rawPhone
+              .replace(/[()]/g, "")
+              .replace("+84", "")
+              .replace(/\s/g, "")
+              .replace(/^0/, ""); // Remove leading 0 if present
           }
 
           setFormData({
             name: addressDetail.receiverName || addressDetail.name || "",
-            phone: (addressDetail.receiverPhone || addressDetail.phone || "")
-              .replace(/[()]/g, "")
-              .replace("+84 ", "")
-              .replace(/\s/g, ""),
+            phone: cleanPhone,
             province: provinceId ? provinceId.toString() : "",
-            district: addressDetail.districtId
-              ? addressDetail.districtId.toString()
-              : "",
+            district: districtId ? districtId.toString() : "",
             ward: addressDetail.wardCode || "",
             detailAddress: addressDetail.street || "",
             isDefault:
               addressDetail.isDefault === true ||
-              addressDetail.isDefault === "Địa chỉ mặc định" ||
-              addressDetail.isDefault === "true",
+              (typeof addressDetail.isDefault === "string" && (
+                addressDetail.isDefault === "Địa chỉ mặc định" ||
+                addressDetail.isDefault === "true" ||
+                addressDetail.isDefault.toLowerCase() === "true"
+              )),
           });
         } catch (error: any) {
           console.error("Error loading address:", error);
@@ -386,6 +419,12 @@ const AddressTab: React.FC = () => {
       message.error("Vui lòng nhập số điện thoại");
       return;
     }
+    // Validate phone number format (9-11 digits)
+    const cleanedPhone = formData.phone.replace(/\D/g, "");
+    if (cleanedPhone.length < 9 || cleanedPhone.length > 11) {
+      message.error("Số điện thoại không hợp lệ (9-11 chữ số)");
+      return;
+    }
     if (!formData.province || !formData.district || !formData.ward) {
       message.error("Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện, Phường/Xã");
       return;
@@ -452,8 +491,13 @@ const AddressTab: React.FC = () => {
         message.success("Đã thêm địa chỉ mới");
 
         // If setting as default, call setDefaultAddress
-        if (formData.isDefault && response.data) {
-          await setDefaultAddress(response.data);
+        if (formData.isDefault && response?.data) {
+          try {
+            await setDefaultAddress(response.data);
+          } catch (defaultError) {
+            console.warn("Failed to set as default address:", defaultError);
+            message.warning("Đã thêm địa chỉ nhưng không thể đặt làm mặc định");
+          }
         }
       }
 

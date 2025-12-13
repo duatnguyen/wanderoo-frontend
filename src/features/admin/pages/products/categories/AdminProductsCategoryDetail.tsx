@@ -466,6 +466,25 @@ const AdminProductsCategoryDetail: React.FC = () => {
     );
   }
 
+  const handleRemoveImage = async (category: CategoryChildResponse) => {
+    if (!category.imageUrl) return;
+    
+    setPendingCategoryId(category.id);
+    try {
+      await updateCategoryMutation.mutateAsync({
+        payload: {
+          id: category.id,
+          name: category.name,
+          imageUrl: "",
+        },
+        status: category.status,
+        successMessage: "Đã xoá hình ảnh danh mục con",
+      });
+    } finally {
+      setPendingCategoryId(null);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2 items-center w-full">
       <div className="flex items-center justify-between w-full">

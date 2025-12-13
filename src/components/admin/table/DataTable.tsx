@@ -100,10 +100,10 @@ export const DataTable = <T extends Record<string, any>>({
   return (
     <div className={`flex flex-col gap-[12px] ${className}`}>
       {/* Table */}
-      <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-[16px] w-full overflow-x-auto">
+      <div className="border-[0.5px] border-[#d1d1d1] flex flex-col items-start rounded-lg w-full overflow-x-auto">
         {/* Table Header */}
         <div
-          className={`bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-tl-[16px] rounded-tr-[16px] w-full h-[58px] ${headerClassName}`}
+          className={`bg-[#f6f6f6] flex items-center px-[12px] py-0 rounded-t-lg w-full h-[58px] ${headerClassName}`}
         >
           <div className="flex flex-row items-center w-full h-full">
             {/* Checkbox column */}

@@ -6,6 +6,8 @@ import {
   Package,
   XCircle,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageContainer, ContentCard } from "@/components/common";
@@ -25,7 +27,6 @@ import {
 
 
 import AdminPaymentTable, { type AdminPaymentItem } from '../../../../../components/admin/order/AdminPaymentTable';
-import PaymentDetailsCard from '../../../../../components/admin/order/PaymentDetailsCard';
 import DeliveryConfirmationPopupWebsite from '../../../../../components/admin/order/DeliveryConfirmationPopupWebsite';
 import CancelOrderConfirmationPopupWebsite from '../../../../../components/admin/order/CancelOrderConfirmationPopupWebsite';
 import ActionButtonsWebsite from '../../../../../components/admin/order/ActionButtonsWebsite';
@@ -78,8 +79,10 @@ const AdminOrderDetailWebsite: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isEditingShippingStatus, setIsEditingShippingStatus] = useState(false);
   const [selectedShippingStatus, setSelectedShippingStatus] = useState<string>("");
+  const [cancelReason, setCancelReason] = useState<string>("");
   const [updatingShippingStatus, setUpdatingShippingStatus] = useState(false);
   const [showUpdateShippingStatusDialog, setShowUpdateShippingStatusDialog] = useState(false);
+  const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
@@ -247,7 +250,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
   };
 
   const handleCancelConfirm = async () => {
-    if (!orderData?.id) return;
+    if (!orderData?.id || !cancelReason) return;
 
     try {
       setConfirmingOrder(true);
@@ -255,6 +258,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
       // Reload order data after cancellation
       await loadOrderDetail(orderData.code || orderCode);
       setShowCancelOrderDialog(false);
+      setCancelReason("");
       toast.success("Đơn hàng đã được hủy thành công!");
     } catch (error: any) {
       console.error("Error canceling order:", error);
@@ -625,7 +629,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
             items={(orderData.orderDetails || []).map((item): AdminPaymentItem => ({
               id: item.id,
               name: item.snapshotProductName || "Sản phẩm không tên",
-              image: undefined,
+              productImage: item.productImage,
               unitPrice: item.snapshotProductPrice, // Giá gốc
               discountAmount: item.snapshotDiscountAmount, // Số tiền được giảm
               finalPrice: item.snapshotFinalPrice, // Giá cuối cùng sau giảm
@@ -641,29 +645,157 @@ const AdminOrderDetailWebsite: React.FC = () => {
             }))}
             formatCurrency={formatCurrency}
             summary={
-              <div className="flex items-center w-full justify-between py-3 px-4 bg-[#f8f9fa] border-t border-[#e7e7e7]">
-                <div className="flex flex-col gap-1">
-                  <span className="font-montserrat font-bold text-[14px] text-gray-800">
-                    Tổng tiền sản phẩm (sau giảm giá)
-                  </span>
-                  <span className="font-montserrat text-[12px] text-gray-600">
-                    Tổng giảm giá: {formatCurrency((orderData.orderDetails || []).reduce((sum, item) => sum + (item.snapshotDiscountAmount * item.quantity), 0))}
-                  </span>
+              <div className="w-full border-t border-[#e7e7e7]">
+                {/* Collapsible Header with Payment Status */}
+                <div
+                  className="flex items-center w-full justify-between py-3 px-4 bg-[#f8f9fa] cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="font-montserrat font-bold text-[14px] text-gray-800">
+                      Chi tiết thanh toán
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-montserrat text-[12px] text-gray-600">
+                        Tổng thanh toán: {formatCurrency(orderData.totalOrderPrice || 0)}
+                      </span>
+                      <div className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 ${orderData.paymentStatus === "PAID" ? "text-green-700 bg-green-100" :
+                        orderData.paymentStatus === "PENDING" ? "text-yellow-700 bg-yellow-100" :
+                          orderData.paymentStatus === "FAILED" ? "text-red-700 bg-red-100" :
+                            "text-gray-700 bg-gray-100"
+                        }`}>
+                        {orderData.paymentStatus === "PAID" ? "✓" :
+                          orderData.paymentStatus === "PENDING" ? "⏰" :
+                            orderData.paymentStatus === "FAILED" ? "✗" : "?"}
+                        {orderData.paymentStatus === "PAID" ? "Đã thanh toán" :
+                          orderData.paymentStatus === "PENDING" ? "Chờ thanh toán" :
+                            orderData.paymentStatus === "FAILED" ? "Thanh toán thất bại" :
+                              "Không xác định"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {isSummaryExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-gray-600" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-600" />
+                    )}
+                  </div>
                 </div>
-                <span className="font-montserrat font-bold text-[16px] text-blue-600">
-                  {formatCurrency((orderData.orderDetails || []).reduce((sum, item) => sum + (item.snapshotFinalPrice * item.quantity), 0))}
-                </span>
+
+                {/* Collapsible Content */}
+                {isSummaryExpanded && (
+                  <>
+                    {/* Payment Details Section */}
+                    <div className="bg-white px-4 py-4 border-t border-gray-100">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Left Column: Order Breakdown */}
+                        <div className="space-y-3">
+                          <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 h-full">
+                            <h4 className="font-montserrat font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                              <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
+                              Chi tiết đơn hàng
+                            </h4>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Tổng tiền hàng</span>
+                                <span className="font-medium">{formatCurrency(orderData.totalProductPrice || 0)}</span>
+                              </div>
+                              {(orderData.productDiscountAmount || 0) > 0 && (
+                                <div className="flex justify-between items-center text-green-600">
+                                  <span>Giảm giá sản phẩm</span>
+                                  <span>-{formatCurrency(orderData.productDiscountAmount || 0)}</span>
+                                </div>
+                              )}
+                              {(orderData.totalDiscountAmount || 0) > (orderData.productDiscountAmount || 0) && (
+                                <div className="flex justify-between items-center text-orange-600">
+                                  <span>Giảm giá đơn hàng</span>
+                                  <span>-{formatCurrency((orderData.totalDiscountAmount || 0) - (orderData.productDiscountAmount || 0))}</span>
+                                </div>
+                              )}
+                              {(orderData.totalDiscountAmount || 0) > 0 && (
+                                <div className="flex justify-between items-center text-green-600 bg-green-50 px-2 py-1 rounded">
+                                  <span className="font-medium">Tổng giảm giá</span>
+                                  <span className="font-bold">-{formatCurrency(orderData.totalDiscountAmount || 0)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center font-medium border-t border-dashed border-gray-300 pt-2">
+                                <span className="text-blue-700">Thành tiền sản phẩm</span>
+                                <span className="text-blue-700">{formatCurrency((orderData.totalProductPrice || 0) - (orderData.totalDiscountAmount || 0))}</span>
+                              </div>
+                              <div className="flex justify-between items-center pt-1">
+                                <span className="text-gray-600">Phí vận chuyển</span>
+                                <span className="font-medium">{formatCurrency(orderData.shippingFee || 0)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Column: Payment Info & Total */}
+                        <div className="space-y-3">
+                          <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 h-full flex flex-col">
+                            <div className="mb-4">
+                              <h4 className="font-montserrat font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                                <div className="w-1.5 h-4 bg-purple-500 rounded-full"></div>
+                                Thông tin thanh toán
+                              </h4>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <span className="text-xs text-gray-500 block mb-1">Trạng thái</span>
+                                  <div className={`px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 w-fit ${orderData.paymentStatus === "PAID" ? "text-green-700 bg-green-50 border border-green-200" :
+                                    orderData.paymentStatus === "PENDING" ? "text-yellow-700 bg-yellow-50 border border-yellow-200" :
+                                      orderData.paymentStatus === "FAILED" ? "text-red-700 bg-red-50 border border-red-200" :
+                                        "text-gray-700 bg-gray-50 border border-gray-200"
+                                    }`}>
+                                    {orderData.paymentStatus === "PAID" ? "✓" :
+                                      orderData.paymentStatus === "PENDING" ? "⏰" :
+                                        orderData.paymentStatus === "FAILED" ? "✗" : "?"}
+                                    {orderData.paymentStatus === "PAID" ? "Đã thanh toán" :
+                                      orderData.paymentStatus === "PENDING" ? "Chờ thanh toán" :
+                                        orderData.paymentStatus === "FAILED" ? "Thanh toán thất bại" :
+                                          "Không xác định"}
+                                  </div>
+                                </div>
+                                <div>
+                                  <span className="text-xs text-gray-500 block mb-1">Phương thức</span>
+                                  <div className={`px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 w-fit ${orderData.method === "CASH" ? "text-blue-700 bg-blue-50 border border-blue-200" :
+                                    orderData.method === "BANKING" ? "text-purple-700 bg-purple-50 border border-purple-200" :
+                                      "text-gray-700 bg-gray-50 border border-gray-200"
+                                    }`}>
+                                    {orderData.method === "CASH" ? "💵" : orderData.method === "BANKING" ? "🏦" : "?"}
+                                    {orderData.method === "CASH" ? "Tiền mặt" :
+                                      orderData.method === "BANKING" ? "Chuyển khoản" :
+                                        "Chưa xác định"}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-auto border-t border-gray-200 pt-3 space-y-2">
+                              {(orderData.totalDiscountAmount || 0) > 0 && (
+                                <div className="flex justify-between items-center text-green-600 text-xs bg-green-50 p-2 rounded">
+                                  <span className="font-medium">Tổng tiết kiệm</span>
+                                  <span className="font-bold">-{formatCurrency(orderData.totalDiscountAmount || 0)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <span className="font-montserrat font-bold text-gray-800">Tổng thanh toán</span>
+                                <span className="font-montserrat text-xl font-bold text-red-600">{formatCurrency(orderData.totalOrderPrice || 0)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             }
             disabled={orderData!.status === "CANCELED"}
           />
 
-          {/* Payment Details Card */}
-          <PaymentDetailsCard
-            orderData={orderData!}
-            formatCurrency={formatCurrency}
-            disabled={orderData!.status === "CANCELED"}
-          />
+
 
           {/* Action Buttons */}
           <ActionButtonsWebsite
@@ -750,13 +882,8 @@ const AdminOrderDetailWebsite: React.FC = () => {
                   {/* Only show available status transitions based on current status */}
                   {orderData?.shippingStatus !== "DELIVERED" && orderData?.shippingStatus !== "CANCEL" && (
                     <>
-                      <option value="READY_TO_PICK">Chờ lấy hàng</option>
-                      <option value="PICKING">Đang lấy hàng</option>
-                      <option value="PICKED">Đã lấy hàng</option>
-                      <option value="DELIVERING">Đang giao hàng</option>
                       <option value="DELIVERED">Giao hàng thành công</option>
                       <option value="DELIVERY_FAIL">Giao hàng thất bại</option>
-                      <option value="RETURNED">Đã hoàn hàng</option>
                       <option value="CANCEL">Đã hủy</option>
                     </>
                   )}
@@ -814,6 +941,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </PageContainer>
   );
 };

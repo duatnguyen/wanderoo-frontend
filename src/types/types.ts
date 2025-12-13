@@ -9,6 +9,7 @@ export interface ProductVariant {
   posQuantity: number;
   sellingPrice: string;
   costPrice: string;
+  image?: string;
 }
 
 export interface Product {

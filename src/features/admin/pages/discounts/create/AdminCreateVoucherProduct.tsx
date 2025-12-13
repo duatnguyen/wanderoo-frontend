@@ -175,29 +175,29 @@ const AdminCreateVoucherProduct: React.FC = () => {
     const scrollToTop = () => {
       // Method 1: Scroll window
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      
+
       // Method 2: Scroll document elements
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      
+
       // Method 3: Scroll using ref element
       if (topElementRef.current) {
         topElementRef.current.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
       }
-      
+
       // Method 4: Scroll main container if it exists
       const mainContainer = document.querySelector('.w-full.overflow-x-auto.min-h-screen');
       if (mainContainer) {
         (mainContainer as HTMLElement).scrollTop = 0;
         (mainContainer as HTMLElement).scrollLeft = 0;
       }
-      
+
       // Method 5: Scroll to header element
       const header = document.querySelector('h1.font-montserrat');
       if (header) {
         (header as HTMLElement).scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
       }
-      
+
       // Method 6: Try to find and scroll any scrollable parent
       const scrollableParents = document.querySelectorAll('[style*="overflow"], [class*="overflow"]');
       scrollableParents.forEach((parent) => {
@@ -207,7 +207,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
         }
       });
     };
-    
+
     // Immediate scroll
     scrollToTop();
     // Try multiple times with delays to ensure it works
@@ -216,7 +216,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
     const timeoutId3 = setTimeout(scrollToTop, 50);
     const timeoutId4 = setTimeout(scrollToTop, 100);
     const timeoutId5 = setTimeout(scrollToTop, 200);
-    
+
     return () => {
       clearTimeout(timeoutId1);
       clearTimeout(timeoutId2);
@@ -274,7 +274,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
   // Fetch products
   const fetchProducts = useCallback(async () => {
     if (!isProductModalOpen) return;
-    
+
     setIsLoadingProducts(true);
     try {
       const params = {
@@ -286,8 +286,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
       setProducts(response?.productResponseList ?? []);
       setTotalPages(
         response?.totalPages ??
-          response?.totalPage ??
-          Math.max(1, Math.ceil((response?.totalProducts ?? 1) / itemsPerPage))
+        response?.totalPage ??
+        Math.max(1, Math.ceil((response?.totalProducts ?? 1) / itemsPerPage))
       );
     } catch (error) {
       console.error("Không thể tải danh sách sản phẩm", error);
@@ -394,7 +394,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
     if (variantLoadingMap[productId] || productVariantsMap[productId]) {
       return;
     }
-    
+
     setVariantLoadingMap((prev) => ({ ...prev, [productId]: true }));
     try {
       const response = await getProductVariantsPrivate(Number(productId), {
@@ -546,13 +546,11 @@ const AdminCreateVoucherProduct: React.FC = () => {
             onChange();
           }
         }}
-        className={`w-[16px] h-[16px] border-2 rounded flex items-center justify-center transition-colors ${
-          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-        } ${
-          checked
+        className={`w-[16px] h-[16px] border-2 rounded flex items-center justify-center transition-colors ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          } ${checked
             ? "bg-[#e04d30] border-[#e04d30]"
             : "bg-white border-[#d1d5db]"
-        }`}
+          }`}
         aria-disabled={disabled}
       >
         {checked && (
@@ -658,7 +656,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
     console.log("shouldFetchProductDetails computed:", should, "fetchDiscountId:", fetchDiscountId, "category:", discountDetail?.category);
     return should;
   }, [fetchDiscountId, discountDetail?.category]);
-  
+
   const { data: productDetailIds, isLoading: isLoadingProductDetailIds, error: productDetailIdsError } = useQuery({
     queryKey: ["admin-discount-product-details", fetchDiscountId],
     queryFn: async () => {
@@ -697,35 +695,22 @@ const AdminCreateVoucherProduct: React.FC = () => {
   useEffect(() => {
     const loadProductDetails = async () => {
       if (!fetchDiscountId) {
-        console.log("No fetchDiscountId, skipping load");
         return;
       }
-      
+
       if (isLoadingProductDetailIds) {
-        console.log("Still loading product detail IDs, waiting...");
         return;
       }
-      
-      console.log("=== Loading product details ===");
-      console.log("productDetailIds:", productDetailIds);
-      console.log("discountDetail category:", discountDetail?.category);
-      console.log("isLoadingProductDetailIds:", isLoadingProductDetailIds);
-      
-      // Check if we have product detail IDs
-      console.log("Checking productDetailIds:", productDetailIds);
-      console.log("Type of productDetailIds:", typeof productDetailIds);
-      console.log("Is array?", Array.isArray(productDetailIds));
-      console.log("Length:", productDetailIds?.length);
-      
+
       if (productDetailIds && Array.isArray(productDetailIds) && productDetailIds.length > 0) {
         try {
           console.log(`Loading ${productDetailIds.length} product details...`);
-          
+
           // Load all products once to avoid multiple API calls
           const allProductsResponse = await getAllProductsPrivate({ page: 0, size: 1000 });
           const allProductsCache = allProductsResponse?.productResponseList ?? [];
           console.log(`Loaded ${allProductsCache.length} products for searching`);
-          
+
           // Load all variant details in parallel for better performance
           const variantDetailPromises = productDetailIds.map(productDetailId =>
             getVariantDetailPrivate(productDetailId).catch(error => {
@@ -733,21 +718,24 @@ const AdminCreateVoucherProduct: React.FC = () => {
               return null;
             })
           );
-          
+
           const variantDetails = await Promise.all(variantDetailPromises);
-          
+
           const productDetails: VoucherProduct[] = [];
-          
-          variantDetails.forEach((variantDetail, index) => {
-            if (!variantDetail) return;
-            
+
+          variantDetails.forEach((detail, index) => {
+            if (!detail) return;
+
+            // Cast to any to avoid type errors as VariantResponse definition is incomplete
+            const variantDetail = detail as any;
+
             const productDetailId = productDetailIds[index];
-            
+
             // Find the product that contains this variant
-            const product = allProductsCache.find(p => 
+            const product = allProductsCache.find(p =>
               p.productDetails?.some(pd => pd.id === productDetailId)
             );
-            
+
             if (product) {
               const variant = product.productDetails?.find(pd => pd.id === productDetailId);
               if (variant) {
@@ -769,9 +757,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
                 : variantDetail.imageUrl || "";
               const variantName =
                 variantDetail.productName
-                  ? `${variantDetail.productName}${
-                      variantDetail.nameDetail ? ` - ${variantDetail.nameDetail}` : ""
-                    }`
+                  ? `${variantDetail.productName}${variantDetail.nameDetail ? ` - ${variantDetail.nameDetail}` : ""
+                  }`
                   : variantDetail.nameDetail || `Product Detail ${productDetailId}`;
 
               productDetails.push({
@@ -789,7 +776,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
               console.log(`Loaded variant directly: ${variantName}`);
             }
           });
-          
+
           console.log(`Successfully loaded ${productDetails.length} product details`);
           console.log("Product details:", productDetails);
           setConfirmedProducts(productDetails);
@@ -884,7 +871,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
           .filter((id): id is number => id !== null && !Number.isNaN(id));
 
         console.log("Extracted product detail IDs:", productDetailIds);
-        
+
         if (productDetailIds.length > 0) {
           try {
             await applyDiscountToProducts(discountId, productDetailIds);
@@ -909,7 +896,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
       updateDiscount(id, payload),
     onSuccess: async (_, variables) => {
       const discountId = variables.id;
-      
+
       // Get old product detail IDs
       let oldProductDetailIds: number[] = [];
       try {
@@ -1036,7 +1023,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
 
   const buildPayload = (): AdminDiscountCreateRequest => {
     const quantity = formData.maxUsage ? Number(formData.maxUsage) : 1;
-    
+
     // Parse discountUsage - send null if empty to ensure backend updates the field
     const discountUsageValue = formData.maxUsagePerCustomer?.trim();
     let discountUsage: number | null = null;
@@ -1047,12 +1034,6 @@ const AdminCreateVoucherProduct: React.FC = () => {
       }
     }
     // If empty, keep as null (not undefined) so backend knows to clear/update the field
-    
-    console.log("Building payload:");
-    console.log("  - maxUsagePerCustomer (raw):", formData.maxUsagePerCustomer);
-    console.log("  - discountUsage (parsed):", discountUsage);
-    console.log("  - quantity:", quantity);
-    
     const payload: AdminDiscountCreateRequest = {
       name: formData.voucherName.trim(),
       code: formData.voucherCode.trim().toUpperCase(),
@@ -1074,9 +1055,9 @@ const AdminCreateVoucherProduct: React.FC = () => {
       status: "ENABLE",
       description: formData.description?.trim() || null,
     };
-    
+
     console.log("Final payload:", JSON.stringify(payload, null, 2));
-    
+
     return payload;
   };
 
@@ -1127,313 +1108,308 @@ const AdminCreateVoucherProduct: React.FC = () => {
           onSubmit={handleSubmit}
           className="flex flex-col gap-[16px] w-full flex-shrink-0"
         >
-          {/* Basic Information Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0">
-            {/* Title Section */}
-            <div className="flex flex-col gap-[8px]">
-              <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
-                Thông tin cơ bản
-              </h2>
-            </div>
-
-            {/* Voucher Type Indicator */}
-            <div className="w-full flex justify-center">
-              <div className="bg-[#e04d30] border border-white rounded-[12px] h-[52px] px-[16px] flex items-center gap-[4px]">
-                <CreditCardPercentIcon size={24} color="#FFFFFF" />
-                <span className="font-semibold text-[20px] text-white leading-[1.4]">
-                  Voucher sản phẩm
-                </span>
-              </div>
-            </div>
-
-            {/* Form Fields */}
-            <div className="flex flex-col gap-[16px]">
-              {/* Voucher Name Field */}
-              <div className="flex flex-row items-start gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                  Tên chương trình giảm giá
-                </label>
-                <div className="flex-1">
-                  <FormInput
-                    placeholder="Nhập tên chương trình giảm giá"
-                    value={formData.voucherName}
-                    onChange={(e) =>
-                      handleInputChange("voucherName", e.target.value)
-                    }
-                    containerClassName="h-[36px] w-[873px]"
-                    required
-                    maxLength={100}
-                    right={
-                      <span className="text-[12px] text-[#888888] font-medium">
-                        {formData.voucherName.length}/100
-                      </span>
-                    }
-                  />
-                  <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4]">
-                    Tên voucher sẽ không được hiển thị cho người mua
-                  </p>
-                </div>
+          {/* Two Column Layout: Basic Information and Voucher Settings */}
+          <div className="flex flex-col lg:flex-row gap-[16px] w-full">
+            {/* Basic Information Section */}
+            <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[8px] w-full lg:w-1/2 overflow-hidden flex-shrink-0">
+              {/* Title Section */}
+              <div className="flex flex-col gap-[8px]">
+                <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
+                  Thông tin cơ bản
+                </h2>
               </div>
 
-              {/* Voucher Code Field */}
-              <div className="flex flex-row items-start gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                  Mã voucher
-                </label>
-                <div className="flex-1">
-                  <FormInput
-                    placeholder="Nhập mã voucher"
-                    value={formData.voucherCode}
-                    onChange={(e) =>
-                      handleInputChange("voucherCode", e.target.value)
-                    }
-                    containerClassName="h-[36px] w-[873px]"
-                    required
-                    maxLength={10}
-                    right={
-                      <span className="text-[12px] text-[#888888] font-medium">
-                        {formData.voucherCode.length}/10
-                      </span>
-                    }
-                  />
-                </div>
-              </div>
 
-              {/* Date Range Field */}
-              <div className="flex flex-row items-start gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                  Thời gian sử dụng mã
-                </label>
-                <div className="flex-1 w-full flex flex-row gap-[4px] items-center flex-shrink-0">
-                  {/* Start DateTime */}
-                  <div className="flex-shrink-0">
+
+              {/* Form Fields */}
+              <div className="flex flex-col gap-[16px] w-full">
+                {/* Voucher Name Field */}
+                <div className="flex flex-col sm:flex-row items-start gap-[16px]">
+                  <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[180px] flex-shrink-0 sm:text-right">
+                    Tên chương trình giảm giá
+                  </label>
+                  <div className="flex-1 w-full min-w-0">
                     <FormInput
-                      type="datetime-local"
-                      value={formatDateTimeForInput(formData.startDate)}
+                      placeholder="Nhập tên chương trình giảm giá"
+                      value={formData.voucherName}
                       onChange={(e) =>
-                        handleInputChange("startDate", e.target.value)
-                      }
-                      min={minDateTime}
-                      containerClassName="h-[36px] w-[240px]"
-                      className={!formData.startDate ? "opacity-50" : ""}
-                    />
-                  </div>
-
-                  {/* Dash Separator - hidden on mobile */}
-                  <div className="hidden sm:flex items-center justify-center text-[#272424] px-[4px]">
-                    -
-                  </div>
-
-                  {/* End DateTime */}
-                  <div className="flex-shrink-0">
-                    <FormInput
-                      type="datetime-local"
-                      value={formatDateTimeForInput(formData.endDate)}
-                      onChange={(e) =>
-                        handleInputChange("endDate", e.target.value)
-                      }
-                      min={
-                        formatDateTimeForInput(formData.startDate) || minDateTime
-                      }
-                      containerClassName="h-[36px] w-[240px]"
-                      className={!formData.endDate ? "opacity-50" : ""}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Voucher Settings Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[8px] w-full overflow-hidden flex-shrink-0">
-            {/* Title Section */}
-            <div className="flex flex-col gap-[8px]">
-              <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
-                Thiết lập mã giảm giá
-              </h2>
-            </div>
-
-            {/* Form Fields */}
-            <div className="px-0 py-[12px] flex flex-col gap-[16px]">
-              {/* Discount Type and Value Row */}
-              <div className="flex flex-row items-start gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                  Loại giảm giá | Mức giảm
-                </label>
-                <div className="flex-1 flex flex-row gap-[16px] items-start flex-shrink-0 w-[873px]">
-                  {/* Discount Type Dropdown */}
-                  <div className="w-[164px] flex-shrink-0">
-                    <DropdownMenu
-                      open={isDropdownOpen}
-                      onOpenChange={setIsDropdownOpen}
-                    >
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-[164px] justify-between h-[36px] border-[#e04d30] border-[1.6px] rounded-[12px] px-[16px] whitespace-nowrap hover:bg-[#e04d30]/5 "
-                        >
-                          <span className="font-medium text-[13px] text-[#272424]">
-                            {formData.discountType === "percentage"
-                              ? "Theo phần trăm"
-                              : "Theo số tiền"}
-                          </span>
-                          <Icon
-                            name="chevron-down"
-                            size={11}
-                            color="#272424"
-                            className="ml-2"
-                          />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-auto min-w-fit">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            handleInputChange("discountType", "percentage");
-                            setIsDropdownOpen(false);
-                          }}
-                        >
-                          Theo phần trăm
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            handleInputChange("discountType", "fixed");
-                            setIsDropdownOpen(false);
-                          }}
-                        >
-                          Theo số tiền
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {/* Discount Value Input */}
-                  <div className="flex-1">
-                    <FormInput
-                      placeholder={
-                        formData.discountType === "percentage" ? "Nhập giá trị lớn hơn 1%" : "đ"
-                      }
-                      value={
-                        formData.discountType === "percentage"
-                          ? formData.discountValue
-                          : formatNumber(formData.discountValue)
-                      }
-                      onChange={(e) =>
-                        handleInputChange("discountValue", e.target.value)
+                        handleInputChange("voucherName", e.target.value)
                       }
                       containerClassName="h-[36px] w-full"
                       required
+                      maxLength={100}
+                      right={
+                        <span className="text-[12px] text-[#888888] font-medium">
+                          {formData.voucherName.length}/100
+                        </span>
+                      }
                     />
-                    {discountValueError && (
+                    <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4]">
+                      Tên voucher sẽ không được hiển thị cho người mua
+                    </p>
+                  </div>
+                </div>
+
+                {/* Voucher Code Field */}
+                <div className="flex flex-col sm:flex-row items-start gap-[16px]">
+                  <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[180px] flex-shrink-0 sm:text-right">
+                    Mã voucher
+                  </label>
+                  <div className="flex-1 w-full min-w-0">
+                    <FormInput
+                      placeholder="Nhập mã voucher"
+                      value={formData.voucherCode}
+                      onChange={(e) =>
+                        handleInputChange("voucherCode", e.target.value)
+                      }
+                      containerClassName="h-[36px] w-full"
+                      required
+                      maxLength={10}
+                      right={
+                        <span className="text-[12px] text-[#888888] font-medium">
+                          {formData.voucherCode.length}/10
+                        </span>
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Date Range Field */}
+                <div className="flex flex-col sm:flex-row items-start gap-[16px]">
+                  <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[180px] flex-shrink-0 sm:text-right">
+                    Thời gian sử dụng mã
+                  </label>
+                  <div className="flex-1 w-full min-w-0 flex flex-col md:flex-row gap-[8px] md:gap-[4px] items-stretch md:items-center">
+                    {/* Start DateTime */}
+                    <div className="flex-1 w-full md:min-w-0 md:flex-1">
+                      <FormInput
+                        type="datetime-local"
+                        value={formatDateTimeForInput(formData.startDate)}
+                        onChange={(e) =>
+                          handleInputChange("startDate", e.target.value)
+                        }
+                        min={minDateTime}
+                        containerClassName="h-[36px] w-full"
+                        className={!formData.startDate ? "opacity-50" : ""}
+                      />
+                    </div>
+
+                    {/* Dash Separator - hidden on mobile, shown on md and up */}
+                    <div className="hidden md:flex items-center justify-center text-[#272424] px-[4px] flex-shrink-0">
+                      -
+                    </div>
+
+                    {/* End DateTime */}
+                    <div className="flex-1 w-full md:min-w-0 md:flex-1">
+                      <FormInput
+                        type="datetime-local"
+                        value={formatDateTimeForInput(formData.endDate)}
+                        onChange={(e) =>
+                          handleInputChange("endDate", e.target.value)
+                        }
+                        min={
+                          formatDateTimeForInput(formData.startDate) || minDateTime
+                        }
+                        containerClassName="h-[36px] w-full"
+                        className={!formData.endDate ? "opacity-50" : ""}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Voucher Settings Section */}
+            <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[16px] items-start p-[24px] relative rounded-[8px] w-full lg:w-1/2 overflow-hidden flex-shrink-0">
+              {/* Title Section */}
+              <div className="flex flex-col gap-[8px]">
+                <h2 className="font-montserrat font-bold text-[18px] text-[#272424] leading-[normal]">
+                  Thiết lập mã giảm giá
+                </h2>
+              </div>
+
+              {/* Form Fields */}
+              <div className="flex flex-col gap-[16px] w-full">
+                {/* Discount Type and Value Row */}
+                <div className="flex flex-col sm:flex-row items-start gap-[16px]">
+                  <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[180px] flex-shrink-0 sm:text-right">
+                    Loại giảm giá | Mức giảm
+                  </label>
+                  <div className="flex-1 w-full min-w-0 flex flex-col sm:flex-row gap-[12px] sm:gap-[16px] items-start">
+                    {/* Discount Type Dropdown */}
+                    <div className="w-full sm:w-[160px] flex-shrink-0">
+                      <DropdownMenu
+                        open={isDropdownOpen}
+                        onOpenChange={setIsDropdownOpen}
+                      >
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full sm:w-[160px] justify-between h-[36px] border-[#e04d30] border-[1.6px] rounded-[12px] px-[16px] whitespace-nowrap hover:bg-[#e04d30]/5 "
+                          >
+                            <span className="font-medium text-[13px] text-[#272424]">
+                              {formData.discountType === "percentage"
+                                ? "Theo phần trăm"
+                                : "Theo số tiền"}
+                            </span>
+                            <Icon
+                              name="chevron-down"
+                              size={11}
+                              color="#272424"
+                              className="ml-2"
+                            />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-auto min-w-fit">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              handleInputChange("discountType", "percentage");
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            Theo phần trăm
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              handleInputChange("discountType", "fixed");
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            Theo số tiền
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {/* Discount Value Input */}
+                    <div className="flex-1 w-full min-w-0">
+                      <FormInput
+                        placeholder={
+                          formData.discountType === "percentage" ? "Nhập giá trị lớn hơn 1%" : "đ"
+                        }
+                        value={
+                          formData.discountType === "percentage"
+                            ? formData.discountValue
+                            : formatNumber(formData.discountValue)
+                        }
+                        onChange={(e) =>
+                          handleInputChange("discountValue", e.target.value)
+                        }
+                        containerClassName="h-[36px] w-full"
+                        required
+                      />
+                      {discountValueError && (
+                        <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
+                          {discountValueError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Maximum Discount (only for percentage) */}
+                {formData.discountType === "percentage" && (
+                  <div className="flex flex-col sm:flex-row items-start gap-[16px]">
+                    <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[180px] flex-shrink-0 sm:text-right">
+                      Mức giảm tối đa
+                    </label>
+                    <div className="flex-1 w-full min-w-0 flex flex-col gap-[12px]">
+                      <div className="flex flex-row gap-[12px]">
+                        <CustomRadio
+                          name="maxDiscountLimit"
+                          value="limited"
+                          checked={formData.maxDiscountLimit === "limited"}
+                          onChange={(e) =>
+                            handleInputChange("maxDiscountLimit", e.target.value)
+                          }
+                          label="Giới hạn"
+                        />
+                        <CustomRadio
+                          name="maxDiscountLimit"
+                          value="unlimited"
+                          checked={formData.maxDiscountLimit === "unlimited"}
+                          onChange={(e) =>
+                            handleInputChange("maxDiscountLimit", e.target.value)
+                          }
+                          label="Không giới hạn"
+                        />
+                      </div>
+                      {formData.maxDiscountLimit === "limited" && (
+                        <div className="w-full">
+                          <FormInput
+                            placeholder="đ"
+                            value={formatNumber(formData.maxDiscountValue)}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "maxDiscountValue",
+                                e.target.value
+                              )
+                            }
+                            containerClassName="h-[36px] w-full"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Minimum Order Amount */}
+                <div className="flex flex-col sm:flex-row items-start gap-[16px]">
+                  <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[180px] flex-shrink-0 sm:text-right">
+                    Giá trị đơn hàng tối thiểu
+                  </label>
+                  <div className="flex-1 w-full min-w-0">
+                    <FormInput
+                      placeholder="đ"
+                      value={formatNumber(formData.minOrderAmount)}
+                      onChange={(e) =>
+                        handleInputChange("minOrderAmount", e.target.value)
+                      }
+                      containerClassName="h-[36px] w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Maximum Usage */}
+                <div className="flex flex-col sm:flex-row items-start gap-[16px]">
+                  <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[180px] flex-shrink-0 sm:text-right">
+                    Tổng lượt sử dụng tối đa
+                  </label>
+                  <div className="flex-1 w-full min-w-0 flex flex-col">
+                    <FormInput
+                      placeholder="Nhập số lượt sử dụng"
+                      value={formData.maxUsage}
+                      onChange={(e) =>
+                        handleInputChange("maxUsage", e.target.value)
+                      }
+                      containerClassName="h-[36px] w-full"
+                    />
+                    <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] text-left">
+                      Tổng số mã giảm giá tối đa có thể sử dụng
+                    </p>
+                  </div>
+                </div>
+
+                {/* Maximum Usage Per Customer */}
+                <div className="flex flex-col sm:flex-row items-start gap-[16px]">
+                  <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-full sm:w-[180px] flex-shrink-0 sm:text-right">
+                    Lượt sử dụng tối đa/người
+                  </label>
+                  <div className="flex-1 w-full min-w-0">
+                    <FormInput
+                      placeholder="Nhập số lượt sử dụng"
+                      value={formData.maxUsagePerCustomer}
+                      onChange={(e) =>
+                        handleInputChange("maxUsagePerCustomer", e.target.value)
+                      }
+                      containerClassName="h-[36px] w-full"
+                    />
+                    {maxUsagePerCustomerError && (
                       <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
-                        {discountValueError}
+                        {maxUsagePerCustomerError}
                       </p>
                     )}
                   </div>
-                </div>
-              </div>
-
-              {/* Maximum Discount (only for percentage) */}
-              {formData.discountType === "percentage" && (
-                <div className="flex flex-row items-start gap-[16px]">
-                  <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                    Mức giảm tối đa
-                  </label>
-                  <div className="flex-1 flex flex-col gap-[12px] flex-shrink-0">
-                    <div className="flex flex-row gap-[12px]">
-                      <CustomRadio
-                        name="maxDiscountLimit"
-                        value="limited"
-                        checked={formData.maxDiscountLimit === "limited"}
-                        onChange={(e) =>
-                          handleInputChange("maxDiscountLimit", e.target.value)
-                        }
-                        label="Giới hạn"
-                      />
-                      <CustomRadio
-                        name="maxDiscountLimit"
-                        value="unlimited"
-                        checked={formData.maxDiscountLimit === "unlimited"}
-                        onChange={(e) =>
-                          handleInputChange("maxDiscountLimit", e.target.value)
-                        }
-                        label="Không giới hạn"
-                      />
-                    </div>
-                    {formData.maxDiscountLimit === "limited" && (
-                      <div>
-                        <FormInput
-                          placeholder="đ"
-                          value={formatNumber(formData.maxDiscountValue)}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "maxDiscountValue",
-                              e.target.value
-                            )
-                          }
-                          containerClassName="h-[36px] w-[873px]"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Minimum Order Amount */}
-              <div className="flex flex-row items-start gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                  Giá trị đơn hàng tối thiểu
-                </label>
-                <div className="flex-1">
-                  <FormInput
-                    placeholder="đ"
-                    value={formatNumber(formData.minOrderAmount)}
-                    onChange={(e) =>
-                      handleInputChange("minOrderAmount", e.target.value)
-                    }
-                    containerClassName="h-[36px] w-[873px]"
-                  />
-                </div>
-              </div>
-
-              {/* Maximum Usage */}
-              <div className="flex flex-row items-start gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                  Tổng lượt sử dụng tối đa
-                </label>
-                <div className="flex-1 flex flex-col flex-shrink-0">
-                  <FormInput
-                    placeholder="Nhập số lượt sử dụng"
-                    value={formData.maxUsage}
-                    onChange={(e) =>
-                      handleInputChange("maxUsage", e.target.value)
-                    }
-                    containerClassName="h-[36px] w-[873px]"
-                  />
-                  <p className="mt-[6px] font-medium text-[12px] text-[#737373] leading-[1.4] text-left">
-                    Tổng số mã giảm giá tối đa có thể sử dụng
-                  </p>
-                </div>
-              </div>
-
-              {/* Maximum Usage Per Customer */}
-              <div className="flex flex-row items-start gap-[16px]">
-                <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
-                  Lượt sử dụng tối đa/người
-                </label>
-                <div className="flex-1">
-                  <FormInput
-                    placeholder="Nhập số lượt sử dụng"
-                    value={formData.maxUsagePerCustomer}
-                    onChange={(e) =>
-                      handleInputChange("maxUsagePerCustomer", e.target.value)
-                    }
-                    containerClassName="h-[36px] w-[873px]"
-                  />
-                  {maxUsagePerCustomerError && (
-                    <p className="mt-[6px] font-medium text-[12px] text-red-600 leading-[1.4] break-words">
-                      {maxUsagePerCustomerError}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -1449,7 +1425,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
             </div>
 
             {/* Form Fields */}
-            <div className="px-0 py-[12px] flex flex-col gap-[16px]">
+            <div className="px-0 py-[12px] flex flex-col gap-[16px] w-full">
               {/* Display Setting */}
               <div className="flex flex-row items-start gap-[16px]">
                 <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
@@ -1487,160 +1463,154 @@ const AdminCreateVoucherProduct: React.FC = () => {
               </div>
 
               {/* Applied Products */}
-              <div className="flex flex-col gap-[14px]">
-                <div
-                  className={`flex flex-row items-center gap-[16px] ${confirmedProducts.length > 0 ? "justify-between" : ""}`}
-                >
-                  <div className="flex flex-row items-center gap-[8px]">
-                    <label className="font-semibold text-[14px] text-[#272424] leading-[1.4] w-[215px] flex-shrink-0 text-right">
+              <div className="flex flex-col gap-[16px] w-full">
+                {/* Header with label and button */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex flex-col gap-[4px]">
+                    <label className="font-semibold text-[14px] text-[#272424] leading-[1.4]">
                       Sản phẩm được áp dụng
                     </label>
                     {confirmedProducts.length > 0 && (
-                      <span className="font-medium text-[14px] text-[#272424]">
-                        {confirmedProducts.length} Sản phẩm được chọn
+                      <span className="text-[13px] text-gray-500 font-medium">
+                        {confirmedProducts.length} sản phẩm đã chọn
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => setIsProductModalOpen(true)}
-                      className="bg-white border border-[#e04d30] rounded-[8px] px-[12px] py-[8px] flex items-center gap-[8px] hover:bg-[#e04d30]/5 transition-colors"
-                    >
-                      <Icon name="plus" size={16} color="#e04d30" />
-                      <span className="font-semibold text-[14px] text-[#e04d30] leading-[1.4]">
-                        Thêm sản phẩm
-                      </span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsProductModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e04d30] text-[#e04d30] rounded-lg hover:bg-[#e04d30]/5 transition-colors font-medium text-sm shadow-sm self-start sm:self-auto"
+                  >
+                    <Icon name="plus" size={16} color="#e04d30" />
+                    <span>Thêm sản phẩm</span>
+                  </button>
                 </div>
 
                 {/* Products Table */}
-                {confirmedProducts.length > 0 && (
-                  <div className="bg-white border border-[#e7e7e7] rounded-[12px] overflow-hidden ml-[231px] w-[873px] mt-[4px]">
-                    <table className="w-full">
-                      <thead className="bg-[#f5f5f5]">
-                        <tr>
-                          <th className="px-[16px] py-[12px] text-left font-semibold text-[14px] text-[#272424] w-[70%]">
-                            Sản phẩm
-                          </th>
-                          <th className="px-[16px] py-[12px] text-right font-semibold text-[14px] text-[#272424] w-[20%]">
-                            Đơn giá
-                          </th>
-                          <th className="px-[16px] py-[12px] text-center font-semibold text-[14px] text-[#272424] w-[10%]">
-                            TT
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginatedProducts.map((product) => {
-                          const formattedPrice = formatPriceDisplay(product.price);
-                          return (
-                            <tr
-                              key={product.id}
-                              className="border-b border-[#e7e7e7] last:border-b-0"
-                            >
-                              <td className="px-[16px] py-[12px] w-[70%]">
-                                <div className="flex items-center gap-[8px]">
-                                  <div className="w-[32px] h-[32px] bg-[#f5f5f5] rounded-[6px] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                    <img
-                                      src={product.image}
-                                      alt={product.name}
-                                      className="w-full h-full object-cover"
-                                      loading="lazy"
-                                      decoding="async"
-                                      onError={(e) => {
-                                        (
-                                          e.target as HTMLImageElement
-                                        ).style.display = "none";
-                                      }}
-                                    />
+                {confirmedProducts.length > 0 ? (
+                  <div className="w-full bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
+                    <div className="overflow-x-auto -mx-0">
+                      <table className="w-full min-w-full text-sm text-left table-auto">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                          <tr>
+                            <th scope="col" className="px-6 py-4 font-semibold tracking-wider min-w-[300px]">
+                              Sản phẩm
+                            </th>
+                            <th scope="col" className="px-6 py-4 font-semibold text-right tracking-wider min-w-[120px]">
+                              Đơn giá
+                            </th>
+                            <th scope="col" className="px-6 py-4 font-semibold text-center tracking-wider w-[100px]">
+                              Thao tác
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {paginatedProducts.map((product) => {
+                            const formattedPrice = formatPriceDisplay(product.price);
+                            return (
+                              <tr
+                                key={product.id}
+                                className="bg-white hover:bg-blue-50/30 transition-colors duration-150 group"
+                              >
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-4 min-w-0">
+                                    <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex-shrink-0 shadow-sm">
+                                      <img
+                                        src={product.image}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover"
+                                        loading="lazy"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = "none";
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-gray-900 truncate" title={product.name}>
+                                        {product.name}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <span className="font-medium text-[14px] text-[#272424] truncate max-w-[500px]">
-                                    {product.name}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-[16px] py-[12px] text-right w-[20%]">
-                                <span className="font-semibold text-[14px] text-[#272424]">
+                                </td>
+                                <td className="px-6 py-4 text-right font-medium text-gray-900 tabular-nums whitespace-nowrap">
                                   {formattedPrice}
-                                </span>
-                              </td>
-                              <td className="px-[16px] py-[12px] text-center w-[10%]">
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveProduct(product.id)}
-                                  className="p-[8px] hover:bg-[#f5f5f5] rounded-[6px] transition-colors inline-flex items-center justify-center"
-                                >
-                                  <Icon
-                                    name="trash"
-                                    size={18}
-                                    color="#e04d30"
-                                  />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveProduct(product.id)}
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                    title="Xóa sản phẩm"
+                                  >
+                                    <Icon name="trash" size={18} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
 
-                    {/* Pagination for Applied Products */}
+                    {/* Pagination */}
                     {confirmedProducts.length > 5 && (
-                      <div className="px-[16px] py-[12px] border-t border-[#e7e7e7] flex justify-end">
-                        <div className="flex items-center gap-[8px]">
+                      <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
+                          Hiển thị {((appliedProductsPage - 1) * 5) + 1}-{Math.min(appliedProductsPage * 5, confirmedProducts.length)} / {confirmedProducts.length}
+                        </span>
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() =>
-                              setAppliedProductsPage((p) => Math.max(1, p - 1))
-                            }
+                            onClick={() => setAppliedProductsPage((p) => Math.max(1, p - 1))}
                             disabled={appliedProductsPage === 1}
-                            className="p-[6px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#f5f5f5] transition-colors rounded-[6px]"
+                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            aria-label="Trang trước"
                           >
-                            <Icon name="arrow-left" size={14} color="#272424" />
+                            <Icon name="arrow-left" size={14} color="currentColor" />
                           </button>
-                          {Array.from(
-                            {
-                              length: Math.ceil(confirmedProducts.length / 5),
-                            },
-                            (_, i) => i + 1
-                          ).map((page) => (
-                            <button
-                              key={page}
-                              onClick={() => setAppliedProductsPage(page)}
-                              className={`w-[28px] h-[28px] flex items-center justify-center text-[13px] font-semibold rounded-[6px] transition-colors ${
-                                appliedProductsPage === page
-                                  ? "bg-[#e04d30] text-white"
-                                  : "text-[#272424] hover:bg-[#f5f5f5]"
-                              }`}
-                            >
-                              {page}
-                            </button>
-                          ))}
+                          <div className="flex items-center gap-1">
+                            {Array.from(
+                              { length: Math.ceil(confirmedProducts.length / 5) },
+                              (_, i) => i + 1
+                            ).map((page) => (
+                              <button
+                                key={page}
+                                onClick={() => setAppliedProductsPage(page)}
+                                className={`w-8 h-8 flex items-center justify-center text-xs font-medium rounded-md transition-all ${appliedProductsPage === page
+                                  ? "bg-[#e04d30] text-white shadow-sm"
+                                  : "text-gray-600 hover:bg-gray-200"
+                                  }`}
+                                aria-label={`Trang ${page}`}
+                                aria-current={appliedProductsPage === page ? "page" : undefined}
+                              >
+                                {page}
+                              </button>
+                            ))}
+                          </div>
                           <button
                             onClick={() =>
                               setAppliedProductsPage((p) =>
-                                Math.min(
-                                  Math.ceil(confirmedProducts.length / 5),
-                                  p + 1
-                                )
+                                Math.min(Math.ceil(confirmedProducts.length / 5), p + 1)
                               )
                             }
                             disabled={
-                              appliedProductsPage >=
-                              Math.ceil(confirmedProducts.length / 5)
+                              appliedProductsPage >= Math.ceil(confirmedProducts.length / 5)
                             }
-                            className="p-[6px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#f5f5f5] transition-colors rounded-[6px]"
+                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            aria-label="Trang sau"
                           >
-                            <Icon
-                              name="arrow-left"
-                              size={14}
-                              color="#272424"
-                              className="rotate-180"
-                            />
+                            <Icon name="arrow-left" size={14} color="currentColor" className="rotate-180" />
                           </button>
                         </div>
                       </div>
                     )}
+                  </div>
+                ) : (
+                  <div className="w-full bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => setIsProductModalOpen(true)}>
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm border border-gray-200">
+                      <Icon name="plus" size={24} color="#9ca3af" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-900">Chưa có sản phẩm nào được chọn</p>
+                    <p className="text-xs text-gray-500 mt-1">Nhấn để thêm sản phẩm áp dụng mã giảm giá</p>
                   </div>
                 )}
               </div>
@@ -1657,16 +1627,16 @@ const AdminCreateVoucherProduct: React.FC = () => {
             >
               Hủy
             </Button>
-            <Button 
-              type="submit" 
-              variant="default" 
+            <Button
+              type="submit"
+              variant="default"
               className="text-[14px]"
               disabled={isSubmitting}
             >
-              {isSubmitting 
-                ? "Đang xử lý..." 
-                : isEditMode 
-                  ? "Lưu thay đổi" 
+              {isSubmitting
+                ? "Đang xử lý..."
+                : isEditMode
+                  ? "Lưu thay đổi"
                   : "Xác nhận"}
             </Button>
           </div>
@@ -1708,31 +1678,31 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     Đang tải danh sách sản phẩm...
                   </div>
                 ) : (
-                <table className="w-full">
-                  <thead className="bg-[#f5f5f5] sticky top-0">
-                    <tr>
-                      <th className="pl-[10px] pr-[2px] py-[8px] text-left font-semibold text-[12px] text-[#272424]">
-                        <div className="flex items-center gap-[8px]">
-                          <CustomCheckbox
-                            checked={isAllSelected}
-                            onChange={handleSelectAll}
-                          />
-                          <span>Sản phẩm</span>
-                        </div>
-                      </th>
+                  <table className="w-full">
+                    <thead className="bg-[#f5f5f5] sticky top-0">
+                      <tr>
+                        <th className="pl-[10px] pr-[2px] py-[8px] text-left font-semibold text-[12px] text-[#272424]">
+                          <div className="flex items-center gap-[8px]">
+                            <CustomCheckbox
+                              checked={isAllSelected}
+                              onChange={handleSelectAll}
+                            />
+                            <span>Sản phẩm</span>
+                          </div>
+                        </th>
                         <th className="pl-[2px] pr-[10px] py-[8px] text-left font-semibold text-[12px] text-[#272424]">
-                        Đơn giá
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                          Đơn giá
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {displayProducts.map((product) => {
                         const isExpanded = expandedProducts.has(product.id);
                         const variants = productVariantsMap[product.id] ?? [];
                         const isLoadingVariants = variantLoadingMap[product.id] ?? false;
                         // Memoize formatted price để tránh tính toán lại
                         const formattedProductPrice = formatPriceDisplay(product.price);
-                        
+
                         return (
                           <React.Fragment key={product.id}>
                             {/* Main Product Row */}
@@ -1782,7 +1752,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                 </span>
                               </td>
                             </tr>
-                            
+
                             {/* Loading Variants */}
                             {isExpanded && isLoadingVariants && (
                               <tr className="bg-[#f6f6f6] border-b border-[#e7e7e7]">
@@ -1791,7 +1761,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                 </td>
                               </tr>
                             )}
-                            
+
                             {/* No Variants */}
                             {isExpanded && !isLoadingVariants && variants.length === 0 && (
                               <tr className="bg-[#f6f6f6] border-b border-[#e7e7e7]">
@@ -1800,7 +1770,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                                 </td>
                               </tr>
                             )}
-                            
+
                             {/* Variant Rows */}
                             {isExpanded && !isLoadingVariants && variants.map((variant) => {
                               const variantIdStr = String(variant.id);
@@ -1810,13 +1780,12 @@ const AdminCreateVoucherProduct: React.FC = () => {
                               const checkboxChecked = isVariantApplied || isVariantSelected;
                               // Memoize formatted variant price
                               const formattedVariantPrice = formatPriceDisplay(variantPrice);
-                              
+
                               return (
                                 <tr
                                   key={variant.id}
-                                  className={`bg-[#f6f6f6] border-b border-[#e7e7e7] ${
-                                    isVariantApplied ? "opacity-60" : "hover:bg-gray-100"
-                                  }`}
+                                  className={`bg-[#f6f6f6] border-b border-[#e7e7e7] ${isVariantApplied ? "opacity-60" : "hover:bg-gray-100"
+                                    }`}
                                 >
                                   <td className="pl-[10px] pr-[2px] py-[8px]">
                                     <div className="flex items-center gap-[8px]">
@@ -1860,8 +1829,8 @@ const AdminCreateVoucherProduct: React.FC = () => {
                           </td>
                         </tr>
                       )}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
                 )}
               </div>
 
@@ -1895,11 +1864,10 @@ const AdminCreateVoucherProduct: React.FC = () => {
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`w-[24px] h-[24px] flex items-center justify-center text-[12px] font-semibold rounded-[4px] transition-colors ${
-                            isActive
-                              ? "bg-[#e04d30] text-white"
-                              : "text-[#272424] hover:bg-[#f5f5f5]"
-                          }`}
+                          className={`w-[24px] h-[24px] flex items-center justify-center text-[12px] font-semibold rounded-[4px] transition-colors ${isActive
+                            ? "bg-[#e04d30] text-white"
+                            : "text-[#272424] hover:bg-[#f5f5f5]"
+                            }`}
                         >
                           {pageNum}
                         </button>
@@ -1938,7 +1906,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     variant="default"
                     onClick={() => {
                       const newProducts: VoucherProduct[] = [];
-                      
+
                       // Add selected products (only those without variants)
                       // Add selected variants from productVariantsMap
                       displayProducts.forEach((product) => {
@@ -1958,7 +1926,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
                           }
                         });
                       });
-                      
+
                       setConfirmedProducts((prev) => {
                         // Merge với danh sách hiện tại, tránh trùng lặp
                         const existingIds = new Set(prev.map((p) => p.id));

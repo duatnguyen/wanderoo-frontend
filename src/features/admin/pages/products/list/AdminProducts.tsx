@@ -75,6 +75,7 @@ const mapVariant = (
   posQuantity: toNumber(variant.posSoldQuantity),
   sellingPrice: formatCurrency(variant.sellingPrice),
   costPrice: formatCurrency(variant.importPrice),
+  image: getImageUrl(variant.imageUrl),
 });
 
 // Helper function to get full image URL

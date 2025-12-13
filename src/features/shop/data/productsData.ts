@@ -1,536 +1,77 @@
-// Mock data for products - will be replaced with backend API later
-
+// src/features/shop/data/productsData.ts
 export interface Product {
   id: string | number;
-  imageUrl: string;
   name: string;
+  imageUrl: string;
   price: number;
   originalPrice?: number;
   rating?: number;
-  discountPercent?: number; // For backward compatibility
-  discountValue?: string; // Formatted discount value from API (e.g., "-35%" or "-1.000đ")
+  discountPercent?: number;
+  stock?: number;
+  size?: string;
+  weight?: number;
+  material?: string;
+  activity?: string[];
+  color?: string;
+  brand?: string;
+  features?: string[];
+  reviews?: number;
+  createdAt?: string;
+  categoryId?: number;
   description?: string;
   images?: string[];
-  stock?: number;
   category?: string;
-  categoryId?: number; // Category ID for filtering
-  brand?: string;
-  reviews?: number;
-  variant?: string;
   variantOptions?: { label: string; value: string }[];
-  // Filter attributes for outdoor/climbing gear
-  size?: string; // small, medium, large, xlarge, onesize
-  weight?: number; // in grams
-  material?: string; // polyester, nylon, cotton, goretex, leather, canvas
-  activity?: string[]; // climbing, trekking, camping, hiking, multi
-  color?: string; // black, gray, blue, green, red, orange, brown
-  features?: string[]; // waterproof, windproof, breathable, uv-protection, lightweight, compact
 }
 
+// Mock data for development
 export const productsData: Product[] = [
   {
     id: 1,
-    imageUrl: "",
-    name: "Lều trại 2 người chống thấm nước cao cấp",
-    price: 1290000,
-    originalPrice: 1590000,
+    name: "Naturehike Backpack 60L",
+    imageUrl: "/images/products/backpack1.jpg",
+    price: 2500000,
+    originalPrice: 3000000,
     rating: 4.5,
-    discountPercent: 19,
-    description: `Lều trại 2 người chống thấm nước cao cấp với công nghệ hiện đại, phù hợp cho các chuyến đi camping và trekking.
-
-Đặc điểm nổi bật:
-- Chống thấm nước 3000mm, đảm bảo khô ráo trong mọi điều kiện thời tiết
-- Chất liệu vải PU cao cấp, bền bỉ và nhẹ
-- Khung lều bằng thép không gỉ, chắc chắn
-- Thiết kế 2 lớp với lưới chống côn trùng
-- Dễ dàng lắp đặt trong 5 phút
-- Kích thước: 210cm x 140cm x 110cm
-- Trọng lượng: 2.5kg
-
-Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại gia đình`,
-    images: ["", "", "", ""],
-    stock: 25,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 128,
-    size: "onesize",
-    weight: 2500, // 2.5kg in grams
+    discountPercent: 17,
+    stock: 10,
+    size: "large",
+    weight: 1200,
     material: "polyester",
-    activity: ["camping", "trekking"],
-    color: "green",
-    features: ["waterproof", "lightweight", "compact"],
+    activity: ["climbing", "trekking"],
+    color: "blue",
+    brand: "Naturehike",
+    features: ["waterproof", "lightweight"],
+    reviews: 25,
+    categoryId: 1,
+    description: "A high-quality backpack for outdoor activities.",
+    images: ["/images/products/backpack1.jpg"],
+    category: "Backpacks",
   },
   {
     id: 2,
-    imageUrl: "",
-    name: "Túi ngủ mùa đông giữ nhiệt",
-    price: 890000,
-    originalPrice: 1200000,
+    name: "The North Face Tent 2P",
+    imageUrl: "/images/products/tent1.jpg",
+    price: 4500000,
     rating: 4.8,
-    discountPercent: 26,
-    description:
-      "Túi ngủ mùa đông giữ nhiệt cao cấp, phù hợp cho nhiệt độ từ -10°C đến 10°C",
-    images: ["", "", ""],
-    stock: 15,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 95,
-    size: "onesize",
-    weight: 1200,
-    material: "polyester",
-    activity: ["camping", "trekking"],
-    color: "blue",
-    features: ["lightweight", "compact"],
-  },
-  {
-    id: 3,
-    imageUrl: "",
-    name: "Bếp gas du lịch mini",
-    price: 450000,
-    originalPrice: 650000,
-    rating: 4.3,
-    discountPercent: 31,
-    description: "Bếp gas du lịch mini nhỏ gọn, tiện lợi cho các chuyến đi",
-    images: ["", ""],
-    stock: 30,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 67,
-    size: "onesize",
-    weight: 800,
-    material: "metal",
-    activity: ["camping", "multi"],
-    color: "gray",
-    features: ["compact", "lightweight"],
-  },
-  {
-    id: 4,
-    imageUrl: "",
-    name: "Ba lô trekking 30L",
-    price: 950000,
-    originalPrice: 1150000,
-    rating: 4.6,
-    discountPercent: 17,
-    description: "Ba lô trekking 30L chống nước, nhiều ngăn tiện lợi",
-    images: ["", "", "", ""],
-    stock: 20,
-    category: "Phụ kiện",
-    categoryId: 2, // Mock category ID
-    brand: "Naturehike",
-    reviews: 142,
-    size: "onesize",
-    weight: 1200,
-    material: "nylon",
-    activity: ["trekking", "hiking", "climbing"],
-    color: "black",
-    features: ["waterproof", "lightweight"],
-  },
-  {
-    id: 5,
-    imageUrl: "",
-    name: "Áo khoác gió chống nước",
-    price: 750000,
-    originalPrice: 950000,
-    rating: 4.7,
-    discountPercent: 21,
-    description: "Áo khoác gió chống nước nhẹ, thấm hút mồ hôi",
-    images: ["", ""],
-    stock: 35,
-    category: "Thể thao ngoài trời",
-    categoryId: 3, // Mock category ID
-    brand: "Naturehike",
-    reviews: 89,
-    size: "large",
-    weight: 600,
-    material: "goretex",
-    activity: ["trekking", "hiking", "climbing"],
-    color: "blue",
-    features: ["waterproof", "windproof", "breathable"],
-  },
-  {
-    id: 6,
-    imageUrl: "",
-    name: "Ghế xếp du lịch nhẹ",
-    price: 320000,
-    originalPrice: 450000,
-    rating: 4.4,
-    discountPercent: 29,
-    description: "Ghế xếp du lịch nhẹ, gọn dễ mang theo",
-    images: [""],
-    stock: 50,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 56,
-    size: "onesize",
-    weight: 1200,
-    material: "aluminum",
-    activity: ["camping", "multi"],
-    color: "gray",
-    features: ["lightweight", "compact"],
-  },
-  {
-    id: 7,
-    imageUrl: "",
-    name: "Đèn pin siêu sáng LED",
-    price: 280000,
-    originalPrice: 380000,
-    rating: 4.2,
-    discountPercent: 26,
-    description: "Đèn pin siêu sáng LED, pin sạc USB",
-    images: ["", ""],
-    stock: 40,
-    category: "Phụ kiện",
-    categoryId: 2, // Mock category ID
-    brand: "Naturehike",
-    reviews: 78,
-    size: "onesize",
-    weight: 300,
-    material: "plastic",
-    activity: ["camping", "trekking", "hiking", "multi"],
-    color: "black",
-    features: ["lightweight", "compact"],
-  },
-  {
-    id: 8,
-    imageUrl: "",
-    name: "Bộ dụng cụ đa năng",
-    price: 180000,
-    originalPrice: 250000,
-    rating: 4.5,
-    discountPercent: 28,
-    description: "Bộ dụng cụ đa năng 12 trong 1 cho camping",
-    images: [""],
-    stock: 60,
-    category: "Phụ kiện",
-    categoryId: 2, // Mock category ID
-    brand: "Naturehike",
-    reviews: 103,
-    size: "onesize",
-    weight: 500,
-    material: "metal",
-    activity: ["camping", "multi"],
-    color: "gray",
-    features: ["compact"],
-  },
-  {
-    id: 101,
-    imageUrl: "",
-    name: "Lều trại 4 người siêu giảm giá",
-    price: 1890000,
-    originalPrice: 3200000,
-    rating: 4.9,
-    discountPercent: 41,
-    description: "Lều trại 4 người rộng rãi, chống thấm nước cao cấp",
-    images: ["", "", "", ""],
-    stock: 10,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 234,
-    size: "onesize",
-    weight: 4500,
-    material: "polyester",
-    activity: ["camping", "trekking"],
-    color: "green",
-    features: ["waterproof", "lightweight"],
-  },
-  {
-    id: 102,
-    imageUrl: "",
-    name: "Bếp nướng BBQ đa năng",
-    price: 650000,
-    originalPrice: 1200000,
-    rating: 4.7,
-    discountPercent: 46,
-    description: "Bếp nướng BBQ đa năng, có thể dùng gas hoặc than",
-    images: ["", ""],
-    stock: 18,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 156,
-    size: "onesize",
-    weight: 3500,
-    material: "metal",
-    activity: ["camping", "multi"],
-    color: "black",
-    features: ["compact"],
-  },
-  {
-    id: 103,
-    imageUrl: "",
-    name: "Túi ngủ 3 mùa cao cấp",
-    price: 990000,
-    originalPrice: 1800000,
-    rating: 4.8,
-    discountPercent: 45,
-    description: "Túi ngủ 3 mùa cao cấp, phù hợp mọi thời tiết",
-    images: ["", "", ""],
-    stock: 12,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 187,
-    size: "onesize",
-    weight: 1500,
-    material: "polyester",
-    activity: ["camping", "trekking", "hiking"],
-    color: "blue",
-    features: ["lightweight", "compact"],
-  },
-  {
-    id: 104,
-    imageUrl: "",
-    name: "Ba lô du lịch 50L chống thấm",
-    price: 1290000,
-    originalPrice: 2200000,
-    rating: 4.6,
-    discountPercent: 41,
-    description: "Ba lô du lịch 50L chống thấm nước, nhiều ngăn",
-    images: ["", "", ""],
-    stock: 22,
-    category: "Phụ kiện",
-    categoryId: 2, // Mock category ID
-    brand: "Naturehike",
-    reviews: 201,
-    size: "onesize",
-    weight: 1800,
-    material: "nylon",
-    activity: ["trekking", "hiking", "climbing"],
-    color: "black",
-    features: ["waterproof", "lightweight"],
-  },
-  {
-    id: 105,
-    imageUrl: "",
-    name: "Bộ đồ nấu ăn du lịch 8 món",
-    price: 450000,
-    originalPrice: 850000,
-    rating: 4.5,
-    discountPercent: 47,
-    description: "Bộ đồ nấu ăn du lịch 8 món, inox không gỉ",
-    images: ["", ""],
-    stock: 28,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 134,
-    size: "onesize",
-    weight: 2000,
-    material: "stainless-steel",
-    activity: ["camping", "multi"],
-    color: "gray",
-    features: ["compact"],
-  },
-  {
-    id: 106,
-    imageUrl: "",
-    name: "Giày leo núi cao cổ chống trượt",
-    price: 1200000,
-    originalPrice: 1800000,
-    rating: 4.7,
-    discountPercent: 33,
-    description:
-      "Giày leo núi cao cổ chống trượt, đế cao su chắc chắn, phù hợp cho trekking và hiking",
-    images: ["", "", ""],
-    stock: 25,
-    category: "Thể thao ngoài trời",
-    categoryId: 3, // Mock category ID
-    brand: "Naturehike",
-    reviews: 198,
-    size: "large",
-    weight: 1200,
-    material: "leather",
-    activity: ["climbing", "trekking", "hiking"],
-    color: "brown",
-    features: ["waterproof"],
-  },
-  {
-    id: 107,
-    imageUrl: "",
-    name: "Áo phao cứu sinh thể thao",
-    price: 550000,
-    originalPrice: 850000,
-    rating: 4.4,
-    discountPercent: 35,
-    description:
-      "Áo phao cứu sinh thể thao, nhẹ, dễ thổi phồng, an toàn cho các hoạt động dưới nước",
-    images: ["", ""],
-    stock: 32,
-    category: "Thể thao ngoài trời",
-    categoryId: 3, // Mock category ID
-    brand: "Naturehike",
-    reviews: 87,
-    size: "onesize",
-    weight: 800,
-    material: "nylon",
-    activity: ["climbing", "multi"],
-    color: "orange",
-    features: ["lightweight", "compact"],
-  },
-  {
-    id: 108,
-    imageUrl: "",
-    name: "Võng du lịch nhẹ có màn chống muỗi",
-    price: 380000,
-    originalPrice: 550000,
-    rating: 4.6,
-    discountPercent: 31,
-    description: "Võng du lịch nhẹ có màn chống muỗi, dễ dàng treo và gấp gọn",
-    images: ["", ""],
-    stock: 40,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 112,
-    size: "onesize",
-    weight: 800,
-    material: "nylon",
-    activity: ["camping", "trekking"],
-    color: "green",
-    features: ["lightweight", "compact"],
-  },
-  {
-    id: 109,
-    imageUrl: "",
-    name: "Bình nước giữ nhiệt inox 1L",
-    price: 250000,
-    originalPrice: 380000,
-    rating: 4.8,
-    discountPercent: 34,
-    description: "Bình nước giữ nhiệt inox 1L, giữ nhiệt 24h, chống rỉ sét",
-    images: [""],
-    stock: 55,
-    category: "Phụ kiện",
-    categoryId: 2, // Mock category ID
-    brand: "Naturehike",
-    reviews: 245,
-    size: "onesize",
-    weight: 400,
-    material: "stainless-steel",
-    activity: ["camping", "trekking", "hiking", "multi"],
-    color: "gray",
-    features: ["lightweight"],
-  },
-  {
-    id: 110,
-    imageUrl: "",
-    name: "Kính râm chống tia UV thể thao",
-    price: 320000,
-    originalPrice: 480000,
-    rating: 4.5,
-    discountPercent: 33,
-    description:
-      "Kính râm chống tia UV thể thao, chống trầy xước, phù hợp cho các hoạt động ngoài trời",
-    images: [""],
-    stock: 45,
-    category: "Phụ kiện",
-    categoryId: 2, // Mock category ID
-    brand: "Naturehike",
-    reviews: 156,
-    size: "onesize",
-    weight: 50,
-    material: "plastic",
-    activity: ["trekking", "hiking", "climbing", "multi"],
-    color: "black",
-    features: ["uv-protection"],
-  },
-  {
-    id: 111,
-    imageUrl: "",
-    name: "Bạt che nắng mưa 3x3m",
-    price: 420000,
-    originalPrice: 650000,
-    rating: 4.3,
-    discountPercent: 35,
-    description: "Bạt che nắng mưa 3x3m, chống thấm nước, có dây cố định",
-    images: ["", ""],
-    stock: 30,
-    category: "Đồ cắm trại",
-    categoryId: 1, // Mock category ID
-    brand: "Naturehike",
-    reviews: 98,
-    size: "onesize",
+    stock: 5,
+    size: "medium",
     weight: 2500,
-    material: "polyester",
-    activity: ["camping", "multi"],
-    color: "blue",
-    features: ["waterproof", "compact"],
-  },
-  {
-    id: 112,
-    imageUrl: "",
-    name: "Gậy trekking chống sốc 2 cây",
-    price: 680000,
-    originalPrice: 980000,
-    rating: 4.7,
-    discountPercent: 31,
-    description:
-      "Gậy trekking chống sốc 2 cây, có thể điều chỉnh độ dài, nhẹ và chắc chắn",
-    images: ["", ""],
-    stock: 28,
-    category: "Thể thao ngoài trời",
-    categoryId: 3, // Mock category ID
-    brand: "Naturehike",
-    reviews: 167,
-    size: "onesize",
-    weight: 600,
-    material: "aluminum",
-    activity: ["trekking", "hiking"],
-    color: "black",
-    features: ["lightweight", "compact"],
-  },
-  {
-    id: 113,
-    imageUrl: "",
-    name: "Túi khô chống nước 20L",
-    price: 180000,
-    originalPrice: 280000,
-    rating: 4.6,
-    discountPercent: 36,
-    description: "Túi khô chống nước 20L, bảo vệ đồ đạc khỏi nước và ẩm ướt",
-    images: [""],
-    stock: 50,
-    category: "Phụ kiện",
-    categoryId: 2, // Mock category ID
-    brand: "Naturehike",
-    reviews: 203,
-    size: "onesize",
-    weight: 400,
     material: "nylon",
-    activity: ["camping", "trekking", "hiking", "multi"],
-    color: "blue",
-    features: ["waterproof", "compact"],
+    activity: ["camping"],
+    color: "green",
+    brand: "northface",
+    features: ["waterproof", "windproof"],
+    reviews: 40,
+    categoryId: 2,
+    description: "A durable tent for camping.",
+    images: ["/images/products/tent1.jpg"],
+    category: "Tents",
   },
+  // Add more mock products as needed
 ];
 
-// Helper function to get product by ID
-export const getProductById = (id: string | number): Product | undefined => {
-  return productsData.find(
-    (product) => product.id.toString() === id.toString()
-  );
-};
-
-// Helper function to get products by category name
-export const getProductsByCategory = (category: string): Product[] => {
-  return productsData.filter((product) => product.category === category);
-};
-
-// Helper function to get products by category ID
-export const getProductsByCategoryId = (categoryId: number): Product[] => {
-  return productsData.filter((product) => product.categoryId === categoryId);
-};
-
-// Helper function to get related products (excluding current product)
-export const getRelatedProducts = (
-  currentProductId: string | number,
-  limit: number = 4
-): Product[] => {
-  return productsData
-    .filter((product) => product.id.toString() !== currentProductId.toString())
-    .slice(0, limit);
+// Function to get related products (placeholder)
+export const getRelatedProducts = (productId: string | number, limit: number = 4): Product[] => {
+  return productsData.filter(p => p.id !== productId).slice(0, limit);
 };

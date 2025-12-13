@@ -1,10 +1,34 @@
 import React from "react";
 import { Wallet } from "lucide-react";
 
+// Helper function to get full image URL
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl || imageUrl.trim() === '') return undefined;
+  
+  // Clean up the image URL
+  const cleanUrl = imageUrl.trim();
+  
+  // If already a full URL (http/https), return as is
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    return cleanUrl;
+  }
+  
+  // Get base URL from environment or default to localhost
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  
+  // If relative path starting with /, add base URL
+  if (cleanUrl.startsWith('/')) {
+    return `${baseUrl}${cleanUrl}`;
+  }
+  
+  // If relative path not starting with /, add base URL with /
+  return `${baseUrl}/${cleanUrl}`;
+};
+
 export interface AdminPaymentItem {
   id: string | number;
   name: string;
-  image?: string;
+  productImage?: string;
   unitPrice: number; // Giá gốc (snapshotProductPrice)
   discountAmount?: number; // Số tiền được giảm (snapshotDiscountAmount)
   finalPrice?: number; // Giá cuối cùng sau giảm (snapshotFinalPrice) 
@@ -112,11 +136,19 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
                 {/* Product info */}
                 <div className="box-border flex gap-[8px] items-start justify-start p-[12px] relative flex-1 min-w-[200px]">
                   <div className="border border-[#e5e7eb] relative shrink-0 size-[40px] rounded-[8px] overflow-hidden bg-gray-50 flex items-center justify-center">
-                    {item.image ? (
+                    {item.productImage ? (
                       <img
-                        src={item.image}
+                        src={getImageUrl(item.productImage) || item.productImage}
                         alt={item.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<span class="font-montserrat font-semibold text-[9px] text-gray-400 text-center px-1">No Image</span>';
+                          }
+                        }}
                       />
                     ) : (
                       <span className="font-montserrat font-semibold text-[9px] text-gray-400 text-center px-1">
@@ -145,15 +177,15 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
                   <div className="text-center">
                     {item.discountAmount && item.discountAmount > 0 ? (
                       <>
-                        <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#111827] text-[12px] text-nowrap line-through text-gray-500">
+                        <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-black text-[12px] text-nowrap line-through">
                           {formatCurrency(item.unitPrice)}
                         </p>
-                        <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#111827] text-[10px] text-nowrap mt-1">
+                        <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-red-600 text-[10px] text-nowrap mt-1">
                           {formatCurrency(item.finalPrice ?? (item.unitPrice - item.discountAmount))}
                         </p>
                       </>
                     ) : (
-                      <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-[#111827] text-[12px] text-nowrap">
+                      <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-red-600 text-[12px] text-nowrap">
                         {formatCurrency(item.unitPrice)}
                       </p>
                     )}
@@ -180,7 +212,7 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
                 </div>
                 {/* Total */}
                 <div className="box-border flex gap-[4px] items-center justify-end p-[10px] pr-[14px] relative w-[120px] min-w-[120px]">
-                  <p className="font-montserrat font-semibold leading-[1.4] relative shrink-0 text-[#111827] text-[12px] text-nowrap">
+                  <p className="font-montserrat font-semibold leading-[1.4] relative shrink-0 text-red-600 text-[12px] text-nowrap">
                     {formatCurrency(item.total)}
                   </p>
                 </div>

@@ -179,7 +179,7 @@ const ProfileTab: React.FC = () => {
     }
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-lg border border-gray-200 min-h-[507px]">
             {/* Header */}
             <div className="bg-gradient-to-r from-gray-50 to-white px-6 py-5 border-b border-gray-200">
                 <div className="flex items-center gap-3">
@@ -233,22 +233,20 @@ const ProfileTab: React.FC = () => {
                     const isFieldEditing = editingField === field;
 
                     return (
-                        <div 
-                            key={field} 
-                            className={`bg-white rounded-lg border transition-all ${
-                                isFieldEditing 
-                                    ? 'border-[#E04D30] shadow-md' 
-                                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                            }`}
+                        <div
+                            key={field}
+                            className={`bg-white rounded-lg border transition-all ${isFieldEditing
+                                ? 'border-[#E04D30] shadow-md'
+                                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                                }`}
                         >
                             <div className="p-4">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                                            isFieldEditing 
-                                                ? 'bg-[#E04D30]/10 text-[#E04D30]' 
-                                                : 'bg-gray-100 text-gray-600'
-                                        }`}>
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isFieldEditing
+                                            ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                            : 'bg-gray-100 text-gray-600'
+                                            }`}>
                                             {config.icon}
                                         </div>
                                         <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
@@ -319,19 +317,17 @@ const ProfileTab: React.FC = () => {
                 })}
 
                 {/* Gender Field */}
-                <div className={`bg-white rounded-lg border transition-all ${
-                    isEditingGender 
-                        ? 'border-[#E04D30] shadow-md' 
-                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                }`}>
+                <div className={`bg-white rounded-lg border transition-all ${isEditingGender
+                    ? 'border-[#E04D30] shadow-md'
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    }`}>
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                                    isEditingGender 
-                                        ? 'bg-[#E04D30]/10 text-[#E04D30]' 
-                                        : 'bg-gray-100 text-gray-600'
-                                }`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEditingGender
+                                    ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                    : 'bg-gray-100 text-gray-600'
+                                    }`}>
                                     {user.gender?.toUpperCase() === "FEMALE" ? (
                                         <Venus className="w-4 h-4" />
                                     ) : (
@@ -438,19 +434,17 @@ const ProfileTab: React.FC = () => {
                 </div>
 
                 {/* Date of Birth Field */}
-                <div className={`bg-white rounded-lg border transition-all ${
-                    isEditingDateOfBirth 
-                        ? 'border-[#E04D30] shadow-md' 
-                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                }`}>
+                <div className={`bg-white rounded-lg border transition-all ${isEditingDateOfBirth
+                    ? 'border-[#E04D30] shadow-md'
+                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    }`}>
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                                    isEditingDateOfBirth 
-                                        ? 'bg-[#E04D30]/10 text-[#E04D30]' 
-                                        : 'bg-gray-100 text-gray-600'
-                                }`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEditingDateOfBirth
+                                    ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                    : 'bg-gray-100 text-gray-600'
+                                    }`}>
                                     <CalendarIcon className="w-4 h-4" />
                                 </div>
                                 <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">

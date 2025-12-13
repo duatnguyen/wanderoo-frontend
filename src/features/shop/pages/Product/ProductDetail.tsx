@@ -11,9 +11,9 @@ import ProductInfo from "../../../../components/shop/Product/ProductInfo";
 import ProductDescription from "../../../../components/shop/Product/ProductDescription";
 import CustomerReviews from "../../../../components/shop/Product/CustomerReviews";
 import RelatedProducts from "../../../../components/shop/Product/RelatedProducts";
-import { getProductDetail, getProductVariants } from "../../../../api/endpoints/productApi";
+import { getProductDetail, getProductVariants, getProductVariantsStock, type VariantStockInfoResponse } from "../../../../api/endpoints/productApi";
 import { getSuggestionProducts, type HomepageProductResponse } from "../../../../api/endpoints/homepageApi";
-import type { ProductDetailsResponse, VariantDetailIdResponse, VariantDetailIdRequest } from "../../../../types";
+import type { ProductDetailsResponse } from "../../../../types";
 
 type EnrichedProduct = Product & {
   priceRange?: {
@@ -250,11 +250,24 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     enabled: Boolean(productId),
   }) as { data: ProductDetailsResponse | undefined };
 
+  // Fetch variants stock information
+  const { data: variantsStockData } = useQuery({
+    queryKey: ["product-variants-stock", productId],
+    queryFn: () => {
+      if (!productId) {
+        throw new Error("Thiếu mã sản phẩm");
+      }
+      return getProductVariantsStock(Number(productId));
+    },
+    enabled: Boolean(productId),
+  });
+
   // Reset selected attributes when product changes
   useEffect(() => {
     setSelectedAttributeIds([]);
     setVariantData(null);
     setQuantity(1);
+    setSelectedImageIndex(0);
   }, [productId]);
 
   // Fetch variant when all attributes are selected
@@ -295,6 +308,13 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
   useEffect(() => {
     fetchVariant();
   }, [fetchVariant]);
+
+  // Reset image index when variant changes
+  useEffect(() => {
+    if (variantData) {
+      setSelectedImageIndex(0);
+    }
+  }, [variantData?.productDetailId]);
 
   const { data: suggestionProducts } = useQuery({
     queryKey: ["product-suggestions"],
@@ -432,6 +452,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   product={product}
                   selectedImageIndex={selectedImageIndex}
                   onImageSelect={setSelectedImageIndex}
+                  variantImageUrl={variantData?.imageUrl}
                 />
                 <ProductInfo
                   product={product}
@@ -444,6 +465,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   variantData={variantData}
                   isLoadingVariant={isLoadingVariant}
                   isAddingToCart={isAddingToCart}
+                  variantsStock={variantsStockData || []}
                 />
               </div>
             </div>

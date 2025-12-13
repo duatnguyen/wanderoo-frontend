@@ -159,3 +159,16 @@ export const removeDiscountFromProducts = async (
     );
     return response.data;
 };
+
+// Category API
+export interface CategoryInfo {
+    value: string;
+    label: string;
+}
+
+export const getDiscountCategories = async (): Promise<CategoryInfo[]> => {
+    const response = await api.get<ApiResponse<CategoryInfo[]>>(
+        '/public/v1/discount/categories'
+    );
+    return response.data.data ?? [];
+};

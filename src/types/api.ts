@@ -128,6 +128,7 @@ export interface VariantDetailIdResponse {
   productDetailDiscountPrice?: string | null;
   discountValue?: string | null;
   productDetailQuantity?: number | null;
+  imageUrl?: string | null;
 }
 
 // Order Types
@@ -1282,6 +1283,7 @@ export interface CustomerResponse extends UserResponse {
   membershipLevel: string;
   totalOrderAmount?: number;
   totalOrders?: number;
+  image_url?: string | null; // Backend returns image_url field
 }
 
 export interface CustomerPageResponse extends PageResponse<CustomerResponse> { }

@@ -216,4 +216,5 @@ export interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => void;
 }

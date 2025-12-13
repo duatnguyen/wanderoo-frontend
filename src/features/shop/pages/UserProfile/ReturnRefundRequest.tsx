@@ -4,6 +4,8 @@ import Button from "../../../../components/shop/Button";
 import { Textarea, Input } from "../../../../components/shop/Input";
 import { Select } from "antd";
 import MediaUpload from "../../../../components/shop/MediaUpload";
+import { customerReturnOrderApi } from "../../../../api/customerReturnOrderApi";
+import { toast } from "sonner";
 
 function formatCurrencyVND(value: number) {
   return `${value.toLocaleString("vi-VN")}đ`;
@@ -17,6 +19,8 @@ interface ProductType {
   originalPrice?: number;
   variant?: string;
   quantity: number;
+  orderDetailId?: number; // Order detail ID for return order
+  productDetailId?: number; // Product detail ID for return order
 }
 
 // OrderData interface is no longer needed, using order object with id and orderDate
@@ -67,42 +71,92 @@ const ReturnRefundRequest: React.FC = () => {
   const [videos, setVideos] = useState<File[]>([]);
   const [bankInfo, setBankInfo] = useState("");
   const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const maxImages = 6;
   const maxVideos = 1;
 
-  const handleSubmit = () => {
+  // Map reason to returnType
+  const getReturnType = (reason: string): string => {
+    const reasonMap: Record<string, string> = {
+      "empty-package": "EMPTY_PACKAGE",
+      "not-received": "NOT_RECEIVED",
+      "broken": "BROKEN",
+      "wrong-model": "WRONG_MODEL",
+      "defective": "DEFECTIVE",
+      "different-description": "DIFFERENT_DESCRIPTION",
+      "other": "OTHER",
+    };
+    return reasonMap[reason] || "OTHER";
+  };
+
+  const handleSubmit = async () => {
     // Validate required fields
     if (!reason || !description.trim() || !bankInfo.trim() || !email.trim()) {
-      alert("Vui lòng điền đầy đủ thông tin bắt buộc");
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
       return;
     }
 
-    // Calculate total refund amount from all selected products
-    const totalRefundAmount = selectedProducts.reduce(
-      (sum, p) => sum + p.price * (p.quantity || 1),
-      0
+    // Validate that all products have orderDetailId and productDetailId
+    const invalidProducts = selectedProducts.filter(
+      (p) => !p.orderDetailId || !p.productDetailId
     );
+    if (invalidProducts.length > 0) {
+      toast.error("Thông tin sản phẩm không đầy đủ. Vui lòng thử lại.");
+      return;
+    }
 
-    // Submit the return/refund request
-    console.log("Return/refund request submitted:", {
-      orderId: orderData.id,
-      products: selectedProducts.map((p) => ({
-        id: p.id,
-        quantity: p.quantity || 1,
-      })),
-      requestType: requestType,
-      reason,
-      description,
-      images: isNotReceived ? [] : images,
-      videos: isNotReceived ? [] : videos,
-      bankInfo,
-      email,
-      refundAmount: totalRefundAmount,
-    });
+    // Validate orderId
+    const orderId = parseInt(orderData.id);
+    if (isNaN(orderId)) {
+      toast.error("Mã đơn hàng không hợp lệ");
+      return;
+    }
 
-    // Navigate back or show success message
-    // navigate("/user/profile/orders");
+    try {
+      setIsSubmitting(true);
+
+      // Prepare return order details
+      const returnOrderDetails = selectedProducts.map((product) => ({
+        orderDetailId: product.orderDetailId!,
+        productDetailId: product.productDetailId!,
+        returnQuantity: product.quantity || 1,
+        notes: description, // Use description as notes for each detail
+      }));
+
+      // Create return order request
+      const request = {
+        orderId,
+        returnType: getReturnType(reason),
+        reason: reason,
+        notes: `${description}\n\nThông tin hoàn tiền:\n- Ngân hàng: ${bankInfo}\n- Email: ${email}`,
+        returnOrderDetails,
+      };
+
+      // Call API to create return order
+      const response = await customerReturnOrderApi.createReturnOrder(request);
+
+      toast.success("Tạo yêu cầu hoàn trả hàng thành công!", {
+        description: `Mã yêu cầu: ${response.orderCode || response.id}`,
+        duration: 5000,
+      });
+
+      // Navigate to orders page or return order detail page
+      navigate("/user/profile/orders", {
+        state: { 
+          message: "Yêu cầu hoàn trả hàng đã được tạo thành công",
+          returnOrderId: response.id 
+        },
+      });
+    } catch (error: any) {
+      console.error("Error creating return order:", error);
+      toast.error("Không thể tạo yêu cầu hoàn trả hàng", {
+        description: error.message || "Vui lòng thử lại sau",
+        duration: 5000,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Calculate total refund amount from all selected products
@@ -322,9 +376,10 @@ const ReturnRefundRequest: React.FC = () => {
                   variant="primary"
                   size="md"
                   onClick={handleSubmit}
-                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  Hoàn thành
+                  {isSubmitting ? "Đang xử lý..." : "Hoàn thành"}
                 </Button>
               </div>
             </div>

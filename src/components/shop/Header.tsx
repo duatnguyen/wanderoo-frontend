@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, Menu, LogOut, LogIn } from "lucide-react";
+import { ShoppingBag, Menu, LogOut, User } from "lucide-react";
 import CategoryDropdown from "./CategoryDropdown";
 import shopLogo from "../../assets/icons/ShopLogo.png";
 import { useAuth } from "../../context/AuthContext";
@@ -8,6 +8,35 @@ import {
   getPublicCategoryParents,
   getPublicCategoryChildren,
 } from "../../api/endpoints/attributeApi";
+
+// Helper function to get full image URL (same as order/components)
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl || imageUrl.trim() === '') return undefined;
+  
+  // Clean up the image URL
+  const cleanUrl = imageUrl.trim();
+  
+  // If already a full URL (http/https), return as is
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+    return cleanUrl;
+  }
+  
+  // Get base URL from environment or default to localhost
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  
+  // If relative path starting with /, add base URL
+  if (cleanUrl.startsWith('/')) {
+    return `${baseUrl}${cleanUrl}`;
+  }
+  
+  // Handle common image paths from backend
+  if (cleanUrl.startsWith('uploads/') || cleanUrl.startsWith('static/')) {
+    return `${baseUrl}/${cleanUrl}`;
+  }
+  
+  // Default: assume it's from uploads directory
+  return `${baseUrl}/uploads/${cleanUrl}`;
+};
 
 function Logo({ onClick }: { onClick: () => void }) {
   return (
@@ -27,11 +56,20 @@ function Logo({ onClick }: { onClick: () => void }) {
 }
 
 function UserAvatar({ src }: { src?: string }) {
+  const avatarUrl = src ? getImageUrl(src) : undefined;
+  const fallbackAvatar = "https://randomuser.me/api/portraits/men/32.jpg";
+
   return (
     <img
-      src={src ?? "https://randomuser.me/api/portraits/men/32.jpg"}
+      src={avatarUrl || fallbackAvatar}
       className="size-9 rounded-full object-cover border-2 border-white"
-      alt="avatar"
+      alt="User Avatar"
+      onError={(e) => {
+        const target = e.target as HTMLImageElement;
+        if (target.src !== fallbackAvatar) {
+          target.src = fallbackAvatar;
+        }
+      }}
     />
   );
 }
@@ -63,7 +101,9 @@ const Header: React.FC<HeaderProps> = ({
     resolvedUsername ||
     "Thanh";
 
-  const displayAvatar = (avatarUrl || authUser?.avatar) ?? undefined;
+  // Get avatar URL and process it with getImageUrl helper
+  const rawAvatar = avatarUrl || authUser?.avatar;
+  const displayAvatar = rawAvatar ? getImageUrl(rawAvatar) || rawAvatar : undefined;
   const usernameTag = resolvedUsername ? `@${resolvedUsername}` : "";
 
   type DropdownCategory = {
@@ -218,60 +258,68 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-4 min-w-[150px] pl-5">
+          <div className="flex items-center gap-3 pl-5">
+            {/* Cart Button */}
             <button
               onClick={() => navigate("/shop/cart")}
-              className="relative flex items-center hover:opacity-80 transition-opacity"
+              className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors"
               aria-label="Giỏ hàng"
               type="button"
             >
-              <ShoppingBag className="w-7 h-7 text-white cursor-pointer" />
-              {cartCount !== undefined && (
-                <span className="absolute top-[-7px] right-[-7px] w-5 h-5 bg-[#ffc107] text-[#18345c] rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
-                  {cartCount}
+              <ShoppingBag className="w-6 h-6 text-white" />
+              {cartCount !== undefined && cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ffc107] text-[#18345c] rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-[#1c3b6c]">
+                  {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
             </button>
+
+            {/* User Actions */}
             {isAuthenticated ? (
-              <div className="flex items-center gap-3 ml-[43px]">
+              <>
+                {/* Profile Avatar Button */}
                 <button
                   onClick={() => navigate("/user/profile/")}
-                  className="hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
                   aria-label="Xem hồ sơ"
                   type="button"
                 >
                   <UserAvatar src={displayAvatar} />
-                </button>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-white">
-                    {displayName}
-                  </span>
-                  {usernameTag && (
-                    <span className="text-[11px] text-white/70">
-                      {usernameTag}
+                  <div className="hidden md:flex flex-col items-start">
+                    <span className="text-sm font-semibold text-white group-hover:underline">
+                      {displayName}
                     </span>
-                  )}
-                </div>
+                    {usernameTag && (
+                      <span className="text-[10px] text-white/70">
+                        {usernameTag}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                
+                {/* Logout Button */}
                 <button
                   onClick={() => {
                     logout();
                     navigate("/login");
                   }}
-                  className="ml-2 rounded-full border border-white/20 p-2 text-white hover:bg-white/20 transition"
+                  className="flex items-center justify-center w-10 h-10 rounded-full border border-white/20 text-white hover:bg-white/20 transition-colors"
                   aria-label="Đăng xuất"
                   type="button"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={18} />
                 </button>
-              </div>
+              </>
             ) : (
+              /* Login Icon Button */
               <button
                 onClick={() => navigate("/login")}
-                className="flex items-center gap-2 rounded-2xl border border-white px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-white hover:text-[#1c3b6c]"
+                className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors"
+                aria-label="Đăng nhập"
                 type="button"
+                title="Đăng nhập"
               >
-                <LogIn size={16} />
-                Đăng nhập
+                <User className="w-6 h-6 text-white" />
               </button>
             )}
           </div>
