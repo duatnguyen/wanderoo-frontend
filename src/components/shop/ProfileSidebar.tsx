@@ -81,7 +81,6 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
         { id: "basicinformation", label: "Hồ sơ", path: "/user/profile/basicinformation" },
         { id: "address", label: "Địa chỉ", path: "/user/profile/address" },
         { id: "password", label: "Đổi mật khẩu", path: "/user/profile/password" },
-        { id: "privacy", label: "Thiết lập riêng tư", path: "/user/profile/privacy" },
       ],
     },
     {

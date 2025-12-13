@@ -18,6 +18,8 @@ const AUTH_REQUIRED_PUBLIC_ENDPOINTS = [
   '/auth/v1/public/orders',
   '/public/v1/discount/calculate-discount',
   '/public/v1/discount/voucher/my-discounts',
+  // Claiming voucher requires auth although path is under /public
+  '/public/v1/discount/claim',
 ];
 
 function normalizePath(url?: string): string {

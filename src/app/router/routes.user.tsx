@@ -19,9 +19,6 @@ const AddressTab = lazy(
 const PasswordTab = lazy(
   () => import("../../features/shop/pages/UserProfile/PasswordTab")
 );
-const PrivacyTab = lazy(
-  () => import("../../features/shop/pages/UserProfile/PrivacyTab")
-);
 const OrdersTab = lazy(
   () => import("../../features/shop/pages/UserProfile/OrdersTab")
 );
@@ -195,14 +192,6 @@ export const userRoutes: RouteObject[] = [
         element: (
           <LazyWrapper>
             <PasswordTab />
-          </LazyWrapper>
-        ),
-      },
-      {
-        path: "privacy",
-        element: (
-          <LazyWrapper>
-            <PrivacyTab />
           </LazyWrapper>
         ),
       },

@@ -114,8 +114,6 @@ Hệ thống frontend cho nền tảng e-commerce Wanderoo, được xây dựng
 │   │   │   └── index.ts
 │   │   ├── 📁 dashboard/
 │   │   │   └── AdminDashboard.tsx
-│   │   ├── 📁 accounting/
-│   │   │   └── AdminAccounting.tsx
 │   │   ├── 📁 reports/
 │   │   │   └── AdminReports.tsx
 │   │   ├── 📁 settings/
@@ -126,8 +124,7 @@ Hệ thống frontend cho nền tảng e-commerce Wanderoo, được xây dựng
 │   │   ├── 📁 sales/                # Sales operations
 │   │   ├── 📁 orders/               # Order management
 │   │   ├── 📁 returns/              # Return processing
-│   │   ├── 📁 inventory/            # Inventory check
-│   │   └── 📁 cashbook/             # Cash management
+│   │   └── 📁 inventory/            # Inventory check
 │   ├── 📁 shop/                     # Customer-facing pages
 │   └── 📁 warehouse/                # Warehouse operations
 ├── 📁 layouts/                      # Layout components
@@ -190,7 +187,6 @@ import { AdminCustomers, AdminAddCustomer } from '../customers/list';
 - **Orders**: Quản lý đơn hàng POS
 - **Returns**: Xử lý trả hàng
 - **Inventory**: Kiểm tra kho
-- **Cashbook**: Quản lý thu chi
 
 ### �️ **Customer Interface**
 - Product catalog và tìm kiếm

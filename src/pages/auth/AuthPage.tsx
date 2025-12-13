@@ -25,6 +25,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
     const [formData, setFormData] = useState({
         name: "",
         username: "",
+        email: "",
         phone: "",
         password: "",
     });
@@ -107,10 +108,18 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
 
         const trimmedName = formData.name.trim();
         const trimmedUsername = formData.username.trim();
+        const trimmedEmail = formData.email.trim();
         const trimmedPhone = formData.phone.trim();
 
-        if (!trimmedName || !trimmedUsername || !trimmedPhone) {
+        if (!trimmedName || !trimmedUsername || !trimmedEmail || !trimmedPhone) {
             setError("Vui lòng nhập đầy đủ thông tin cá nhân");
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            setError("Email không hợp lệ");
             return;
         }
 
@@ -132,51 +141,22 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
             const payload: UserCreationRequest = {
                 username: trimmedUsername,
                 name: trimmedName,
+                email: trimmedEmail,
                 phone: trimmedPhone,
                 password: formData.password,
-                email: `${trimmedPhone}@wanderoo.vn`,
             };
 
             console.log("Sending registration payload:", payload);
 
             await authRegister(payload);
-            setSuccess("Đăng ký thành công! Đang đăng nhập...");
+            setSuccess("Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản. Sau khi xác thực, bạn có thể đăng nhập.");
 
-            // Tự động đăng nhập sau khi đăng ký thành công
-            try {
-                await login({
-                    username: trimmedUsername,
-                    password: formData.password,
+            // Chuyển đến trang đăng nhập sau 3 giây
+            setTimeout(() => {
+                navigate("/login", {
+                    state: { message: "Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập." }
                 });
-
-                setSuccess("Đăng ký và đăng nhập thành công! Đang chuyển hướng...");
-
-                // Chuyển hướng sau khi đăng nhập thành công
-                const token = localStorage.getItem("accessToken");
-                if (token) {
-                    try {
-                        const userFromToken = getUserFromToken(token);
-                        setTimeout(() => {
-                            if (userFromToken?.role === "ADMIN") {
-                                navigate("/admin");
-                            } else {
-                                navigate("/shop");
-                            }
-                        }, 1500);
-                    } catch (tokenError) {
-                        navigate("/shop");
-                    }
-                } else {
-                    navigate("/shop");
-                }
-            } catch (loginError) {
-                // Nếu đăng nhập tự động thất bại, chuyển đến trang đăng nhập
-                setSuccess("");
-                setError("Đăng ký thành công nhưng đăng nhập tự động thất bại. Vui lòng đăng nhập thủ công.");
-                setTimeout(() => {
-                    navigate("/login");
-                }, 2000);
-            }
+            }, 3000);
         } catch (err: any) {
             console.error("Register failed", err);
 
@@ -398,6 +378,24 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
                                         />
                                         <p className="text-xs text-gray-500 mt-1">
                                             Tên đăng nhập sẽ được sử dụng để đăng nhập vào hệ thống
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-2 text-sm text-gray-600">
+                                        <label htmlFor="email" className="font-semibold text-gray-800">
+                                            Email
+                                        </label>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            required
+                                            value={formData.email}
+                                            onChange={handleRegisterChange}
+                                            className="h-12 w-full rounded-xl border border-gray-300 px-4 text-sm text-gray-800 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15"
+                                            placeholder="Nhập email của bạn (ví dụ: user@example.com)"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Email sẽ được sử dụng để xác thực tài khoản
                                         </p>
                                     </div>
                                     <div className="flex flex-col gap-2 text-sm text-gray-600">

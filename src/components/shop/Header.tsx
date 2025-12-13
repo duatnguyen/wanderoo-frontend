@@ -49,7 +49,7 @@ function Logo({ onClick }: { onClick: () => void }) {
       <img
         src={shopLogo}
         alt="Wanderoo Logo"
-        className="h-20 w-auto max-h-[80px] object-contain"
+        className="h-32 w-auto max-h-[140px] object-contain"
       />
     </button>
   );
@@ -210,7 +210,7 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="w-full bg-gradient-to-r from-[#132543] via-[#1c3b6c] to-[#132543] shadow-[0_4px_20px_rgba(9,22,45,0.25)] relative z-40 text-white">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-1 px-4 py-1">
         <div className="flex flex-wrap items-center gap-3 md:flex-nowrap md:gap-4">
           <Logo onClick={() => navigate("/shop")} />
           <div
@@ -240,7 +240,7 @@ const Header: React.FC<HeaderProps> = ({
             />
           </div>
           <div className="flex-1 max-w-[800px]">
-            <div className="flex flex-1 items-center rounded-2xl bg-white/95 px-3 py-3 shadow-[0_6px_18px_rgba(15,23,42,0.08)]">
+            <div className="flex flex-1 items-center rounded-2xl bg-white/95 px-3 py-2 shadow-[0_6px_18px_rgba(15,23,42,0.08)]">
               <input
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
@@ -248,10 +248,10 @@ const Header: React.FC<HeaderProps> = ({
                 placeholder="Tìm kiếm lều, balo, phụ kiện..."
                 className="flex-1 bg-transparent text-sm text-[#1f2937] placeholder:text-gray-400 focus:outline-none"
               />
-              <div className="h-5 w-px bg-gray-200" />
+              <div className="h-4 w-px bg-gray-200" />
               <button
                 onClick={handleSearch}
-                className="ml-3 rounded-xl bg-[#f97316] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:bg-[#ea580c]"
+                className="ml-3 rounded-xl bg-[#f97316] px-3 py-1 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:bg-[#ea580c]"
                 type="button"
               >
                 Tìm kiếm

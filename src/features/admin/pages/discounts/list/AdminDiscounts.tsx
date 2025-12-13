@@ -276,19 +276,12 @@ const voucherTypes = {
         "Voucher nhằm áp dụng cho khách hàng mới và khách hàng tiềm năng",
     },
   ],
-  privateChannel: {
-    icon: <CreditCardPercentIcon size={24} color="#292D32" />,
-    title: "Voucher nhập mã",
-    description:
-      "Voucher áp dụng cho nhóm khách hàng shop thông qua mã voucher",
-  },
 };
 
 const voucherRouteMap: Record<string, string> = {
   "Voucher toàn shop": "/admin/discounts/new/shop-wide",
   "Voucher sản phẩm": "/admin/discounts/new/product",
   "Voucher khách hàng mới": "/admin/discounts/new/new-customer",
-  "Voucher nhập mã": "/admin/discounts/new/private",
 };
 
 const tabToStateMap: Record<string, DiscountStateValue | undefined> = {
@@ -318,10 +311,6 @@ const formatCurrency = (value?: number | null) => {
 const mapDiscountTypeLabel = (discount: AdminDiscountResponse) => {
   if (discount.applyTo === "PRODUCT") return "Voucher sản phẩm";
   if (discount.contextAllowed === "SIGNUP") return "Voucher khách hàng mới";
-  if (discount.contextAllowed === "EVENT") return "Voucher nhập mã";
-  if (discount.applyOn === "POS" && discount.contextAllowed === "OTHER") {
-    return "Voucher nhập mã";
-  }
   return "Voucher toàn shop";
 };
 

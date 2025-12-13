@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 import Button from "../../../../components/shop/Button";
 import { Input } from "../../../../components/shop/Input";
@@ -50,6 +51,7 @@ interface HistoryVoucher {
 }
 
 const VouchersTab: React.FC = () => {
+  const navigate = useNavigate();
   const [voucherInput, setVoucherInput] = useState("");
   const [currentView, setCurrentView] = useState<"list" | "history">("list");
   const [historyTab, setHistoryTab] = useState<HistoryTab>("expired");
@@ -176,8 +178,27 @@ const VouchersTab: React.FC = () => {
         getMyVouchers(),
       ]);
 
-      setPublicVouchers(publicResponse.map(transformPublicVoucher));
-      setMyVouchers(myResponse.map(transformMyVoucher));
+      // Map my vouchers first
+      const mappedMy = myResponse.map(transformMyVoucher);
+      const myCodes = new Set(mappedMy.map((v) => v.code?.trim()));
+      const myIds = new Set(
+        myResponse
+          .map((v) => v.discountId)
+          .filter((id): id is number => typeof id === "number")
+      );
+
+      // Chỉ giữ voucher công khai còn hiệu lực / khả dụng
+      const availablePublic = publicResponse
+        .map(transformPublicVoucher)
+        .filter(
+          (voucher) =>
+            voucher.status === "available" &&
+            !myCodes.has(voucher.code?.trim()) &&
+            !(typeof voucher.id === "number" && myIds.has(voucher.id))
+        );
+
+      setPublicVouchers(availablePublic);
+      setMyVouchers(mappedMy);
       setIsSearchActive(false);
       setActiveSearchKeyword("");
     } catch (err) {
@@ -213,11 +234,32 @@ const VouchersTab: React.FC = () => {
       setIsSearching(true);
       setSearchError(null);
       try {
-        const results = await searchPublicDiscounts({ keyword: trimmed });
-        setPublicVouchers(results.map(transformPublicVoucher));
+      const results = await searchPublicDiscounts({ keyword: trimmed });
+
+      // Dùng current myVouchers để loại bỏ voucher đã lưu
+      const myCodes = new Set(myVouchers.map((v) => v.code?.trim()));
+      const myIds = new Set(
+        myVouchers
+          .map((v) => {
+            const idPart = v.id?.toString().split("-")[1];
+            const num = Number(idPart);
+            return Number.isFinite(num) ? num : undefined;
+          })
+          .filter((id): id is number => typeof id === "number")
+      );
+      const availablePublic = results
+        .map(transformPublicVoucher)
+        .filter(
+          (voucher) =>
+            voucher.status === "available" &&
+            !myCodes.has(voucher.code?.trim()) &&
+            !(typeof voucher.id === "number" && myIds.has(voucher.id))
+        );
+
+      setPublicVouchers(availablePublic);
         setIsSearchActive(true);
         setActiveSearchKeyword(trimmed);
-        if (results.length === 0) {
+      if (availablePublic.length === 0) {
           setSearchError("Không tìm thấy voucher phù hợp.");
         }
       } catch (err) {
@@ -277,13 +319,37 @@ const VouchersTab: React.FC = () => {
     setIsClaiming(true);
     setClaimFeedback(null);
     try {
-      await claimVoucher({ code: trimmedCode });
+      // Claim voucher và nhận response
+      const claimedVoucher = await claimVoucher({ code: trimmedCode });
+      
+      // Thêm voucher vừa claim vào danh sách "Voucher của tôi" ngay lập tức
+      const newMyVoucher = {
+        ...transformMyVoucher(claimedVoucher),
+        status: "available" as const,
+        statusLabel: "Có thể dùng ngay",
+      };
+      setMyVouchers(prev => {
+        // Kiểm tra xem voucher đã tồn tại chưa để tránh duplicate
+        const exists = prev.some(v => v.code === newMyVoucher.code);
+        if (exists) return prev;
+        return [newMyVoucher, ...prev];
+      });
+
+      // Xóa voucher khỏi danh sách public nếu có
+      setPublicVouchers(prev => 
+        prev.filter(v => v.code !== trimmedCode)
+      );
+
       setClaimFeedback({
         type: "success",
         message: "Lưu voucher thành công!",
       });
       setVoucherInput("");
-      await loadVoucherData();
+      
+      // Reload lại để đồng bộ với server (có delay nhỏ để đảm bảo backend đã cập nhật)
+      setTimeout(async () => {
+        await loadVoucherData();
+      }, 500);
     } catch (err) {
       let message = "Không thể lưu voucher. Vui lòng thử lại.";
       if (isAxiosError(err)) {
@@ -296,12 +362,55 @@ const VouchersTab: React.FC = () => {
     } finally {
       setIsClaiming(false);
     }
-  }, [voucherInput, loadVoucherData]);
+  }, [voucherInput, loadVoucherData, transformMyVoucher]);
 
-  const handleUseVoucher = (voucherId: string, action: "use" | "save") => {
-    console.log(`${action === "use" ? "Using" : "Saving"} voucher:`, voucherId);
-    // Here you would handle voucher usage
-  };
+  const handleUseVoucher = useCallback(
+    async (voucherId: string, action: "use" | "save") => {
+      const voucher =
+        myVouchers.find((v) => v.id === voucherId) ||
+        publicVouchers.find((v) => v.id === voucherId);
+
+      if (!voucher) return;
+
+      if (action === "use") {
+        navigate(`/?voucher=${encodeURIComponent(voucher.code)}`);
+        return;
+      }
+
+      // action === "save" for public vouchers
+      try {
+        const claimed = await claimVoucher({ code: voucher.code });
+        const newMyVoucher = {
+          ...transformMyVoucher(claimed),
+          status: "available" as const,
+          statusLabel: "Có thể dùng ngay",
+        };
+
+        setMyVouchers((prev) => {
+          const exists = prev.some((v) => v.code === newMyVoucher.code);
+          if (exists) return prev;
+          return [newMyVoucher, ...prev];
+        });
+        setPublicVouchers((prev) =>
+          prev.filter((v) => v.code !== voucher.code)
+        );
+        setClaimFeedback({
+          type: "success",
+          message: "Lưu voucher thành công!",
+        });
+      } catch (err) {
+        let message = "Không thể lưu voucher. Vui lòng thử lại.";
+        if (isAxiosError(err)) {
+          message = err.response?.data?.message ?? message;
+        }
+        setClaimFeedback({
+          type: "error",
+          message,
+        });
+      }
+    },
+    [myVouchers, publicVouchers, navigate, transformMyVoucher]
+  );
 
   const formatDiscountText = (
     voucher: VoucherCard | HistoryVoucher
@@ -323,7 +432,7 @@ const VouchersTab: React.FC = () => {
   const renderStatusBadge = (voucher: VoucherCard) => {
     const { status, statusLabel } = voucher;
     const baseClass =
-      "inline-flex items-center px-3 py-1 rounded-full text-[14px] font-semibold";
+      "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold shadow-sm";
     const text = statusLabel
       ? statusLabel
       : status === "available"
@@ -334,21 +443,21 @@ const VouchersTab: React.FC = () => {
     switch (status) {
       case "available":
         return (
-          <span className={`${baseClass} bg-green-100 text-green-700`}>
-            {text}
+          <span className={`${baseClass} bg-green-100 text-green-700 border border-green-200`}>
+            ✓ {text}
           </span>
         );
       case "pending":
         return (
-          <span className={`${baseClass} bg-amber-100 text-amber-700`}>
-            {text}
+          <span className={`${baseClass} bg-amber-100 text-amber-700 border border-amber-200`}>
+            ⏳ {text}
           </span>
         );
       case "expired":
       default:
         return (
-          <span className={`${baseClass} bg-gray-100 text-gray-600`}>
-            {text}
+          <span className={`${baseClass} bg-gray-100 text-gray-600 border border-gray-200`}>
+            ✗ {text}
           </span>
         );
     }
@@ -541,55 +650,63 @@ const VoucherListSection: React.FC<VoucherListSectionProps> = ({
   const renderVoucherGroup = (
     title: string,
     vouchers: VoucherCard[],
-    emptyMessage: string
+    emptyMessage: string,
+    variant: "my" | "public"
   ) => (
-    <div className="space-y-4">
-      <div className="space-y-3">
-        <h2 className="text-[18px] font-bold text-gray-900">{title}</h2>
-        <div className="h-px bg-gray-200" />
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+        <div className="h-[2px] bg-gradient-to-r from-orange-200 via-orange-400 to-orange-200" />
       </div>
       {vouchers.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {vouchers.map((voucher) => (
             <div
               key={voucher.id}
-              className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full"
+              className="bg-white rounded-xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden flex flex-col h-full hover:border-orange-200"
             >
-              <div className="px-4 sm:px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-[14px] font-semibold text-blue-600">
-                    {voucher.code}
-                  </span>
-                  {renderStatusBadge(voucher)}
-                </div>
-                <div className="text-[14px] text-gray-500">
-                  {voucher.validAfter
-                    ? `Hiệu lực sau: ${voucher.validAfter}`
-                    : voucher.expiryDate
-                      ? `HSD: ${voucher.expiryDate}`
-                      : ""}
+              <div className="px-5 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-base font-bold text-blue-600 tracking-wide">
+                        {voucher.code}
+                      </span>
+                      {renderStatusBadge(voucher)}
+                    </div>
+                    {voucher.expiryDate ? (
+                      <span className="text-sm text-gray-600 font-medium whitespace-nowrap">
+                        📅 HSD: {voucher.expiryDate}
+                      </span>
+                    ) : null}
+                  </div>
+                  {voucher.validAfter ? (
+                    <div className="text-sm text-gray-600 font-medium">
+                      ⏰ Hiệu lực sau: {voucher.validAfter}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 flex-1">
-                <div className="space-y-2">
-                  <div className="text-[14px] text-gray-900 font-semibold">
+              <div className="px-5 py-5 flex flex-col gap-4 flex-1">
+                <div className="space-y-2.5 flex-1">
+                  <div className="text-base text-gray-900 font-bold leading-tight">
                     {formatDiscountText(voucher)}
                   </div>
-                  <div className="text-[14px] text-gray-700">
+                  <div className="text-sm text-gray-600">
                     {typeof voucher.minOrder === "number" &&
                     voucher.minOrder > 0
-                      ? `Đơn tối thiểu ${formatCurrencyVND(voucher.minOrder)}`
-                      : "Không yêu cầu đơn tối thiểu"}
+                      ? `💰 Đơn tối thiểu ${formatCurrencyVND(voucher.minOrder)}`
+                      : "✅ Không yêu cầu đơn tối thiểu"}
                   </div>
                 </div>
-                <div className="flex-shrink-0">
-                  {voucher.status === "available" ? (
+                <div className="pt-2 border-t border-gray-100">
+                  {variant === "my" ? (
                     <Button
                       variant="outline"
                       size="md"
-                      onClick={() => handleUseVoucher(voucher.id, "use")}
-                      className="!border-green-500 !text-green-600 hover:!bg-green-50 whitespace-nowrap"
+                      onClick={() => void handleUseVoucher(voucher.id, "use")}
+                      className="w-full !border-green-500 !text-green-600 hover:!bg-green-50 hover:!border-green-600 font-semibold transition-all"
                     >
                       Dùng ngay
                     </Button>
@@ -597,10 +714,10 @@ const VoucherListSection: React.FC<VoucherListSectionProps> = ({
                     <Button
                       variant="outline"
                       size="md"
-                      onClick={() => handleUseVoucher(voucher.id, "save")}
-                      className="!border-[#E04D30] !text-[#E04D30] hover:!bg-[#FFE6DD] whitespace-nowrap"
+                      onClick={() => void handleUseVoucher(voucher.id, "save")}
+                      className="w-full !border-[#f97316] !text-[#f97316] hover:!bg-orange-50 hover:!border-[#ea580c] font-semibold transition-all"
                     >
-                      Dùng sau
+                      Lưu
                     </Button>
                   )}
                 </div>
@@ -609,24 +726,27 @@ const VoucherListSection: React.FC<VoucherListSectionProps> = ({
           ))}
         </div>
       ) : (
-        <div className="py-10 text-center text-[14px] text-gray-500">
-          {emptyMessage}
+        <div className="py-12 text-center">
+          <div className="text-gray-400 text-4xl mb-3">🎫</div>
+          <div className="text-sm text-gray-500">{emptyMessage}</div>
         </div>
       )}
     </div>
   );
 
   return (
-    <div className="px-4 sm:px-6 py-5 bg-gray-50 space-y-8">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 bg-gray-50 space-y-10">
       {renderVoucherGroup(
         "Voucher của tôi",
         myVouchers,
-        "Bạn chưa lưu voucher nào."
+        "Bạn chưa lưu voucher nào.",
+        "my"
       )}
       {renderVoucherGroup(
         "Voucher có thể lưu",
         publicVouchers,
-        "Không có voucher nào khả dụng."
+        "Không có voucher nào khả dụng.",
+        "public"
       )}
     </div>
   );
@@ -671,83 +791,88 @@ const VoucherHistorySection: React.FC<VoucherHistorySectionProps> = ({
   }
 
   return (
-    <div className="px-4 sm:px-6 py-5 bg-gray-50 space-y-4">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 bg-gray-50 space-y-6">
       <div className="space-y-3">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <button
             onClick={() => onChangeTab("expired")}
-            className={`text-[18px] font-bold transition-colors ${
+            className={`text-lg font-bold transition-all pb-2 px-1 ${
               historyTab === "expired"
-                ? "text-red-600 border-b-2 border-red-600 pb-1"
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-red-600 border-b-2 border-red-600"
+                : "text-gray-500 hover:text-gray-700 border-b-2 border-transparent"
             }`}
           >
             Hết Hiệu Lực
           </button>
           <button
             onClick={() => onChangeTab("used")}
-            className={`text-[18px] font-bold transition-colors ${
+            className={`text-lg font-bold transition-all pb-2 px-1 ${
               historyTab === "used"
-                ? "text-red-600 border-b-2 border-red-600 pb-1"
-                : "text-gray-500 hover:text-gray-700"
+                ? "text-red-600 border-b-2 border-red-600"
+                : "text-gray-500 hover:text-gray-700 border-b-2 border-transparent"
             }`}
           >
             Đã sử dụng
           </button>
         </div>
-        <div className="h-px bg-gray-200" />
+        <div className="h-[2px] bg-gradient-to-r from-red-200 via-red-400 to-red-200" />
       </div>
 
       {vouchers.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {vouchers.map((voucher) => (
             <div
               key={voucher.id}
-              className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full"
+              className="bg-white rounded-xl border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden flex flex-col h-full"
             >
-              <div className="px-4 sm:px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-[14px] font-semibold text-blue-600">
-                    {voucher.code}
-                  </span>
-                  <span
-                    className={`inline-flex px-3 py-1 rounded-full text-[14px] font-semibold ${
-                      voucher.status === "used"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {voucher.statusLabel
-                      ? voucher.statusLabel
-                      : voucher.status === "expired"
-                        ? "Hết hiệu lực"
-                        : "Đã sử dụng"}
+              <div className="px-5 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-base font-bold text-blue-600 tracking-wide">
+                      {voucher.code}
+                    </span>
+                    <span
+                      className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold shadow-sm border ${
+                        voucher.status === "used"
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-gray-200 text-gray-600 border-gray-300"
+                      }`}
+                    >
+                      {voucher.statusLabel
+                        ? voucher.statusLabel
+                        : voucher.status === "expired"
+                          ? "✗ Hết hiệu lực"
+                          : "✓ Đã sử dụng"}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-600 font-medium whitespace-nowrap">
+                    {voucher.expiryDate
+                      ? `📅 HSD: ${voucher.expiryDate}`
+                      : "Không rõ HSD"}
                   </span>
                 </div>
-                <span className="text-[14px] text-gray-500 whitespace-nowrap">
-                  {voucher.expiryDate
-                    ? `HSD: ${voucher.expiryDate}`
-                    : "Không rõ HSD"}
-                </span>
               </div>
 
-              <div className="px-4 sm:px-6 py-4 flex flex-col gap-2 flex-1">
-                <div className="text-[14px] text-gray-900 font-semibold">
+              <div className="px-5 py-5 flex flex-col gap-3 flex-1">
+                <div className="text-base text-gray-900 font-bold leading-tight">
                   {formatDiscountText(voucher)}
                 </div>
-                <div className="text-[14px] text-gray-700">
+                <div className="text-sm text-gray-600">
                   {typeof voucher.minOrder === "number" && voucher.minOrder > 0
-                    ? `Đơn tối thiểu ${formatCurrencyVND(voucher.minOrder)}`
-                    : "Không yêu cầu đơn tối thiểu"}
+                    ? `💰 Đơn tối thiểu ${formatCurrencyVND(voucher.minOrder)}`
+                    : "✅ Không yêu cầu đơn tối thiểu"}
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="py-12 text-center text-[14px] text-gray-500">
-          Không có voucher{" "}
-          {historyTab === "expired" ? "hết hiệu lực" : "đã sử dụng"}
+        <div className="py-12 text-center">
+          <div className="text-gray-400 text-4xl mb-3">📋</div>
+          <div className="text-sm text-gray-500">
+            Không có voucher{" "}
+            {historyTab === "expired" ? "hết hiệu lực" : "đã sử dụng"}
+          </div>
         </div>
       )}
     </div>
