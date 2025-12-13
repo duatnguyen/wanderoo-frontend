@@ -56,6 +56,7 @@ export interface ReturnOrderDetail {
   category: ReturnOrderCategory;
   sourceNote?: string;
   adminNotes?: string;
+  images?: string[]; // Images array from JSON
 }
 
 export interface PageResponse<T> {

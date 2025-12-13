@@ -33,6 +33,7 @@ interface ReturnOrder {
   source: "Website" | "POS";
   category: ReturnOrderCategory;
   sourceNote?: string;
+  images?: string[]; // Images array from JSON
 }
 
 
@@ -481,6 +482,69 @@ const AdminOrderOtherStatusDetail = () => {
                 </p>
               </div>
             </div>
+
+            {/* Images Section */}
+            {order.images && order.images.length > 0 && (
+              <div className="flex gap-[14px] items-start w-full">
+                <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#e7f3ff] rounded-[8px] shrink-0">
+                  <svg
+                    className="h-[20px] w-[20px] text-[#1976d2]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex flex-col gap-[8px] items-start flex-1 min-w-0">
+                  <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                    Hình ảnh đính kèm
+                  </p>
+                  <div className="flex flex-wrap gap-[8px] w-full">
+                    {order.images.map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        className="relative group cursor-pointer"
+                        onClick={() => {
+                          // Open image in new tab or modal
+                          window.open(imageUrl, "_blank");
+                        }}
+                      >
+                        <img
+                          src={imageUrl || "https://via.placeholder.com/100"}
+                          alt={`Hình ảnh minh chứng ${index + 1}`}
+                          className="w-[100px] h-[100px] rounded-[8px] border-2 border-[#e7e7e7] object-cover hover:border-[#1976d2] transition-all duration-200 hover:shadow-md"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              "https://via.placeholder.com/100";
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-[8px] transition-all duration-200 flex items-center justify-center">
+                          <svg
+                            className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Resolution Note */}
             <div className="flex gap-[14px] items-start w-full">

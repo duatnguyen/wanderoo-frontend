@@ -72,8 +72,8 @@ export const createNewDraftOrder = async (): Promise<ApiResponse<DraftOrderRespo
   return response.data;
 };
 
-export const updateItemQuantity = async (orderId: number, request: UpdateItemQuantityRequest): Promise<ApiResponse<null>> => {
-  const response = await api.put<ApiResponse<null>>(`/auth/v1/private/sale/orders/${orderId}/items`, request);
+export const updateItemQuantity = async (orderId: number, request: UpdateItemQuantityRequest): Promise<ApiResponse<DraftOrderDetailResponse>> => {
+  const response = await api.put<ApiResponse<DraftOrderDetailResponse>>(`/auth/v1/private/sale/orders/${orderId}/items`, request);
   return response.data;
 };
 

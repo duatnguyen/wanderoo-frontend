@@ -226,26 +226,58 @@ const POSPage: React.FC = () => {
 
   const handleQuantityChange = useCallback(
     async (productId: string, quantity: number) => {
-      if (!draftOrderId) return;
+      if (!draftOrderId) {
+        setError("Không tìm thấy hóa đơn để cập nhật số lượng");
+        return;
+      }
+
       const productDetailId = Number(productId);
-      if (Number.isNaN(productDetailId)) return;
-      const normalizedQuantity = Number.isFinite(quantity)
-        ? Math.max(1, Math.floor(quantity))
-        : 1;
+      if (Number.isNaN(productDetailId)) {
+        setError("ID sản phẩm không hợp lệ");
+        return;
+      }
+
+      // Validate và normalize quantity
+      let normalizedQuantity: number;
+      if (!Number.isFinite(quantity) || quantity < 0) {
+        normalizedQuantity = 1;
+      } else {
+        normalizedQuantity = Math.max(1, Math.floor(quantity));
+      }
+
+      // Tìm item hiện tại để kiểm tra
+      const currentItem = orderDetail?.items.find((item) => item.id === productDetailId);
+      if (!currentItem) {
+        setError("Không tìm thấy sản phẩm trong đơn hàng");
+        return;
+      }
+
+      // Nếu số lượng không thay đổi, không cần update
+      if (currentItem.quantity === normalizedQuantity) {
+        return;
+      }
+
+      // Kiểm tra nếu số lượng tăng (cần kiểm tra stock)
+      const quantityDifference = normalizedQuantity - currentItem.quantity;
+      if (quantityDifference > 0) {
+        // Số lượng tăng - cần kiểm tra stock trước
+        // Backend sẽ kiểm tra stock, nhưng có thể hiển thị warning nếu cần
+        // Tạm thời để backend xử lý validation
+      }
 
       // Optimistic UI update
       updateOrderDetailState((detail) => {
         const items = detail.items.map((item) =>
           item.id === productDetailId
             ? {
-                ...item,
-                quantity: normalizedQuantity,
-                amount: getUnitPrice(item) * normalizedQuantity,
-              }
+              ...item,
+              quantity: normalizedQuantity,
+              amount: getUnitPrice(item) * normalizedQuantity,
+            }
             : item
         );
         const totalProductPrice = items.reduce((sum, item) => sum + item.amount, 0);
-        const totalOrderPrice = totalProductPrice - detail.orderDiscountAmount;
+        const totalOrderPrice = totalProductPrice - (detail.orderDiscountAmount ?? 0);
 
         return {
           ...detail,
@@ -256,20 +288,62 @@ const POSPage: React.FC = () => {
       });
 
       try {
-        await updateItemQuantity(draftOrderId, {
+        setIsRefreshing(true);
+        setError(null);
+
+        // Gọi API để update quantity - backend sẽ kiểm tra stock
+        const response = await updateItemQuantity(draftOrderId, {
           productDetailId,
           quantity: normalizedQuantity,
         });
-        // Reload lại từ BE ở background để có giá discount mới
-        void loadDraftOrderDetail(draftOrderId);
+
+        // Cập nhật state trực tiếp từ response để tránh phải gọi thêm GET request
+        if (response.data) {
+          setOrderDetail(response.data);
+          setNoteValue(response.data.notes ?? "");
+          setNoteSyncedValue(response.data.notes ?? "");
+        } else {
+          // Fallback: reload nếu response không có data
+          await loadDraftOrderDetail(draftOrderId);
+        }
         setError(null);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Không thể cập nhật số lượng", err);
-        setError("Không thể cập nhật sản phẩm. Vui lòng thử lại.");
-        void loadDraftOrderDetail(draftOrderId);
+
+        // Parse error message từ backend
+        let errorMessage = "Không thể cập nhật số lượng sản phẩm. Vui lòng thử lại.";
+
+        if (err?.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else if (err?.message) {
+          errorMessage = err.message;
+        } else if (err?.response?.status === 400) {
+          // Kiểm tra nếu lỗi liên quan đến stock
+          const backendMessage = err?.response?.data?.message || "";
+          if (backendMessage.includes("không đủ") ||
+            backendMessage.includes("hết hàng") ||
+            backendMessage.includes("có thể bán")) {
+            errorMessage = backendMessage;
+          } else {
+            errorMessage = "Số lượng không hợp lệ hoặc vượt quá số lượng có thể bán.";
+          }
+        } else if (err?.response?.status === 500) {
+          errorMessage = "Lỗi server khi cập nhật số lượng. Vui lòng thử lại sau.";
+        }
+
+        setError(errorMessage);
+
+        // Revert optimistic update bằng cách reload từ backend
+        try {
+          await loadDraftOrderDetail(draftOrderId);
+        } catch (reloadErr) {
+          console.error("Không thể reload order detail sau khi cập nhật số lượng thất bại", reloadErr);
+        }
+      } finally {
+        setIsRefreshing(false);
       }
     },
-    [draftOrderId, loadDraftOrderDetail, updateOrderDetailState]
+    [draftOrderId, orderDetail, loadDraftOrderDetail, updateOrderDetailState]
   );
 
   const handleRemove = useCallback(
@@ -354,10 +428,10 @@ const POSPage: React.FC = () => {
           const updatedItems = detail.items.map((item) =>
             item.id === productDetailId
               ? {
-                  ...item,
-                  quantity: item.quantity + 1,
-                  amount: getUnitPrice(item) * (item.quantity + 1),
-                }
+                ...item,
+                quantity: item.quantity + 1,
+                amount: getUnitPrice(item) * (item.quantity + 1),
+              }
               : item
           );
           const totalProductPrice = updatedItems.reduce(
@@ -469,25 +543,74 @@ const POSPage: React.FC = () => {
 
   const handleApplyVoucher = useCallback(async (voucherId: string | null) => {
     if (!draftOrderId) {
+      setError("Không tìm thấy hóa đơn để áp dụng voucher");
       return;
     }
+
     try {
       setIsRefreshing(true);
+      setError(null);
+
       if (voucherId) {
         const discountId = Number(voucherId);
-        if (Number.isNaN(discountId)) {
+        if (Number.isNaN(discountId) || discountId <= 0) {
           throw new Error("Mã voucher không hợp lệ");
         }
-        await applyVoucherToOrder(draftOrderId, discountId);
+
+        // Apply voucher - API trả về DraftOrderDetailResponse đầy đủ
+        const response = await applyVoucherToOrder(draftOrderId, discountId);
+
+        // Cập nhật state trực tiếp từ response để tránh phải gọi thêm GET request
+        if (response.data) {
+          setOrderDetail(response.data);
+          setNoteValue(response.data.notes ?? "");
+          setNoteSyncedValue(response.data.notes ?? "");
+        } else {
+          // Fallback: reload nếu response không có data
+          await loadDraftOrderDetail(draftOrderId);
+        }
       } else {
-        await removeVoucherFromOrder(draftOrderId);
+        // Remove voucher - API trả về DraftOrderDetailResponse đầy đủ
+        const response = await removeVoucherFromOrder(draftOrderId);
+
+        // Cập nhật state trực tiếp từ response
+        if (response.data) {
+          setOrderDetail(response.data);
+          setNoteValue(response.data.notes ?? "");
+          setNoteSyncedValue(response.data.notes ?? "");
+        } else {
+          // Fallback: reload nếu response không có data
+          await loadDraftOrderDetail(draftOrderId);
+        }
       }
-      await loadDraftOrderDetail(draftOrderId);
+
       setError(null);
     } catch (err: any) {
       console.error("Không thể áp dụng voucher", err);
-      const errorMessage = err?.response?.data?.message || err?.message || "Không thể áp dụng voucher. Vui lòng thử lại.";
+
+      // Parse error message từ backend
+      let errorMessage = "Không thể áp dụng voucher. Vui lòng thử lại.";
+
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.response?.status === 400) {
+        errorMessage = "Mã voucher không hợp lệ hoặc không thể áp dụng cho đơn hàng này.";
+      } else if (err?.response?.status === 404) {
+        errorMessage = "Không tìm thấy mã voucher.";
+      } else if (err?.response?.status === 500) {
+        errorMessage = "Lỗi server. Vui lòng thử lại sau.";
+      }
+
       setError(errorMessage);
+
+      // Reload order detail để đảm bảo sync với backend
+      try {
+        await loadDraftOrderDetail(draftOrderId);
+      } catch (reloadErr) {
+        console.error("Không thể reload order detail sau khi áp dụng voucher thất bại", reloadErr);
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -500,7 +623,7 @@ const POSPage: React.FC = () => {
       }
       try {
         setIsRefreshing(true);
-        
+
         // Xử lý khác nhau theo phương thức thanh toán
         if (data.paymentMethod === "vnpay") {
           // VNPay: Không cần gọi checkoutOrder ngay, chỉ thông báo thành công
@@ -710,6 +833,7 @@ const POSPage: React.FC = () => {
             onQuantityChange={handleQuantityChange}
             onRemove={handleRemove}
             className="flex-1"
+            isRefreshing={isRefreshing}
           />
           {/* Footer */}
           <POSFooter

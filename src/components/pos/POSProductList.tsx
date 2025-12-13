@@ -20,6 +20,7 @@ export type POSProductListProps = {
   onQuantityChange?: (productId: string, quantity: number) => void;
   onRemove?: (productId: string) => void;
   className?: string;
+  isRefreshing?: boolean;
 };
 
 const POSProductListComponent: React.FC<POSProductListProps> = ({
@@ -27,6 +28,7 @@ const POSProductListComponent: React.FC<POSProductListProps> = ({
   onQuantityChange,
   onRemove,
   className,
+  isRefreshing = false,
 }) => {
   const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>(
     {}
@@ -53,6 +55,11 @@ const POSProductListComponent: React.FC<POSProductListProps> = ({
   }, [products]);
 
   useEffect(() => {
+    // Không sync khi đang refresh để tránh reset giá trị input về giá trị cũ
+    if (isRefreshing) {
+      return;
+    }
+
     setQuantityInputs((prev) => {
       const next = { ...prev };
       let changed = false;
@@ -66,6 +73,7 @@ const POSProductListComponent: React.FC<POSProductListProps> = ({
       });
 
       products.forEach((product) => {
+        // Chỉ sync khi không đang edit và không đang refresh
         if (editingInputs[product.id]) {
           return;
         }
@@ -78,7 +86,7 @@ const POSProductListComponent: React.FC<POSProductListProps> = ({
 
       return changed ? next : prev;
     });
-  }, [products, editingInputs]);
+  }, [products, editingInputs, isRefreshing]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
@@ -134,14 +142,24 @@ const POSProductListComponent: React.FC<POSProductListProps> = ({
                           src={product.image}
                           alt={product.name}
                           className="w-[60px] h-[60px] rounded-[8px] border border-[#e7e7e7] object-cover shadow-sm"
+                          onError={(e) => {
+                            // Fallback nếu ảnh không load được
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
                         />
-                      ) : (
-                        <div className="w-[60px] h-[60px] rounded-[8px] border border-[#e7e7e7] bg-[#f8f9fa] flex items-center justify-center">
-                          <span className="text-[#737373] text-xs font-medium">
-                            No Image
-                          </span>
-                        </div>
-                      )}
+                      ) : null}
+                      <div 
+                        className={`w-[60px] h-[60px] rounded-[8px] border border-[#e7e7e7] bg-[#f8f9fa] flex items-center justify-center ${product.image ? 'hidden' : ''}`}
+                      >
+                        <span className="text-[#737373] text-xs font-medium">
+                          {product.name?.charAt(0)?.toUpperCase() || 'N/A'}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-start justify-between gap-2">

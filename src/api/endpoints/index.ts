@@ -38,6 +38,7 @@ export {
   getDiscountDetail,
   createDiscount,
   updateDiscount,
+  toggleDiscountStatus,
   deleteDiscount,
   deleteAllDiscounts,
 } from './discountApi';

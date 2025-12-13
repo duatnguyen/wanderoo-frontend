@@ -4,7 +4,7 @@ import { Package } from "lucide-react";
 interface CancelOrderConfirmationPopupWebsiteProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (reason: string) => void;
   orderData: any;
 }
 
@@ -38,7 +38,7 @@ const CancelOrderConfirmationPopupWebsite: React.FC<
 
     setIsSubmitting(true);
     try {
-      await onConfirm();
+      await onConfirm(finalReason);
       // Reset form
       setSelectedReason("");
       setCustomReason("");

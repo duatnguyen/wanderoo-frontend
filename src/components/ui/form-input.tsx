@@ -18,7 +18,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
         )}
         <div
           className={cn(
-            "bg-white border-2 border-[#e04d30] flex items-center h-[40px] px-[16px] rounded-[12px] w-full",
+            "bg-white border-2 border-[#272424] flex items-center h-[40px] px-[16px] rounded-[8px] w-full",
             containerClassName
           )}
         >
