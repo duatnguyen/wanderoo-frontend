@@ -11,24 +11,32 @@ const VerifyEmail: React.FC = () => {
 
     useEffect(() => {
         const token = searchParams.get("token");
-        
+
         if (!token) {
             setStatus("error");
             setMessage("Token không hợp lệ");
             return;
         }
 
-        // Gọi API xác thực
-        api.get<ApiResponse<null>>(`/auth/v1/public/users/verify-email?token=${token}`)
+        // Gọi API xác thực - sử dụng params object để axios tự động encode token
+        api.get<ApiResponse<null>>(`/auth/v1/public/users/verify-email`, {
+            params: {
+                token: token
+            }
+        })
             .then((response) => {
                 if (response.data.status === 200) {
+                    // Hiển thị thông báo thành công trước
                     setStatus("success");
                     setMessage(response.data.message || "Xác thực thành công!");
+
+                    // Sau 1.5 giây, chuyển đến trang đăng nhập
                     setTimeout(() => {
                         navigate("/login", {
-                            state: { message: "Tài khoản của bạn đã được kích hoạt. Vui lòng đăng nhập." }
+                            replace: true,
+                            state: { message: response.data.message || "Tài khoản của bạn đã được kích hoạt. Vui lòng đăng nhập." }
                         });
-                    }, 3000);
+                    }, 1500);
                 } else {
                     setStatus("error");
                     setMessage(response.data.message || "Xác thực thất bại");
@@ -51,7 +59,7 @@ const VerifyEmail: React.FC = () => {
                         <p className="text-gray-600">Vui lòng đợi trong giây lát</p>
                     </>
                 )}
-                
+
                 {status === "success" && (
                     <>
                         <div className="mb-4">
@@ -64,7 +72,7 @@ const VerifyEmail: React.FC = () => {
                         <p className="text-sm text-gray-500">Đang chuyển đến trang đăng nhập...</p>
                     </>
                 )}
-                
+
                 {status === "error" && (
                     <>
                         <div className="mb-4">

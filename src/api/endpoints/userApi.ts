@@ -57,7 +57,7 @@ export const changePassword = async (
   passwordData: ChangePasswordRequest
 ): Promise<ApiResponse<null>> => {
   const response = await api.put<ApiResponse<null>>(
-    "/auth/v1/private/users/change-password",
+    "/auth/v1/private/users/password",
     passwordData
   );
   return response.data;

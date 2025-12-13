@@ -335,12 +335,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ type }) => {
                                         />
                                         Ghi nhớ tôi?
                                     </label>
-                                    <button
-                                        type="button"
+                                    <Link
+                                        to="/forgot-password"
                                         className="font-semibold text-orange-500 hover:text-orange-600 transition-colors"
                                     >
                                         Quên mật khẩu?
-                                    </button>
+                                    </Link>
                                 </div>
                             </>
                         ) : (
