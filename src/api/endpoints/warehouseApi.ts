@@ -34,6 +34,42 @@ export const getProviderList = async (
   return response.data.data;
 };
 
+export const getActiveProviderList = async (
+  keyword?: string,
+  sort?: string,
+  page: number = 1,
+  size: number = 10
+): Promise<ProviderPageResponse> => {
+  const params = new URLSearchParams();
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
+
+  const response = await apiClient.get<ApiResponse<ProviderPageResponse>>(
+    `/auth/v1/private/provider/active?${params.toString()}`
+  );
+  return response.data.data;
+};
+
+export const getInactiveProviderList = async (
+  keyword?: string,
+  sort?: string,
+  page: number = 1,
+  size: number = 10
+): Promise<ProviderPageResponse> => {
+  const params = new URLSearchParams();
+  if (keyword) params.append("keyword", keyword);
+  if (sort) params.append("sort", sort);
+  params.append("page", page.toString());
+  params.append("size", size.toString());
+
+  const response = await apiClient.get<ApiResponse<ProviderPageResponse>>(
+    `/auth/v1/private/provider/inactive?${params.toString()}`
+  );
+  return response.data.data;
+};
+
 export const deleteProvider = async (id: number): Promise<void> => {
   await apiClient.delete('/auth/v1/private/provider', {
     params: { id },

@@ -7,6 +7,8 @@ export interface PaginationProps {
   total: number; // total pages
   onChange?: (page: number) => void;
   className?: string;
+  pageSize?: number; // Optional: page size for display calculation
+  totalElements?: number; // Optional: total number of items
 }
 
 export const Pagination: React.FC<Readonly<PaginationProps>> = ({
@@ -14,12 +16,15 @@ export const Pagination: React.FC<Readonly<PaginationProps>> = ({
   total,
   onChange,
   className,
+  pageSize: propPageSize,
+  totalElements: propTotalElements,
 }) => {
   const totalPages = total;
-  const pageSize = 10; // Fixed page size for display calculation
+  const pageSize = propPageSize ?? 10; // Use provided pageSize or default to 10
+  const totalElements = propTotalElements ?? totalPages * pageSize; // Use provided totalElements or calculate
 
-  const start = (current - 1) * pageSize + 1;
-  const end = Math.min(current * pageSize, totalPages * pageSize);
+  const start = totalElements > 0 ? (current - 1) * pageSize + 1 : 0;
+  const end = Math.min(current * pageSize, totalElements);
 
   const handlePrev = () => {
     if (current > 1 && onChange) onChange(current - 1);
@@ -39,7 +44,11 @@ export const Pagination: React.FC<Readonly<PaginationProps>> = ({
       {/* Left side - Display info (hidden on small screens) */}
       <div className="hidden md:flex gap-[3px] items-start">
         <p className="text-[12px] text-[#737373] font-normal leading-[1.5] whitespace-pre">
-          Đang hiển thị {start} - {end} trong tổng {totalPages} trang
+          {totalElements > 0 ? (
+            <>Đang hiển thị {start} - {end} trong tổng {totalElements} sản phẩm ({totalPages} trang)</>
+          ) : (
+            <>Không có dữ liệu</>
+          )}
         </p>
       </div>
 

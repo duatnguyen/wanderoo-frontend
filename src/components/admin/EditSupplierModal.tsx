@@ -236,6 +236,26 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
     setErrors((prev) => ({ ...prev, wardName: "" }));
   };
 
+  // Helper function to get border class for input fields
+  const getInputBorderClass = (fieldName: string, isRequired: boolean, hasValue: boolean) => {
+    if (!isRequired) {
+      // Not required: gray border
+      return "border-[#d1d1d1]";
+    }
+    // Required: gray border if has value, red border if no value
+    return hasValue ? "border-[#d1d1d1]" : "border-[#e04d30]";
+  };
+
+  // Helper function to get border class for dropdown fields
+  const getDropdownBorderClass = (fieldName: string, isRequired: boolean, hasValue: boolean, hasError: boolean) => {
+    if (!isRequired) {
+      // Not required: gray border
+      return "border-[#d1d1d1]";
+    }
+    // Required: gray border if has value, red border if no value
+    return hasValue ? "border-[#d1d1d1]" : "border-[#e04d30]";
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -351,6 +371,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
               value={formData.supplierName}
               onChange={(e) => handleInputChange("supplierName", e.target.value)}
               placeholder="Nhập tên nhà cung cấp"
+              containerClassName={getInputBorderClass("supplierName", true, !!formData.supplierName.trim())}
             />
             {errors.supplierName && (
               <span className="text-red-500 text-[12px]">
@@ -367,6 +388,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
               value={formData.phone}
               onChange={(e) => handleInputChange("phone", e.target.value)}
               placeholder="Nhập số điện thoại"
+              containerClassName={getInputBorderClass("phone", true, !!formData.phone.trim())}
             />
             {errors.phone && (
               <span className="text-red-500 text-[12px]">{errors.phone}</span>
@@ -382,6 +404,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
               value={formData.email}
               onChange={(e) => handleInputChange("email", e.target.value)}
               placeholder="Nhập email"
+              containerClassName={getInputBorderClass("email", true, !!formData.email.trim())}
             />
             {errors.email && (
               <span className="text-red-500 text-[12px]">{errors.email}</span>
@@ -392,7 +415,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <label className="font-medium text-[#272424] text-[14px]">
               Ghi chú
             </label>
-            <div className="border-2 border-[#e04d30] rounded-[12px] w-full">
+            <div className={`border-2 ${getInputBorderClass("note", false, !!formData.note.trim())} rounded-[12px] w-full`}>
               <textarea
                 value={formData.note}
                 onChange={(e) => handleInputChange("note", e.target.value)}
@@ -413,11 +436,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div
-                  className={`bg-white border-2 ${
-                    errors.provinceName || isProvinceError
-                      ? "border-[#ff4d4f]"
-                      : "border-[#e04d30]"
-                  } rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer`}
+                  className={`bg-white border-2 ${getDropdownBorderClass("provinceName", true, !!formData.provinceName.trim(), isProvinceError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer`}
                 >
                   <span
                     className={`text-[14px] font-semibold ${
@@ -449,11 +468,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div
-                  className={`bg-white border-2 ${
-                    errors.districtName || isDistrictError
-                      ? "border-[#ff4d4f]"
-                      : "border-[#e04d30]"
-                  } rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer ${
+                  className={`bg-white border-2 ${getDropdownBorderClass("districtName", true, !!formData.districtName.trim(), isDistrictError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer ${
                     !formData.provinceId ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 >
@@ -495,11 +510,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div
-                  className={`bg-white border-2 ${
-                    errors.wardName || isWardError
-                      ? "border-[#ff4d4f]"
-                      : "border-[#e04d30]"
-                  } rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer ${
+                  className={`bg-white border-2 ${getDropdownBorderClass("wardName", true, !!formData.wardName.trim(), isWardError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer ${
                     !formData.districtId ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 >
@@ -536,7 +547,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <label className="font-medium text-[#272424] text-[14px]">
               Địa chỉ cụ thể <span className="text-[#e04d30]">*</span>
             </label>
-            <div className="border-2 border-[#e04d30] rounded-[12px] w-full">
+            <div className={`border-2 ${getInputBorderClass("street", true, !!formData.street.trim())} rounded-[12px] w-full`}>
               <textarea
                 value={formData.street}
                 onChange={(e) => handleInputChange("street", e.target.value)}

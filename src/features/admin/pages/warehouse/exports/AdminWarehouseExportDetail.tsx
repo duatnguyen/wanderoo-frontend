@@ -490,13 +490,8 @@ const AdminWarehouseExportDetail: React.FC = () => {
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px] mb-3">
             Nhà cung cấp
           </div>
-          <div className="flex items-center gap-6">
-            <div className="w-[85px] h-[85px] rounded-[12px] bg-gray-200 flex items-center justify-center flex-shrink-0">
-              <span className="text-[10px] text-gray-400">Logo</span>
-            </div>
-            <div className="text-black text-[14px] font-[400] font-montserrat leading-[18px]">
-              {invoiceDetail.providerName || "N/A"}
-            </div>
+          <div className="text-[#272424] text-[14px] font-[400] font-montserrat leading-[18px]">
+            {invoiceDetail.providerName || "N/A"}
           </div>
         </div>
 
@@ -505,32 +500,8 @@ const AdminWarehouseExportDetail: React.FC = () => {
           <div className="text-[#272424] text-[20px] font-[600] font-montserrat leading-[28px] mb-3">
             Nhân viên phụ trách
           </div>
-          <div className="flex items-center gap-6">
-            {invoiceDetail.picImage ? (
-              <img
-                className="w-[85px] h-[85px] rounded-[12px] object-cover flex-shrink-0"
-                src={invoiceDetail.picImage}
-                alt={invoiceDetail.picName || "Avatar"}
-                onError={(e) => {
-                  // Fallback to placeholder if image fails to load
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const placeholder = document.createElement("div");
-                  placeholder.className = "w-[85px] h-[85px] rounded-[12px] border-2 border-dashed border-[#D1D1D1] flex items-center justify-center bg-gray-50";
-                  placeholder.innerHTML = '<div class="text-[#D1D1D1] text-[12px] font-[400] font-montserrat leading-[18px]">Avatar</div>';
-                  target.parentNode?.appendChild(placeholder);
-                }}
-              />
-            ) : (
-              <div className="w-[85px] h-[85px] rounded-[12px] border-2 border-dashed border-[#D1D1D1] flex items-center justify-center bg-gray-50">
-                <div className="text-[#D1D1D1] text-[12px] font-[400] font-montserrat leading-[18px]">
-                  Avatar
-                </div>
-              </div>
-            )}
-            <div className="text-[#272424] text-[14px] font-[400] font-montserrat leading-[18px]">
-              {invoiceDetail.picName || "N/A"}
-            </div>
+          <div className="text-[#272424] text-[14px] font-[400] font-montserrat leading-[18px]">
+            {invoiceDetail.picName || "N/A"}
           </div>
         </div>
       </div>

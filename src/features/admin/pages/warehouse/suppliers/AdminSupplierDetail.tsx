@@ -155,7 +155,7 @@ const AdminSupplierDetail = () => {
       value: providerStats?.invoiceExportCreated ?? 0,
     },
     {
-      label: "Đơn xuất\nchưa nhận",
+      label: "Đơn xuất\nchưa hoàn tiền",
       value: providerStats?.invoiceExportUnrefund ?? 0,
     },
   ];

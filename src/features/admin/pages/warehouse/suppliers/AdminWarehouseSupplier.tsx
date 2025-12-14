@@ -9,7 +9,7 @@ import CaretDown from "@/components/ui/caret-down";
 import { Pagination } from "@/components/ui/pagination";
 import CustomCheckbox from "@/components/ui/custom-checkbox";
 import { ChipStatus } from "@/components/ui/chip-status";
-import { getProviderList, deleteAllProviders, activateAllProviders } from "@/api/endpoints/warehouseApi";
+import { getProviderList, getActiveProviderList, getInactiveProviderList, deleteAllProviders, activateAllProviders } from "@/api/endpoints/warehouseApi";
 import type { ProviderResponse } from "@/types";
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
@@ -68,14 +68,34 @@ const AdminWarehouseSupplier = () => {
   }, [location.state, navigate, location.pathname]);
 
   const { data, isLoading, isFetching, isError, error } = useQuery({
-    queryKey: ["providers", { keyword: debouncedSearch, page: currentPage }],
-    queryFn: () =>
-      getProviderList(
-        debouncedSearch || undefined,
-        undefined,
-        currentPage,
-        PAGE_SIZE
-      ),
+    queryKey: ["providers", { keyword: debouncedSearch, status: statusFilter, page: currentPage }],
+    queryFn: () => {
+      // Backend uses 0-based page index, frontend uses 1-based
+      const backendPage = currentPage - 1;
+      
+      if (statusFilter === "active") {
+        return getActiveProviderList(
+          debouncedSearch || undefined,
+          undefined,
+          backendPage,
+          PAGE_SIZE
+        );
+      } else if (statusFilter === "inactive") {
+        return getInactiveProviderList(
+          debouncedSearch || undefined,
+          undefined,
+          backendPage,
+          PAGE_SIZE
+        );
+      } else {
+        return getProviderList(
+          debouncedSearch || undefined,
+          undefined,
+          backendPage,
+          PAGE_SIZE
+        );
+      }
+    },
     placeholderData: keepPreviousData,
     staleTime: 60 * 1000,
   });
@@ -134,14 +154,8 @@ const AdminWarehouseSupplier = () => {
     });
   }, [providers]);
 
-  const paginatedSuppliers = useMemo(() => {
-    if (statusFilter === "all") {
-      return normalizedSuppliers;
-    }
-    return normalizedSuppliers.filter(
-      (supplier) => supplier.status === statusFilter
-    );
-  }, [normalizedSuppliers, statusFilter]);
+  // No need to filter client-side anymore since backend handles filtering
+  const paginatedSuppliers = normalizedSuppliers;
 
   useEffect(() => {
     setSelectedSuppliers(new Set());

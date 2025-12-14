@@ -4,14 +4,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { SearchBar } from "@/components/ui/search-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import Icon from "@/components/icons/Icon";
 import { Pagination } from "@/components/ui/pagination";
 import {
   searchInvoiceProducts,
   getProviderList,
-  getInvoicePreview,
   createImportInvoice,
   createExportInvoice,
 } from "@/api/endpoints/warehouseApi";
@@ -21,8 +19,6 @@ import type {
   ProviderPageResponse,
   ProductInvoicePageResponse,
   InvoiceCheckOutRequest,
-  InvoicePreviewResponse,
-  InvoicePreviewCartItemResponse,
 } from "@/types/warehouse";
 
 interface Product {
@@ -54,7 +50,6 @@ const AdminWarehouseCreateImport = () => {
   const [supplierPage, setSupplierPage] = useState(1);
   const [selectedSupplier, setSelectedSupplier] = useState<ProviderResponse | null>(null);
   const [highlightedSupplierId, setHighlightedSupplierId] = useState<number | null>(null);
-  const [productSearch, setProductSearch] = useState("");
   const [productFormSearch, setProductFormSearch] = useState("");
   const [debouncedProductSearch, setDebouncedProductSearch] = useState("");
   const [productSearchPage, setProductSearchPage] = useState(1);
@@ -64,7 +59,6 @@ const AdminWarehouseCreateImport = () => {
   const [selectedProducts, setSelectedProducts] = useState<
     Record<number, ProductInvoiceResponse>
   >({});
-  const [previewData, setPreviewData] = useState<InvoicePreviewResponse | null>(null);
 
   const totalQuantityLocal = products.reduce<number>(
     (sum, product: Product) => sum + product.quantity,
@@ -93,9 +87,6 @@ const AdminWarehouseCreateImport = () => {
     return () => clearTimeout(handler);
   }, [supplierSearchInput]);
 
-  useEffect(() => {
-    setPreviewData(null);
-  }, [products, selectedSupplier?.id, note]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -155,6 +146,7 @@ const AdminWarehouseCreateImport = () => {
 
   const productModalList = productQuery.data?.productInvoices ?? [];
   const modalTotalPages = productQuery.data?.totalPages ?? 0;
+  const modalTotalElements = productQuery.data?.totalElements ?? 0;
   const modalCurrentPage = productSearchPage;
   const isModalLoading = productQuery.isLoading || productQuery.isFetching;
   const hasModalError = productQuery.isError;
@@ -179,7 +171,7 @@ const AdminWarehouseCreateImport = () => {
     if (productQuery.isError && productQuery.error) {
       const message = isAxiosError(productQuery.error)
         ? productQuery.error.response?.data?.message ||
-          "Không thể tải danh sách sản phẩm"
+        "Không thể tải danh sách sản phẩm"
         : "Không thể tải danh sách sản phẩm";
       toast.error(message);
     }
@@ -198,20 +190,6 @@ const AdminWarehouseCreateImport = () => {
   const supplierEmpty =
     !supplierLoading && !supplierHasError && supplierList.length === 0;
 
-  const previewMutation = useMutation({
-    mutationFn: (payload: InvoiceCheckOutRequest) => getInvoicePreview(payload),
-    onSuccess: (data) => {
-      setPreviewData(data);
-      toast.success("Đã cập nhật số liệu xem trước");
-    },
-    onError: (error) => {
-      const message = isAxiosError(error)
-        ? error.response?.data?.message || "Không thể xem trước hóa đơn"
-        : "Không thể xem trước hóa đơn";
-      toast.error(message);
-    },
-  });
-
   const createInvoiceMutation = useMutation({
     mutationFn: (payload: InvoiceCheckOutRequest) =>
       isExportMode ? createExportInvoice(payload) : createImportInvoice(payload),
@@ -224,7 +202,7 @@ const AdminWarehouseCreateImport = () => {
     onError: (error) => {
       const message = isAxiosError(error)
         ? error.response?.data?.message ||
-          `Không thể tạo hóa đơn ${invoiceTypeLabel}`
+        `Không thể tạo hóa đơn ${invoiceTypeLabel}`
         : `Không thể tạo hóa đơn ${invoiceTypeLabel}`;
       toast.error(message);
     },
@@ -338,14 +316,6 @@ const AdminWarehouseCreateImport = () => {
     };
   };
 
-  const handlePreview = async () => {
-    const payload = buildInvoicePayload();
-    if (!payload) {
-      return;
-    }
-    await previewMutation.mutateAsync(payload);
-  };
-
   const handleCancel = () => {
     navigate(listPath);
   };
@@ -428,14 +398,9 @@ const AdminWarehouseCreateImport = () => {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [handleCloseProductModal, handleCloseSupplierModal, isProductFormOpen, isSupplierModalOpen]);
 
-  const isPreviewLoading = previewMutation.isPending;
   const isCreatingInvoice = createInvoiceMutation.isPending;
-  const summaryTotalQuantity = previewData?.totalQuantity ?? totalQuantityLocal;
-  const summaryTotalAmount = previewData?.totalPrice ?? totalAmount;
-  const previewCartItems = previewData?.cartItems ?? [];
-  const previewHelperText = previewData
-    ? "Số liệu hiển thị đã được tính từ hệ thống kho."
-    : "Số liệu tạm tính, bấm “Xem trước” để đồng bộ theo dữ liệu kho.";
+  const summaryTotalQuantity = totalQuantityLocal;
+  const summaryTotalAmount = totalAmount;
   useEffect(() => {
     document.title = `${pageTitle} | Wanderoo`;
   }, [pageTitle]);
@@ -485,19 +450,16 @@ const AdminWarehouseCreateImport = () => {
                 Sản phẩm
               </p>
             </div>
-            <div className="flex items-center gap-2 relative shrink-0 w-full">
-              <SearchBar
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Tìm kiếm"
-                className="flex-1 h-[36px] [&_input]:text-[14px]"
-              />
+            <div className="flex items-center justify-end gap-2 relative shrink-0 w-full">
               <Button
                 variant="secondary"
                 onClick={() => setIsProductFormOpen(true)}
-                className="bg-white text-[#e04d30] border border-[#e04d30] hover:bg-white hover:text-[#e04d30] h-[36px] w-[36px] p-0 flex items-center justify-center flex-shrink-0"
+                className="bg-white text-[#e04d30] border-2 border-[#e04d30] hover:bg-[#e04d30] hover:text-white transition-colors h-[40px] px-6 flex items-center gap-2 flex-shrink-0"
               >
-                <Icon name="plus" size={16} color="#e04d30" strokeWidth={3} />
+                <Icon name="plus" size={18} color="currentColor" strokeWidth={2.5} />
+                <span className="font-['Montserrat'] font-semibold text-[14px]">
+                  Thêm sản phẩm
+                </span>
               </Button>
             </div>
 
@@ -523,60 +485,78 @@ const AdminWarehouseCreateImport = () => {
 
                 {/* Products List */}
                 <div className="flex flex-col">
-                  {products.map((product) => (
-                    <div
-                      key={product.id}
-                      className="border-b border-[#e7e7e7] flex items-center py-[14px] pl-[24px] pr-0 hover:bg-gray-50"
-                    >
-                      {/* Product Info */}
-                      <div className="flex-[2] min-w-0 flex items-start gap-3">
-                        <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300"></div>
-                        <span className="font-['Montserrat'] font-normal text-[14px] text-[#272424] truncate min-w-0">
-                          {product.name}
-                        </span>
-                      </div>
+                  {products.length > 0 ? (
+                    products.map((product) => (
+                      <div
+                        key={product.id}
+                        className="border-b border-[#e7e7e7] flex items-center py-[14px] pl-[24px] pr-0 hover:bg-gray-50"
+                      >
+                        {/* Product Info */}
+                        <div className="flex-[2] min-w-0 flex items-start gap-3">
+                          <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300"></div>
+                          <span className="font-['Montserrat'] font-normal text-[14px] text-[#272424] truncate min-w-0">
+                            {product.name}
+                          </span>
+                        </div>
 
-                      {/* Quantity */}
-                      <div className="flex-1 flex justify-center">
-                        <input
-                          type="number"
-                          value={product.quantity}
-                          onChange={(e) =>
-                            handleUpdateQuantity(
-                              product.id,
-                              parseInt(e.target.value) || 1
-                            )
-                          }
-                          className="w-20 text-center border border-[#d1d1d1] rounded px-2 py-1 text-[12px] font-['Montserrat'] focus:border-[#e04d30] focus:outline-none"
-                          min="1"
-                        />
-                      </div>
+                        {/* Quantity */}
+                        <div className="flex-1 flex justify-center">
+                          <input
+                            type="number"
+                            value={product.quantity}
+                            onChange={(e) =>
+                              handleUpdateQuantity(
+                                product.id,
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            className="w-20 text-center border border-[#d1d1d1] rounded px-2 py-1 text-[12px] font-['Montserrat'] focus:border-[#e04d30] focus:outline-none"
+                            min="1"
+                          />
+                        </div>
 
-                      {/* Unit Price */}
-                      <div className="flex-1 flex justify-center">
-                        <span className="font-['Montserrat'] font-semibold text-[14px] text-[#272424]">
-                          {formatCurrency(product.price)}
-                        </span>
-                      </div>
+                        {/* Unit Price */}
+                        <div className="flex-1 flex justify-center">
+                          <span className="font-['Montserrat'] font-semibold text-[14px] text-[#272424]">
+                            {formatCurrency(product.price)}
+                          </span>
+                        </div>
 
-                      {/* Total Amount */}
-                      <div className="flex-1 flex justify-center">
-                        <span className="font-['Montserrat'] font-semibold text-[14px] text-[#272424]">
-                          {formatCurrency(product.quantity * product.price)}
-                        </span>
-                      </div>
+                        {/* Total Amount */}
+                        <div className="flex-1 flex justify-center">
+                          <span className="font-['Montserrat'] font-semibold text-[14px] text-[#272424]">
+                            {formatCurrency(product.quantity * product.price)}
+                          </span>
+                        </div>
 
-                      {/* Remove Button */}
-                      <div className="w-[40px] flex-shrink-0 flex justify-center pr-[8px]">
-                        <button
-                          onClick={() => handleRemoveProduct(product.id)}
-                          className="text-[#737373] hover:text-[#4a4a4a] cursor-pointer text-[28px] font-normal leading-none"
-                        >
-                          ×
-                        </button>
+                        {/* Remove Button */}
+                        <div className="w-[40px] flex-shrink-0 flex justify-center pr-[8px]">
+                          <button
+                            onClick={() => handleRemoveProduct(product.id)}
+                            className="text-[#737373] hover:text-[#4a4a4a] cursor-pointer text-[28px] font-normal leading-none"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[#d1d5db]">
+                          <path d="M20 7h-4m0 0V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2m0 0H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"></path>
+                        </svg>
+                        <div>
+                          <p className="font-['Montserrat'] font-medium text-[15px] text-[#272424] mb-1">
+                            Chưa có sản phẩm nào
+                          </p>
+                          <p className="font-['Montserrat'] text-[13px] text-[#737373]">
+                            Nhấn nút "Thêm sản phẩm" để bắt đầu
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             )}
@@ -627,9 +607,6 @@ const AdminWarehouseCreateImport = () => {
                 </p>
               </div>
             </div>
-            <p className="text-[12px] text-[#6b7280] px-[16px] py-[6px]">
-              {previewHelperText}
-            </p>
           </div>
         </div>
 
@@ -643,14 +620,34 @@ const AdminWarehouseCreateImport = () => {
               </p>
               <div className="w-full">
                 <div className="relative">
-                  <SearchBar
-                    value={supplierSearch}
+                  <div className={`border-2 bg-white flex items-center gap-2 h-[36px] px-[12px] rounded-[10px] min-w-0 cursor-pointer transition-colors ${selectedSupplier
+                    ? 'border-[#d1d1d1]'
+                    : 'border-[#e04d30]'
+                    }`}
                     onClick={handleOpenSupplierModal}
-                    onFocus={handleOpenSupplierModal}
-                    readOnly
-                    placeholder="Chọn nhà cung cấp"
-                    className="w-full h-[36px] [&_input]:text-[14px] cursor-pointer"
-                  />
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-4 h-4 text-[#737373]"
+                      aria-hidden="true"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="M21 21l-4.3-4.3" />
+                    </svg>
+                    <input
+                      type="text"
+                      value={supplierSearch}
+                      readOnly
+                      placeholder="Chọn nhà cung cấp"
+                      onFocus={handleOpenSupplierModal}
+                      className="grow min-w-0 bg-transparent outline-none border-none text-[14px] text-[#272424] placeholder:text-[#737373] cursor-pointer"
+                      aria-label="Chọn nhà cung cấp"
+                    />
+                  </div>
                   {selectedSupplier && (
                     <button
                       type="button"
@@ -690,7 +687,10 @@ const AdminWarehouseCreateImport = () => {
                     </p>
                   </div>
                 </div>
-                <div className="border-2 border-[#e04d30] box-border flex gap-[4px] h-[100px] items-start p-[16px] relative rounded-[12px] shrink-0 w-full bg-white">
+                <div className={`border-2 box-border flex gap-[4px] h-[100px] items-start p-[16px] relative rounded-[12px] shrink-0 w-full bg-white transition-colors ${note.trim()
+                  ? 'border-[#d1d1d1]'
+                  : 'border-[#e04d30]'
+                  }`}>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
@@ -704,14 +704,6 @@ const AdminWarehouseCreateImport = () => {
 
           {/* Action Buttons */}
           <div className="flex gap-[10px] items-center justify-end shrink-0 w-full mt-2">
-            <Button
-              variant="outline"
-              onClick={handlePreview}
-              className="flex-shrink-0 h-[36px] text-[14px]"
-              disabled={isPreviewLoading}
-            >
-              {isPreviewLoading ? "Đang xem trước..." : "Xem trước"}
-            </Button>
             <Button
               onClick={handleCancel}
               variant="secondary"
@@ -737,59 +729,70 @@ const AdminWarehouseCreateImport = () => {
           className="fixed inset-0 z-50 flex items-center justify-center"
           onClick={handleCloseProductModal}
         >
-          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <div
-            className="relative z-10 w-[700px] max-h-[90vh] bg-white flex flex-col rounded-lg shadow-xl"
+            className="relative z-10 w-[900px] max-h-[90vh] bg-white flex flex-col rounded-xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-white flex flex-col rounded-lg overflow-hidden">
-              {/* Search Header */}
-              <div className="border-b border-[#e7e7e7] flex gap-2 items-center px-[16px] py-[30px] shrink-0 bg-white">
-                <div className="border-[1.6px] border-[#e04d30] border-solid box-border flex gap-[4px] grow items-center px-[16px] py-[8px] rounded-[12px] bg-white">
-                  <input
-                    type="text"
-                    value={productFormSearch}
-                    onChange={(e) => setProductFormSearch(e.target.value)}
-                    placeholder="Tìm kiếm"
-                    className="font-['Montserrat'] font-normal leading-[1.5] text-[12px] text-[#949494] grow outline-none bg-transparent"
-                  />
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="shrink-0"
+            <div className="bg-white flex flex-col h-full max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="border-b border-[#e7e7e7] px-6 py-4 bg-gradient-to-r from-[#fafafa] to-white flex-shrink-0">
+                <h2 className="font-['Montserrat'] font-bold text-[20px] text-[#272424] mb-4">
+                  Chọn sản phẩm
+                </h2>
+                {/* Search Header */}
+                <div className="flex gap-3 items-center">
+                  <div className="border-2 border-[#e04d30] border-solid flex gap-3 grow items-center px-4 py-3 rounded-xl bg-white focus-within:ring-2 focus-within:ring-[#e04d30]/20 focus-within:border-[#e04d30] transition-all">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="shrink-0 text-[#737373]"
+                    >
+                      <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <input
+                      type="text"
+                      value={productFormSearch}
+                      onChange={(e) => setProductFormSearch(e.target.value)}
+                      placeholder="Tìm kiếm sản phẩm theo tên, mã..."
+                      className="font-['Montserrat'] font-normal leading-[1.5] text-[14px] text-[#272424] grow outline-none bg-transparent placeholder:text-[#949494]"
+                      autoFocus
+                    />
+                    {productFormSearch && (
+                      <button
+                        onClick={() => {
+                          setProductFormSearch("");
+                          setDebouncedProductSearch("");
+                        }}
+                        className="shrink-0 text-[#737373] hover:text-[#272424] transition-colors"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => navigate("/admin/products/new")}
+                    className="bg-[#e04d30] hover:bg-[#c93d20] flex items-center justify-center h-[48px] w-[48px] rounded-xl shrink-0 transition-colors shadow-md hover:shadow-lg"
+                    title="Thêm sản phẩm mới"
                   >
-                    <path
-                      d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
-                      stroke="#454545"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M21 21L16.65 16.65"
-                      stroke="#454545"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  onClick={() => navigate("/admin/products/new")}
-                  className="bg-[#e04d30] flex items-center justify-center h-[40px] w-[40px] rounded-[12px] shrink-0"
-                >
-                  <span className="font-['Montserrat'] font-light text-[32px] text-white leading-[1.5]">
-                    +
-                  </span>
-                </button>
               </div>
 
               {/* Table Header */}
-              <div className="box-border flex items-center px-[15px] py-0 shrink-0 bg-white">
-                <div className="bg-white box-border flex gap-[8px] h-[50px] items-center overflow-clip px-[5px] py-[14px] w-[450px]">
+              <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] flex items-center px-6 py-4 flex-shrink-0">
+                <div className="flex gap-3 items-center w-[60%]">
                   <Checkbox
                     checked={selectAllState}
                     onCheckedChange={(checked) =>
@@ -797,34 +800,53 @@ const AdminWarehouseCreateImport = () => {
                     }
                     aria-label="Chọn tất cả sản phẩm trên trang"
                   />
-                  <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#454545]">
+                  <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#272424]">
                     Sản phẩm
                   </p>
                 </div>
-                <div className="bg-white box-border flex gap-[4px] grow h-[50px] items-center justify-center p-[14px]">
-                  <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
-                    Số lượng tồn kho
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-[#272424] text-center">
+                    Tồn kho
                   </p>
                 </div>
               </div>
 
               {/* Product List */}
-              <div className="box-border flex flex-col max-h-[400px] items-start px-[15px] py-0 overflow-y-auto bg-white">
+              <div className="flex flex-col flex-1 overflow-y-auto bg-white min-h-0">
                 {isModalLoading && (
-                  <div className="w-full py-10 text-center text-[14px] text-[#737373]">
-                    Đang tải danh sách sản phẩm...
+                  <div className="w-full py-16 text-center">
+                    <div className="inline-flex items-center gap-2 text-[14px] text-[#737373]">
+                      <svg className="animate-spin h-5 w-5 text-[#e04d30]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Đang tải danh sách sản phẩm...</span>
+                    </div>
                   </div>
                 )}
 
                 {hasModalError && !isModalLoading && (
-                  <div className="w-full py-10 text-center text-[14px] text-[#d92d20]">
-                    Không thể tải dữ liệu. Vui lòng thử lại.
+                  <div className="w-full py-16 text-center">
+                    <div className="inline-flex items-center gap-2 text-[14px] text-[#d92d20]">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                      </svg>
+                      <span>Không thể tải dữ liệu. Vui lòng thử lại.</span>
+                    </div>
                   </div>
                 )}
 
                 {isModalEmpty && (
-                  <div className="w-full py-10 text-center text-[14px] text-[#737373]">
-                    Không tìm thấy sản phẩm phù hợp.
+                  <div className="w-full py-16 text-center">
+                    <div className="inline-flex flex-col items-center gap-2 text-[14px] text-[#737373]">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-50">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="M21 21l-4.35-4.35"></path>
+                      </svg>
+                      <span>Không tìm thấy sản phẩm phù hợp.</span>
+                    </div>
                   </div>
                 )}
 
@@ -838,17 +860,18 @@ const AdminWarehouseCreateImport = () => {
                     return (
                       <div
                         key={product.id}
-                        className="border-b border-[#e7e7e7] box-border flex items-center w-full bg-white"
+                        className={`border-b border-[#e7e7e7] flex items-center w-full px-6 py-4 hover:bg-[#fafafa] transition-colors ${isChecked ? 'bg-[#fef3f2]' : 'bg-white'}`}
                       >
-                        <div className="bg-white box-border flex gap-[8px] h-full items-start overflow-clip px-[5px] py-[14px] w-[450px]">
+                        <div className="flex gap-4 items-start w-[60%]">
                           <Checkbox
                             checked={isChecked}
                             onCheckedChange={() =>
                               toggleProductSelection(product)
                             }
                             aria-label={`Chọn ${product.productName}`}
+                            className="mt-1"
                           />
-                          <div className="h-[38px] w-[38px] bg-gray-100 rounded flex items-center justify-center shrink-0 border border-gray-200 overflow-hidden">
+                          <div className="h-[56px] w-[56px] bg-gray-100 rounded-lg flex items-center justify-center shrink-0 border border-gray-200 overflow-hidden shadow-sm">
                             {product.imageUrl ? (
                               <img
                                 src={product.imageUrl}
@@ -856,99 +879,84 @@ const AdminWarehouseCreateImport = () => {
                                 className="h-full w-full object-cover"
                               />
                             ) : (
-                              <span className="text-[12px] text-[#737373]">
+                              <span className="text-[10px] text-[#737373]">
                                 N/A
                               </span>
                             )}
                           </div>
-                          <div className="flex flex-col gap-[4px] min-w-0 pr-2">
+                          <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                             <p
-                              className="font-['Montserrat'] font-semibold leading-[1.4] text-[14px] text-black line-clamp-1"
+                              className="font-['Montserrat'] font-semibold leading-[1.4] text-[15px] text-[#272424] line-clamp-1"
                               title={product.productName}
                             >
                               {product.productName}
                             </p>
                             {attributeText && (
-                              <p className="font-['Montserrat'] text-[12px] text-[#737373] line-clamp-1">
+                              <p className="font-['Montserrat'] text-[13px] text-[#737373] line-clamp-1">
                                 {attributeText}
                               </p>
                             )}
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#6b7280]">
-                              <span>Mã: #{product.id}</span>
-                              <span>Giá nhập: {formatPriceDisplay(product.importPrice)}</span>
-                              <span>Giá bán: {formatPriceDisplay(product.sellingPrice)}</span>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[12px] text-[#6b7280]">
+                              <span className="font-medium">Mã: <span className="font-normal">#{product.id}</span></span>
+                              <span className="font-medium">Giá nhập: <span className="font-normal">{formatPriceDisplay(product.importPrice)}</span></span>
+                              <span className="font-medium">Giá bán: <span className="font-normal">{formatPriceDisplay(product.sellingPrice)}</span></span>
                             </div>
                           </div>
                         </div>
-                        <div className="bg-white box-border flex gap-[4px] grow h-full items-center justify-center p-[14px]">
-                          <p className="font-['Montserrat'] font-semibold grow leading-[1.5] text-[14px] text-[#454545] text-center">
-                            {availableStock.toLocaleString("vi-VN")}
-                          </p>
+                        <div className="flex-1 flex items-center justify-center">
+                          <div className={`px-4 py-2 rounded-lg ${availableStock > 0 ? 'bg-[#f0fdf4] text-[#166534]' : 'bg-[#fef2f2] text-[#991b1b]'}`}>
+                            <p className="font-['Montserrat'] font-semibold leading-[1.5] text-[14px] text-center">
+                              {availableStock.toLocaleString("vi-VN")}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
               </div>
 
-              {modalTotalPages > 1 && (
-                <Pagination
-                  current={modalCurrentPage}
-                  total={modalTotalPages}
-                  onChange={(page) => setProductSearchPage(page)}
-                  className="border-none shadow-none rounded-none px-[16px] py-[12px]"
-                />
+              {/* Pagination */}
+              {!isModalLoading && !hasModalError && productModalList.length > 0 && modalTotalPages > 0 && (
+                <div className="border-t border-[#e7e7e7] bg-white px-6 py-4 flex-shrink-0">
+                  <Pagination
+                    current={modalCurrentPage}
+                    total={modalTotalPages}
+                    onChange={(page) => setProductSearchPage(page)}
+                    pageSize={PRODUCT_PAGE_SIZE}
+                    totalElements={modalTotalElements}
+                    className="bg-transparent border-none shadow-none"
+                  />
+                </div>
               )}
 
-              {/* Footer Buttons */}
-              <div className="box-border flex gap-[10px] items-center justify-end px-[16px] py-[12px] shrink-0 bg-white rounded-b-lg">
-                <Button
-                  variant="secondary"
-                  onClick={handleCloseProductModal}
-                  className="h-[36px] text-[14px]"
-                >
-                  Huỷ
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={handleAddProducts}
-                  className="h-[36px] text-[14px]"
-                >
-                  Xác nhận
-                </Button>
-              </div>
-            </div>
-            {previewCartItems.length ? (
-              <div className="px-[16px] pb-[16px] w-full">
-                <p className="text-[13px] font-semibold text-[#111] mb-2">
-                  Sản phẩm trong hóa đơn (snapshot từ hệ thống)
-                </p>
-                <div className="border border-[#e5e7eb] rounded-lg overflow-hidden">
-                  <div className="bg-[#f9fafb] flex text-[13px] font-semibold text-[#374151]">
-                    <div className="flex-[2] px-3 py-2">Sản phẩm</div>
-                    <div className="flex-1 px-3 py-2 text-center">Số lượng</div>
-                    <div className="flex-1 px-3 py-2 text-center">Đơn giá</div>
-                    <div className="flex-1 px-3 py-2 text-center">Thành tiền</div>
-                  </div>
-                  {previewCartItems.map((item: InvoicePreviewCartItemResponse) => (
-                    <div
-                      key={`${item.productDetailId}-${item.productName}`}
-                      className="flex text-[13px] border-t border-[#f1f5f9]"
-                    >
-                      <div className="flex-[2] px-3 py-2 text-[#111]">{item.productName}</div>
-                      <div className="flex-1 px-3 py-2 text-center text-[#374151]">
-                        {item.quantity}
-                      </div>
-                      <div className="flex-1 px-3 py-2 text-center text-[#374151]">
-                        {formatCurrency(item.productPrice)}
-                      </div>
-                      <div className="flex-1 px-3 py-2 text-center font-semibold text-[#111]">
-                        {formatCurrency(item.amount)}
-                      </div>
-                    </div>
-                  ))}
+              {/* Footer */}
+              <div className="border-t border-[#e7e7e7] bg-[#fafafa] flex items-center justify-between px-6 py-4 shrink-0">
+                <div className="text-[14px] text-[#737373]">
+                  {selectedOnPageCount > 0 && (
+                    <span className="font-medium text-[#272424]">
+                      Đã chọn {Object.keys(selectedProducts).length} sản phẩm
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-3 items-center">
+                  <Button
+                    variant="secondary"
+                    onClick={handleCloseProductModal}
+                    className="h-[40px] px-6 text-[14px] font-semibold"
+                  >
+                    Huỷ
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={handleAddProducts}
+                    disabled={Object.keys(selectedProducts).length === 0}
+                    className="h-[40px] px-6 text-[14px] font-semibold bg-[#e04d30] hover:bg-[#c93d20]"
+                  >
+                    Xác nhận ({Object.keys(selectedProducts).length})
+                  </Button>
                 </div>
               </div>
-            ) : null}
+            </div>
           </div>
         </div>
       )}
@@ -1026,9 +1034,8 @@ const AdminWarehouseCreateImport = () => {
                       type="button"
                       key={supplier.id}
                       onClick={() => setHighlightedSupplierId(supplier.id)}
-                      className={`w-full text-left px-[20px] py-[14px] border-b border-[#f2f2f2] hover:bg-[#fdf4f2] ${
-                        isActive ? "bg-[#fff0ec]" : "bg-white"
-                      }`}
+                      className={`w-full text-left px-[20px] py-[14px] border-b border-[#f2f2f2] hover:bg-[#fdf4f2] ${isActive ? "bg-[#fff0ec]" : "bg-white"
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-4">
                         <div>
@@ -1038,9 +1045,8 @@ const AdminWarehouseCreateImport = () => {
                           </p>
                         </div>
                         <div
-                          className={`size-4 border rounded-full flex items-center justify-center ${
-                            isActive ? "border-[#e04d30] bg-[#e04d30]" : "border-[#d1d1d1]"
-                          }`}
+                          className={`size-4 border rounded-full flex items-center justify-center ${isActive ? "border-[#e04d30] bg-[#e04d30]" : "border-[#d1d1d1]"
+                            }`}
                         >
                           {isActive && <div className="size-2 bg-white rounded-full" />}
                         </div>

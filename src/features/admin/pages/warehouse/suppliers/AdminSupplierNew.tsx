@@ -262,6 +262,42 @@ const AdminSupplierNew = () => {
     ));
   };
 
+  // Helper function to get border class for input fields
+  const getInputBorderClass = (fieldName: string, isRequired: boolean, hasValue: boolean) => {
+    if (!isRequired) {
+      // Not required: gray border
+      return "border-[#d1d1d1]";
+    }
+    // Required: red border only if no value AND has error
+    if (!hasValue && errors[fieldName]) {
+      return "border-red-500";
+    }
+    // Has value: gray border (no red even if has error)
+    if (hasValue) {
+      return "border-[#d1d1d1]";
+    }
+    // No value but no error yet: red border (required field)
+    return "border-[#e04d30]";
+  };
+
+  // Helper function to get border class for dropdown fields
+  const getDropdownBorderClass = (fieldName: string, isRequired: boolean, hasValue: boolean, hasError: boolean) => {
+    if (!isRequired) {
+      // Not required: gray border
+      return "border-[#d1d1d1]";
+    }
+    // Required: red border only if no value AND (has error OR isProvinceError/isDistrictError/isWardError)
+    if (!hasValue && (hasError || errors[fieldName])) {
+      return "border-red-500";
+    }
+    // Has value: gray border
+    if (hasValue) {
+      return "border-[#d1d1d1]";
+    }
+    // No value but no error yet: red border (required field)
+    return "border-[#e04d30]";
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -386,8 +422,7 @@ const AdminSupplierNew = () => {
                     handleInputChange("supplierName", e.target.value)
                   }
                   placeholder="Nhập tên nhà cung cấp"
-                  className={errors.supplierName ? "border-red-500" : ""}
-                  containerClassName="h-[36px] px-[12px] py-0"
+                  containerClassName={`h-[36px] px-[12px] py-0 ${getInputBorderClass("supplierName", true, !!formData.supplierName.trim())}`}
                 />
                 {errors.supplierName && (
                   <span className="text-red-500 text-[12px]">
@@ -405,8 +440,7 @@ const AdminSupplierNew = () => {
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
                   placeholder="Nhập số điện thoại"
-                  className={errors.phone ? "border-red-500" : ""}
-                  containerClassName="h-[36px] px-[12px] py-0"
+                  containerClassName={`h-[36px] px-[12px] py-0 ${getInputBorderClass("phone", true, !!formData.phone.trim())}`}
                 />
                 {errors.phone && (
                   <span className="text-red-500 text-[12px]">
@@ -425,8 +459,7 @@ const AdminSupplierNew = () => {
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   placeholder="Nhập email"
-                  className={errors.email ? "border-red-500" : ""}
-                  containerClassName="h-[36px] px-[12px] py-0"
+                  containerClassName={`h-[36px] px-[12px] py-0 ${getInputBorderClass("email", true, !!formData.email.trim())}`}
                 />
                 {errors.email && (
                   <span className="text-red-500 text-[12px]">
@@ -455,11 +488,7 @@ const AdminSupplierNew = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border-2 ${
-                      errors.city || isProvinceError
-                        ? "border-red-500"
-                        : "border-[#e04d30]"
-                    } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer`}
+                    className={`bg-white border-2 ${getDropdownBorderClass("city", true, !!formData.city.trim(), isProvinceError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer`}
                   >
                     <span
                       className={`text-[14px] font-semibold leading-[1.4] flex-1 ${
@@ -494,11 +523,7 @@ const AdminSupplierNew = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border-2 ${
-                      errors.district || isDistrictError
-                        ? "border-red-500"
-                        : "border-[#e04d30]"
-                    } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
+                    className={`bg-white border-2 ${getDropdownBorderClass("district", true, !!formData.district.trim(), isDistrictError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
                       !formData.provinceId ? "opacity-60 cursor-not-allowed" : ""
                     }`}
                   >
@@ -541,11 +566,7 @@ const AdminSupplierNew = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border-2 ${
-                      errors.ward || isWardError
-                        ? "border-red-500"
-                        : "border-[#e04d30]"
-                    } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
+                    className={`bg-white border-2 ${getDropdownBorderClass("ward", true, !!formData.ward.trim(), isWardError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
                       !formData.districtId ? "opacity-60 cursor-not-allowed" : ""
                     }`}
                   >
@@ -587,8 +608,7 @@ const AdminSupplierNew = () => {
                 value={formData.street}
                 onChange={(e) => handleInputChange("street", e.target.value)}
                 placeholder="Nhập địa chỉ chi tiết"
-                className={errors.street ? "border-red-500" : ""}
-                containerClassName="h-[36px] px-[12px] py-0"
+                containerClassName={`h-[36px] px-[12px] py-0 ${getInputBorderClass("street", true, !!formData.street.trim())}`}
               />
               {errors.street && (
                 <span className="text-red-500 text-[12px]">
@@ -612,7 +632,7 @@ const AdminSupplierNew = () => {
               value={formData.note}
               onChange={(e) => handleInputChange("note", e.target.value)}
               placeholder="Nhập ghi chú (nếu có)"
-              containerClassName="h-[50px] px-[12px] py-0"
+              containerClassName={`h-[50px] px-[12px] py-0 border-[#d1d1d1]`}
             />
           </div>
         </div>

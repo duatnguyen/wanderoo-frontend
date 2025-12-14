@@ -307,10 +307,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
   const formatNumberWithDots = (value: string | number | null | undefined): string => {
     if (value === null || value === undefined || value === "") return "";
     const numStr = typeof value === "number" ? value.toString() : value.toString().replace(/\./g, "");
-    if (!numStr || numStr === "0") return "";
+    if (!numStr) return "";
     const num = parseInt(numStr, 10);
     if (isNaN(num)) return "";
-    return num.toLocaleString("vi-VN");
+    // Format với dấu chấm theo định dạng Việt Nam (mỗi 3 chữ số một dấu chấm)
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
   // Helper: Parse số từ formatted string (200.000 -> 200000)
@@ -325,7 +326,14 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     allowDecimal = false
   ) => {
     const sanitized = sanitizeNumeric(rawValue, allowDecimal);
-    handleInputChange(field as string, sanitized);
+
+    // Format với dấu chấm cho giá vốn và giá bán (định dạng Việt Nam)
+    if (field === "costPrice" || field === "sellingPrice") {
+      const formatted = formatNumberWithDots(sanitized);
+      handleInputChange(field as string, formatted);
+    } else {
+      handleInputChange(field as string, sanitized);
+    }
   };
 
   const fetchProductVariants = useCallback(
@@ -582,8 +590,8 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
           width: formData.width ? toFloat(formData.width) : 1.0,
           height: formData.height ? toFloat(formData.height) : 1.0,
           // Optional fields
-          ...(formData.costPrice && { importPrice: toFloat(formData.costPrice) }),
-          ...(formData.sellingPrice && { sellingPrice: toFloat(formData.sellingPrice) }),
+          ...(formData.costPrice && { importPrice: toFloat(parseFormattedNumber(formData.costPrice)) }),
+          ...(formData.sellingPrice && { sellingPrice: toFloat(parseFormattedNumber(formData.sellingPrice)) }),
           ...(imageUrls.length > 0 && { images: imageUrls }),
           ...(formData.inventory && { totalQuantity: parseInt(formData.inventory) || 0 }),
           ...(formData.available && { availableQuantity: parseInt(formData.available) || 0 }),
@@ -1267,12 +1275,20 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
     if (isViewMode) return;
     const version = versions.find((v) => v.id === versionId);
     if (version) {
+      // Format giá vốn và giá bán với dấu chấm khi khởi tạo
+      const formattedCostPrice = version.costPrice
+        ? formatNumberWithDots(version.costPrice)
+        : "";
+      const formattedSellingPrice = version.price
+        ? formatNumberWithDots(version.price)
+        : "";
+
       setEditingVersion({
         id: version.id,
         name: version.name,
         barcode: version.barcode || "",
-        costPrice: version.costPrice || "",
-        sellingPrice: version.price || "",
+        costPrice: formattedCostPrice,
+        sellingPrice: formattedSellingPrice,
         inventory: version.inventory || "",
         webQuantity: version.webQuantity || "",
         posQuantity: version.posQuantity || "",
@@ -1296,8 +1312,11 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         // Chỉ cho phép số
         const sanitized = sanitizeNumeric(value, false);
 
-        // Format với dấu chấm khi hiển thị
-        const formatted = formatNumberWithDots(sanitized);
+        // Format với dấu chấm chỉ cho giá vốn và giá bán (định dạng Việt Nam)
+        let formatted = sanitized;
+        if (field === "costPrice" || field === "sellingPrice") {
+          formatted = formatNumberWithDots(sanitized);
+        }
 
         // Clear error khi có giá trị
         if (sanitized && editVersionFieldErrors[field]) {
