@@ -179,10 +179,12 @@ export const createShippingOrder = async (
 export const confirmOrderAndCreateShipping = createShippingOrder;
 
 export const cancelAdminOrder = async (
-  id: number
+  id: number,
+  reason?: string
 ): Promise<OrderCancelResponse> => {
   const response = await api.post<ApiResponse<OrderCancelResponse>>(
-    `/auth/v1/private/orders/${id}/cancel`
+    `/auth/v1/private/orders/${id}/cancel`,
+    reason ? { reason } : {}
   );
   return response.data.data;
 };

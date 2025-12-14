@@ -50,6 +50,14 @@ export const updateDiscount = async (
     return response.data;
 };
 
+export const toggleDiscountStatus = async (
+    id: number,
+    status: "ENABLE" | "DISABLE"
+): Promise<ApiResponse<null>> => {
+    const response = await api.patch<ApiResponse<null>>(`/auth/v1/private/discount/${id}/status`, { status });
+    return response.data;
+};
+
 export const deleteDiscount = async (
     id: number
 ): Promise<ApiResponse<null>> => {

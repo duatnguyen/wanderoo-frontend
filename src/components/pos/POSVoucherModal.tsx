@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { searchDiscountsByKeyword } from "@/api/endpoints/saleApi";
+import { getAvailableDiscounts, searchDiscountByCode } from "@/api/endpoints/saleApi";
 import type { DiscountResponse } from "@/types/api";
 import { Loader2 } from "lucide-react";
 
@@ -11,6 +11,11 @@ type Voucher = {
   expiry: string;
   minimumOrderLabel: string;
   minimumOrderValue: number;
+  category?: string;
+  startDate?: string;
+  endDate?: string;
+  quantity?: number;
+  status?: string;
 };
 
 type VoucherSection = {
@@ -85,24 +90,14 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       expiry: formatDate(discount.endDate),
       minimumOrderLabel: minOrderLabel,
       minimumOrderValue: minOrderValue,
+      category: discount.category,
+      startDate: discount.startDate,
+      endDate: discount.endDate,
+      quantity: discount.quantity,
     };
   };
 
-  // Debug function to test API directly
-  const testAPI = async () => {
-    try {
-      console.log("Testing API directly...");
-      const token = localStorage.getItem("accessToken");
-      console.log("Token exists:", !!token);
-      
-      const result = await searchDiscountsByKeyword();
-      console.log("Direct API call result:", result);
-      return result;
-    } catch (error) {
-      console.error("Direct API test failed:", error);
-      throw error;
-    }
-  };
+
 
   // Fetch all discounts from API when modal opens
   useEffect(() => {
@@ -113,13 +108,16 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       setVoucherCode("");
       setSearchError(null);
 
-      // Debug log
-      console.log("Modal opened, fetching discounts...");
-      testAPI();
-
-      searchDiscountsByKeyword()
+      getAvailableDiscounts()
         .then((discounts: DiscountResponse[]) => {
-          const vouchers = discounts.map(convertDiscountToVoucher);
+          // Filter chỉ lấy ORDER_DISCOUNT (vì chỉ loại này mới áp dụng được cho POS order)
+          const orderDiscounts = discounts.filter(
+            (discount) => discount.category === "ORDER_DISCOUNT"
+          );
+          
+          const vouchers = orderDiscounts.map(convertDiscountToVoucher);
+          
+          // Kiểm tra và set active voucher nếu vẫn còn eligible
           setActiveVoucher((prev) => {
             const selectedStillEligible =
               selectedVoucherId &&
@@ -141,12 +139,20 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
             }
             return null;
           });
+          
           setAllVouchers(vouchers);
+          
+          // Đếm số voucher có thể sử dụng
+          const eligibleCount = vouchers.filter(isVoucherEligible).length;
+          const subtitle = eligibleCount > 0
+            ? `Có ${eligibleCount} voucher có thể sử dụng`
+            : "Không có voucher nào có thể sử dụng";
+          
           setSections([
             {
               id: "discount",
               title: "Voucher giảm giá",
-              subtitle: "Có thể chọn 1 voucher",
+              subtitle,
               vouchers,
             },
           ]);
@@ -154,17 +160,87 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
         })
         .catch((err) => {
           console.error("Error fetching discounts:", err);
-          const errorMessage = err?.response?.data?.message || 
-                              err?.message || 
-                              "Không thể tải danh sách mã giảm giá. Vui lòng thử lại.";
+          const errorMessage = err?.response?.data?.message ||
+            err?.message ||
+            "Không thể tải danh sách mã giảm giá. Vui lòng thử lại.";
           setError(`API Error: ${errorMessage}`);
           setIsLoading(false);
         });
     }
-  }, [isOpen, selectedVoucherId]);
+  }, [isOpen, selectedVoucherId, orderTotal]);
 
-  const isVoucherEligible = (voucher: Voucher) =>
-    voucher.minimumOrderValue === 0 || orderTotal >= voucher.minimumOrderValue;
+  // Kiểm tra đầy đủ các điều kiện để voucher có thể sử dụng
+  const isVoucherEligible = (voucher: Voucher): boolean => {
+    const now = new Date();
+    
+    // 1. Kiểm tra category - chỉ ORDER_DISCOUNT mới có thể áp dụng
+    if (voucher.category && voucher.category !== "ORDER_DISCOUNT") {
+      return false;
+    }
+    
+    // 2. Kiểm tra số lượng - phải còn quantity > 0
+    if (voucher.quantity !== undefined && voucher.quantity <= 0) {
+      return false;
+    }
+    
+    // 3. Kiểm tra thời gian hiệu lực
+    if (voucher.startDate) {
+      const startDate = new Date(voucher.startDate);
+      if (now < startDate) {
+        return false; // Chưa đến thời gian bắt đầu
+      }
+    }
+    
+    if (voucher.endDate) {
+      const endDate = new Date(voucher.endDate);
+      // Thêm 1 ngày để bao gồm cả ngày cuối cùng
+      endDate.setHours(23, 59, 59, 999);
+      if (now > endDate) {
+        return false; // Đã hết hạn
+      }
+    }
+    
+    // 4. Kiểm tra giá trị đơn hàng tối thiểu
+    if (voucher.minimumOrderValue > 0 && orderTotal < voucher.minimumOrderValue) {
+      return false;
+    }
+    
+    return true;
+  };
+  
+  // Lấy lý do voucher không thể sử dụng (để hiển thị cho user)
+  const getVoucherIneligibilityReason = (voucher: Voucher): string | null => {
+    const now = new Date();
+    
+    if (voucher.category && voucher.category !== "ORDER_DISCOUNT") {
+      return "Voucher không phải là mã giảm giá toàn shop";
+    }
+    
+    if (voucher.quantity !== undefined && voucher.quantity <= 0) {
+      return "Voucher đã hết số lượng";
+    }
+    
+    if (voucher.startDate) {
+      const startDate = new Date(voucher.startDate);
+      if (now < startDate) {
+        return `Voucher chưa đến thời gian sử dụng (từ ${formatDate(voucher.startDate)})`;
+      }
+    }
+    
+    if (voucher.endDate) {
+      const endDate = new Date(voucher.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      if (now > endDate) {
+        return `Voucher đã hết hạn (đến ${formatDate(voucher.endDate)})`;
+      }
+    }
+    
+    if (voucher.minimumOrderValue > 0 && orderTotal < voucher.minimumOrderValue) {
+      return `Đơn hàng chưa đạt giá trị tối thiểu ${formatCurrency(voucher.minimumOrderValue)}`;
+    }
+    
+    return null;
+  };
 
   useEffect(() => {
     if (!activeVoucher) return;
@@ -182,16 +258,36 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // If input is empty, show all vouchers
+    // If input is empty, show all vouchers from initial load
     if (!voucherCode || voucherCode.trim().length === 0) {
-      setSections([
-        {
-          id: "discount",
-          title: "Voucher giảm giá",
-          subtitle: "Có thể chọn 1 voucher",
-          vouchers: allVouchers,
-        },
-      ]);
+      // Reload all available discounts
+      getAvailableDiscounts()
+        .then((discounts: DiscountResponse[]) => {
+          // Filter chỉ lấy ORDER_DISCOUNT
+          const orderDiscounts = discounts.filter(
+            (discount) => discount.category === "ORDER_DISCOUNT"
+          );
+          const vouchers = orderDiscounts.map(convertDiscountToVoucher);
+          setAllVouchers(vouchers);
+          
+          // Đếm số voucher có thể sử dụng
+          const eligibleCount = vouchers.filter(isVoucherEligible).length;
+          const subtitle = eligibleCount > 0
+            ? `Có ${eligibleCount} voucher có thể sử dụng`
+            : "Không có voucher nào có thể sử dụng";
+          
+          setSections([
+            {
+              id: "discount",
+              title: "Voucher giảm giá",
+              subtitle,
+              vouchers,
+            },
+          ]);
+        })
+        .catch((err) => {
+          console.error("Error reloading discounts:", err);
+        });
       setSearchError(null);
       setIsSearching(false);
       return;
@@ -204,13 +300,39 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
     // Debounce search - wait 300ms after user stops typing
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const discounts = await searchDiscountsByKeyword(voucherCode.trim());
+        const searchTerm = voucherCode.trim();
+        let discounts: DiscountResponse[] = [];
+        
+        // Try to search by exact code first
+        try {
+          const discount = await searchDiscountByCode(searchTerm);
+          if (discount) {
+            // Chỉ lấy ORDER_DISCOUNT
+            if (discount.category === "ORDER_DISCOUNT") {
+              discounts = [discount];
+            } else {
+              discounts = [];
+            }
+          }
+        } catch (err: any) {
+          // If exact code search fails, filter from all available discounts
+          const allDiscounts = await getAvailableDiscounts();
+          const searchTermLower = searchTerm.toLowerCase();
+          discounts = allDiscounts.filter(
+            (discount) =>
+              discount.category === "ORDER_DISCOUNT" &&
+              (discount.code?.toLowerCase().includes(searchTermLower) ||
+              discount.name?.toLowerCase().includes(searchTermLower) ||
+              discount.description?.toLowerCase().includes(searchTermLower))
+          );
+        }
+        
         const vouchers = discounts.map(convertDiscountToVoucher);
         setAllVouchers(vouchers);
         const subtitle =
           vouchers.length > 0
             ? `Tìm thấy ${vouchers.length} voucher`
-            : "Có thể chọn 1 voucher";
+            : "Không tìm thấy voucher nào";
         if (
           selectedVoucherId &&
           !vouchers.some(
@@ -232,9 +354,9 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
         setIsSearching(false);
       } catch (err: any) {
         console.error("Error searching discounts:", err);
-        const errorMessage = err?.response?.data?.message || 
-                            err?.message || 
-                            "Không thể tìm kiếm mã giảm giá. Vui lòng thử lại.";
+        const errorMessage = err?.response?.data?.message ||
+          err?.message ||
+          "Không thể tìm kiếm mã giảm giá. Vui lòng thử lại.";
         setSearchError(`Search API Error: ${errorMessage}`);
         setIsSearching(false);
       }
@@ -256,17 +378,32 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
       const selectedVoucher = allVouchers.find(
         (voucher) => voucher.id === activeVoucher
       );
-      if (!selectedVoucher || !isVoucherEligible(selectedVoucher)) {
-        setEligibilityMessage(
-          "Đơn hàng chưa đạt giá trị tối thiểu để dùng mã này."
-        );
+      
+      if (!selectedVoucher) {
+        setEligibilityMessage("Voucher không tồn tại. Vui lòng chọn lại.");
         return;
       }
+      
+      // Kiểm tra lại điều kiện trước khi apply
+      if (!isVoucherEligible(selectedVoucher)) {
+        const reason = getVoucherIneligibilityReason(selectedVoucher);
+        setEligibilityMessage(reason || "Voucher không thể sử dụng. Vui lòng kiểm tra lại điều kiện.");
+        return;
+      }
+      
+      // Kiểm tra category một lần nữa để chắc chắn
+      if (selectedVoucher.category && selectedVoucher.category !== "ORDER_DISCOUNT") {
+        setEligibilityMessage("Voucher không phải là mã giảm giá toàn shop. Chỉ có thể áp dụng ORDER_DISCOUNT.");
+        return;
+      }
+      
       setEligibilityMessage(null);
       onApply(activeVoucher);
       onClose();
       return;
     }
+    
+    // Nếu không có voucher được chọn, remove voucher hiện tại
     setEligibilityMessage(null);
     onApply(null);
     onClose();
@@ -294,22 +431,6 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
             Chọn mã giảm giá
           </h3>
           <div className="flex items-center gap-2">
-            <button
-              onClick={async () => {
-                console.log("Testing API...");
-                try {
-                  const result = await testAPI();
-                  console.log("API Test Success:", result);
-                  alert(`API Test Success: Found ${result.length} discounts`);
-                } catch (error: any) {
-                  console.error("API Test Failed:", error);
-                  alert(`API Test Failed: ${error?.message || 'Unknown error'}`);
-                }
-              }}
-              className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-            >
-              Test API
-            </button>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors text-2xl leading-none"
@@ -369,7 +490,7 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                   onClick={() => {
                     setIsLoading(true);
                     setError(null);
-                    searchDiscountsByKeyword()
+                    getAvailableDiscounts()
                       .then((discounts: DiscountResponse[]) => {
                         const vouchers = discounts.map(convertDiscountToVoucher);
                         setAllVouchers(vouchers);
@@ -385,9 +506,9 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                       })
                       .catch((err) => {
                         console.error("Error fetching discounts:", err);
-                        const errorMessage = err?.response?.data?.message || 
-                                            err?.message || 
-                                            "Không thể tải danh sách mã giảm giá. Vui lòng thử lại.";
+                        const errorMessage = err?.response?.data?.message ||
+                          err?.message ||
+                          "Không thể tải danh sách mã giảm giá. Vui lòng thử lại.";
                         setError(`Retry API Error: ${errorMessage}`);
                         setIsLoading(false);
                       });
@@ -425,8 +546,8 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                         <label
                           key={voucher.id}
                           className={`flex items-stretch rounded-2xl border ${isSelected
-                              ? "border-[#E04D30] shadow-[0_8px_20px_rgba(224,77,48,0.12)]"
-                              : "border-gray-200 hover:border-[#E04D30]/60"
+                            ? "border-[#E04D30] shadow-[0_8px_20px_rgba(224,77,48,0.12)]"
+                            : "border-gray-200 hover:border-[#E04D30]/60"
                             } bg-white transition-colors ${eligible ? "cursor-pointer" : "cursor-not-allowed opacity-50"
                             }`}
                         >
@@ -463,7 +584,7 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
                               </p>
                               {!eligible && (
                                 <p className="text-xs text-[#E04D30]">
-                                  Chưa đạt điều kiện sử dụng
+                                  {getVoucherIneligibilityReason(voucher) || "Chưa đạt điều kiện sử dụng"}
                                 </p>
                               )}
                               {voucher.description && (
@@ -523,19 +644,35 @@ const POSVoucherModal: React.FC<POSVoucherModalProps> = ({
           {eligibilityMessage && (
             <p className="text-xs text-[#E04D30]">{eligibilityMessage}</p>
           )}
-          <div className="flex items-center justify-end gap-3">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors"
-            >
-              Trở lại
-            </button>
-            <button
-              onClick={handleApply}
-              className="px-5 py-2 rounded-lg bg-[#E04D30] text-white font-semibold hover:bg-[#c53b1d] transition-colors"
-            >
-              OK
-            </button>
+          <div className="flex items-center justify-between">
+            {/* Nút hủy voucher nếu đang có voucher được chọn */}
+            {selectedVoucherId && (
+              <button
+                onClick={() => {
+                  setActiveVoucher(null);
+                  setEligibilityMessage(null);
+                  onApply(null);
+                  onClose();
+                }}
+                className="px-4 py-2 rounded-lg border border-[#E04D30] text-[#E04D30] font-medium hover:bg-[#E04D30] hover:text-white transition-colors"
+              >
+                Hủy mã giảm giá
+              </button>
+            )}
+            <div className="flex items-center gap-3 ml-auto">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors"
+              >
+                Trở lại
+              </button>
+              <button
+                onClick={handleApply}
+                className="px-5 py-2 rounded-lg bg-[#E04D30] text-white font-semibold hover:bg-[#c53b1d] transition-colors"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       </div>

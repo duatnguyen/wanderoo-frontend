@@ -135,17 +135,40 @@ const POSOrderSummaryComponent: React.FC<POSOrderSummaryProps> = ({
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <button
-                onClick={() => setIsVoucherModalOpen(true)}
-                className="text-sm text-[#1B5CF0] hover:text-[#164aba] font-medium transition-colors cursor-pointer"
-              >
-                Giảm giá
-              </button>
-              {orderDiscountAmount > 0 && (
-                <span className="text-sm text-[#272424] font-bold text-[#E04D30]">
-                  -{formatCurrency(orderDiscountAmount)}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsVoucherModalOpen(true)}
+                  className="text-sm text-[#1B5CF0] hover:text-[#164aba] font-medium transition-colors cursor-pointer"
+                >
+                  Giảm giá
+                </button>
+                {orderDiscountAmount > 0 && (
+                  <button
+                    onClick={async () => {
+                      if (onApplyVoucher) {
+                        try {
+                          await onApplyVoucher(null);
+                          setSelectedVoucherId(null);
+                        } catch (error) {
+                          console.error("Error removing voucher:", error);
+                        }
+                      }
+                    }}
+                    className="text-xs text-[#E04D30] hover:text-[#c53b1d] font-medium transition-colors cursor-pointer underline"
+                    title="Hủy mã giảm giá"
+                  >
+                    Hủy
+                  </button>
+                )}
+              </div>
+              <span className={cn(
+                "text-sm font-bold",
+                orderDiscountAmount > 0 ? "text-[#E04D30]" : "text-[#272424]"
+              )}>
+                {orderDiscountAmount > 0 
+                  ? `-${formatCurrency(orderDiscountAmount)}` 
+                  : formatCurrency(0)}
+              </span>
             </div>
             <div className="border-t border-[#e7e7e7] pt-4 flex justify-between items-center">
               <span className="text-base text-[#272424] font-bold">

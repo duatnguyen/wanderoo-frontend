@@ -57,7 +57,7 @@ export interface AdminDiscountCreateRequest {
   minOrderValue?: number | null;
   maxOrderValue?: number | null;
   discountUsage?: number | null;
-  contextAllowed?: DiscountContextValue;
+  contextAllowed?: DiscountContextValue | null;
   startDate: string;
   endDate: string;
   quantity: number;

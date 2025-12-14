@@ -27,10 +27,9 @@ import type {
   VoucherEditData,
 } from "@/types/voucher";
 import VoucherOrdersModal from "@/components/admin/voucher/VoucherOrdersModal";
-import { getDiscounts, getDiscountDetail, updateDiscount } from "@/api/endpoints/discountApi";
+import { getDiscounts, getDiscountDetail, toggleDiscountStatus } from "@/api/endpoints/discountApi";
 import type {
   AdminDiscountResponse,
-  AdminDiscountCreateRequest,
   DiscountStateValue,
   AdminDiscountPageResponse,
 } from "@/types/discount";
@@ -476,62 +475,24 @@ const AdminDiscounts: React.FC = () => {
     setIsOrdersModalOpen(true);
   };
 
-  // Mutation để kết thúc voucher
-  const endVoucherMutation = useMutation({
-    mutationFn: async (discountId: number) => {
-      // Lấy chi tiết discount hiện tại
-      const discountDetail = await getDiscountDetail(discountId);
-
-      // Tạo payload với status = DISABLE
-      const payload: AdminDiscountCreateRequest = {
-        name: discountDetail.name,
-        code: discountDetail.code,
-        category: discountDetail.category,
-        type: discountDetail.type,
-        applyTo: discountDetail.applyTo,
-        applyOn: discountDetail.applyOn,
-        value: discountDetail.value,
-        minOrderValue: discountDetail.minOrderValue ?? undefined,
-        maxOrderValue: discountDetail.maxOrderValue ?? undefined,
-        discountUsage: discountDetail.discountUsage ?? undefined,
-        contextAllowed: discountDetail.contextAllowed ?? undefined,
-        startDate: discountDetail.startDate,
-        endDate: discountDetail.endDate,
-        quantity: discountDetail.quantity,
-        status: "DISABLE", // Kết thúc voucher bằng cách set status = DISABLE
-        description: discountDetail.description ?? undefined,
-      };
-
-      return updateDiscount(discountId, payload);
+  // Mutation để toggle status voucher (ENABLE/DISABLE)
+  const toggleVoucherStatusMutation = useMutation({
+    mutationFn: async ({ discountId, newStatus }: { discountId: number; newStatus: "ENABLE" | "DISABLE" }) => {
+      return toggleDiscountStatus(discountId, newStatus);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
-      toast.success("Kết thúc voucher thành công");
+      const statusText = variables.newStatus === "ENABLE" ? "kích hoạt" : "vô hiệu hóa";
+      toast.success(`Đã ${statusText} voucher thành công`);
     },
     onError: (error: unknown) => {
       const message =
-        (error as any)?.response?.data?.message ?? "Không thể kết thúc voucher. Vui lòng thử lại.";
+        (error as any)?.response?.data?.message ?? "Không thể cập nhật trạng thái voucher. Vui lòng thử lại.";
       toast.error(message);
     },
   });
 
   const handleEnd = async (voucher: Voucher) => {
-    // Chỉ cho phép kết thúc voucher đang diễn ra và sắp diễn ra
-    if (voucher.status === "Đã kết thúc") {
-      toast.error("Voucher này đã kết thúc rồi.");
-      return;
-    }
-
-    if (voucher.status !== "Đang diễn ra" && voucher.status !== "Sắp diễn ra") {
-      toast.error("Chỉ có thể kết thúc voucher đang diễn ra hoặc sắp diễn ra.");
-      return;
-    }
-
-    // Xác nhận trước khi kết thúc
-    if (!window.confirm(`Bạn có chắc chắn muốn kết thúc voucher "${voucher.name}" (${voucher.code})?`)) {
-      return;
-    }
-
     // Lấy discount ID từ voucher
     const discountId = typeof voucher.id === "string" ? Number(voucher.id) : voucher.id;
     if (!discountId || Number.isNaN(discountId)) {
@@ -539,8 +500,19 @@ const AdminDiscounts: React.FC = () => {
       return;
     }
 
+    // Lấy chi tiết discount để biết status hiện tại
     try {
-      await endVoucherMutation.mutateAsync(discountId);
+      const discountDetail = await getDiscountDetail(discountId);
+      const currentStatus = discountDetail.status;
+      const newStatus = currentStatus === "ENABLE" ? "DISABLE" : "ENABLE";
+      const actionText = newStatus === "DISABLE" ? "vô hiệu hóa" : "kích hoạt";
+
+      // Xác nhận trước khi thay đổi status
+      if (!window.confirm(`Bạn có chắc chắn muốn ${actionText} voucher "${voucher.name}" (${voucher.code})?`)) {
+        return;
+      }
+
+      await toggleVoucherStatusMutation.mutateAsync({ discountId, newStatus });
     } catch (error) {
       // Error đã được xử lý trong mutation onError
     }
