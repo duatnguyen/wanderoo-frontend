@@ -14,6 +14,11 @@ import type {
 } from '../../types/warehouse';
 import type { SelectAllRequest } from '../../types/auth';
 import type { ApiResponse } from '../../types/common';
+import type {
+  OverviewStatisticsResponse,
+  RevenueTrendResponse,
+  ProductPerformanceResponse,
+} from '../../types/statistics';
 
 // Provider APIs
 export const getProviderList = async (
@@ -399,6 +404,51 @@ export const getReturnImportList = async (
   // Return import is treated as export invoice (returning goods to supplier)
   const response = await apiClient.get<ApiResponse<InvoicePageResponse>>(
     `/auth/v1/private/invoice/export?${params.toString()}`
+  );
+  return response.data.data;
+};
+
+// Statistics APIs
+export const getOverviewStatistics = async (
+  startDate?: string,
+  endDate?: string
+): Promise<OverviewStatisticsResponse> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+
+  const response = await apiClient.get<ApiResponse<OverviewStatisticsResponse>>(
+    `/auth/v1/private/statistics/overview?${params.toString()}`
+  );
+  return response.data.data;
+};
+
+export const getRevenueTrend = async (
+  startDate?: string,
+  endDate?: string,
+  groupBy: string = 'day'
+): Promise<RevenueTrendResponse[]> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+  params.append('groupBy', groupBy);
+
+  const response = await apiClient.get<ApiResponse<RevenueTrendResponse[]>>(
+    `/auth/v1/private/statistics/revenue-trend?${params.toString()}`
+  );
+  return response.data.data;
+};
+
+export const getProductPerformance = async (
+  startDate?: string,
+  endDate?: string
+): Promise<ProductPerformanceResponse[]> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+
+  const response = await apiClient.get<ApiResponse<ProductPerformanceResponse[]>>(
+    `/auth/v1/private/statistics/product-performance?${params.toString()}`
   );
   return response.data.data;
 };
