@@ -26,6 +26,9 @@ import type {
   WardResponse,
 } from "@/types";
 import { PageContainer, ContentCard } from "@/components/common";
+
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const AdminSupplierNew = () => {
   document.title = "Thêm nhà cung cấp | Wanderoo";
   const navigate = useNavigate();
@@ -52,9 +55,59 @@ const AdminSupplierNew = () => {
     value: string | number | undefined
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+    // Validate field on change
+    if (field === "supplierName" || field === "phone" || field === "email") {
+      validateField(field, String(value || ""));
+    } else {
+      // Clear error when user starts typing for other fields
+      if (errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+    }
+  };
+
+  const validateField = (field: "supplierName" | "phone" | "email", value: string) => {
+    const trimmedValue = value.trim();
+    let error: string | undefined;
+
+    switch (field) {
+      case "supplierName":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập tên nhà cung cấp.";
+        } else if (trimmedValue.length < 3) {
+          error = "Tên nhà cung cấp phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Tên nhà cung cấp không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const digits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (digits.length < 10 || digits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (trimmedValue && !EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
+        }
+        break;
+    }
+
+    if (error) {
+      setErrors((prev) => ({ ...prev, [field]: error }));
+    } else {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
     }
   };
 
@@ -264,59 +317,48 @@ const AdminSupplierNew = () => {
 
   // Helper function to get border class for input fields
   const getInputBorderClass = (fieldName: string, isRequired: boolean, hasValue: boolean) => {
-    if (!isRequired) {
-      // Not required: gray border
-      return "border-[#d1d1d1]";
-    }
-    // Required: red border only if no value AND has error
-    if (!hasValue && errors[fieldName]) {
-      return "border-red-500";
-    }
-    // Has value: gray border (no red even if has error)
-    if (hasValue) {
-      return "border-[#d1d1d1]";
-    }
-    // No value but no error yet: red border (required field)
-    return "border-[#e04d30]";
+    // Always use gray border like the "Ghi chú" field
+    return "border-[#d1d1d1]";
   };
 
   // Helper function to get border class for dropdown fields
   const getDropdownBorderClass = (fieldName: string, isRequired: boolean, hasValue: boolean, hasError: boolean) => {
-    if (!isRequired) {
-      // Not required: gray border
-      return "border-[#d1d1d1]";
-    }
-    // Required: red border only if no value AND (has error OR isProvinceError/isDistrictError/isWardError)
-    if (!hasValue && (hasError || errors[fieldName])) {
-      return "border-red-500";
-    }
-    // Has value: gray border
-    if (hasValue) {
-      return "border-[#d1d1d1]";
-    }
-    // No value but no error yet: red border (required field)
-    return "border-[#e04d30]";
+    // Always use gray border like the "Ghi chú" field
+    return "border-[#d1d1d1]";
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // General information validation
-    if (!formData.supplierName.trim()) {
-      newErrors.supplierName = "Tên nhà cung cấp là bắt buộc";
+    // Validate supplier name
+    const supplierNameTrimmed = formData.supplierName.trim();
+    if (!supplierNameTrimmed) {
+      newErrors.supplierName = "Vui lòng nhập tên nhà cung cấp.";
+    } else if (supplierNameTrimmed.length < 3) {
+      newErrors.supplierName = "Tên nhà cung cấp phải có ít nhất 3 ký tự.";
+    } else if (!NAME_REGEX.test(supplierNameTrimmed)) {
+      newErrors.supplierName = "Tên nhà cung cấp không được chứa ký tự đặc biệt.";
     }
 
-    const normalizedPhone = formData.phone.trim();
-    if (!normalizedPhone) {
-      newErrors.phone = "Số điện thoại là bắt buộc";
-    } else if (!/^\d{10,13}$/.test(normalizedPhone)) {
-      newErrors.phone = "Số điện thoại phải gồm 10-13 chữ số";
+    // Validate phone
+    const phoneTrimmed = formData.phone.trim();
+    if (!phoneTrimmed) {
+      newErrors.phone = "Vui lòng nhập số điện thoại.";
+    } else {
+      const digits = phoneTrimmed.replace(/\D/g, "");
+      if (!/^\d+$/.test(phoneTrimmed)) {
+        newErrors.phone = "Số điện thoại chỉ được chứa chữ số.";
+      } else if (digits.length < 10 || digits.length > 13) {
+        newErrors.phone = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+      }
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email là bắt buộc";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Email không hợp lệ";
+    // Validate email (required field)
+    const emailTrimmed = formData.email.trim();
+    if (!emailTrimmed) {
+      newErrors.email = "Vui lòng nhập email.";
+    } else if (!EMAIL_REGEX.test(emailTrimmed)) {
+      newErrors.email = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
     }
 
     // Address validation
@@ -488,7 +530,7 @@ const AdminSupplierNew = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border-2 ${getDropdownBorderClass("city", true, !!formData.city.trim(), isProvinceError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer`}
+                    className={`bg-white border ${getDropdownBorderClass("city", true, !!formData.city.trim(), isProvinceError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer`}
                   >
                     <span
                       className={`text-[14px] font-semibold leading-[1.4] flex-1 ${
@@ -523,7 +565,7 @@ const AdminSupplierNew = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border-2 ${getDropdownBorderClass("district", true, !!formData.district.trim(), isDistrictError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
+                    className={`bg-white border ${getDropdownBorderClass("district", true, !!formData.district.trim(), isDistrictError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
                       !formData.provinceId ? "opacity-60 cursor-not-allowed" : ""
                     }`}
                   >
@@ -566,7 +608,7 @@ const AdminSupplierNew = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div
-                    className={`bg-white border-2 ${getDropdownBorderClass("ward", true, !!formData.ward.trim(), isWardError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
+                    className={`bg-white border ${getDropdownBorderClass("ward", true, !!formData.ward.trim(), isWardError)} flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
                       !formData.districtId ? "opacity-60 cursor-not-allowed" : ""
                     }`}
                   >

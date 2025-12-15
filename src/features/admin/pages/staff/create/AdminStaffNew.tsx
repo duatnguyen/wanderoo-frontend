@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/form-input";
-import { ArrowLeft, HelpCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import RoleDropdown from "@/components/ui/role-dropdown";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -471,12 +471,9 @@ const AdminStaffNew: React.FC = () => {
         {/* Role Selection Section */}
         <div className="bg-white border border-[#d1d1d1] rounded-[24px] p-[24px] w-full">
           <div className="flex flex-col gap-[8px]">
-            <div className="flex gap-[4px] items-center">
-              <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
-                Vai trò nhân viên
-              </label>
-              <HelpCircle className="w-[24px] h-[24px] text-[#888888]" />
-            </div>
+            <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
+              Vai trò nhân viên
+            </label>
             <RoleDropdown
               value={formData.role}
               error={Boolean(formErrors.role)}

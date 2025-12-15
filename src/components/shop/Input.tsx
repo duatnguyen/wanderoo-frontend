@@ -37,7 +37,7 @@ export interface SelectProps
 const { TextArea: AntdTextArea } = AntdInput;
 
 const baseInputClasses =
-  "px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500";
+  "px-3 py-2 border border-[#d1d1d1] rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#e04d30]/20 focus:border-[#e04d30]";
 
 export const Input: React.FC<InputProps> = ({
   label,

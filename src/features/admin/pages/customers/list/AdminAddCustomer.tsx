@@ -671,7 +671,7 @@ const AdminAddCustomer = () => {
               <label className="font-semibold text-[#272424] text-[14px]">
                 Ngày sinh
               </label>
-              <div className="bg-white border-2 border-[#e04d30] flex items-center h-[36px] px-[12px] py-0 rounded-[12px] w-full relative">
+              <div className="bg-white border border-[#d1d1d1] flex items-center h-[36px] px-[12px] py-0 rounded-[12px] w-full relative">
                 <input
                   type="date"
                   value={formData.birthdate}

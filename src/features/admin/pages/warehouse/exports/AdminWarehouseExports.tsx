@@ -258,13 +258,13 @@ const AdminWarehouseExports = () => {
     return null;
   };
 
-  // Format price: hiển thị số + "vnđ" (ví dụ: 960000 vnđ)
+  // Format price: hiển thị số + "đ" (ví dụ: 960000đ)
   const formatPrice = (amount: number) => {
     if (amount == null || isNaN(amount) || !isFinite(amount)) {
-      return "0 vnđ";
+      return "0đ";
     }
     // Format số với dấu phẩy ngăn cách hàng nghìn
-    return `${Number(amount).toLocaleString('vi-VN')} vnđ`;
+    return `${Number(amount).toLocaleString('vi-VN')}đ`;
   };
 
   // Format date: parse "2025-11-13 05:31:21" → "13/11/2025"
@@ -585,10 +585,7 @@ const AdminWarehouseExports = () => {
         </div>
 
         {/* Pagination */}
-        <div className="py-[8px] w-full flex-shrink-0 flex justify-between items-center">
-          <div className="text-[#272424] text-[12px]">
-            {paginationText}
-          </div>
+        <div className="py-[8px] w-full flex-shrink-0 flex justify-end items-center">
           <Pagination
             current={currentPage}
             total={totalPages}

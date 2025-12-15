@@ -49,7 +49,7 @@ const RoleDropdown: React.FC<RoleDropdownProps> = ({
     <div ref={dropdownRef} className={cn("relative w-full", className)}>
       <div
         className={cn(
-          "bg-white border-2 border-[#e04d30] h-[50px] px-[24px] rounded-[12px] w-full flex items-center justify-between cursor-pointer",
+          "bg-white border border-[#d1d1d1] h-[50px] px-[24px] rounded-[12px] w-full flex items-center justify-between cursor-pointer",
           error && "border-red-500"
         )}
         onClick={() => setIsOpen(!isOpen)}
@@ -57,14 +57,14 @@ const RoleDropdown: React.FC<RoleDropdownProps> = ({
         <span
           className={cn(
             "border-0 outline-none bg-transparent text-[14px] font-semibold flex-1 text-left",
-            value ? "text-[#272424]" : "text-[#e04d30]"
+            value ? "text-[#272424]" : "text-[#888888]"
           )}
         >
           {value || placeholder}
         </span>
         <svg
           className={cn(
-            "w-4 h-4 text-[#e04d30] transition-transform duration-200",
+            "w-4 h-4 text-[#272424] opacity-60 transition-transform duration-200",
             isOpen && "rotate-180"
           )}
           viewBox="0 0 24 24"
@@ -81,7 +81,7 @@ const RoleDropdown: React.FC<RoleDropdownProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e04d30] rounded-[12px] shadow-lg z-50 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#d1d1d1] rounded-[12px] shadow-lg z-50 max-h-60 overflow-y-auto">
           {options.map((option) => (
             <div
               key={option}

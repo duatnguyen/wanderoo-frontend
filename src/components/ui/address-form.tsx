@@ -8,6 +8,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import {
   getProvinces,
@@ -39,6 +44,9 @@ interface AddressFormProps {
   initialData?: Partial<AddressFormData>;
   onSubmit: (data: AddressFormData) => void;
   onCancel: () => void;
+  totalAddresses?: number; // Tổng số địa chỉ hiện tại
+  isEditingDefaultOnly?: boolean; // Có phải đang edit địa chỉ mặc định duy nhất không
+  isEditingDefault?: boolean; // Có phải đang edit địa chỉ mặc định không (khi có nhiều địa chỉ)
 }
 
 type AddressField =
@@ -58,7 +66,15 @@ const AddressForm: React.FC<AddressFormProps> = ({
   initialData = {},
   onSubmit,
   onCancel,
+  totalAddresses = 0,
+  isEditingDefaultOnly = false,
+  isEditingDefault = false,
 }) => {
+  // Nếu chỉ có 1 địa chỉ (đang edit), luôn force isDefault = true
+  const isOnlyAddress = totalAddresses === 1 && isEditingDefaultOnly;
+  // Nếu đang edit địa chỉ mặc định (và có nhiều hơn 1 địa chỉ), không cho phép uncheck
+  const isDefaultAddress = isEditingDefault && totalAddresses > 1;
+  
   const [errors, setErrors] = useState<AddressFormErrors>({});
   const [formData, setFormData] = useState<AddressFormData>({
     fullName: initialData.fullName || "",
@@ -70,13 +86,24 @@ const AddressForm: React.FC<AddressFormProps> = ({
     ward: initialData.ward || "",
     wardCode: initialData.wardCode,
     detailAddress: initialData.detailAddress || "",
-    isDefault: initialData.isDefault || false,
+    isDefault: (isOnlyAddress || isDefaultAddress) ? true : (initialData.isDefault || false),
   });
+
+  // Đảm bảo isDefault luôn là true nếu chỉ có 1 địa chỉ hoặc đang edit địa chỉ mặc định
+  useEffect(() => {
+    if ((isOnlyAddress || isDefaultAddress) && !formData.isDefault) {
+      setFormData((prev) => ({ ...prev, isDefault: true }));
+    }
+  }, [isOnlyAddress, isDefaultAddress, formData.isDefault]);
 
   const handleInputChange = (
     field: keyof AddressFormData,
     value: string | boolean
   ) => {
+    // Nếu chỉ có 1 địa chỉ hoặc đang edit địa chỉ mặc định, không cho phép tắt isDefault
+    if (field === "isDefault" && (isOnlyAddress || isDefaultAddress)) {
+      return; // Không cho phép thay đổi
+    }
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user edits
     if (
@@ -270,7 +297,11 @@ const AddressForm: React.FC<AddressFormProps> = ({
       toast.error("Vui lòng kiểm tra lại thông tin.");
       return;
     }
-    onSubmit(formData);
+    // Đảm bảo isDefault luôn là true nếu chỉ có 1 địa chỉ hoặc đang edit địa chỉ mặc định
+    const finalFormData = (isOnlyAddress || isDefaultAddress)
+      ? { ...formData, isDefault: true }
+      : formData;
+    onSubmit(finalFormData);
   };
 
   const shouldHideLocationName = (name: string) => {
@@ -511,10 +542,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div
-                className={`bg-white border-[1.6px] ${
+                className={`bg-white border ${
                   isProvinceError || errors.province
                     ? "border-[#ff4d4f]"
-                    : "border-[#e04d30]"
+                    : "border-[#d1d1d1]"
                 } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer`}
               >
                 <span
@@ -550,10 +581,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div
-                className={`bg-white border-[1.6px] ${
+                className={`bg-white border ${
                   isDistrictError || errors.district
                     ? "border-[#ff4d4f]"
-                    : "border-[#e04d30]"
+                    : "border-[#d1d1d1]"
                 } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
                   !formData.provinceId ? "opacity-60 cursor-not-allowed" : ""
                 }`}
@@ -599,10 +630,10 @@ const AddressForm: React.FC<AddressFormProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div
-                className={`bg-white border-[1.6px] ${
+                className={`bg-white border ${
                   isWardError || errors.ward
                     ? "border-[#ff4d4f]"
-                    : "border-[#e04d30]"
+                    : "border-[#d1d1d1]"
                 } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full cursor-pointer ${
                   !formData.districtId ? "opacity-60 cursor-not-allowed" : ""
                 }`}
@@ -643,8 +674,8 @@ const AddressForm: React.FC<AddressFormProps> = ({
             <span className="text-[#eb2b0b] text-[16px]">*</span>
           </label>
           <div
-            className={`bg-white border-2 ${
-              errors.detailAddress ? "border-[#ff4d4f]" : "border-[#e04d30]"
+            className={`bg-white border ${
+              errors.detailAddress ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
             } flex gap-[4px] h-[36px] items-center px-[12px] py-0 rounded-[12px] w-full`}
           >
             <input
@@ -664,15 +695,94 @@ const AddressForm: React.FC<AddressFormProps> = ({
 
         {/* Default Address Checkbox */}
         <div className="flex gap-[5px] items-start w-full">
-          <input
-            type="checkbox"
-            checked={formData.isDefault}
-            onChange={(e) => handleInputChange("isDefault", e.target.checked)}
-            className="w-[24px] h-[24px] border"
-          />
-          <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
-            Đặt làm địa chỉ mặc định
-          </label>
+          {isDefaultAddress ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex gap-[5px] items-start">
+                  <div className="relative w-[24px] h-[24px] flex-shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={formData.isDefault}
+                      onChange={(e) => handleInputChange("isDefault", e.target.checked)}
+                      disabled={true}
+                      className="w-full h-full border-2 border-[#e04d30] rounded-[4px] bg-white opacity-50 cursor-not-allowed appearance-none"
+                    />
+                    {formData.isDefault && (
+                      <>
+                        <div className="absolute inset-0 bg-[#e04d30] rounded-[4px] pointer-events-none" />
+                        <svg
+                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[14px] h-[14px] pointer-events-none z-10"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="white"
+                          strokeWidth="3"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </>
+                    )}
+                  </div>
+                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4] opacity-50">
+                    Đặt làm địa chỉ mặc định
+                  </label>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[300px]">
+                <p className="text-sm">
+                  Bạn không thể xoá nhãn Địa chỉ mặc định. Hãy đặt địa chỉ khác làm Địa chỉ mặc định của bạn nhé.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <>
+              <div className="relative w-[24px] h-[24px] flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={formData.isDefault}
+                  onChange={(e) => handleInputChange("isDefault", e.target.checked)}
+                  disabled={isOnlyAddress}
+                  className={`w-full h-full border-2 border-[#e04d30] rounded-[4px] bg-white appearance-none ${
+                    isOnlyAddress ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+                  }`}
+                />
+                {formData.isDefault && (
+                  <>
+                    <div className="absolute inset-0 bg-[#e04d30] rounded-[4px] pointer-events-none" />
+                    <svg
+                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[14px] h-[14px] pointer-events-none z-10"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="white"
+                      strokeWidth="3"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </>
+                )}
+              </div>
+              <label
+                className={`font-semibold text-[#272424] text-[14px] leading-[1.4] ${
+                  isOnlyAddress ? "opacity-50" : ""
+                } cursor-pointer`}
+                onClick={() => !isOnlyAddress && handleInputChange("isDefault", !formData.isDefault)}
+              >
+                Đặt làm địa chỉ mặc định
+                {isOnlyAddress && (
+                  <span className="text-[12px] text-[#888888] ml-2">
+                    (Bắt buộc khi chỉ có 1 địa chỉ)
+                  </span>
+                )}
+              </label>
+            </>
+          )}
         </div>
 
         {/* Action Buttons */}

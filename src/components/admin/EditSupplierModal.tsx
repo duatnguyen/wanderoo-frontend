@@ -22,6 +22,9 @@ import type {
   WardResponse,
 } from "@/types";
 
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 interface SupplierFormState {
   supplierName: string;
   phone: string;
@@ -198,8 +201,59 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
 
   const handleInputChange = (field: keyof SupplierFormState, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+    // Validate field on change for supplierName, phone, email
+    if (field === "supplierName" || field === "phone" || field === "email") {
+      validateField(field, value);
+    } else {
+      // Clear error when user starts typing for other fields
+      if (errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+    }
+  };
+
+  const validateField = (field: "supplierName" | "phone" | "email", value: string) => {
+    const trimmedValue = value.trim();
+    let error: string | undefined;
+
+    switch (field) {
+      case "supplierName":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập tên nhà cung cấp.";
+        } else if (trimmedValue.length < 3) {
+          error = "Tên nhà cung cấp phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Tên nhà cung cấp không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const digits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (digits.length < 10 || digits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (trimmedValue && !EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
+        }
+        break;
+    }
+
+    if (error) {
+      setErrors((prev) => ({ ...prev, [field]: error }));
+    } else {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
     }
   };
 
@@ -238,41 +292,48 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
 
   // Helper function to get border class for input fields
   const getInputBorderClass = (fieldName: string, isRequired: boolean, hasValue: boolean) => {
-    if (!isRequired) {
-      // Not required: gray border
-      return "border-[#d1d1d1]";
-    }
-    // Required: gray border if has value, red border if no value
-    return hasValue ? "border-[#d1d1d1]" : "border-[#e04d30]";
+    // Always use gray border like the "Ghi chú" field
+    return "border-[#d1d1d1]";
   };
 
   // Helper function to get border class for dropdown fields
   const getDropdownBorderClass = (fieldName: string, isRequired: boolean, hasValue: boolean, hasError: boolean) => {
-    if (!isRequired) {
-      // Not required: gray border
-      return "border-[#d1d1d1]";
-    }
-    // Required: gray border if has value, red border if no value
-    return hasValue ? "border-[#d1d1d1]" : "border-[#e04d30]";
+    // Always use gray border like the "Ghi chú" field
+    return "border-[#d1d1d1]";
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.supplierName.trim()) {
-      newErrors.supplierName = "Tên nhà cung cấp là bắt buộc";
+    // Validate supplier name
+    const supplierNameTrimmed = formData.supplierName.trim();
+    if (!supplierNameTrimmed) {
+      newErrors.supplierName = "Vui lòng nhập tên nhà cung cấp.";
+    } else if (supplierNameTrimmed.length < 3) {
+      newErrors.supplierName = "Tên nhà cung cấp phải có ít nhất 3 ký tự.";
+    } else if (!NAME_REGEX.test(supplierNameTrimmed)) {
+      newErrors.supplierName = "Tên nhà cung cấp không được chứa ký tự đặc biệt.";
     }
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Số điện thoại là bắt buộc";
-    } else if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
-      newErrors.phone = "Số điện thoại không hợp lệ";
+    // Validate phone
+    const phoneTrimmed = formData.phone.trim();
+    if (!phoneTrimmed) {
+      newErrors.phone = "Vui lòng nhập số điện thoại.";
+    } else {
+      const digits = phoneTrimmed.replace(/\D/g, "");
+      if (!/^\d+$/.test(phoneTrimmed)) {
+        newErrors.phone = "Số điện thoại chỉ được chứa chữ số.";
+      } else if (digits.length < 10 || digits.length > 13) {
+        newErrors.phone = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+      }
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email là bắt buộc";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Email không hợp lệ";
+    // Validate email (required field)
+    const emailTrimmed = formData.email.trim();
+    if (!emailTrimmed) {
+      newErrors.email = "Vui lòng nhập email.";
+    } else if (!EMAIL_REGEX.test(emailTrimmed)) {
+      newErrors.email = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
     }
 
     if (!formData.provinceName.trim()) {
@@ -347,7 +408,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
       onClick={handleClose}
     >
       <div
-        className="bg-white rounded-[24px] w-[520px] max-h-[90vh] overflow-y-auto shadow-2xl animate-scaleIn flex flex-col"
+        className="bg-white border-[#e04d30] border-2 rounded-[24px] w-[520px] max-h-[90vh] overflow-y-auto shadow-2xl animate-scaleIn flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="pt-[24px] pb-[12px] border-b border-[#d1d1d1] px-[24px]">
@@ -415,7 +476,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <label className="font-medium text-[#272424] text-[14px]">
               Ghi chú
             </label>
-            <div className={`border-2 ${getInputBorderClass("note", false, !!formData.note.trim())} rounded-[12px] w-full`}>
+            <div className={`border ${getInputBorderClass("note", false, !!formData.note.trim())} rounded-[12px] w-full`}>
               <textarea
                 value={formData.note}
                 onChange={(e) => handleInputChange("note", e.target.value)}
@@ -436,7 +497,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div
-                  className={`bg-white border-2 ${getDropdownBorderClass("provinceName", true, !!formData.provinceName.trim(), isProvinceError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer`}
+                  className={`bg-white border ${getDropdownBorderClass("provinceName", true, !!formData.provinceName.trim(), isProvinceError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer`}
                 >
                   <span
                     className={`text-[14px] font-semibold ${
@@ -468,7 +529,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div
-                  className={`bg-white border-2 ${getDropdownBorderClass("districtName", true, !!formData.districtName.trim(), isDistrictError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer ${
+                  className={`bg-white border ${getDropdownBorderClass("districtName", true, !!formData.districtName.trim(), isDistrictError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer ${
                     !formData.provinceId ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 >
@@ -510,7 +571,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div
-                  className={`bg-white border-2 ${getDropdownBorderClass("wardName", true, !!formData.wardName.trim(), isWardError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer ${
+                  className={`bg-white border ${getDropdownBorderClass("wardName", true, !!formData.wardName.trim(), isWardError)} rounded-[12px] h-[40px] px-[12px] flex items-center justify-between cursor-pointer ${
                     !formData.districtId ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 >
@@ -547,7 +608,7 @@ const EditSupplierModal: React.FC<EditSupplierModalProps> = ({
             <label className="font-medium text-[#272424] text-[14px]">
               Địa chỉ cụ thể <span className="text-[#e04d30]">*</span>
             </label>
-            <div className={`border-2 ${getInputBorderClass("street", true, !!formData.street.trim())} rounded-[12px] w-full`}>
+            <div className={`border ${getInputBorderClass("street", true, !!formData.street.trim())} rounded-[12px] w-full`}>
               <textarea
                 value={formData.street}
                 onChange={(e) => handleInputChange("street", e.target.value)}

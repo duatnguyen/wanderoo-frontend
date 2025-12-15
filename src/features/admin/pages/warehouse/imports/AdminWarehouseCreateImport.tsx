@@ -445,12 +445,10 @@ const AdminWarehouseCreateImport = () => {
         <div className="flex flex-col gap-[12px] h-full items-start relative flex-shrink-0 w-full lg:w-[695px] min-w-[650px]">
           {/* Products Section */}
           <div className="basis-0 bg-white border border-[#d1d1d1] box-border flex flex-col gap-[8px] grow items-start min-h-px min-w-px px-[24px] py-[16px] relative rounded-lg flex-shrink-0 w-full min-w-[600px]">
-            <div className="flex gap-[10px] items-start relative shrink-0 w-full">
+            <div className="flex items-center justify-between gap-[10px] relative shrink-0 w-full">
               <p className="font-['Montserrat'] font-semibold leading-[1.4] relative shrink-0 text-[#272424] text-[16px]">
                 Sản phẩm
               </p>
-            </div>
-            <div className="flex items-center justify-end gap-2 relative shrink-0 w-full">
               <Button
                 variant="secondary"
                 onClick={() => setIsProductFormOpen(true)}
@@ -731,10 +729,10 @@ const AdminWarehouseCreateImport = () => {
         >
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <div
-            className="relative z-10 w-[900px] max-h-[90vh] bg-white flex flex-col rounded-xl shadow-2xl overflow-hidden"
+            className="relative z-10 w-[550px] max-h-[85vh] bg-white flex flex-col rounded-xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-white flex flex-col h-full max-h-[90vh]">
+            <div className="bg-white flex flex-col h-full max-h-[85vh]">
               {/* Modal Header */}
               <div className="border-b border-[#e7e7e7] px-6 py-4 bg-gradient-to-r from-[#fafafa] to-white flex-shrink-0">
                 <h2 className="font-['Montserrat'] font-bold text-[20px] text-[#272424] mb-4">

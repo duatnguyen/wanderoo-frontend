@@ -214,12 +214,12 @@ const AdminWarehouseImportsPending = () => {
     return null;
   };
 
-  // Format price: hiển thị số + "vnđ"
+  // Format price: hiển thị số + "đ"
   const formatPrice = (amount: number) => {
     if (amount == null || isNaN(amount) || !isFinite(amount)) {
-      return "0 vnđ";
+      return "0đ";
     }
-    return `${Number(amount).toLocaleString('vi-VN')} vnđ`;
+    return `${Number(amount).toLocaleString('vi-VN')}đ`;
   };
 
   // Format date: parse "2025-11-13 05:31:21" → "13/11/2025"
@@ -549,10 +549,7 @@ const AdminWarehouseImportsPending = () => {
         </div>
 
         {/* Pagination */}
-        <div className="py-[8px] w-full flex-shrink-0 flex justify-between items-center">
-          <div className="text-[#272424] text-[12px]">
-            {paginationText}
-          </div>
+        <div className="py-[8px] w-full flex-shrink-0 flex justify-end items-center">
           <Pagination
             current={currentPage}
             total={totalPages}

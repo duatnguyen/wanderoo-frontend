@@ -54,6 +54,9 @@ const AdminShipping: React.FC = () => {
   const [activeTab, setActiveTab] = useState("address");
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [shouldSetDefaultAfterCreate, setShouldSetDefaultAfterCreate] = useState(false);
+  const [shouldSetDefaultAfterUpdate, setShouldSetDefaultAfterUpdate] = useState(false);
+  const [addressIdToSetDefault, setAddressIdToSetDefault] = useState<number | null>(null);
 
   const tabs: TabItem[] = [
     { id: "address", label: "Địa chỉ" },
@@ -165,11 +168,41 @@ const AdminShipping: React.FC = () => {
   // Create address mutation
   const createMutation = useMutation({
     mutationFn: (addressData: AddressCreationRequest) => createAdminAddress(addressData),
-    onSuccess: () => {
-      toast.success("Đã thêm địa chỉ mới");
-      refetchAddresses();
-      setShowAddressForm(false);
-      setEditingAddress(null);
+    onSuccess: (response) => {
+      // response.data chứa id của địa chỉ mới
+      const newAddressId = response.data;
+      if (newAddressId && typeof newAddressId === 'number') {
+        // Nếu địa chỉ mới được chọn làm mặc định, set nó làm mặc định
+        if (shouldSetDefaultAfterCreate) {
+          setDefaultMutation.mutate(newAddressId, {
+            onSuccess: () => {
+              toast.success("Đã thêm địa chỉ mới và đặt làm mặc định");
+              refetchAddresses();
+              setShowAddressForm(false);
+              setEditingAddress(null);
+              setShouldSetDefaultAfterCreate(false);
+            },
+            onError: () => {
+              // Nếu set default thất bại, vẫn hiển thị thông báo tạo thành công
+              toast.success("Đã thêm địa chỉ mới");
+              refetchAddresses();
+              setShowAddressForm(false);
+              setEditingAddress(null);
+              setShouldSetDefaultAfterCreate(false);
+            }
+          });
+        } else {
+          toast.success("Đã thêm địa chỉ mới");
+          refetchAddresses();
+          setShowAddressForm(false);
+          setEditingAddress(null);
+        }
+      } else {
+        toast.success("Đã thêm địa chỉ mới");
+        refetchAddresses();
+        setShowAddressForm(false);
+        setEditingAddress(null);
+      }
     },
     onError: (error: any) => {
       const errorMessage =
@@ -177,6 +210,7 @@ const AdminShipping: React.FC = () => {
         error?.message ||
         "Không thể thêm địa chỉ";
       toast.error(errorMessage);
+      setShouldSetDefaultAfterCreate(false);
     },
   });
 
@@ -184,10 +218,33 @@ const AdminShipping: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: (addressData: AddressUpdateRequest) => updateAdminAddress(addressData),
     onSuccess: () => {
-      toast.success("Đã cập nhật địa chỉ");
-      refetchAddresses();
-      setShowAddressForm(false);
-      setEditingAddress(null);
+      // Nếu địa chỉ được chọn làm mặc định sau khi update, set nó làm mặc định
+      if (shouldSetDefaultAfterUpdate && addressIdToSetDefault) {
+        setDefaultMutation.mutate(addressIdToSetDefault, {
+          onSuccess: () => {
+            toast.success("Đã cập nhật địa chỉ và đặt làm mặc định");
+            refetchAddresses();
+            setShowAddressForm(false);
+            setEditingAddress(null);
+            setShouldSetDefaultAfterUpdate(false);
+            setAddressIdToSetDefault(null);
+          },
+          onError: () => {
+            // Nếu set default thất bại, vẫn hiển thị thông báo cập nhật thành công
+            toast.success("Đã cập nhật địa chỉ");
+            refetchAddresses();
+            setShowAddressForm(false);
+            setEditingAddress(null);
+            setShouldSetDefaultAfterUpdate(false);
+            setAddressIdToSetDefault(null);
+          }
+        });
+      } else {
+        toast.success("Đã cập nhật địa chỉ");
+        refetchAddresses();
+        setShowAddressForm(false);
+        setEditingAddress(null);
+      }
     },
     onError: (error: any) => {
       const errorMessage =
@@ -195,6 +252,8 @@ const AdminShipping: React.FC = () => {
         error?.message ||
         "Không thể cập nhật địa chỉ";
       toast.error(errorMessage);
+      setShouldSetDefaultAfterUpdate(false);
+      setAddressIdToSetDefault(null);
     },
   });
 
@@ -274,6 +333,18 @@ const AdminShipping: React.FC = () => {
         fullAddress: fullAddress,
       };
       console.log("Update data:", updateData);
+      
+      // Lưu lại flag để set default sau khi update thành công
+      // Chỉ set default nếu checkbox được chọn và địa chỉ hiện tại chưa phải là mặc định
+      const currentIsDefault = addresses.find(addr => addr.id === editingAddress.id)?.isDefault || false;
+      if (formData.isDefault && !currentIsDefault) {
+        setShouldSetDefaultAfterUpdate(true);
+        setAddressIdToSetDefault(editingAddress.id);
+      } else {
+        setShouldSetDefaultAfterUpdate(false);
+        setAddressIdToSetDefault(null);
+      }
+      
       updateMutation.mutate(updateData);
     } else {
       // Add new address
@@ -289,6 +360,10 @@ const AdminShipping: React.FC = () => {
         fullAddress: fullAddress,
       };
       console.log("Create data:", createData);
+      
+      // Lưu lại flag để set default sau khi tạo thành công
+      setShouldSetDefaultAfterCreate(formData.isDefault);
+      
       createMutation.mutate(createData);
     }
   };
@@ -519,6 +594,15 @@ const AdminShipping: React.FC = () => {
                 }
                 onSubmit={handleAddressFormSubmit}
                 onCancel={handleAddressFormCancel}
+                totalAddresses={addresses.length}
+                isEditingDefaultOnly={
+                  addresses.length === 1 && editingAddress !== null
+                }
+                isEditingDefault={
+                  editingAddress !== null &&
+                  addresses.length > 1 &&
+                  editingAddress.isDefault
+                }
               />
             </div>
           </div>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Calendar, HelpCircle, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, Pencil } from "lucide-react";
 import FormInput from "@/components/ui/form-input";
 import CustomRadio from "@/components/ui/custom-radio";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -589,7 +589,7 @@ const AdminStaffDetail: React.FC = () => {
                   value={staff.name || ""}
                   readOnly
                   className="text-[#272424] text-[14px]"
-                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                 />
               </div>
               <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
@@ -601,7 +601,7 @@ const AdminStaffDetail: React.FC = () => {
                   value={staff.phone || ""}
                   readOnly
                   className="text-[#272424] text-[14px]"
-                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                 />
               </div>
             </div>
@@ -617,7 +617,7 @@ const AdminStaffDetail: React.FC = () => {
                   value={staff.email || ""}
                   readOnly
                   className="text-[#272424] text-[14px]"
-                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                 />
               </div>
               <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
@@ -629,7 +629,7 @@ const AdminStaffDetail: React.FC = () => {
                   value={formatDateForDisplay(staff.birthday)}
                   readOnly
                   className="text-[14px] font-medium text-[#737373]"
-                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                   right={
                     <Calendar className="w-[24px] h-[24px] text-[#454545]" />
                   }
@@ -648,7 +648,7 @@ const AdminStaffDetail: React.FC = () => {
                   value="••••••••"
                   readOnly
                   className="text-[#888888] text-[14px]"
-                  containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                 />
               </div>
               <div className="flex flex-col gap-[10px] h-[54px] items-start justify-center flex-1">
@@ -679,14 +679,11 @@ const AdminStaffDetail: React.FC = () => {
           <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[10px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full">
             <div className="flex gap-[50px] items-start w-full">
               <div className="flex flex-col gap-[6px] items-start flex-1">
-                <div className="flex gap-[4px] items-center">
-                  <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
-                    Vai trò nhân viên
-                  </label>
-                  <HelpCircle className="w-[24px] h-[24px] text-[#888888]" />
-                </div>
-                <div className="bg-white border-2 border-[#e04d30] flex gap-[6px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-default">
-                  <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4]">
+                <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
+                  Vai trò nhân viên
+                </label>
+                <div className="bg-white border border-[#d1d1d1] flex gap-[6px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-default">
+                  <span className="text-[#272424] text-[12px] font-semibold leading-[1.4]">
                     {getRoleLabel(staff.type)}
                   </span>
                 </div>
@@ -705,7 +702,7 @@ const AdminStaffDetail: React.FC = () => {
             />
             {/* Modal Content */}
             <div
-              className="relative z-50 bg-[#f7f7f7] rounded-[24px] w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+              className="relative z-50 bg-white border-[#e04d30] border-2 rounded-[24px] w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -732,7 +729,7 @@ const AdminStaffDetail: React.FC = () => {
                       }
                       placeholder="Nhập họ và tên"
                       className="text-[#272424] text-[14px]"
-                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
                     {formErrors.fullName && (
                       <p className="text-sm text-red-500">{formErrors.fullName}</p>
@@ -752,7 +749,7 @@ const AdminStaffDetail: React.FC = () => {
                       }
                       placeholder="Nhập số điện thoại"
                       className="text-[#272424] text-[14px]"
-                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
                     {formErrors.phone && (
                       <p className="text-sm text-red-500">{formErrors.phone}</p>
@@ -775,7 +772,7 @@ const AdminStaffDetail: React.FC = () => {
                       }
                       placeholder="Nhập tên đăng nhập"
                       className="text-[#272424] text-[14px]"
-                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
                     {formErrors.username && (
                       <p className="text-sm text-red-500">{formErrors.username}</p>
@@ -795,7 +792,7 @@ const AdminStaffDetail: React.FC = () => {
                       }
                       placeholder="Nhập email"
                       className="text-[#272424] text-[14px]"
-                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
                     {formErrors.email && (
                       <p className="text-sm text-red-500">{formErrors.email}</p>
@@ -818,7 +815,7 @@ const AdminStaffDetail: React.FC = () => {
                       }
                       placeholder="Nhập mật khẩu mới (để trống nếu không đổi)"
                       className="text-[#888888] text-[14px]"
-                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
                     {formErrors.password && (
                       <p className="text-sm text-red-500">{formErrors.password}</p>
@@ -841,7 +838,7 @@ const AdminStaffDetail: React.FC = () => {
                         handleInputChange("dateOfBirth", e.target.value)
                       }
                       className="text-[14px] font-medium text-[#737373]"
-                      containerClassName="bg-white border-2 border-[#e04d30] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
                     />
                     {formErrors.dateOfBirth && (
                       <p className="text-sm text-red-500">{formErrors.dateOfBirth}</p>
@@ -879,11 +876,11 @@ const AdminStaffDetail: React.FC = () => {
                   </label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="bg-white border-2 border-[#e04d30] flex gap-[6px] h-[50px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-pointer">
-                        <span className="text-[#e04d30] text-[14px] font-semibold leading-[1.4] flex-1 text-left">
+                      <button className="bg-white border border-[#d1d1d1] flex gap-[6px] h-[50px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-pointer">
+                        <span className={`text-[14px] font-semibold leading-[1.4] flex-1 text-left ${editFormData.role ? "text-[#272424]" : "text-[#888888]"}`}>
                           {editFormData.role || "Chọn vai trò"}
                         </span>
-                        <CaretDown className="text-[#e04d30]" />
+                        <CaretDown className="text-[#272424] opacity-60" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-full">
