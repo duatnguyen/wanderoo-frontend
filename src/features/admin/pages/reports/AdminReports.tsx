@@ -449,7 +449,21 @@ const AdminReports: React.FC = () => {
                 <tbody>
                   {productPerformance.slice(0, 10).map((product) => (
                     <tr key={product.productId} className="border-b border-[#D1D1D1] hover:bg-gray-50">
-                      <td className="py-3 px-4 text-[14px] text-[#272424]">{product.productName}</td>
+                      <td className="py-3 px-4 text-[14px] text-[#272424]">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{product.productName}</span>
+                          {product.productDetailName && (
+                            <span className="text-[12px] text-[#888888] mt-0.5">
+                              {product.productDetailName}
+                            </span>
+                          )}
+                          {product.sku && (
+                            <span className="text-[12px] text-[#A3A3A3] mt-0.5">
+                              Mã SKU: {product.sku}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-[14px] text-[#272424] text-right">
                         {formatCurrencyValue(product.totalRevenue)}
                       </td>

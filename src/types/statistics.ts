@@ -21,6 +21,8 @@ export interface RevenueTrendResponse {
 export interface ProductPerformanceResponse {
   productId: number;
   productName: string;
+  productDetailName: string;
+  sku: string;
   totalRevenue: number;
   totalCost: number;
   totalProfit: number;
