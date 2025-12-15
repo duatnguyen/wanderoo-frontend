@@ -23,6 +23,16 @@ import {
   ContentCard,
 } from "@/components/common";
 import { formatCurrencyVND } from "./utils/formatCurrency";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../../../components/ui/alert-dialog";
 
 function ArrowLeftIcon() {
   return (
@@ -143,6 +153,11 @@ const OrderDetailTab: React.FC = () => {
   const [returnDescription, setReturnDescription] = useState("");
   const [returnImages, setReturnImages] = useState<File[]>([]);
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+  
+  // Cancel order modal states
+  const [isCancelReasonModalOpen, setIsCancelReasonModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false);
 
   // Payment result popup state
   const [showPaymentResultModal, setShowPaymentResultModal] = useState(false);
@@ -296,23 +311,8 @@ const OrderDetailTab: React.FC = () => {
         name: orderData.receiverName || "N/A",
         // Get phone from order only (receiverPhone from order table)
         phone: orderData.receiverPhone || "N/A",
-        // Build address from order fields only (not from shippingDetail or address table)
-        address: (() => {
-          const addressParts: string[] = [];
-          if (orderData.receiverAddress) {
-            addressParts.push(orderData.receiverAddress);
-          }
-          if (orderData.receiverWardName) {
-            addressParts.push(orderData.receiverWardName);
-          }
-          if (orderData.receiverDistrictName) {
-            addressParts.push(orderData.receiverDistrictName);
-          }
-          if (orderData.receiverProvinceName) {
-            addressParts.push(orderData.receiverProvinceName);
-          }
-          return addressParts.length > 0 ? addressParts.join(", ") : "N/A";
-        })(),
+        // Get full address from order data
+        address: (orderData as any).fulladdress || orderData.receiverAddress || "N/A",
         notes: orderData.notes || "-",
       },
       payment: {
@@ -544,27 +544,43 @@ const OrderDetailTab: React.FC = () => {
     );
   };
 
-  // Handle cancel order
+  // Handle open cancel reason modal
+  const handleOpenCancelModal = () => {
+    if (!order || !order.orderId) {
+      toast.error("Không tìm thấy thông tin đơn hàng");
+      return;
+    }
+
+    // Only allow canceling if status is PENDING or CONFIRMED
+    if (order.statusKey !== "PENDING" && order.statusKey !== "CONFIRMED") {
+      toast.error("Chỉ có thể hủy đơn hàng khi trạng thái là chờ xác nhận hoặc đã xác nhận");
+      return;
+    }
+
+    setIsCancelReasonModalOpen(true);
+    setCancelReason("");
+  };
+
+  // Handle proceed to confirm after selecting reason
+  const handleProceedToConfirm = () => {
+    if (!cancelReason) {
+      toast.error("Vui lòng chọn lý do hủy đơn hàng");
+      return;
+    }
+    setIsCancelReasonModalOpen(false);
+    setShowCancelConfirmDialog(true);
+  };
+
+  // Handle cancel order (final confirmation)
   const handleCancelOrder = async () => {
     if (!order || !order.orderId) {
       toast.error("Không tìm thấy thông tin đơn hàng");
       return;
     }
 
-    // Only allow canceling if status is PENDING
-    if (order.statusKey !== "PENDING") {
-      toast.error("Chỉ có thể hủy đơn hàng khi trạng thái là chờ xác nhận");
-      return;
-    }
-
-    // Confirm cancellation with detailed message
-    const confirmMessage = `Bạn có chắc chắn muốn hủy đơn hàng #${order.code}?\n\nLưu ý: Sau khi hủy, đơn hàng sẽ không thể khôi phục được.`;
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
-
     try {
       setIsCancellingOrder(true);
+      setShowCancelConfirmDialog(false);
       const response = await cancelOrder(order.orderId);
 
       toast.success("Hủy đơn hàng thành công", {
@@ -583,6 +599,7 @@ const OrderDetailTab: React.FC = () => {
       });
 
       setIsCancellingOrder(false);
+      setCancelReason("");
 
       // Optional: Navigate back to orders list after successful cancellation
       // Uncomment the line below if you want to redirect after cancellation
@@ -817,18 +834,28 @@ const OrderDetailTab: React.FC = () => {
                 </h3>
                 
                 <div className="flex flex-wrap items-center gap-3">
+                  {/* 1. Giá gốc */}
+                  {product.originalPrice && product.originalPrice > 0 && (
+                    <span key="original" className="text-sm text-gray-500 line-through">
+                      {formatCurrencyVND(product.originalPrice)}
+                    </span>
+                  )}
+
+                  {/* 2. Giá sau giảm */}
                   {product.price > 0 && (
                     <span key="price" className="text-sm font-bold text-green-600 bg-green-50 px-2.5 py-0.5 rounded border border-green-200">
                       {formatCurrencyVND(product.price)}
                     </span>
                   )}
-                  
-                  {product.quantity > 0 && (
-                    <span className="text-sm text-gray-600 font-medium">
-                      x{product.quantity}
+
+                  {/* 3. Số tiền giảm (nếu có) */}
+                  {product.discountAmount && product.discountAmount > 0 && (
+                    <span key="discount" className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-medium">
+                      -{formatCurrencyVND(product.discountAmount)}
                     </span>
                   )}
 
+                  {/* 4. Biến thể */}
                   {product.variant && (
                     <div key="variant" className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-blue-50 border border-blue-100 text-blue-700">
                       <span className="text-xs font-medium">
@@ -837,15 +864,11 @@ const OrderDetailTab: React.FC = () => {
                     </div>
                   )}
 
-                  {product.discountAmount && product.discountAmount > 0 && product.originalPrice && product.originalPrice > 0 && product.originalPrice > product.price && (
-                     <>
-                       <span key="original" className="text-xs text-gray-500 line-through">
-                          {formatCurrencyVND(product.originalPrice)}
-                       </span>
-                       <span key="discount" className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-medium">
-                          -{formatCurrencyVND(product.discountAmount)}
-                       </span>
-                     </>
+                  {/* 5. Số lượng */}
+                  {product.quantity > 0 && (
+                    <span className="text-sm text-gray-600 font-medium">
+                      x{product.quantity}
+                    </span>
                   )}
                 </div>
 
@@ -935,12 +958,12 @@ const OrderDetailTab: React.FC = () => {
             </div>
           )}
 
-          {/* Cancel Order Button - Only show for pending orders */}
-          {currentStatus === "pending" && (
+          {/* Cancel Order Button - Only show for pending or confirmed orders */}
+          {(currentStatus === "pending" || currentStatus === "confirmed") && (
             <div className="flex justify-end mt-6 pt-6 border-t border-gray-100">
               <Button
                 variant="outline"
-                onClick={handleCancelOrder}
+                onClick={handleOpenCancelModal}
                 disabled={isCancellingOrder}
                 className="mb-5 h-11 bg-white border border-red-300 text-red-600 hover:bg-red-600 hover:text-white disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed rounded-lg font-medium transition-colors duration-200 px-6"
               >
@@ -1729,6 +1752,154 @@ const OrderDetailTab: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Cancel Order Reason Modal */}
+        {isCancelReasonModalOpen && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+              onClick={() => {
+                setIsCancelReasonModalOpen(false);
+                setCancelReason("");
+              }}
+            />
+            
+            {/* Modal Content */}
+            <div
+              id="cancel-reason-modal-content"
+              className="relative bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all z-[10000]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Lý do hủy đơn hàng
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setIsCancelReasonModalOpen(false);
+                      setCancelReason("");
+                    }}
+                    className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                    aria-label="Đóng"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="mt-2 text-sm text-gray-600">
+                  Đơn hàng: #{order?.code} • Ngày đặt: {order?.orderDate}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-5">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Vui lòng chọn lý do hủy đơn hàng <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    value={cancelReason}
+                    onChange={(value) => setCancelReason(value)}
+                    placeholder="Chọn lý do hủy đơn hàng"
+                    className="w-full"
+                    size="large"
+                    getPopupContainer={() => {
+                      const modalContent = document.getElementById("cancel-reason-modal-content");
+                      return modalContent || document.body;
+                    }}
+                    popupClassName="!z-[10001]"
+                    options={[
+                      { value: "change-mind", label: "Thay đổi ý định" },
+                      { value: "wrong-product", label: "Đặt nhầm sản phẩm" },
+                      { value: "found-cheaper", label: "Tìm thấy sản phẩm rẻ hơn" },
+                      { value: "wrong-shipping-info", label: "Thông tin giao hàng sai" },
+                      { value: "delivery-too-slow", label: "Thời gian giao hàng quá lâu" },
+                      { value: "payment-issue", label: "Vấn đề thanh toán" },
+                      { value: "other", label: "Lý do khác" },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+                <Button
+                  onClick={() => {
+                    setIsCancelReasonModalOpen(false);
+                    setCancelReason("");
+                  }}
+                  variant="outline"
+                  className="px-6"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleProceedToConfirm}
+                  disabled={!cancelReason}
+                  className="px-6 bg-red-600 hover:bg-red-700 disabled:bg-gray-400"
+                >
+                  Tiếp tục
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cancel Order Confirmation AlertDialog */}
+        <AlertDialog open={showCancelConfirmDialog} onOpenChange={setShowCancelConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xác nhận hủy đơn hàng</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bạn có chắc chắn muốn hủy đơn hàng #{order?.code}?
+                <br />
+                <br />
+                <strong>Lý do hủy:</strong> {
+                  cancelReason === "change-mind" ? "Thay đổi ý định" :
+                  cancelReason === "wrong-product" ? "Đặt nhầm sản phẩm" :
+                  cancelReason === "found-cheaper" ? "Tìm thấy sản phẩm rẻ hơn" :
+                  cancelReason === "wrong-shipping-info" ? "Thông tin giao hàng sai" :
+                  cancelReason === "delivery-too-slow" ? "Thời gian giao hàng quá lâu" :
+                  cancelReason === "payment-issue" ? "Vấn đề thanh toán" :
+                  cancelReason === "other" ? "Lý do khác" :
+                  "Chưa chọn lý do"
+                }
+                <br />
+                <br />
+                <span className="text-red-600 font-semibold">
+                  Lưu ý: Sau khi hủy, đơn hàng sẽ không thể khôi phục được.
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setShowCancelConfirmDialog(false);
+                  setCancelReason("");
+                }}
+                disabled={isCancellingOrder}
+              >
+                Không, giữ lại đơn hàng
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleCancelOrder}
+                disabled={isCancellingOrder}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isCancellingOrder ? (
+                  <>
+                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  "Có, hủy đơn hàng"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </ContentCard>
     </PageContainer>
   );

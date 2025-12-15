@@ -246,7 +246,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await apiClient.post('/files/avatar', formData, {
+      const response = await apiClient.post('/files/upload?folder=avatars', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

@@ -79,6 +79,7 @@ const AdminOrderDetailWebsite: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isEditingShippingStatus, setIsEditingShippingStatus] = useState(false);
   const [selectedShippingStatus, setSelectedShippingStatus] = useState<string>("");
+  const [cancelReason, setCancelReason] = useState<string>("");
   const [updatingShippingStatus, setUpdatingShippingStatus] = useState(false);
   const [showUpdateShippingStatusDialog, setShowUpdateShippingStatusDialog] = useState(false);
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(true);
@@ -248,15 +249,16 @@ const AdminOrderDetailWebsite: React.FC = () => {
     setShowCancelOrderDialog(true);
   };
 
-  const handleCancelConfirm = async (reason: string) => {
-    if (!orderData?.id || !reason) return;
+  const handleCancelConfirm = async () => {
+    if (!orderData?.id || !cancelReason) return;
 
     try {
       setConfirmingOrder(true);
-      await cancelAdminOrder(orderData.id, reason);
+      await cancelAdminOrder(orderData.id);
       // Reload order data after cancellation
       await loadOrderDetail(orderData.code || orderCode);
       setShowCancelOrderDialog(false);
+      setCancelReason("");
       toast.success("Đơn hàng đã được hủy thành công!");
     } catch (error: any) {
       console.error("Error canceling order:", error);
@@ -812,7 +814,6 @@ const AdminOrderDetailWebsite: React.FC = () => {
                     <>
                       <option value="DELIVERED">Giao hàng thành công</option>
                       <option value="DELIVERY_FAIL">Giao hàng thất bại</option>
-                      <option value="CANCEL">Đã hủy</option>
                     </>
                   )}
                 </select>
