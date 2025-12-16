@@ -473,7 +473,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
           </div>
         </section>
 
-        <CustomerReviews />
+        <CustomerReviews productId={productId ? Number(productId) : null} />
 
         <RelatedProducts products={relatedProducts} />
       </main>

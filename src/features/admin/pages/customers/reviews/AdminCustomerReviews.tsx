@@ -7,24 +7,57 @@ import { DatePicker as AntdDatePicker } from "antd";
 import { Button } from "@/components/ui/button";
 import ReviewResponseModal from "@/components/ui/review-response-modal";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   PageContainer,
   ContentCard,
   PageHeader,
 } from "@/components/common";
 import { Pagination } from "@/components/ui/pagination";
-import { getReviews, updateReview } from "@/api/endpoints/reviewApi";
+import { getReviews, updateReview, deleteReview } from "@/api/endpoints/reviewApi";
 import { toast } from "sonner";
 import type { ReviewResponse, ReviewUpdateRequest } from "@/types/api";
+
+// Helper function to get full image URL (same as ProductImages and CustomerReviews)
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl) return undefined;
+  
+  // If already a full URL (http/https), return as is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // If relative path starting with /, add base URL
+  if (imageUrl.startsWith('/')) {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    return `${baseUrl}${imageUrl}`;
+  }
+  
+  // If relative path not starting with /, assume it's from uploads
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  return `${baseUrl}/static/${imageUrl}`;
+};
 interface Review {
   id: string;
   customerName: string;
   orderId: string;
+  orderCode?: string; // Order code
   productName: string;
   productImage: string;
   rating: number;
   comment: string;
   reviewImages: string[];
   shopReply?: string;
+  createdAt?: string;
+  updatedAt?: string; // Time when shop replied (if shopReply exists)
 }
 
 const AdminCustomerReviews = () => {
@@ -37,6 +70,8 @@ const AdminCustomerReviews = () => {
     [Dayjs | null, Dayjs | null] | null
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -52,22 +87,13 @@ const AdminCustomerReviews = () => {
       const params: {
         page?: number;
         size?: number;
-        rating?: number;
       } = {
-        page: currentPage - 1, // Backend uses 0-based pagination
+        page: currentPage, // Backend uses 1-based pagination (Math.max(page, 1))
         size: itemsPerPage,
       };
 
-      // Add rating filter if not "all" and only one rating selected
-      if (!selectedRatings.includes("all") && selectedRatings.length === 1) {
-        const rating = parseInt(selectedRatings[0]);
-        if (!isNaN(rating)) {
-          params.rating = rating;
-        }
-      }
-
-      // Note: Date range and search will be filtered on frontend
-      // as backend API may not support these filters
+      // Note: Rating, date range, and search filters are handled on frontend
+      // as backend API does not support these filters
 
       return getReviews(params);
     },
@@ -89,18 +115,21 @@ const AdminCustomerReviews = () => {
 
   // Map API ReviewResponse to component Review interface
   const reviews = useMemo(() => {
-    if (!reviewsData?.content) return [];
+    if (!reviewsData?.reviews) return [];
     
-    return reviewsData.content.map((review: ReviewResponse) => ({
+    return reviewsData.reviews.map((review: ReviewResponse) => ({
       id: review.id.toString(),
-      customerName: `User ${review.userId}`, // TODO: Fetch customer name from API
-      orderId: review.orderHistoryId?.toString() || `Order-${review.id}`, // TODO: Get order code
-      productName: `Product ${review.productDetailId}`, // TODO: Fetch product name from API
+      customerName: review.userName || `User ${review.userId}`, // Use userName from API, fallback to User ID
+      orderId: review.orderHistoryId?.toString() || `Order-${review.id}`, // Keep orderHistoryId for reference
+      orderCode: review.orderCode || review.orderHistoryId?.toString() || `Order-${review.id}`, // Use orderCode from API, fallback to orderHistoryId
+      productName: review.productName || `Product ${review.productDetailId}`, // Use productName from API, fallback to Product Detail ID
       productImage: review.images?.[0] || "/placeholder-product.jpg",
       rating: review.rating,
       comment: review.judging || "",
       reviewImages: review.images || [],
       shopReply: review.response || undefined,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt, // Time when shop replied (if shopReply exists)
     }));
   }, [reviewsData]);
 
@@ -186,7 +215,7 @@ const AdminCustomerReviews = () => {
     setSelectedReview(null);
   };
 
-  // Update review mutation
+  // Update review mutation (for reply only)
   const updateReviewMutation = useMutation({
     mutationFn: (data: { reviewId: number; response: string; originalReview: ReviewResponse }) => {
       const updateData: ReviewUpdateRequest = {
@@ -215,11 +244,31 @@ const AdminCustomerReviews = () => {
     },
   });
 
+  // Update review mutation (for edit)
+  const editReviewMutation = useMutation({
+    mutationFn: (data: { reviewId: number; updateData: ReviewUpdateRequest }) => {
+      return updateReview(data.reviewId, data.updateData);
+    },
+    onSuccess: () => {
+      toast.success("Chỉnh sửa đánh giá thành công");
+      queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
+      setIsEditModalOpen(false);
+      setSelectedReview(null);
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể chỉnh sửa đánh giá";
+      toast.error(errorMessage);
+    },
+  });
+
   const handleSubmitResponse = (response: string) => {
     if (!selectedReview) return;
     
     // Find original review data
-    const originalReview = reviewsData?.content?.find(
+    const originalReview = reviewsData?.reviews?.find(
       (r: ReviewResponse) => r.id.toString() === selectedReview.id
     );
     
@@ -232,6 +281,67 @@ const AdminCustomerReviews = () => {
       reviewId: parseInt(selectedReview.id),
       response: response.trim(),
       originalReview,
+    });
+  };
+
+  // Delete review mutation
+  const deleteReviewMutation = useMutation({
+    mutationFn: (reviewId: number) => deleteReview(reviewId),
+    onSuccess: () => {
+      toast.success("Xóa đánh giá thành công");
+      queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
+      setIsDeleteConfirmOpen(false);
+      setSelectedReview(null);
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể xóa đánh giá";
+      toast.error(errorMessage);
+    },
+  });
+
+  const handleDeleteClick = (review: Review) => {
+    setSelectedReview(review);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedReview) return;
+    deleteReviewMutation.mutate(parseInt(selectedReview.id));
+  };
+
+  const handleEditClick = (review: Review) => {
+    setSelectedReview(review);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = (updatedData: { rating: number; judging: string; response?: string }) => {
+    if (!selectedReview) return;
+    
+    const originalReview = reviewsData?.reviews?.find(
+      (r: ReviewResponse) => r.id.toString() === selectedReview.id
+    );
+    
+    if (!originalReview) {
+      toast.error("Không tìm thấy đánh giá");
+      return;
+    }
+    
+    const updateData: ReviewUpdateRequest = {
+      userId: originalReview.userId,
+      productDetailId: originalReview.productDetailId,
+      orderHistoryId: originalReview.orderHistoryId,
+      images: originalReview.images,
+      rating: updatedData.rating,
+      judging: updatedData.judging,
+      response: updatedData.response || originalReview.response,
+    };
+    
+    editReviewMutation.mutate({
+      reviewId: parseInt(selectedReview.id),
+      updateData,
     });
   };
 
@@ -384,9 +494,25 @@ const AdminCustomerReviews = () => {
 
                 <div className="flex gap-[8px] grow items-center overflow-clip px-[4px] py-[2px] relative">
                   <p className="font-medium leading-[1.4] relative text-[14px] whitespace-pre font-['Montserrat']">
-                    <span className="text-[#272424]">ID đơn hàng:</span>{" "}
-                    <span className="text-[#1a71f6]">{review.orderId}</span>
+                    <span className="text-[#272424]">Mã đơn hàng:</span>{" "}
+                    <span className="text-[#1a71f6]">{review.orderCode || review.orderId}</span>
                   </p>
+                  {review.createdAt && (
+                    <>
+                      <span className="text-[#e04d30] opacity-70 mx-[8px] select-none">
+                        |
+                      </span>
+                      <p className="font-medium leading-[1.4] relative text-[14px] whitespace-pre font-['Montserrat'] text-gray-500">
+                        {new Date(review.createdAt).toLocaleDateString("vi-VN", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -438,26 +564,34 @@ const AdminCustomerReviews = () => {
                     {/* Review Images */}
                     {review.reviewImages && review.reviewImages.length > 0 && (
                       <div className="flex gap-[8px] items-center relative">
-                        {review.reviewImages.map((image, index) => (
-                          <div
-                            key={index}
-                            className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center overflow-hidden rounded"
-                          >
-                            {image ? (
-                              <img
-                                src={image}
-                                alt={`Review image ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                  (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-gray-500 text-xs">IMG</span>';
-                                }}
-                              />
-                            ) : (
-                              <span className="text-gray-500 text-xs">IMG</span>
-                            )}
-                          </div>
-                        ))}
+                        {review.reviewImages.map((image, index) => {
+                          const imageUrl = getImageUrl(image);
+                          return (
+                            <div
+                              key={index}
+                              className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center overflow-hidden rounded cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => {
+                                if (imageUrl) {
+                                  window.open(imageUrl, '_blank');
+                                }
+                              }}
+                            >
+                              {imageUrl ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={`Review image ${index + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-gray-500 text-xs">IMG</span>';
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-gray-500 text-xs">IMG</span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
@@ -467,9 +601,22 @@ const AdminCustomerReviews = () => {
                         <div className="flex gap-[8px] items-start">
                           <div className="w-[8px] h-[8px] bg-[#e04d30] rounded-full flex-shrink-0 mt-[6px]"></div>
                           <div className="flex flex-col gap-[2px] items-start flex-1 flex-shrink-0 min-w-0">
-                            <span className="font-semibold text-[14px] text-[#e04d30]">
-                              Phản hồi từ shop
-                            </span>
+                            <div className="flex items-center gap-2 w-full">
+                              <span className="font-semibold text-[14px] text-[#e04d30]">
+                                Phản hồi từ shop
+                              </span>
+                              {review.updatedAt && (
+                                <span className="text-[12px] text-gray-500">
+                                  {new Date(review.updatedAt).toLocaleDateString("vi-VN", {
+                                    year: "numeric",
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              )}
+                            </div>
                             <span className="font-medium text-[14px] text-[#272424]">
                               {review.shopReply}
                             </span>
@@ -481,10 +628,10 @@ const AdminCustomerReviews = () => {
                   {/* Divider */}
                   <div className="w-px bg-[#e7e7e7] self-stretch" />
 
-                  {/* Action Button */}
-                  <div className="flex items-center justify-center p-[16px] relative w-[160px] min-w-[160px]">
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2 items-center justify-center p-[16px] relative w-[160px] min-w-[160px]">
                     <Button
-                      className={`w-auto px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] ${
+                      className={`w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] ${
                         review.shopReply || updateReviewMutation.isPending
                           ? "opacity-50 cursor-not-allowed"
                           : ""
@@ -497,6 +644,24 @@ const AdminCustomerReviews = () => {
                         : review.shopReply
                         ? "Đã phản hồi"
                         : "Trả lời"}
+                    </Button>
+                    <Button
+                      className="w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => handleEditClick(review)}
+                      disabled={updateReviewMutation.isPending || deleteReviewMutation.isPending || editReviewMutation.isPending}
+                    >
+                      {editReviewMutation.isPending && selectedReview?.id === review.id
+                        ? "Đang lưu..."
+                        : "Chỉnh sửa"}
+                    </Button>
+                    <Button
+                      className="w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] bg-red-600 hover:bg-red-700 text-white"
+                      onClick={() => handleDeleteClick(review)}
+                      disabled={updateReviewMutation.isPending || deleteReviewMutation.isPending || editReviewMutation.isPending}
+                    >
+                      {deleteReviewMutation.isPending && selectedReview?.id === review.id
+                        ? "Đang xóa..."
+                        : "Xóa"}
                     </Button>
                   </div>
                 </div>
@@ -526,7 +691,130 @@ const AdminCustomerReviews = () => {
         initialResponse={selectedReview?.shopReply || ""}
       />
 
+      {/* Edit Review Modal */}
+      {isEditModalOpen && selectedReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+            onClick={() => {
+              setIsEditModalOpen(false);
+              setSelectedReview(null);
+            }}
+          />
+          <div className="bg-white relative rounded-[12px] w-[95%] max-w-[650px] shadow-xl">
+            <div className="px-[16px] py-[16px] border-b border-[#d1d1d1]">
+              <h3 className="font-bold text-[#272424] text-[16px]">
+                Chỉnh sửa đánh giá
+              </h3>
+            </div>
+            <div className="px-[16px] pt-[16px] pb-[10px] space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Số sao đánh giá</label>
+                <select
+                  value={selectedReview.rating}
+                  onChange={(e) =>
+                    setSelectedReview({
+                      ...selectedReview,
+                      rating: Number(e.target.value),
+                    })
+                  }
+                  className="w-full border-2 border-gray-300 rounded-[12px] p-2"
+                >
+                  {[5, 4, 3, 2, 1].map((star) => (
+                    <option key={star} value={star}>
+                      {star} sao
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Nội dung đánh giá</label>
+                <textarea
+                  value={selectedReview.comment}
+                  onChange={(e) =>
+                    setSelectedReview({
+                      ...selectedReview,
+                      comment: e.target.value,
+                    })
+                  }
+                  className="w-full border-2 border-gray-300 rounded-[12px] p-2"
+                  rows={4}
+                />
+              </div>
+              {selectedReview.shopReply && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Phản hồi từ shop</label>
+                  <textarea
+                    value={selectedReview.shopReply}
+                    onChange={(e) =>
+                      setSelectedReview({
+                        ...selectedReview,
+                        shopReply: e.target.value,
+                      })
+                    }
+                    className="w-full border-2 border-gray-300 rounded-[12px] p-2"
+                    rows={3}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex gap-[10px] items-center justify-end px-[16px] pt-[8px] pb-[12px]">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setSelectedReview(null);
+                }}
+                className="text-[14px]"
+              >
+                Huỷ
+              </Button>
+              <Button
+                onClick={() => {
+                  handleEditSubmit({
+                    rating: selectedReview.rating,
+                    judging: selectedReview.comment,
+                    response: selectedReview.shopReply,
+                  });
+                }}
+                className="text-[14px]"
+                disabled={editReviewMutation.isPending}
+              >
+                {editReviewMutation.isPending ? "Đang lưu..." : "Lưu"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa đánh giá</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa đánh giá này? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setIsDeleteConfirmOpen(false);
+                setSelectedReview(null);
+              }}
+            >
+              Huỷ
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteReviewMutation.isPending}
+            >
+              {deleteReviewMutation.isPending ? "Đang xóa..." : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   );
 };

@@ -225,14 +225,25 @@ export interface SelectedCartWithShippingResponse {
 export interface ReviewResponse {
   id: number;
   userId: number;
+  userName?: string; // User's name
   productDetailId: number;
+  productName?: string; // Product's name
   orderHistoryId?: number;
+  orderCode?: string; // Order code
   images?: string[];
   rating: number;
   judging?: string;
   response?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ReviewPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  reviews: ReviewResponse[]; // Backend uses "reviews" not "content"
 }
 
 // Shipping Types
@@ -306,6 +317,8 @@ export interface DiscountPublicResponse {
   quantity?: number | null;
   isAvailable?: boolean;
   discountText?: string | null;
+  status?: VoucherStatus;
+  statusLabel?: string | null;
 }
 
 export interface VoucherHistoryResponse {

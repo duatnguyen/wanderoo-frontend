@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import OrderSearchPanel, {
   type Order,
 } from "../../../../components/pos/OrderSearchPanel";
@@ -10,6 +11,7 @@ import { getPosOrderList, getPosOrderDetail } from "../../../../api/endpoints/po
 import Loading from "../../../../components/common/Loading";
 
 const OrderManagement: React.FC = () => {
+  const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -119,8 +121,9 @@ const OrderManagement: React.FC = () => {
   }
 
   const handleExchange = () => {
-    console.log("Exchange order:", selectedOrderId);
-    // TODO: Implement exchange order functionality
+    if (!selectedOrderId) return;
+    // Điều hướng thẳng sang màn tạo đơn trả hàng cho đơn hiện tại
+    navigate(`/pos/returns/create/${selectedOrderId}`);
   };
 
   const handlePrintInvoice = () => {

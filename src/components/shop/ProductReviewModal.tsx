@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import StarRating from "./StarRating";
 import Button from "./Button";
 import { Textarea } from "./Input";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -26,8 +27,9 @@ interface ProductReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   products: Product[];
-  onSubmit: (reviews: ProductReview[]) => void;
+  onSubmit: (reviews: ProductReview[]) => void | Promise<void>;
   initialReviews?: Map<string, { rating: number; comment: string }>;
+  isSubmitting?: boolean;
 }
 
 const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
@@ -36,6 +38,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
   products,
   onSubmit,
   initialReviews,
+  isSubmitting = false,
 }) => {
   // State for each product's review
   const [reviews, setReviews] = useState<
@@ -85,7 +88,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const reviewsArray: ProductReview[] = [];
     let hasError = false;
 
@@ -109,7 +112,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
       return;
     }
 
-    onSubmit(reviewsArray);
+    await onSubmit(reviewsArray);
   };
 
   const handleClose = () => {
@@ -182,8 +185,16 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                       alt={product.name}
                       className="w-[60px] h-[60px] rounded-lg border border-gray-300 object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "https://via.placeholder.com/60";
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                        // Show placeholder text instead
+                        const parent = target.parentElement;
+                        if (parent && !parent.querySelector(".image-placeholder")) {
+                          const placeholder = document.createElement("div");
+                          placeholder.className = "image-placeholder w-[60px] h-[60px] rounded-lg border border-gray-300 bg-gray-100 flex items-center justify-center text-xs text-gray-400";
+                          placeholder.textContent = "IMG";
+                          parent.appendChild(placeholder);
+                        }
                       }}
                     />
                     <div className="flex-1">
@@ -280,6 +291,9 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                             ...currentImages,
                             ...files,
                           ]);
+                      if (files.length > 0) {
+                        toast.success(`Đã thêm ${files.length} ảnh`);
+                      }
                         };
                         input.click();
                       }}
@@ -303,6 +317,9 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                             ...currentVideos,
                             ...files,
                           ]);
+                      if (files.length > 0) {
+                        toast.success(`Đã thêm ${files.length} video`);
+                      }
                         };
                         input.click();
                       }}
@@ -311,6 +328,20 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                       Thêm video
                     </button>
                   </div>
+              <div className="mt-2 text-xs text-gray-600 space-y-1">
+                <p>
+                  Ảnh đã chọn:{" "}
+                  <span className="font-semibold text-gray-800">
+                    {review.images?.length || 0}
+                  </span>
+                </p>
+                <p>
+                  Video đã chọn:{" "}
+                  <span className="font-semibold text-gray-800">
+                    {review.videos?.length || 0}
+                  </span>
+                </p>
+              </div>
                 </div>
               </div>
             );
@@ -323,7 +354,8 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
             variant="outline"
             size="md"
             onClick={handleClose}
-            className="!bg-white !border-[#E04D30] !text-[#E04D30] hover:!bg-[#E04D30] hover:!text-white"
+            disabled={isSubmitting}
+            className="!bg-white !border-[#E04D30] !text-[#E04D30] hover:!bg-[#E04D30] hover:!text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Trở lại
           </Button>
@@ -331,9 +363,10 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
             variant="primary"
             size="md"
             onClick={handleSubmit}
-            className="!bg-[#E04D30] !border-[#E04D30] hover:!bg-[#c93d24] hover:!border-[#c93d24]"
+            disabled={isSubmitting}
+            className="!bg-[#E04D30] !border-[#E04D30] hover:!bg-[#c93d24] hover:!border-[#c93d24] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Hoàn thành
+            {isSubmitting ? "Đang gửi..." : "Hoàn thành"}
           </Button>
         </div>
       </div>

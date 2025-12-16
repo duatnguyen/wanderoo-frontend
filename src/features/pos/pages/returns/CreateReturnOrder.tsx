@@ -93,8 +93,11 @@ const CreateReturnOrder: React.FC = () => {
 
   const refundMethods = ["Chuyển khoản", "Tiền mặt"];
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("vi-VN").format(amount) + "đ";
+  const formatCurrency = (amount: number) => {
+    // Làm tròn về đơn vị đồng để tránh hiển thị số lẻ như 10.784.004,615đ
+    const roundedAmount = Number.isFinite(amount) ? Math.round(amount) : 0;
+    return new Intl.NumberFormat("vi-VN").format(roundedAmount) + "đ";
+  };
 
   const calculateDiscountedPrice = (originalPrice: number): number => {
     if (!orderDetailData?.paymentSummary) return originalPrice;

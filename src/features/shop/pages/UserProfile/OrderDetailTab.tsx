@@ -9,6 +9,9 @@ import { ChipStatus } from "../../../../components/ui/chip-status";
 import { getCustomerOrderDetail, cancelOrder } from "../../../../api/endpoints/websiteOrderApi";
 import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
 import { useAuth } from "../../../../context/AuthContext";
+import { createMyReview, getMyReviews } from "../../../../api/endpoints/reviewApi";
+import { uploadFile } from "../../../../api/endpoints/fileApi";
+import { useMutation } from "@tanstack/react-query";
 import { customerReturnOrderApi } from "../../../../api/customerReturnOrderApi";
 import { formatTimelineDate, formatOrderDate } from "../../../../utils/dateUtils";
 import type { CustomerOrderResponse } from "../../../../types";
@@ -64,6 +67,7 @@ type ProductType = {
   isReviewed?: boolean;
   orderDetailId?: number; // Order detail ID for return order
   productDetailId?: number; // Product detail ID for return order
+  productId?: number; // Product ID for navigation
 };
 
 const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
@@ -138,7 +142,7 @@ const OrderDetailTab: React.FC = () => {
   const location = useLocation() as { state?: { order?: any } };
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<ProductType[]>([]);
@@ -153,6 +157,7 @@ const OrderDetailTab: React.FC = () => {
   const [returnDescription, setReturnDescription] = useState("");
   const [returnImages, setReturnImages] = useState<File[]>([]);
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   
   // Cancel order modal states
   const [isCancelReasonModalOpen, setIsCancelReasonModalOpen] = useState(false);
@@ -229,6 +234,14 @@ const OrderDetailTab: React.FC = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Fetch user's reviews to check which products have been reviewed
+  const { data: myReviewsData } = useQuery({
+    queryKey: ["myReviews", orderData?.id],
+    queryFn: () => getMyReviews({ page: 1, size: 100 }), // Get all reviews (up to 100)
+    enabled: isAuthenticated && !!orderData?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
   // Transform order data for display
   const order = React.useMemo(() => {
     if (!orderData) return null;
@@ -262,6 +275,23 @@ const OrderDetailTab: React.FC = () => {
 
     const statusLabel = incomingOrder?.statusLabel || getStatusDisplayName(orderData.status || "");
 
+    // Create a set of reviewed productDetailIds for this order
+    // Prefer strict match by orderCode; fall back to productDetailId match if orderCode is missing on the review
+    const reviewedProductDetailIds = new Set<number>();
+    if (myReviewsData?.reviews && orderData.code) {
+      myReviewsData.reviews.forEach((review: any) => {
+        const sameOrder = review.orderCode === orderData.code;
+        const sameProduct = review.productDetailId && (orderData.orderDetails || []).some(
+          (detail: any) => detail.productDetailId === review.productDetailId
+        );
+
+        // If review belongs to this order (by code) OR review has no orderCode but matches a product in this order
+        if ((sameOrder || (!review.orderCode && sameProduct)) && review.productDetailId) {
+          reviewedProductDetailIds.add(review.productDetailId);
+        }
+      });
+    }
+
     const products: ProductType[] = (orderData.orderDetails || []).map((detail: any, idx: number) => {
       // Construct full image URL if productImage exists
       let imageUrl = FALLBACK_IMAGE;
@@ -293,9 +323,10 @@ const OrderDetailTab: React.FC = () => {
           .join(" • ") || undefined,
         quantity: detail.quantity || 1,
         sku: detail.snapshotProductSku || undefined,
-        isReviewed: false,
+        isReviewed: reviewedProductDetailIds.has(detail.productDetailId), // Check if this product has been reviewed
         orderDetailId: detail.id, // Order detail ID
         productDetailId: detail.productDetailId, // Product detail ID
+        productId: detail.productId, // Product ID for navigation
       };
     });
 
@@ -306,6 +337,7 @@ const OrderDetailTab: React.FC = () => {
       status: statusLabel,
       statusKey: orderData.status,
       products,
+      orderId: orderData.id, // Add orderId for review checking
       customer: {
         // Get name from order only (receiverName from order table)
         name: orderData.receiverName || "N/A",
@@ -813,7 +845,15 @@ const OrderDetailTab: React.FC = () => {
         {/* Product Details */}
         <div className="space-y-4 w-full">
           {order.products.map((product: ProductType, index: number) => (
-            <div key={product.id} className="flex flex-col sm:flex-row gap-4 p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200">
+            <div 
+              key={product.id} 
+              className="flex flex-col sm:flex-row gap-4 p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer"
+              onClick={() => {
+                if (product.productId) {
+                  navigate(`/shop/products/${product.productId}`);
+                }
+              }}
+            >
               <div className="flex-shrink-0">
                 <div className="relative">
                   <img
@@ -829,7 +869,7 @@ const OrderDetailTab: React.FC = () => {
               </div>
 
               <div className="flex-1 flex flex-col justify-center gap-2">
-                <h3 className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 cursor-pointer transition-colors duration-200">
+                <h3 className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 transition-colors duration-200">
                   {product.name}
                 </h3>
                 
@@ -889,16 +929,20 @@ const OrderDetailTab: React.FC = () => {
             <div className="flex flex-col justify-end sm:flex-row gap-3 mt-6 pt-6 border-t border-gray-100">
               <Button
                 onClick={() => {
-                  if (order.products.length > 0) {
-                    navigate(`/shop/products/${order.products[0].id}`);
-                  }
-                }}
-                className="flex-1 sm:flex-none h-11 bg-blue-600 hover:bg-blue-700 border-transparent text-white font-medium rounded-lg transition-colors duration-200"
+                      const first = order.products[0];
+                      const targetId = first?.productId || first?.productDetailId;
+                      if (!targetId) {
+                        toast.error("Không tìm thấy sản phẩm để mua lại");
+                        return;
+                      }
+                      navigate(`/shop/products/${targetId}`);
+                    }}
+                    className="flex-1 sm:flex-none h-11 bg-[#18345c] hover:bg-[#0f2545] text-white font-semibold rounded-lg transition-colors duration-200 shadow-sm flex items-center justify-center gap-2"
               >
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                </svg>
-                Mua lại
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a1 1 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                    </svg>
+                    Mua lại
               </Button>
               <ActionButton
                 variant="outline"
@@ -1333,24 +1377,80 @@ const OrderDetailTab: React.FC = () => {
               quantity: product.quantity,
             }))}
             initialReviews={productReviews}
-            onSubmit={(reviews) => {
-              console.log("Reviews submitted:", reviews);
-              setIsReviewModalOpen(false);
-              reviews.forEach((review) => {
-                if (!reviewedProducts.has(review.productId)) {
-                  setReviewedProducts((prev) => new Set(prev).add(review.productId));
-                }
-                setProductReviews((prev) => {
-                  const newMap = new Map(prev);
-                  newMap.set(review.productId, {
+            isSubmitting={isSubmittingReview}
+            onSubmit={async (reviews) => {
+              if (!user?.id || !order?.orderId) {
+                toast.error("Không thể xác thực thông tin người dùng hoặc đơn hàng");
+                return;
+              }
+
+              setIsSubmittingReview(true);
+              try {
+                // Submit each review
+                for (const review of reviews) {
+                  // Find the product detail ID from selectedProducts
+                  const product = selectedProducts.find(p => p.id === review.productId);
+                  if (!product?.productDetailId) {
+                    console.error(`Product detail ID not found for product ${review.productId}`);
+                    continue;
+                  }
+
+                  // Upload images if any
+                  let imageUrls: string[] = [];
+                  if (review.images && review.images.length > 0) {
+                    try {
+                      const uploadPromises = review.images.map(file => uploadFile(file, 'reviews'));
+                      imageUrls = await Promise.all(uploadPromises);
+                    } catch (uploadError) {
+                      console.error("Error uploading review images:", uploadError);
+                      toast.error("Không thể tải lên một số hình ảnh");
+                      // Continue with review creation even if image upload fails
+                    }
+                  }
+
+                  // Create review via customer API endpoint
+                  // This endpoint uses orderId and productDetailId, backend will find orderHistoryId automatically
+                  await createMyReview({
+                    orderId: order.orderId!,
+                    productDetailId: product.productDetailId!,
+                    images: imageUrls.length > 0 ? imageUrls : undefined,
                     rating: review.rating,
-                    comment: review.comment,
+                    judging: review.comment || undefined,
                   });
-                  return newMap;
+                }
+
+                // Update local state
+                reviews.forEach((review) => {
+                  if (!reviewedProducts.has(review.productId)) {
+                    setReviewedProducts((prev) => new Set(prev).add(review.productId));
+                  }
+                  setProductReviews((prev) => {
+                    const newMap = new Map(prev);
+                    newMap.set(review.productId, {
+                      rating: review.rating,
+                      comment: review.comment,
+                    });
+                    return newMap;
+                  });
                 });
-              });
-              setShowSuccessModal(true);
-              setSelectedProducts([]);
+
+                // Invalidate reviews queries to refresh the reviews list
+                await queryClient.invalidateQueries({ queryKey: ["reviews"] });
+                await queryClient.invalidateQueries({ queryKey: ["myReviews"] });
+                await queryClient.invalidateQueries({ queryKey: ["product-reviews"] });
+                await queryClient.invalidateQueries({ queryKey: ["customerOrderDetail", orderCode] });
+                
+                setIsReviewModalOpen(false);
+                setShowSuccessModal(true);
+                setSelectedProducts([]);
+                toast.success("Đánh giá đã được gửi thành công!");
+              } catch (error: any) {
+                console.error("Error submitting reviews:", error);
+                const errorMessage = error?.response?.data?.message || error?.message || "Không thể gửi đánh giá. Vui lòng thử lại.";
+                toast.error(errorMessage);
+              } finally {
+                setIsSubmittingReview(false);
+              }
             }}
           />
         )}

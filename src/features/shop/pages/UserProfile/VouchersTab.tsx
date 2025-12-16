@@ -502,27 +502,17 @@ const VouchersTab: React.FC = () => {
                       type="text"
                       value={voucherInput}
                       onChange={(e) => setVoucherInput(e.target.value)}
-                      placeholder="Nhập mã để lưu hoặc tên/mã để tìm kiếm"
+                      placeholder="Nhập tên hoặc mã voucher để tìm kiếm"
                       fullWidth
                       className="flex-1"
                       onKeyPress={(e) => {
                         if (e.key === "Enter") {
-                          void handleSaveVoucher();
+                          void handleSearchVouchers();
                         }
                       }}
                     />
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <Button
-                      variant="primary"
-                      size="md"
-                      onClick={handleSaveVoucher}
-                      className="w-full sm:w-auto px-6 sm:px-8 whitespace-nowrap"
-                      loading={isClaiming}
-                      disabled={isClaiming}
-                    >
-                      Lưu
-                    </Button>
                     <Button
                       variant="secondary"
                       size="md"
@@ -701,25 +691,14 @@ const VoucherListSection: React.FC<VoucherListSectionProps> = ({
                   </div>
                 </div>
                 <div className="pt-2 border-t border-gray-100">
-                  {variant === "my" ? (
-                    <Button
-                      variant="outline"
-                      size="md"
-                      onClick={() => void handleUseVoucher(voucher.id, "use")}
-                      className="w-full !border-green-500 !text-green-600 hover:!bg-green-50 hover:!border-green-600 font-semibold transition-all"
-                    >
-                      Dùng ngay
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="md"
-                      onClick={() => void handleUseVoucher(voucher.id, "save")}
-                      className="w-full !border-[#f97316] !text-[#f97316] hover:!bg-orange-50 hover:!border-[#ea580c] font-semibold transition-all"
-                    >
-                      Lưu
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="md"
+                    onClick={() => void handleUseVoucher(voucher.id, "use")}
+                    className="w-full !border-green-500 !text-green-600 hover:!bg-green-50 hover:!border-green-600 font-semibold transition-all"
+                  >
+                    Dùng ngay
+                  </Button>
                 </div>
               </div>
             </div>
@@ -737,16 +716,10 @@ const VoucherListSection: React.FC<VoucherListSectionProps> = ({
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 bg-gray-50 space-y-10">
       {renderVoucherGroup(
-        "Voucher của tôi",
-        myVouchers,
-        "Bạn chưa lưu voucher nào.",
+        "Tất cả voucher",
+        [...myVouchers, ...publicVouchers],
+        "Hiện chưa có voucher nào khả dụng.",
         "my"
-      )}
-      {renderVoucherGroup(
-        "Voucher có thể lưu",
-        publicVouchers,
-        "Không có voucher nào khả dụng.",
-        "public"
       )}
     </div>
   );
