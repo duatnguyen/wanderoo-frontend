@@ -87,15 +87,26 @@ const AddressTab: React.FC = () => {
   >([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
 
+  const shouldHideLocationName = (name: string) => {
+    const normalized = name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return normalized.includes("test") || normalized === "ha noi 02";
+  };
+
   // Fetch provinces from API
   const fetchProvinces = async () => {
     try {
       setIsLoadingLocations(true);
       const provincesData = await getProvinces();
-      const mappedProvinces = provincesData.map((p: ProvinceResponse) => ({
-        label: p.provinceName,
-        value: p.provinceId,
-      }));
+      const mappedProvinces = provincesData
+        .filter((p: ProvinceResponse) => !shouldHideLocationName(p.provinceName))
+        .map((p: ProvinceResponse) => ({
+          label: p.provinceName,
+          value: p.provinceId,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, "vi", { sensitivity: "base" }));
       setProvinces(mappedProvinces);
     } catch (error: any) {
       console.error("Error fetching provinces:", error);
@@ -110,11 +121,14 @@ const AddressTab: React.FC = () => {
     try {
       setIsLoadingLocations(true);
       const districtsData = await getDistrictsByPath(provinceId);
-      const mappedDistricts = districtsData.map((d: DistrictResponse) => ({
-        label: d.districtName,
-        value: d.districtId,
-        provinceId: d.provinceId,
-      }));
+      const mappedDistricts = districtsData
+        .filter((d: DistrictResponse) => !shouldHideLocationName(d.districtName))
+        .map((d: DistrictResponse) => ({
+          label: d.districtName,
+          value: d.districtId,
+          provinceId: d.provinceId,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, "vi", { sensitivity: "base" }));
       setDistricts(mappedDistricts);
       // Reset wards when province changes
       setWards([]);
@@ -132,11 +146,14 @@ const AddressTab: React.FC = () => {
     try {
       setIsLoadingLocations(true);
       const wardsData = await getWardsByPath(districtId);
-      const mappedWards = wardsData.map((w: WardResponse) => ({
-        label: w.wardName,
-        value: w.wardCode,
-        districtId: w.districtId,
-      }));
+      const mappedWards = wardsData
+        .filter((w: WardResponse) => !shouldHideLocationName(w.wardName))
+        .map((w: WardResponse) => ({
+          label: w.wardName,
+          value: w.wardCode,
+          districtId: w.districtId,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, "vi", { sensitivity: "base" }));
       setWards(mappedWards);
       // Reset ward selection when district changes
       setFormData((prev) => ({ ...prev, ward: "" }));

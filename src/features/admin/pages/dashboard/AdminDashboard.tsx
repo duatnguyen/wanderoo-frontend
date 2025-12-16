@@ -107,7 +107,7 @@ const AdminDashboard: React.FC = () => {
     <PageContainer>
       <div className="mb-6">
         <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
-          Dashboard tổng quan
+          Tổng quan
         </h2>
         <p className="text-[14px] text-[#888888] mt-1">
           Tổng quan hệ thống trong 30 ngày gần nhất
@@ -299,10 +299,9 @@ const AdminDashboard: React.FC = () => {
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-[18px] font-bold text-[#272424]">
+                <h3 className="text-[18px] font-bold text-[#272424] whitespace-nowrap">
                   Trạng thái đơn hàng
                 </h3>
-                <p className="text-[12px] text-[#888888] mt-1">Tổng quan</p>
               </div>
               <button
                 onClick={() => navigate("/admin/orders")}

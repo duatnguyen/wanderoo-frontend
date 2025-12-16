@@ -3,11 +3,22 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import ShopLogo from "@/assets/icons/ShopLogo.svg";
 import { Loader2, User } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { POSOrderTabs, type OrderTab } from "./POSOrderTabs";
 import { searchProducts } from "@/api/endpoints/saleApi";
 import { usePOSContext } from "@/context/POSContext";
 import type { SaleProductResponse } from "@/types/api";
+
+// Helper: build absolute image URL like admin header/shop header
+const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
+  if (!imageUrl || imageUrl.trim() === "") return undefined;
+  const cleanUrl = imageUrl.trim();
+  if (cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://")) return cleanUrl;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+  if (cleanUrl.startsWith("/")) return `${baseUrl}${cleanUrl}`;
+  if (cleanUrl.startsWith("uploads/") || cleanUrl.startsWith("static/")) return `${baseUrl}/${cleanUrl}`;
+  return `${baseUrl}/uploads/${cleanUrl}`;
+};
 
 export type { OrderTab };
 
@@ -33,6 +44,7 @@ export type POSHeaderProps = {
   user?: {
     name: string;
     role: string;
+    avatar?: string | null;
   };
   className?: string;
 };
@@ -48,7 +60,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   onOrderAdd,
   onProductSelect,
   pageTitle,
-  user = { name: "Admin", role: "Admin" },
+  user = { name: "Admin", role: "Admin", avatar: null },
   className,
 }) => {
   const isSalesPage = searchValue !== undefined && orders !== undefined;
@@ -271,6 +283,8 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     );
   };
 
+  const displayAvatar = user?.avatar ? getImageUrl(user.avatar) || user.avatar : undefined;
+
   return (
     <header
       className={cn(
@@ -348,18 +362,18 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
       )}
 
       {/* User Info - On the right */}
-      <div className="hidden sm:flex items-center gap-2 bg-[#18345C] px-2 sm:px-3 py-1.5 ml-auto flex-shrink-0">
-        <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
-          <AvatarFallback className="bg-white text-[#18345C] text-xs">
-            <User className="w-3 h-3 sm:w-4 sm:h-4" />
+      <div className="flex items-center gap-2 sm:gap-3 ml-auto flex-shrink-0">
+        <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border border-white/20">
+          {displayAvatar ? (
+            <AvatarImage src={displayAvatar} alt={user?.name || "User"} className="object-cover" />
+          ) : null}
+          <AvatarFallback className="bg-white text-[#18345C] text-sm font-semibold">
+            {user?.name?.charAt(0)?.toUpperCase() || <User className="w-4 h-4" />}
           </AvatarFallback>
         </Avatar>
-        <div className="flex flex-col">
-          <span className="text-white text-xs sm:text-sm font-medium leading-tight">
-            {user.name}
-          </span>
-          <span className="text-white/70 text-[10px] sm:text-xs leading-tight">
-            {user.role}
+        <div className="flex flex-col leading-tight">
+          <span className="text-white text-sm sm:text-base font-semibold">
+            {user?.name || "Admin"}
           </span>
         </div>
       </div>

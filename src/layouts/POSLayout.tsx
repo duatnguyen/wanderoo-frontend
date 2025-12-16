@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { POSSidebar } from "../components/pos/POSSidebar";
 import { POSHeader, type OrderTab } from "../components/pos/POSHeader";
 import { POSProvider, usePOSContext } from "../context/POSContext";
+import { useAuth } from "../context/AuthContext";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { POSSidebarItemId } from "../components/pos/POSSidebar";
@@ -13,6 +14,7 @@ const POSLayoutContent: React.FC = () => {
   const isReturnOrderPage = location.pathname.includes("/returns");
   const isCreateReturnOrderPage = location.pathname.includes("/returns/create");
 
+  const { user: authUser } = useAuth();
   const {
     activeSidebarItem,
     setActiveSidebarItem,
@@ -85,6 +87,14 @@ const POSLayoutContent: React.FC = () => {
     }
   };
 
+  const userForHeader = authUser
+    ? {
+        name: authUser.name || authUser.username,
+        role: authUser.role || "Admin",
+        avatar: authUser.avatar || null,
+      }
+    : user;
+
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50 justify-between">
       {/* Header */}
@@ -121,7 +131,7 @@ const POSLayoutContent: React.FC = () => {
         onOrderAdd={
           location.pathname.includes("/sales") ? handleAddOrder : undefined
         }
-        user={user}
+        user={userForHeader}
         className="flex-shrink-0"
       />
 

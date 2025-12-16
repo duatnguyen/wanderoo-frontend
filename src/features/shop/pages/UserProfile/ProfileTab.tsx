@@ -20,6 +20,49 @@ import type { UserUpdateRequest } from "../../../../types/auth";
 
 type EditableField = "fullName" | "email" | "phone";
 
+const validatePhoneNumber = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return "Vui lòng nhập số điện thoại.";
+    }
+    const digitsOnly = /^\d+$/;
+    const digitCount = trimmed.replace(/\D/g, "");
+    if (!digitsOnly.test(trimmed)) {
+        return "Số điện thoại chỉ được chứa chữ số.";
+    }
+    if (digitCount.length < 10 || digitCount.length > 13) {
+        return "Số điện thoại phải có từ 10 đến 13 chữ số.";
+    }
+    return null;
+};
+
+const validateBirthdate = (date?: Date) => {
+    if (!date) return null; // optional
+
+    const inputDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (Number.isNaN(inputDate.getTime())) {
+        return "Ngày sinh không hợp lệ.";
+    }
+
+    if (inputDate > today) {
+        return "Ngày sinh không được lớn hơn hiện tại.";
+    }
+
+    const age = today.getFullYear() - inputDate.getFullYear();
+    const monthDiff = today.getMonth() - inputDate.getMonth();
+    const dayDiff = today.getDate() - inputDate.getDate();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+
+    if (actualAge < 16) {
+        return "Khách hàng phải từ 16 tuổi trở lên.";
+    }
+
+    return null;
+};
+
 const fieldConfig: Record<
     EditableField,
     {
@@ -112,6 +155,9 @@ const ProfileTab: React.FC = () => {
         const payloadKey = fieldConfig[editingField].payloadKey;
         const overrides: Partial<UserUpdateRequest> = {};
 
+        // Clear previous errors before validating
+        setErrorMessage(null);
+
         if (payloadKey === "name") {
             const trimmed = pendingValue.trim();
 
@@ -125,7 +171,12 @@ const ProfileTab: React.FC = () => {
         } else if (payloadKey === "email") {
             overrides.email = pendingValue;
         } else if (payloadKey === "phone") {
-            overrides.phone = pendingValue;
+            const phoneError = validatePhoneNumber(pendingValue);
+            if (phoneError) {
+                setErrorMessage(phoneError);
+                return;
+            }
+            overrides.phone = pendingValue.trim();
         }
 
         const payload = buildProfilePayload(overrides);
@@ -545,8 +596,15 @@ const ProfileTab: React.FC = () => {
                                             variant="default"
                                             size="sm"
                                             onClick={async () => {
-                                                setIsSaving(true);
                                                 setErrorMessage(null);
+
+                                                const dobError = validateBirthdate(pendingDateOfBirth);
+                                                if (dobError) {
+                                                    setErrorMessage(dobError);
+                                                    return;
+                                                }
+
+                                                setIsSaving(true);
                                                 try {
                                                     const dateString = pendingDateOfBirth
                                                         ? pendingDateOfBirth.toISOString().split('T')[0]
