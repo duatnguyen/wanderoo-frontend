@@ -13,11 +13,14 @@ import type { SaleProductResponse } from "@/types/api";
 const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
   if (!imageUrl || imageUrl.trim() === "") return undefined;
   const cleanUrl = imageUrl.trim();
+  // If already a full URL (http/https), return as is
   if (cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://")) return cleanUrl;
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+  // If relative path starting with /, add base URL (e.g., /static/products/xxx.jpg)
   if (cleanUrl.startsWith("/")) return `${baseUrl}${cleanUrl}`;
-  if (cleanUrl.startsWith("uploads/") || cleanUrl.startsWith("static/")) return `${baseUrl}/${cleanUrl}`;
-  return `${baseUrl}/uploads/${cleanUrl}`;
+  // If relative path not starting with /, assume it's from uploads and add /static/ prefix
+  // Backend serves files from ./uploads via /static/ path
+  return `${baseUrl}/static/${cleanUrl}`;
 };
 
 export type { OrderTab };

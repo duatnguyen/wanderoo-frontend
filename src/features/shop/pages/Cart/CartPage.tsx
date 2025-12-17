@@ -8,6 +8,7 @@ import CartTable from "../../../../components/shop/Cart/CartTable";
 import RecommendedProducts from "../../../../components/shop/Cart/RecommendedProducts";
 import { getCart, updateCartItem, removeCartItem, getSelectedCartItems, updateCartItemProductDetail } from "../../../../api/endpoints/cartApi";
 import type { BackendCartResponse, ProductDetailVariantResponse } from "../../../../types/api";
+import { getImageUrl } from "../../../../utils/imageUtils";
 
 type CartItemDisplay = {
   id: string;
@@ -139,7 +140,7 @@ const CartPage: React.FC = () => {
         productId: cartItem.productDetailId, // Use productDetailId for variant selection
         name: cartItem.productName,
         description: attributesString,
-        imageUrl: cartItem.imageUrl || "",
+        imageUrl: getImageUrl(cartItem.imageUrl) || "",
         price: cartItem.discountedPrice || cartItem.productPrice,
         originalPrice: cartItem.originalPrice,
         quantity: cartItem.quantity,

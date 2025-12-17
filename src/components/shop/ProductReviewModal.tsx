@@ -3,6 +3,7 @@ import StarRating from "./StarRating";
 import Button from "./Button";
 import { Textarea } from "./Input";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 
 interface Product {
   id: string;
@@ -21,6 +22,7 @@ interface ProductReview {
   comment: string;
   images?: File[];
   videos?: File[];
+  existingImages?: string[];
 }
 
 interface ProductReviewModalProps {
@@ -28,7 +30,7 @@ interface ProductReviewModalProps {
   onClose: () => void;
   products: Product[];
   onSubmit: (reviews: ProductReview[]) => void | Promise<void>;
-  initialReviews?: Map<string, { rating: number; comment: string }>;
+  initialReviews?: Map<string, { rating: number; comment: string; images?: string[] }>;
   isSubmitting?: boolean;
 }
 
@@ -49,6 +51,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
         comment: string;
         images: File[];
         videos: File[];
+        existingImages: string[];
       }
     >
   >(new Map());
@@ -64,6 +67,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
           comment: existingReview?.comment || "",
           images: [],
           videos: [],
+          existingImages: existingReview?.images || [],
         });
       });
       setReviews(newReviews);
@@ -72,7 +76,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
 
   const updateReview = (
     productId: string,
-    field: "rating" | "comment" | "images" | "videos",
+    field: "rating" | "comment" | "images" | "videos" | "existingImages",
     value: any
   ) => {
     setReviews((prev) => {
@@ -82,6 +86,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
         comment: "",
         images: [],
         videos: [],
+        existingImages: [],
       };
       newMap.set(productId, { ...current, [field]: value });
       return newMap;
@@ -104,6 +109,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
         comment: review.comment,
         images: review.images,
         videos: review.videos,
+        existingImages: review.existingImages,
       });
     });
 
@@ -136,7 +142,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with Close Button */}
-        <div className="px-6 py-3 border-b border-gray-200 sticky top-0 bg-white flex items-center justify-between">
+        <div className="px-6 py-3 border-b border-gray-200 sticky top-0 bg-white z-10 flex items-center justify-between">
           <h2 className="text-[20px] font-bold text-gray-900">
             Đánh giá sản phẩm
           </h2>
@@ -170,6 +176,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
               comment: "",
               images: [],
               videos: [],
+              existingImages: [],
             };
 
             return (
@@ -215,24 +222,24 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                       <div className="flex items-center gap-2">
                         {product.finalPrice && (
                           <span className="text-[14px] font-semibold text-blue-600">
-                            {new Intl.NumberFormat('vi-VN', { 
-                              style: 'currency', 
-                              currency: 'VND' 
+                            {new Intl.NumberFormat('vi-VN', {
+                              style: 'currency',
+                              currency: 'VND'
                             }).format(product.finalPrice)}
                           </span>
                         )}
                         {product.discountAmount && product.discountAmount > 0 && (
                           <>
                             <span className="text-[12px] text-gray-500 line-through">
-                              {new Intl.NumberFormat('vi-VN', { 
-                                style: 'currency', 
-                                currency: 'VND' 
+                              {new Intl.NumberFormat('vi-VN', {
+                                style: 'currency',
+                                currency: 'VND'
                               }).format(product.originalPrice || 0)}
                             </span>
                             <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-medium">
-                              -{new Intl.NumberFormat('vi-VN', { 
-                                style: 'currency', 
-                                currency: 'VND' 
+                              -{new Intl.NumberFormat('vi-VN', {
+                                style: 'currency',
+                                currency: 'VND'
                               }).format(product.discountAmount)}
                             </span>
                           </>
@@ -274,7 +281,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
 
                 {/* Media Upload Section */}
                 <div className="py-1 pb-4">
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 mb-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -291,9 +298,9 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                             ...currentImages,
                             ...files,
                           ]);
-                      if (files.length > 0) {
-                        toast.success(`Đã thêm ${files.length} ảnh`);
-                      }
+                          if (files.length > 0) {
+                            toast.success(`Đã thêm ${files.length} ảnh`);
+                          }
                         };
                         input.click();
                       }}
@@ -317,9 +324,9 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                             ...currentVideos,
                             ...files,
                           ]);
-                      if (files.length > 0) {
-                        toast.success(`Đã thêm ${files.length} video`);
-                      }
+                          if (files.length > 0) {
+                            toast.success(`Đã thêm ${files.length} video`);
+                          }
                         };
                         input.click();
                       }}
@@ -328,20 +335,81 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                       Thêm video
                     </button>
                   </div>
-              <div className="mt-2 text-xs text-gray-600 space-y-1">
-                <p>
-                  Ảnh đã chọn:{" "}
-                  <span className="font-semibold text-gray-800">
-                    {review.images?.length || 0}
-                  </span>
-                </p>
-                <p>
-                  Video đã chọn:{" "}
-                  <span className="font-semibold text-gray-800">
-                    {review.videos?.length || 0}
-                  </span>
-                </p>
-              </div>
+
+                  {/* Media Previews */}
+                  <div className="flex flex-wrap gap-2">
+                    {/* Existing Images */}
+                    {review.existingImages.map((url, imgIndex) => (
+                      <div key={`existing-${imgIndex}`} className="relative w-20 h-20 group">
+                        <img
+                          src={url}
+                          alt={`Review ${imgIndex}`}
+                          className="w-full h-full object-cover rounded-lg border border-gray-200"
+                        />
+                        {/* We don't allow deleting existing images yet as API might not support it easily without complex logic */}
+                      </div>
+                    ))}
+
+                    {/* New Images */}
+                    {review.images.map((file, fileIndex) => (
+                      <div key={`new-img-${fileIndex}`} className="relative w-20 h-20 group">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`New ${fileIndex}`}
+                          className="w-full h-full object-cover rounded-lg border border-gray-200"
+                          onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                        />
+                        <button
+                          onClick={() => {
+                            const newImages = [...review.images];
+                            newImages.splice(fileIndex, 1);
+                            updateReview(product.id, "images", newImages);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* New Videos */}
+                    {review.videos.map((file, fileIndex) => (
+                      <div key={`new-vid-${fileIndex}`} className="relative w-20 h-20 group bg-black rounded-lg overflow-hidden">
+                        <video
+                          src={URL.createObjectURL(file)}
+                          className="w-full h-full object-cover opacity-80"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-0 h-0 border-t-4 border-t-transparent border-l-8 border-l-white border-b-4 border-b-transparent ml-1"></div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newVideos = [...review.videos];
+                            newVideos.splice(fileIndex, 1);
+                            updateReview(product.id, "videos", newVideos);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-2 text-xs text-gray-600 space-y-1">
+                    <p>
+                      Ảnh đã chọn:{" "}
+                      <span className="font-semibold text-gray-800">
+                        {review.images.length + review.existingImages.length}
+                      </span>
+                    </p>
+                    <p>
+                      Video đã chọn:{" "}
+                      <span className="font-semibold text-gray-800">
+                        {review.videos.length}
+                      </span>
+                    </p>
+                  </div>
                 </div>
               </div>
             );
@@ -349,7 +417,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
         </div>
 
         {/* Footer Buttons */}
-        <div className="px-6 py-3 flex justify-end gap-2 sticky bottom-0 bg-white">
+        <div className="px-6 py-3 flex justify-end gap-2 sticky bottom-0 bg-white border-t border-gray-100">
           <Button
             variant="outline"
             size="md"

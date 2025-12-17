@@ -200,6 +200,9 @@ const AdminOrderOtherStatus = () => {
         params.status = activeStatusTab;
       }
 
+      // Only show return orders from Website (not POS)
+      params.source = "WEBSITE";
+
       if (paymentMethodFilter !== "ALL") {
         // Map UI filter to backend parameter if needed
         // params.paymentMethod = paymentMethodFilter;
@@ -237,9 +240,9 @@ const AdminOrderOtherStatus = () => {
   }, [fetchReturnOrders]);
 
   const handleViewDetail = (order: ReturnOrderListItem) => {
-    navigate(`/admin/orders/otherstatus/${order.orderCode}`, {
+    navigate(`/admin/orders/otherstatus/${order.returnOrderCode || order.orderCode}`, {
       state: {
-        returnOrderId: order.id,
+        returnOrderId: order.id.toString(),
         returnTo: {
           pathname: "/admin/orders/otherstatus",
           activePrimaryTab,
@@ -276,38 +279,60 @@ const AdminOrderOtherStatus = () => {
 
   // Transform ReturnOrderListItem data to match OrderTable interface
   const transformedOrders = useMemo(() => {
-    return paginatedOrders.map((order) => ({
-      id: order.orderCode,
-      customer: {
-        name: order.customerName,
-        username: order.customerUsername,
-        image: order.productImage || "",
-        orderCode: order.orderCode,
-      },
-      products: [{
-        id: 1,
-        name: order.productName,
-        price: `${Number(order.totalAmount).toLocaleString("vi-VN")}₫`,
-        unitPrice: order.totalAmount,
-        quantity: 1,
-        image: order.productImage || "",
-        sku: order.orderCode,
-        variantAttributes: order.productVariant ? [{
-          groupName: "Phân loại",
-          value: order.productVariant,
-          groupLevel: 1,
-        }] : [],
-      }],
-      paymentType: order.paymentMethod,
-      status: order.statusLabel,
-      paymentStatus: order.refundStatusLabel,
-      category: order.source,
-      date: order.createdAt,
-      tabStatus: order.statusKey,
-      totalAmount: order.totalAmount,
-      shippingFee: 0,
-      itemsCount: 1,
-    }));
+    return paginatedOrders.map((order) => {
+      // Use returnOrderDetails if available, otherwise fallback to single product
+      const products = order.returnOrderDetails && order.returnOrderDetails.length > 0
+        ? order.returnOrderDetails.map((detail) => ({
+            id: detail.id,
+            name: detail.snapshotProductName || order.productName || "Sản phẩm không tên",
+            price: `${Number(detail.totalReturnPrice || detail.returnPrice || 0).toLocaleString("vi-VN")}₫`,
+            unitPrice: detail.returnPrice || 0,
+            quantity: detail.returnQuantity,
+            image: order.productImage || "",
+            sku: detail.snapshotProductSku || order.orderCode,
+            variantAttributes: order.productVariant ? [{
+              groupName: "Phân loại",
+              value: order.productVariant,
+              groupLevel: 1,
+            }] : [],
+          }))
+        : [{
+            id: 1,
+            name: order.productName,
+            price: `${Number(order.totalAmount).toLocaleString("vi-VN")}₫`,
+            unitPrice: order.totalAmount,
+            quantity: 1,
+            image: order.productImage || "",
+            sku: order.orderCode,
+            variantAttributes: order.productVariant ? [{
+              groupName: "Phân loại",
+              value: order.productVariant,
+              groupLevel: 1,
+            }] : [],
+          }];
+
+      const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
+
+      return {
+        id: order.returnOrderCode || order.orderCode,
+        customer: {
+          name: order.customerInfo?.name || order.customerName,
+          username: order.customerInfo?.username || order.customerUsername,
+          image: order.customerInfo?.image || order.productImage || "",
+          orderCode: order.orderCode,
+        },
+        products,
+        paymentType: order.paymentMethod,
+        status: order.statusLabel,
+        paymentStatus: order.refundStatusLabel,
+        category: order.source || "Website",
+        date: order.createdAt,
+        tabStatus: order.statusKey,
+        totalAmount: order.totalAmount,
+        shippingFee: 0,
+        itemsCount: totalQuantity,
+      };
+    });
   }, [paginatedOrders]);
 
   // Order table columns definition
@@ -362,7 +387,9 @@ const AdminOrderOtherStatus = () => {
     _orderStatus: string,
     _orderSource: string
   ) => {
-    const order = paginatedOrders.find(o => o.orderCode === orderId);
+    const order = paginatedOrders.find(o => 
+      o.returnOrderCode === orderId || o.orderCode === orderId
+    );
     if (order) {
       handleViewDetail(order);
     }

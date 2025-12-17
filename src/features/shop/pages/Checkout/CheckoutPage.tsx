@@ -9,6 +9,7 @@ import ShippingAddress from "../../../../components/shop/Checkout/ShippingAddres
 import ProductsTable from "../../../../components/shop/Checkout/ProductsTable";
 import VoucherSelectionModal from "../../../../components/shop/Checkout/LegacyVoucherSelectionModal";
 import { formatCurrencyVND } from "./utils/formatCurrency";
+import { getImageUrl } from "../../../../utils/imageUtils";
 import {
   getProvinces,
   getDistrictsByPath,
@@ -402,7 +403,7 @@ const CheckoutPage: React.FC = () => {
         id: cartItem.id.toString(),
         name: cartItem.productName,
         description: cartItem.attributes?.map(attr => `${attr.name}: ${attr.value}`).join(", ") || "",
-        imageUrl: cartItem.imageUrl || "",
+        imageUrl: getImageUrl(cartItem.imageUrl) || "",
         originalPrice: cartItem.originalPrice,
         discountedPrice: cartItem.discountedPrice,
         productPrice: cartItem.productPrice,

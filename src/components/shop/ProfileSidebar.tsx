@@ -246,7 +246,8 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await apiClient.post('/files/upload?folder=avatars', formData, {
+      // Use /files/avatar endpoint which automatically updates user avatar
+      const response = await apiClient.post('/files/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -259,7 +260,8 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
       });
 
       if (response.data.status === 200) {
-        // Update user avatar in context
+        // Update user avatar in context with the returned URL
+        // The backend automatically updates the user's avatar, so we just need to update the local state
         updateUser({ ...user, avatar: response.data.data });
 
         // Show success briefly before closing

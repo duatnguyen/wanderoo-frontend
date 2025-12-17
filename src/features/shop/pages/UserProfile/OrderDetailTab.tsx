@@ -10,8 +10,7 @@ import { getCustomerOrderDetail, cancelOrder } from "../../../../api/endpoints/w
 import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
 import { useAuth } from "../../../../context/AuthContext";
 import { createMyReview, getMyReviews } from "../../../../api/endpoints/reviewApi";
-import { uploadFile } from "../../../../api/endpoints/fileApi";
-import { useMutation } from "@tanstack/react-query";
+import { uploadFile, uploadReturnOrderImages } from "../../../../api/endpoints/fileApi";
 import { customerReturnOrderApi } from "../../../../api/customerReturnOrderApi";
 import { formatTimelineDate, formatOrderDate } from "../../../../utils/dateUtils";
 import type { CustomerOrderResponse } from "../../../../types";
@@ -26,6 +25,7 @@ import {
   ContentCard,
 } from "@/components/common";
 import { formatCurrencyVND } from "./utils/formatCurrency";
+import { getImageUrl } from "../../../../utils/imageUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -148,7 +148,7 @@ const OrderDetailTab: React.FC = () => {
   const [selectedProducts, setSelectedProducts] = useState<ProductType[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
-  const [productReviews, setProductReviews] = useState<Map<string, { rating: number; comment: string }>>(new Map());
+  const [productReviews, setProductReviews] = useState<Map<string, { rating: number; comment: string; images?: string[] }>>(new Map());
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isCancellingOrder, setIsCancellingOrder] = useState(false);
@@ -158,7 +158,9 @@ const OrderDetailTab: React.FC = () => {
   const [returnImages, setReturnImages] = useState<File[]>([]);
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  
+  const [isReturnSingleProduct, setIsReturnSingleProduct] = useState(false);
+  const [selectedReturnProducts, setSelectedReturnProducts] = useState<Set<string>>(new Set());
+
   // Cancel order modal states
   const [isCancelReasonModalOpen, setIsCancelReasonModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -242,6 +244,42 @@ const OrderDetailTab: React.FC = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  // Populate productReviews state when myReviewsData changes
+  useEffect(() => {
+    if (myReviewsData?.reviews && orderData?.orderDetails) {
+      const newProductReviews = new Map<string, { rating: number; comment: string; images?: string[] }>();
+      const newReviewedProducts = new Set<string>();
+
+      myReviewsData.reviews.forEach((review: any) => {
+        // Check if review belongs to this order
+        const isSameOrder = review.orderCode === orderData.code;
+
+        // Find matching product in order details
+        const matchingDetail = orderData.orderDetails?.find(
+          (detail: any) => detail.productDetailId === review.productDetailId
+        );
+
+        if ((isSameOrder || (!review.orderCode && matchingDetail)) && matchingDetail) {
+          const productId = matchingDetail.id?.toString() || matchingDetail.productDetailId?.toString();
+          if (productId) {
+            newProductReviews.set(productId, {
+              rating: review.rating,
+              comment: review.judging || "",
+              images: review.images || [],
+            });
+            newReviewedProducts.add(review.productDetailId);
+          }
+        }
+      });
+
+      setProductReviews(newProductReviews);
+      // We don't set reviewedProducts here because it's derived in the useMemo below, 
+      // but we could if we wanted to sync them. 
+      // Actually, let's rely on the useMemo 'isReviewed' property for the UI list,
+      // and use productReviews for the modal.
+    }
+  }, [myReviewsData, orderData]);
+
   // Transform order data for display
   const order = React.useMemo(() => {
     if (!orderData) return null;
@@ -297,10 +335,8 @@ const OrderDetailTab: React.FC = () => {
       let imageUrl = FALLBACK_IMAGE;
       if (detail.productImage && detail.productImage.trim() !== "") {
         const productImagePath = detail.productImage.trim();
-        // If it's already a full URL, use it as is; otherwise prepend base URL
-        imageUrl = productImagePath.startsWith('http')
-          ? productImagePath
-          : `http://localhost:8080${productImagePath}`;
+        // Use utility function to get full image URL
+        imageUrl = getImageUrl(productImagePath) || FALLBACK_IMAGE;
       }
 
       return {
@@ -331,13 +367,13 @@ const OrderDetailTab: React.FC = () => {
     });
 
     return {
-      id: orderData.id?.toString() || orderId || "N/A",
+      id: orderData.id?.toString() || (orderData as any)?.orderId?.toString?.() || orderId || "N/A",
       code: orderData.code || orderId || "N/A",
       orderDate: orderData.createdAt ? formatOrderDate(orderData.createdAt) : "N/A",
       status: statusLabel,
       statusKey: orderData.status,
       products,
-      orderId: orderData.id, // Add orderId for review checking
+      orderId: orderData.id ?? (orderData as any)?.orderId, // Add orderId for review checking (fallback)
       customer: {
         // Get name from order only (receiverName from order table)
         name: orderData.receiverName || "N/A",
@@ -365,7 +401,6 @@ const OrderDetailTab: React.FC = () => {
       expectedDeliveryDate: orderData.expectedDeliveryDate,
       paymentStatus: orderData.paymentStatus,
       paymentMethod: orderData.method,
-      orderId: orderData.id,
     };
   }, [orderData, orderId, location.state?.order]);
 
@@ -845,8 +880,8 @@ const OrderDetailTab: React.FC = () => {
         {/* Product Details */}
         <div className="space-y-4 w-full">
           {order.products.map((product: ProductType, index: number) => (
-            <div 
-              key={product.id} 
+            <div
+              key={product.id}
               className="flex flex-col sm:flex-row gap-4 p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer"
               onClick={() => {
                 if (product.productId) {
@@ -872,7 +907,7 @@ const OrderDetailTab: React.FC = () => {
                 <h3 className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-blue-600 transition-colors duration-200">
                   {product.name}
                 </h3>
-                
+
                 <div className="flex flex-wrap items-center gap-3">
                   {/* 1. Giá gốc */}
                   {product.originalPrice && product.originalPrice > 0 && (
@@ -920,6 +955,16 @@ const OrderDetailTab: React.FC = () => {
                     <span>SKU: {product.sku}</span>
                   </div>
                 )}
+
+                {/* Reviewed Indicator */}
+                {product.isReviewed && (
+                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 w-fit">
+                    <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span className="text-xs font-medium">Đã đánh giá</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -929,20 +974,20 @@ const OrderDetailTab: React.FC = () => {
             <div className="flex flex-col justify-end sm:flex-row gap-3 mt-6 pt-6 border-t border-gray-100">
               <Button
                 onClick={() => {
-                      const first = order.products[0];
-                      const targetId = first?.productId || first?.productDetailId;
-                      if (!targetId) {
-                        toast.error("Không tìm thấy sản phẩm để mua lại");
-                        return;
-                      }
-                      navigate(`/shop/products/${targetId}`);
-                    }}
-                    className="flex-1 sm:flex-none h-11 bg-[#18345c] hover:bg-[#0f2545] text-white font-semibold rounded-lg transition-colors duration-200 shadow-sm flex items-center justify-center gap-2"
+                  const first = order.products[0];
+                  const targetId = first?.productId || first?.productDetailId;
+                  if (!targetId) {
+                    toast.error("Không tìm thấy sản phẩm để mua lại");
+                    return;
+                  }
+                  navigate(`/shop/products/${targetId}`);
+                }}
+                className="flex-1 sm:flex-none h-11 bg-[#18345c] hover:bg-[#0f2545] text-white font-semibold rounded-lg transition-colors duration-200 shadow-sm flex items-center justify-center gap-2"
               >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a1 1 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                    </svg>
-                    Mua lại
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a1 1 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                </svg>
+                Mua lại
               </Button>
               <ActionButton
                 variant="outline"
@@ -960,7 +1005,7 @@ const OrderDetailTab: React.FC = () => {
                       try {
                         // Check if order is eligible for return
                         const canReturn = await customerReturnOrderApi.checkReturnEligibility(order.orderId);
-                        
+
                         if (!canReturn) {
                           toast.error("Đơn hàng này không đủ điều kiện để hoàn trả", {
                             description: "Vui lòng liên hệ với bộ phận hỗ trợ để được hỗ trợ thêm.",
@@ -1386,6 +1431,9 @@ const OrderDetailTab: React.FC = () => {
 
               setIsSubmittingReview(true);
               try {
+                // Store image URLs for each review
+                const reviewImageUrlsMap = new Map<string, string[]>();
+
                 // Submit each review
                 for (const review of reviews) {
                   // Find the product detail ID from selectedProducts
@@ -1408,6 +1456,9 @@ const OrderDetailTab: React.FC = () => {
                     }
                   }
 
+                  // Store image URLs for this review
+                  reviewImageUrlsMap.set(review.productId, imageUrls);
+
                   // Create review via customer API endpoint
                   // This endpoint uses orderId and productDetailId, backend will find orderHistoryId automatically
                   await createMyReview({
@@ -1429,6 +1480,7 @@ const OrderDetailTab: React.FC = () => {
                     newMap.set(review.productId, {
                       rating: review.rating,
                       comment: review.comment,
+                      images: reviewImageUrlsMap.get(review.productId) || [], // Store the uploaded URLs
                     });
                     return newMap;
                   });
@@ -1439,7 +1491,7 @@ const OrderDetailTab: React.FC = () => {
                 await queryClient.invalidateQueries({ queryKey: ["myReviews"] });
                 await queryClient.invalidateQueries({ queryKey: ["product-reviews"] });
                 await queryClient.invalidateQueries({ queryKey: ["customerOrderDetail", orderCode] });
-                
+
                 setIsReviewModalOpen(false);
                 setShowSuccessModal(true);
                 setSelectedProducts([]);
@@ -1617,13 +1669,21 @@ const OrderDetailTab: React.FC = () => {
         {isReturnRefundModalOpen && order && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             {/* Backdrop */}
-            <div 
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
-              onClick={() => setIsReturnRefundModalOpen(false)}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => {
+                setIsReturnRefundModalOpen(false);
+                setReturnReason("");
+                setReturnDescription("");
+                setReturnImages([]);
+                setIsReturnSingleProduct(false);
+                setSelectedReturnProducts(new Set());
+              }}
             />
-            
+
             {/* Modal Content */}
             <div
+              id="return-refund-modal-content"
               className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all"
               onClick={(e) => e.stopPropagation()}
             >
@@ -1634,7 +1694,14 @@ const OrderDetailTab: React.FC = () => {
                     Yêu cầu hoàn trả hàng
                   </h2>
                   <button
-                    onClick={() => setIsReturnRefundModalOpen(false)}
+                    onClick={() => {
+                      setIsReturnRefundModalOpen(false);
+                      setReturnReason("");
+                      setReturnDescription("");
+                      setReturnImages([]);
+                      setIsReturnSingleProduct(false);
+                      setSelectedReturnProducts(new Set());
+                    }}
                     className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
                     aria-label="Đóng"
                   >
@@ -1650,15 +1717,57 @@ const OrderDetailTab: React.FC = () => {
               <div className="px-6 py-5">
                 {/* Products List */}
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                    Sản phẩm trong đơn hàng
-                  </h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Sản phẩm trong đơn hàng
+                    </h3>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isReturnSingleProduct}
+                        onChange={(e) => {
+                          setIsReturnSingleProduct(e.target.checked);
+                          if (!e.target.checked) {
+                            setSelectedReturnProducts(new Set());
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 font-medium">
+                        Hoàn trả một sản phẩm
+                      </span>
+                    </label>
+                  </div>
                   <div className="space-y-3">
                     {order.products.map((product) => (
                       <div
                         key={product.id}
-                        className="flex gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                        className={`flex gap-3 p-3 rounded-lg border transition-all ${
+                          isReturnSingleProduct
+                            ? selectedReturnProducts.has(product.id)
+                              ? "bg-blue-50 border-blue-300"
+                              : "bg-gray-50 border-gray-200"
+                            : "bg-gray-50 border-gray-200"
+                        }`}
                       >
+                        {isReturnSingleProduct && (
+                          <div className="flex items-center pt-1">
+                            <input
+                              type="checkbox"
+                              checked={selectedReturnProducts.has(product.id)}
+                              onChange={(e) => {
+                                const newSelected = new Set(selectedReturnProducts);
+                                if (e.target.checked) {
+                                  newSelected.add(product.id);
+                                } else {
+                                  newSelected.delete(product.id);
+                                }
+                                setSelectedReturnProducts(newSelected);
+                              }}
+                              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                          </div>
+                        )}
                         <img
                           src={product.imageUrl}
                           alt={product.name}
@@ -1686,6 +1795,11 @@ const OrderDetailTab: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                  {isReturnSingleProduct && selectedReturnProducts.size === 0 && (
+                    <p className="text-sm text-red-600 mt-2">
+                      Vui lòng chọn ít nhất một sản phẩm để hoàn trả
+                    </p>
+                  )}
                 </div>
 
                 {/* Form */}
@@ -1701,6 +1815,11 @@ const OrderDetailTab: React.FC = () => {
                       placeholder="Chọn lý do hoàn trả"
                       className="w-full"
                       size="large"
+                      getPopupContainer={() => {
+                        const modalContent = document.getElementById("return-refund-modal-content");
+                        return modalContent || document.body;
+                      }}
+                      popupClassName="!z-[10001]"
                       options={[
                         { value: "empty-package", label: "Thùng hàng rỗng" },
                         { value: "not-received", label: "Chưa nhận được hàng" },
@@ -1708,6 +1827,12 @@ const OrderDetailTab: React.FC = () => {
                         { value: "wrong-model", label: "Sai mẫu" },
                         { value: "defective", label: "Hàng lỗi" },
                         { value: "different-description", label: "Khác mô tả" },
+                        { value: "wrong-size", label: "Không đúng kích thước" },
+                        { value: "wrong-color", label: "Không đúng màu sắc" },
+                        { value: "not-fit", label: "Không vừa" },
+                        { value: "expired", label: "Hàng hết hạn" },
+                        { value: "damaged", label: "Hàng bị hư hỏng" },
+                        { value: "missing-parts", label: "Thiếu phụ kiện" },
                         { value: "other", label: "Lý do khác" },
                       ]}
                     />
@@ -1753,6 +1878,8 @@ const OrderDetailTab: React.FC = () => {
                     setReturnReason("");
                     setReturnDescription("");
                     setReturnImages([]);
+                    setIsReturnSingleProduct(false);
+                    setSelectedReturnProducts(new Set());
                   }}
                   disabled={isSubmittingReturn}
                   variant="outline"
@@ -1772,8 +1899,19 @@ const OrderDetailTab: React.FC = () => {
                       return;
                     }
 
+                    // Validate: if single product return is selected, must have at least one product selected
+                    if (isReturnSingleProduct && selectedReturnProducts.size === 0) {
+                      toast.error("Vui lòng chọn ít nhất một sản phẩm để hoàn trả");
+                      return;
+                    }
+
+                    // Get products to return
+                    const productsToReturn = isReturnSingleProduct
+                      ? order.products.filter((p) => selectedReturnProducts.has(p.id))
+                      : order.products;
+
                     // Validate products have required IDs
-                    const invalidProducts = order.products.filter(
+                    const invalidProducts = productsToReturn.filter(
                       (p) => !p.orderDetailId || !p.productDetailId
                     );
                     if (invalidProducts.length > 0) {
@@ -1793,13 +1931,31 @@ const OrderDetailTab: React.FC = () => {
                           "wrong-model": "WRONG_MODEL",
                           "defective": "DEFECTIVE",
                           "different-description": "DIFFERENT_DESCRIPTION",
+                          "wrong-size": "WRONG_SIZE",
+                          "wrong-color": "WRONG_COLOR",
+                          "not-fit": "NOT_FIT",
+                          "expired": "EXPIRED",
+                          "damaged": "DAMAGED",
+                          "missing-parts": "MISSING_PARTS",
                           "other": "OTHER",
                         };
                         return reasonMap[reason] || "OTHER";
                       };
 
-                      // Prepare return order details (all products)
-                      const returnOrderDetails = order.products.map((product) => ({
+                      // Upload images if any
+                      let imageUrls: string[] = [];
+                      if (returnImages && returnImages.length > 0) {
+                        try {
+                          imageUrls = await uploadReturnOrderImages(returnImages);
+                        } catch (uploadError) {
+                          console.error("Error uploading return images:", uploadError);
+                          toast.error("Không thể tải lên một số hình ảnh");
+                          // Continue with return order creation even if image upload fails
+                        }
+                      }
+
+                      // Prepare return order details (only selected products if single product return)
+                      const returnOrderDetails = productsToReturn.map((product) => ({
                         orderDetailId: product.orderDetailId!,
                         productDetailId: product.productDetailId!,
                         returnQuantity: product.quantity || 1,
@@ -1808,10 +1964,11 @@ const OrderDetailTab: React.FC = () => {
 
                       // Create return order request
                       const request = {
-                        orderId: order.orderId!,
+                        orderId: Number(order.orderId ?? (orderData as any)?.orderId),
                         returnType: getReturnType(returnReason),
                         reason: returnReason,
-                        notes: `${returnDescription}${returnImages.length > 0 ? `\n\nĐã đính kèm ${returnImages.length} hình ảnh minh chứng.` : ""}`,
+                        notes: returnDescription,
+                        images: imageUrls.length > 0 ? imageUrls : undefined,
                         returnOrderDetails,
                       };
 
@@ -1828,6 +1985,8 @@ const OrderDetailTab: React.FC = () => {
                       setReturnReason("");
                       setReturnDescription("");
                       setReturnImages([]);
+                      setIsReturnSingleProduct(false);
+                      setSelectedReturnProducts(new Set());
 
                       // Refresh order data
                       await queryClient.invalidateQueries({
@@ -1857,14 +2016,14 @@ const OrderDetailTab: React.FC = () => {
         {isCancelReasonModalOpen && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
             {/* Backdrop */}
-            <div 
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
               onClick={() => {
                 setIsCancelReasonModalOpen(false);
                 setCancelReason("");
               }}
             />
-            
+
             {/* Modal Content */}
             <div
               id="cancel-reason-modal-content"
@@ -1958,13 +2117,13 @@ const OrderDetailTab: React.FC = () => {
                 <br />
                 <strong>Lý do hủy:</strong> {
                   cancelReason === "change-mind" ? "Thay đổi ý định" :
-                  cancelReason === "wrong-product" ? "Đặt nhầm sản phẩm" :
-                  cancelReason === "found-cheaper" ? "Tìm thấy sản phẩm rẻ hơn" :
-                  cancelReason === "wrong-shipping-info" ? "Thông tin giao hàng sai" :
-                  cancelReason === "delivery-too-slow" ? "Thời gian giao hàng quá lâu" :
-                  cancelReason === "payment-issue" ? "Vấn đề thanh toán" :
-                  cancelReason === "other" ? "Lý do khác" :
-                  "Chưa chọn lý do"
+                    cancelReason === "wrong-product" ? "Đặt nhầm sản phẩm" :
+                      cancelReason === "found-cheaper" ? "Tìm thấy sản phẩm rẻ hơn" :
+                        cancelReason === "wrong-shipping-info" ? "Thông tin giao hàng sai" :
+                          cancelReason === "delivery-too-slow" ? "Thời gian giao hàng quá lâu" :
+                            cancelReason === "payment-issue" ? "Vấn đề thanh toán" :
+                              cancelReason === "other" ? "Lý do khác" :
+                                "Chưa chọn lý do"
                 }
                 <br />
                 <br />

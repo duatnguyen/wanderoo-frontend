@@ -24,6 +24,7 @@ import {
   ContentCard,
   PageHeader,
 } from "@/components/common";
+import { getImageUrl } from "../../../../utils/imageUtils";
 const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
 
 const STATUS_MAPPING: Record<
@@ -85,10 +86,8 @@ const mapDetailToProduct = (
   let imageUrl = FALLBACK_IMAGE;
   if (detail.productImage && detail.productImage.trim() !== "") {
     const productImagePath = detail.productImage.trim();
-    // If it's already a full URL, use it as is; otherwise prepend base URL
-    imageUrl = productImagePath.startsWith('http')
-      ? productImagePath
-      : `http://localhost:8080${productImagePath}`;
+    // Use utility function to get full image URL
+    imageUrl = getImageUrl(productImagePath) || FALLBACK_IMAGE;
   }
 
   return {
@@ -120,9 +119,8 @@ const mapOrderItemsToProducts = (
       let imageUrl = FALLBACK_IMAGE;
       if (item.productImage && item.productImage.trim() !== "") {
         const productImagePath = item.productImage.trim();
-        imageUrl = productImagePath.startsWith('http')
-          ? productImagePath
-          : `http://localhost:8080${productImagePath}`;
+        // Use utility function to get full image URL
+        imageUrl = getImageUrl(productImagePath) || FALLBACK_IMAGE;
       }
 
       return {

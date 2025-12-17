@@ -7,26 +7,67 @@ export interface ApiResponse<T = any> {
   data?: T;
 }
 
+// UserInfo interface matching backend
+export interface UserInfo {
+  id: number;
+  name: string;
+  image?: string;
+  username: string;
+  phone?: string;
+}
+
 // Data interfaces matching backend DTOs
 export interface ReturnOrderListItem {
-  id: string;
+  id: number; // Changed from string to number to match backend Long
   orderCode: string;
+  returnOrderCode: string;
   createdAt: string;
-  customerId: string;
+  customerId: number; // Changed from string to number
   customerName: string;
   customerUsername: string;
+  customerInfo?: UserInfo; // UserInfo from Order
   productName: string;
   productVariant?: string;
   productImage?: string;
   totalAmount: number;
   paymentMethod: string;
   reason: string;
+  buyerOptions?: string[];
   statusLabel: string;
   statusKey: ReturnOrderStatus;
+  resolutionNote?: string;
+  forwardShippingStatus?: string;
+  returnShippingStatus?: string;
   refundStatus: RefundStatus;
   refundStatusLabel: string;
   source: "Website" | "POS";
   category: ReturnOrderCategory;
+  sourceNote?: string;
+  picId?: number;
+  picName?: string;
+  lastUpdated?: string;
+  priority?: number;
+  returnOrderDetails?: ReturnOrderDetailItem[];
+}
+
+export interface ReturnOrderDetailItem {
+  id: number;
+  returnOrderId: number;
+  productDetailId: number;
+  orderDetailId: number;
+  returnQuantity: number;
+  quantityReceived: number;
+  receivedStatus: string;
+  refundedStatus: string;
+  refundedAmount?: number;
+  notes?: string;
+  returnPrice?: number;
+  totalReturnPrice?: number;
+  snapshotProductName?: string;
+  snapshotProductPrice?: number;
+  snapshotProductSku?: string;
+  createdDate?: string;
+  updatedDate?: string;
 }
 
 export interface ReturnOrderDetail {
@@ -132,11 +173,11 @@ class ReturnOrderService {
     }
   }
 
-  // Get return order detail by ID
-  async getReturnOrderDetail(returnOrderId: string): Promise<ReturnOrderDetail> {
+  // Get return order detail by code
+  async getReturnOrderDetail(returnOrderCode: string): Promise<ReturnOrderDetail> {
     try {
       const response = await apiClient.get<ApiResponse<ReturnOrderDetail>>(
-        `${this.baseUrl}/${returnOrderId}`
+        `${this.baseUrl}/${returnOrderCode}`
       );
       
       if (response.data.status === 200 && response.data.data) {

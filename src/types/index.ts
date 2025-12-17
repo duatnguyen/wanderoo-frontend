@@ -39,6 +39,7 @@ export type {
 
   // Other responses
   ReviewResponse,
+  ReviewPageResponse,
 
   OrderDetailCreateRequest,
   OrderDetailUpdateRequest,

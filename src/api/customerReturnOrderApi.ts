@@ -13,6 +13,7 @@ export interface CreateReturnOrderRequest {
   returnType: string;
   reason?: string;
   notes?: string;
+  images?: string[];
   returnOrderDetails: CreateReturnOrderDetailRequest[];
 }
 
@@ -55,7 +56,7 @@ class CustomerReturnOrderApi {
         this.baseUrl,
         request
       );
-      
+
       if (response.data.status === 200 && response.data.data) {
         return response.data.data;
       } else {
@@ -73,7 +74,7 @@ class CustomerReturnOrderApi {
       const response = await apiClient.get<ApiResponse<ReturnOrderResponse[]>>(
         this.baseUrl
       );
-      
+
       if (response.data.status === 200 && response.data.data) {
         return response.data.data;
       } else {
@@ -91,7 +92,7 @@ class CustomerReturnOrderApi {
       const response = await apiClient.get<ApiResponse<ReturnOrderResponse>>(
         `${this.baseUrl}/${returnOrderId}`
       );
-      
+
       if (response.data.status === 200 && response.data.data) {
         return response.data.data;
       } else {
@@ -109,7 +110,7 @@ class CustomerReturnOrderApi {
       const response = await apiClient.delete<ApiResponse<ReturnOrderResponse>>(
         `${this.baseUrl}/${returnOrderId}`
       );
-      
+
       if (response.data.status === 200 && response.data.data) {
         return response.data.data;
       } else {
@@ -127,7 +128,7 @@ class CustomerReturnOrderApi {
       const response = await apiClient.get<ApiResponse<boolean>>(
         `${this.baseUrl}/check-eligibility/${orderId}`
       );
-      
+
       if (response.data.status === 200 && response.data.data !== undefined) {
         return response.data.data;
       } else {
