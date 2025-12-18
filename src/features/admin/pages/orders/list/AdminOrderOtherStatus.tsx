@@ -280,22 +280,53 @@ const AdminOrderOtherStatus = () => {
   // Transform ReturnOrderListItem data to match OrderTable interface
   const transformedOrders = useMemo(() => {
     return paginatedOrders.map((order) => {
+      // Helper function to parse variant attributes from JSON string
+      const parseVariantAttributes = (variantAttributesStr?: string): Array<{ groupName: string; value: string; groupLevel: number }> => {
+        if (!variantAttributesStr) return [];
+        
+        try {
+          const attrs = typeof variantAttributesStr === 'string' 
+            ? JSON.parse(variantAttributesStr) 
+            : variantAttributesStr;
+          
+          if (Array.isArray(attrs)) {
+            return attrs.map((attr: any, index: number) => ({
+              groupName: attr?.name || "Phân loại",
+              value: attr?.value || attr?.name || "",
+              groupLevel: index + 1,
+            })).filter((attr: any) => attr.value);
+          }
+        } catch (e) {
+          console.error("Error parsing variant attributes:", e);
+        }
+        
+        return [];
+      };
+
       // Use returnOrderDetails if available, otherwise fallback to single product
       const products = order.returnOrderDetails && order.returnOrderDetails.length > 0
-        ? order.returnOrderDetails.map((detail) => ({
-            id: detail.id,
-            name: detail.snapshotProductName || order.productName || "Sản phẩm không tên",
-            price: `${Number(detail.totalReturnPrice || detail.returnPrice || 0).toLocaleString("vi-VN")}₫`,
-            unitPrice: detail.returnPrice || 0,
-            quantity: detail.returnQuantity,
-            image: order.productImage || "",
-            sku: detail.snapshotProductSku || order.orderCode,
-            variantAttributes: order.productVariant ? [{
-              groupName: "Phân loại",
-              value: order.productVariant,
-              groupLevel: 1,
-            }] : [],
-          }))
+        ? order.returnOrderDetails.map((detail) => {
+            const variantAttrs = parseVariantAttributes(detail.snapshotVariantAttributes);
+            // Fallback to order.productVariant if no variant attributes in detail
+            const finalVariantAttributes = variantAttrs.length > 0 
+              ? variantAttrs 
+              : (order.productVariant ? [{
+                  groupName: "Phân loại",
+                  value: order.productVariant,
+                  groupLevel: 1,
+                }] : []);
+
+            return {
+              id: detail.id,
+              name: detail.snapshotProductName || order.productName || "Sản phẩm không tên",
+              price: `${Number(detail.totalReturnPrice || detail.returnPrice || 0).toLocaleString("vi-VN")}₫`,
+              unitPrice: detail.returnPrice || 0,
+              quantity: detail.returnQuantity,
+              image: detail.snapshotProductImageUrl || order.productImage || "",
+              sku: detail.snapshotProductSku || order.orderCode,
+              variantAttributes: finalVariantAttributes,
+            };
+          })
         : [{
             id: 1,
             name: order.productName,
@@ -331,6 +362,8 @@ const AdminOrderOtherStatus = () => {
         totalAmount: order.totalAmount,
         shippingFee: 0,
         itemsCount: totalQuantity,
+        returnReason: order.returnReason,
+        returnReasonNote: order.returnReasonNote,
       };
     });
   }, [paginatedOrders]);

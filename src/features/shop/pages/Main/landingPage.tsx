@@ -20,6 +20,7 @@ import {
   getSuggestionProducts,
   type HomepageProductResponse,
 } from "../../../../api/endpoints/homepageApi";
+import { getImageUrl } from "../../../../utils/imageUtils";
 
 // Define Product interface for shop components
 interface Product {
@@ -83,14 +84,7 @@ const LandingPage: React.FC = () => {
     queryKey: ["homepageNewest", "limit-6"],
     queryFn: async () => {
       const limitValue = 6; // Explicitly set limit
-      console.log("=== FETCHING NEWEST PRODUCTS ===");
-      console.log("Calling getNewestProducts with limit:", limitValue);
       const result = await getNewestProducts(limitValue);
-      console.log("=== FETCHED RESULT ===", result.length, "products");
-      console.log("=== FETCHED RESULT DETAILS ===", result);
-      if (result.length !== 6) {
-        console.warn("⚠️ WARNING: Expected 6 products but got", result.length);
-      }
       return result;
     },
     staleTime: 0,
@@ -187,10 +181,15 @@ const LandingPage: React.FC = () => {
         }
       }
 
+      // Process image URL - convert relative paths to full URLs
+      const processedImageUrl = item.image
+        ? (getImageUrl(item.image) || item.image)
+        : "";
+
       return {
         id: item.productId?.toString?.() || `${Math.random()}`,
         name: item.name,
-        imageUrl: item.image || "",
+        imageUrl: processedImageUrl,
         price: displayPrice,
         originalPrice: originalPrice,
         discountPercent, // Keep for backward compatibility
@@ -221,10 +220,15 @@ const LandingPage: React.FC = () => {
       ? Math.round(item.discountPercent)
       : undefined;
 
+    // Process image URL - convert relative paths to full URLs
+    const processedImageUrl = item.image
+      ? (getImageUrl(item.image) || item.image)
+      : "";
+
     return {
       id: item.productId?.toString?.() || `${Math.random()}`,
       name: item.name,
-      imageUrl: item.image || "",
+      imageUrl: processedImageUrl,
       price: displayPrice,
       originalPrice: displayOriginalPrice,
       discountPercent, // Keep for backward compatibility
@@ -255,6 +259,28 @@ const LandingPage: React.FC = () => {
     console.log("featuredProducts after convert and filter:", featuredProducts.length, featuredProducts);
     console.log("newestProducts from API:", newestProducts.length, newestProducts);
     console.log("newProducts after convert and filter:", newProducts.length, newProducts);
+
+    // Debug image URLs
+    console.log("=== DEBUG Image URLs ===");
+    console.log("Featured products images:", featuredProducts.map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      imageUrl: p.imageUrl,
+      originalImage: bestSellerProducts[idx]?.image
+    })));
+    console.log("New products images:", newProducts.map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      imageUrl: p.imageUrl,
+      originalImage: newestProducts[idx]?.image
+    })));
+    console.log("Flash sale products images:", flashSaleProducts.slice(0, 3).map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      imageUrl: p.imageUrl,
+      originalImage: topDiscountProducts[idx]?.image
+    })));
+
     console.log("featuredProducts details:", featuredProducts.map((p, idx) => ({
       index: idx,
       id: p.id,
@@ -272,7 +298,7 @@ const LandingPage: React.FC = () => {
     if (newProducts.length !== 6) {
       console.warn("⚠️ WARNING: newProducts should have 6 items but has", newProducts.length);
     }
-  }, [newestProducts, newProducts]);
+  }, [newestProducts, newProducts, bestSellerProducts, featuredProducts, topDiscountProducts, flashSaleProducts]);
 
   return (
     <div className="min-h-screen bg-white justify-center flex flex-col">

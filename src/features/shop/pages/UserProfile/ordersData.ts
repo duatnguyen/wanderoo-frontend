@@ -18,6 +18,7 @@ export type OrderProduct = {
   discountAmount?: number;
   variant?: string;
   variantColor?: string;
+  sku?: string;
 };
 
 export type Order = {

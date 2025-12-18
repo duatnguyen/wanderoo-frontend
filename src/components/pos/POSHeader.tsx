@@ -8,20 +8,7 @@ import { POSOrderTabs, type OrderTab } from "./POSOrderTabs";
 import { searchProducts } from "@/api/endpoints/saleApi";
 import { usePOSContext } from "@/context/POSContext";
 import type { SaleProductResponse } from "@/types/api";
-
-// Helper: build absolute image URL like admin header/shop header
-const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
-  if (!imageUrl || imageUrl.trim() === "") return undefined;
-  const cleanUrl = imageUrl.trim();
-  // If already a full URL (http/https), return as is
-  if (cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://")) return cleanUrl;
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-  // If relative path starting with /, add base URL (e.g., /static/products/xxx.jpg)
-  if (cleanUrl.startsWith("/")) return `${baseUrl}${cleanUrl}`;
-  // If relative path not starting with /, assume it's from uploads and add /static/ prefix
-  // Backend serves files from ./uploads via /static/ path
-  return `${baseUrl}/static/${cleanUrl}`;
-};
+import { getImageUrl } from "../../utils/imageUtils";
 
 export type { OrderTab };
 
@@ -80,10 +67,10 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (!searchContainerRef.current) return;
-      
+
       const target = event.target as Node;
       const isInsideContainer = searchContainerRef.current.contains(target);
-      
+
       // Chỉ đóng dropdown nếu:
       // 1. Click bên ngoài container VÀ
       // 2. Input không đang được focus (tránh đóng khi click vào input)
@@ -98,7 +85,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
     // Luôn lắng nghe click outside để tránh vấn đề khi state bị reset sau re-render
     document.addEventListener("mousedown", handleClickOutside);
-    
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
@@ -186,10 +173,10 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
             !isSearchingProducts &&
             !productSearchError &&
             productResults.length === 0 && (
-            <p className="px-4 py-3 text-sm text-[#6F6F6F]">
-              Nhập tên hoặc mã barcode để tìm sản phẩm
-            </p>
-          )}
+              <p className="px-4 py-3 text-sm text-[#6F6F6F]">
+                Nhập tên hoặc mã barcode để tìm sản phẩm
+              </p>
+            )}
 
           {isSearchingProducts && (
             <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#6F6F6F]">
@@ -216,69 +203,80 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
             productResults.map((product) => {
               const isOutOfStock = (product.posSoldQuantity ?? 0) <= 0;
               return (
-              <button
-                key={product.id}
-                type="button"
-                onClick={() => {
-                  if (isOutOfStock) return;
-                  effectiveProductSelect?.({
-                    id: product.id?.toString() ?? "",
-                    name: product.productName,
-                    price: product.sellingPrice ?? 0,
-                    available: product.posSoldQuantity ?? undefined,
-                    attributes: product.attributes,
-                    imageUrl: product.imageUrl,
-                  });
-                  setIsDropdownOpen(false);
-                }}
-                disabled={isOutOfStock}
-                className={`w-full text-left px-4 py-3 transition-colors ${
-                  isOutOfStock 
-                    ? "opacity-50 cursor-not-allowed bg-gray-100" 
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => {
+                    if (isOutOfStock) return;
+                    effectiveProductSelect?.({
+                      id: product.id?.toString() ?? "",
+                      name: product.productName,
+                      price: product.sellingPrice ?? 0,
+                      available: product.posSoldQuantity ?? undefined,
+                      attributes: product.attributes,
+                      imageUrl: product.imageUrl,
+                    });
+                    setIsDropdownOpen(false);
+                  }}
+                  disabled={isOutOfStock}
+                  className={`w-full text-left px-4 py-3 transition-colors ${isOutOfStock
+                    ? "opacity-50 cursor-not-allowed bg-gray-100"
                     : "hover:bg-[#f8f9ff]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gray-100 border border-[#e7e7e7] flex items-center justify-center text-xs text-[#6F6F6F] overflow-hidden">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.productName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span>No Img</span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-[#272424] line-clamp-1">
-                        {product.productName}
-                      </p>
-                      <p className="text-sm font-bold text-[#272424] whitespace-nowrap">
-                        {formatCurrency(product.sellingPrice)}
-                      </p>
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 border border-[#e7e7e7] flex items-center justify-center text-xs text-[#6F6F6F] overflow-hidden">
+                      {product.imageUrl ? (
+                        <img
+                          src={getImageUrl(product.imageUrl) || product.imageUrl}
+                          alt={product.productName}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback nếu ảnh không load được
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className={`w-full h-full flex items-center justify-center ${product.imageUrl ? 'hidden' : ''}`}
+                      >
+                        <span className="text-[#6F6F6F] text-xs">
+                          {product.productName?.charAt(0)?.toUpperCase() || 'N/A'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-xs mt-1">
-                      <span className={`line-clamp-1 ${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
-                        {product.attributes || "—"}
-                      </span>
-                      <span className={`font-medium whitespace-nowrap ${
-                        isOutOfStock ? "text-red-500" : "text-[#737373]"
-                      }`}>
-                        {isOutOfStock 
-                          ? "Hết hàng" 
-                          : `Có thể bán: ${
-                              product.posSoldQuantity != null
-                                ? product.posSoldQuantity.toLocaleString("vi-VN")
-                                : "—"
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[#272424] line-clamp-1">
+                          {product.productName}
+                        </p>
+                        <p className="text-sm font-bold text-[#272424] whitespace-nowrap">
+                          {formatCurrency(product.sellingPrice)}
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between text-xs mt-1">
+                        <span className={`line-clamp-1 ${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
+                          {product.attributes || "—"}
+                        </span>
+                        <span className={`font-medium whitespace-nowrap ${isOutOfStock ? "text-red-500" : "text-[#737373]"
+                          }`}>
+                          {isOutOfStock
+                            ? "Hết hàng"
+                            : `Có thể bán: ${product.posSoldQuantity != null
+                              ? product.posSoldQuantity.toLocaleString("vi-VN")
+                              : "—"
                             }`
-                        }
-                      </span>
+                          }
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
+                </button>
               );
             })}
         </div>

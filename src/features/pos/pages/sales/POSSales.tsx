@@ -29,6 +29,7 @@ import type {
   DraftOrderItemResponse,
 } from "@/types/api";
 import { Loader2 } from "lucide-react";
+import { getImageUrl } from "../../../../utils/imageUtils";
 
 // Utility: tính đơn giá một item từ dữ liệu backend
 const getUnitPrice = (item: DraftOrderItemResponse) => {
@@ -204,10 +205,15 @@ const POSPage: React.FC = () => {
         discountedPrice < originalPrice &&
         Math.abs(discountedPrice - originalPrice) > 0.01;
 
+      // Process image URL - convert relative paths to full URLs
+      const processedImageUrl = item.imageUrl 
+        ? (getImageUrl(item.imageUrl) || item.imageUrl)
+        : undefined;
+
       return {
         id: item.id.toString(),
         name: item.productName,
-        image: item.imageUrl,
+        image: processedImageUrl,
         variant: item.attributes,
         // Luôn hiển thị đúng giá sau giảm mà BE đã tính
         price: discountedPrice ?? originalPrice ?? 0,
@@ -449,10 +455,15 @@ const POSPage: React.FC = () => {
           };
         } else {
           // Thêm sản phẩm mới với dữ liệu tạm
+          // Process image URL for optimistic update
+          const processedImageUrl = product.imageUrl 
+            ? (getImageUrl(product.imageUrl) || product.imageUrl)
+            : undefined;
+          
           const tempItem: DraftOrderItemResponse = {
             id: tempItemId, // Sử dụng số âm làm temp ID
             productName: product.name,
-            imageUrl: product.imageUrl,
+            imageUrl: processedImageUrl,
             attributes: product.attributes ?? undefined,
             unitPrice: optimisticPrice,
             discountedPrice: optimisticPrice,

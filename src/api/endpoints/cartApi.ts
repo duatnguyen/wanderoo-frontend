@@ -140,6 +140,13 @@ export const calculateShippingFeeForAddress = async (
   return response.data.data;
 };
 
+export const getCartItemCount = async (): Promise<number> => {
+  const response = await api.get<ApiResponse<number>>(
+    "/auth/v1/private/checkout/cart/count"
+  );
+  return response.data.data || 0;
+};
+
 // Discount/Voucher APIs
 export const getAvailableVouchersForCheckout = async (): Promise<VoucherHistoryResponse[]> => {
   const response = await api.get<ApiResponse<VoucherHistoryResponse[]>>(

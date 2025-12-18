@@ -1,7 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import OrderTimeline from "../../../../components/admin/order/OrderTimeline";
+import { customerReturnOrderApi, type ReturnOrderResponse } from "../../../../api/customerReturnOrderApi";
+import { getImageUrl } from "../../../../utils/imageUtils";
+import { toast } from "sonner";
 
 function formatCurrencyVND(value: number) {
   return `${value.toLocaleString("vi-VN")}đ`;
@@ -40,78 +44,278 @@ interface ReturnRefundDetailData {
 }
 
 const ReturnRefundDetail: React.FC = () => {
-  useParams<{ requestId: string }>(); // Get requestId from URL params
+  const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Get data from location state or use mock data
-  const requestData = (location.state as { data?: ReturnRefundDetailData })
-    ?.data;
+  // Fetch return order detail from API
+  const {
+    data: returnOrderData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<ReturnOrderResponse>({
+    queryKey: ["returnOrderDetail", requestId],
+    queryFn: () => {
+      if (!requestId) {
+        throw new Error("Return order ID is missing");
+      }
+      return customerReturnOrderApi.getReturnOrderDetails(requestId);
+    },
+    enabled: !!requestId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
-  // Mock data for demonstration
-  const defaultData: ReturnRefundDetailData = {
-    orderId: "WB0303168522",
-    requestDate: "12:05 6/04/2025",
-    status: "Yêu cầu đang được xem xét",
-    statusMessage: "Shop đang xem xét yêu cầu trả hàng & hoàn tiền của bạn",
-    products: [
-      {
-        id: "1",
-        imageUrl: "",
-        name: "Lều Dã Ngoại Bền Đẹp Rằn ri - Đồ Câu Simano",
-        price: 199000,
-        originalPrice: 230000,
-        variant: "Đen",
-        quantity: 1,
+  // Map return order status to Vietnamese label
+  const mapReturnOrderStatus = (status?: string | null): { label: string; message: string } => {
+    if (!status) {
+      return { label: "Đang xử lý", message: "Yêu cầu đang được xử lý" };
+    }
+    const normalized = status.toUpperCase();
+    const statusMap: Record<string, { label: string; message: string }> = {
+      "UNDER_REVIEW": {
+        label: "Yêu cầu đang được xem xét",
+        message: "Shop đang xem xét yêu cầu trả hàng & hoàn tiền của bạn",
       },
-    ],
-    refundAmount: 199000,
-    bankInfo: "Ngân hàng Mb - 0862684255 - Nguyễn Thị Thanh",
-    returnOrderCode: "250618UY3NJWXH",
-    reason: "Khác với mô tả",
-    description:
-      "Mô tả sản phẩm ghi kích thước 2m nhưng tôi nhận được về có 1m9",
-    images: ["", "", "", ""],
-    statusSteps: [
+      "APPROVED": {
+        label: "Chấp nhận yêu cầu",
+        message: "Yêu cầu của bạn đã được chấp nhận",
+      },
+      "REJECTED": {
+        label: "Từ chối yêu cầu",
+        message: "Yêu cầu của bạn đã bị từ chối",
+      },
+      "RETURNING": {
+        label: "Đang trả hàng",
+        message: "Đơn hàng đang được hoàn trả",
+      },
+      "RETURNED": {
+        label: "Đã trả hàng",
+        message: "Hàng đã được trả về",
+      },
+      "RECEIVED": {
+        label: "Đã nhận hàng hoàn",
+        message: "Shop đã nhận được hàng hoàn",
+      },
+      "REFUNDED": {
+        label: "Đã hoàn tiền",
+        message: "Tiền đã được hoàn trả",
+      },
+      "CANCELLED": {
+        label: "Đã hủy",
+        message: "Yêu cầu đã được hủy",
+      },
+    };
+    return statusMap[normalized] || { label: "Đang xử lý", message: "Yêu cầu đang được xử lý" };
+  };
+
+  // Map return reason value to Vietnamese label
+  const mapReturnReason = (reason?: string | null): string => {
+    if (!reason) {
+      return "Không có lý do";
+    }
+    const normalized = reason.toLowerCase().replace(/_/g, '-');
+    const reasonMap: Record<string, string> = {
+      "empty-package": "Thùng hàng rỗng",
+      "not-received": "Chưa nhận được hàng",
+      "broken": "Bể vỡ",
+      "wrong-model": "Sai mẫu",
+      "defective": "Hàng lỗi",
+      "different-description": "Khác mô tả",
+      "wrong-size": "Không đúng kích thước",
+      "wrong-color": "Không đúng màu sắc",
+      "not-fit": "Không vừa",
+      "expired": "Hàng hết hạn",
+      "damaged": "Hàng bị hư hỏng",
+      "missing-parts": "Thiếu phụ kiện",
+      "other": "Lý do khác",
+    };
+    return reasonMap[normalized] || reason;
+  };
+
+  // Map return order data to component format
+  const data = useMemo<ReturnRefundDetailData | null>(() => {
+    if (!returnOrderData) return null;
+
+    const statusInfo = mapReturnOrderStatus(returnOrderData.status);
+    const createdDate = returnOrderData.createdDate
+      ? new Date(returnOrderData.createdDate).toLocaleString("vi-VN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })
+      : "";
+
+    // Map return order details to products
+    const products: ProductType[] = (returnOrderData.returnOrderDetails || []).map((detail, index) => {
+      // Parse variant attributes if available
+      let variant: string | undefined;
+      if (detail.snapshotVariantAttributes) {
+        try {
+          const attrs = typeof detail.snapshotVariantAttributes === 'string'
+            ? JSON.parse(detail.snapshotVariantAttributes)
+            : detail.snapshotVariantAttributes;
+          if (Array.isArray(attrs)) {
+            variant = attrs.map((attr: any) => {
+              if (attr?.name && attr?.value) {
+                return `${attr.name}: ${attr.value}`;
+              }
+              return attr?.value || attr?.name || null;
+            }).filter(Boolean).join(", ");
+          }
+        } catch (e) {
+          console.error("Error parsing variant attributes:", e);
+        }
+      }
+
+      // Get image URL
+      let imageUrl = "";
+      if (detail.snapshotProductImageUrl && detail.snapshotProductImageUrl.trim() !== "") {
+        imageUrl = getImageUrl(detail.snapshotProductImageUrl) || "";
+      } else {
+        imageUrl = "/images/placeholders/no-image.svg";
+      }
+
+      return {
+        id: detail.id?.toString() || `${returnOrderData.id}-${index}`,
+        imageUrl,
+        name: detail.snapshotProductName || "Sản phẩm không tên",
+        price: detail.returnPrice || detail.totalReturnPrice || 0,
+        originalPrice: detail.snapshotProductPrice,
+        variant,
+        quantity: detail.returnQuantity || 1,
+      };
+    });
+
+    // Build status steps based on current status
+    const statusSteps: ReturnRefundStatus[] = [
       {
         id: "reviewing",
         label: "Yêu cầu đang được xem xét",
-        completed: true,
-        date: "10/09/2024 18:26",
+        completed: ["UNDER_REVIEW", "APPROVED", "REJECTED", "RETURNING", "RETURNED", "RECEIVED", "REFUNDED", "CANCELLED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        date: createdDate,
       },
       {
         id: "accepted",
         label: "Chấp nhận yêu cầu",
-        completed: false,
+        completed: ["APPROVED", "REJECTED", "RETURNING", "RETURNED", "RECEIVED", "REFUNDED"].includes(returnOrderData.status?.toUpperCase() || ""),
       },
       {
         id: "returning",
         label: "Trả hàng",
-        completed: false,
+        completed: ["RETURNING", "RETURNED", "RECEIVED", "REFUNDED"].includes(returnOrderData.status?.toUpperCase() || ""),
       },
       {
         id: "checking",
         label: "Kiểm tra hàng hoàn",
-        completed: false,
+        completed: ["RECEIVED", "REFUNDED"].includes(returnOrderData.status?.toUpperCase() || ""),
       },
       {
         id: "refunded",
         label: "Đã hoàn tiền",
-        completed: false,
+        completed: returnOrderData.status?.toUpperCase() === "REFUNDED",
       },
-    ],
+    ];
+
+    // Process images - convert relative paths to full URLs
+    const processedImages = (returnOrderData.images || []).map((img) => {
+      if (!img || img.trim() === "") return "";
+      return getImageUrl(img) || img;
+    }).filter((img) => img !== "");
+
+    // Map reason to Vietnamese label
+    const rawReason = returnOrderData.returnReason || (returnOrderData as any).reason || "";
+    const mappedReason = mapReturnReason(rawReason);
+
+    return {
+      orderId: returnOrderData.orderId?.toString() || "",
+      requestDate: createdDate,
+      status: statusInfo.label,
+      statusMessage: statusInfo.message,
+      products: products.length > 0 ? products : [],
+      refundAmount: returnOrderData.totalRefundedAmount || returnOrderData.totalReturnAmount || 0,
+      bankInfo: "Thông tin ngân hàng sẽ được cập nhật", // TODO: Get from user profile or order
+      returnOrderCode: returnOrderData.code,
+      reason: mappedReason,
+      description: returnOrderData.returnReasonNote || returnOrderData.notes || "",
+      images: processedImages,
+      statusSteps,
+    };
+  }, [returnOrderData]);
+
+  // Use data from API only, no fallback to mock data
+  const displayData = data;
+  const [isCancelled, setIsCancelled] = useState(false);
+
+  // Handle cancel return order
+  const handleCancelReturnOrder = async () => {
+    if (!requestId) {
+      toast.error("Không tìm thấy mã yêu cầu trả hàng");
+      return;
+    }
+
+    try {
+      await customerReturnOrderApi.cancelReturnOrder(requestId);
+      setIsCancelled(true);
+      toast.success("Hủy yêu cầu trả hàng thành công");
+    } catch (error: any) {
+      console.error("Error canceling return order:", error);
+      toast.error(error?.message || "Không thể hủy yêu cầu trả hàng");
+    }
   };
 
-  const data = requestData || defaultData;
-  const [isCancelled, setIsCancelled] = useState(false);
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e04d30] mx-auto mb-4"></div>
+            <p className="text-gray-600">Đang tải thông tin yêu cầu trả hàng...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="px-4 sm:px-6 py-8 text-center">
+          <div className="text-red-600 mb-4">
+            <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-red-800 mb-2">Không thể tải thông tin</h3>
+          <p className="text-red-600 mb-4">
+            {error instanceof Error ? error.message : "Đã xảy ra lỗi khi tải thông tin yêu cầu trả hàng"}
+          </p>
+          <button
+            onClick={() => navigate("/user/profile/orders", { state: { activeTab: "return" } })}
+            className="px-4 py-2 bg-[#E04D30] hover:bg-[#c93d24] text-white rounded-lg font-medium transition-colors"
+          >
+            Quay lại danh sách
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Early return if no data
+  if (!displayData) {
+    return null;
+  }
 
   const stepsToRender = useMemo(() => {
     if (!isCancelled) {
-      return data.statusSteps;
+      return displayData.statusSteps;
     }
 
     return [
-      ...data.statusSteps.map((step) => ({
+      ...displayData.statusSteps.map((step) => ({
         ...step,
         completed: step.id === "reviewing",
       })),
@@ -121,12 +325,9 @@ const ReturnRefundDetail: React.FC = () => {
         completed: true,
       },
     ];
-  }, [data.statusSteps, isCancelled]);
+  }, [displayData.statusSteps, isCancelled]);
 
-  const latestCompletedStep = stepsToRender
-    .filter((step) => step.completed)
-    .slice(-1)[0];
-  const activeStatus = isCancelled ? "Yêu cầu đã được hủy" : data.status;
+  const activeStatus = isCancelled ? "Yêu cầu đã được hủy" : displayData.status;
   const statusTitle =
     activeStatus === "Chấp nhận yêu cầu"
       ? "Yêu cầu đã được chấp nhận"
@@ -142,7 +343,7 @@ const ReturnRefundDetail: React.FC = () => {
   })();
   const statusMessage = isCancelled
     ? "Bạn đã hủy yêu cầu Trả hàng hoàn tiền."
-    : data.statusMessage;
+    : displayData.statusMessage;
   const statusCardClasses = isCancelled
     ? "bg-[#FFF8F1] border-[#FBD1BF]"
     : "bg-white border-gray-200";
@@ -160,21 +361,10 @@ const ReturnRefundDetail: React.FC = () => {
         <div className="flex items-center gap-4">
           <button
             onClick={() => {
-              // Determine current step label to show in orders list
-              const lastCompleted = data.statusSteps
-                .filter((s) => s.completed)
-                .slice(-1)[0];
-              const currentLabel = lastCompleted?.label || "Trả hàng/Hoàn tiền";
-
               // Navigate back to orders page with "return" tab active
-              // and override chip label for this order
               navigate("/user/profile/orders", {
                 state: {
                   activeTab: "return",
-                  statusOverride: {
-                    orderId: data.orderId,
-                    label: currentLabel,
-                  },
                 },
               });
             }}
@@ -218,26 +408,20 @@ const ReturnRefundDetail: React.FC = () => {
               {canCancelRequest && (
                 <button
                   type="button"
-                  onClick={() => {
-                    console.log(
-                      "Cancel return request for order:",
-                      data.orderId
-                    );
-                    setIsCancelled(true);
-                  }}
+                  onClick={handleCancelReturnOrder}
                   className="px-4 h-6 text-[13px] font-normal rounded-[10px] border border-[#E04D30] text-[#E04D30] bg-white hover:bg-[#E04D30] hover:text-white transition-colors w-full sm:w-auto"
                 >
                   Hủy yêu cầu
                 </button>
               )}
-              {data.status === "Chấp nhận yêu cầu" && !isCancelled && (
+              {displayData.status === "Chấp nhận yêu cầu" && !isCancelled && (
                 <button
                   type="button"
                   onClick={() => {
                     navigate(
-                      `/user/profile/return-refund/${data.orderId}/method`,
+                      `/user/profile/return-refund/${displayData.returnOrderCode || requestId}/method`,
                       {
-                        state: { data },
+                        state: { data: displayData },
                       }
                     );
                   }}
@@ -260,24 +444,38 @@ const ReturnRefundDetail: React.FC = () => {
               <span>Đơn hàng:</span>
               <button
                 type="button"
-                onClick={() => navigate(`/user/profile/orders/${data.orderId}`)}
+                onClick={() => navigate(`/user/profile/orders/${displayData.orderId}`)}
                 className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
-                #{data.orderId}
+                #{displayData.orderId}
               </button>
+              {displayData.returnOrderCode && (
+                <>
+                  <span className="hidden sm:inline">|</span>
+                  <span className="text-gray-600">Mã yêu cầu: {displayData.returnOrderCode}</span>
+                </>
+              )}
               <span className="hidden sm:inline">|</span>
-              <span>Đã yêu cầu lúc: {data.requestDate}</span>
+              <span>Đã yêu cầu lúc: {displayData.requestDate}</span>
             </div>
           </div>
 
           {/* Product Details */}
-          {data.products.map((product) => (
+          {displayData.products.map((product) => (
             <div
               key={product.id}
               className="flex flex-col sm:flex-row gap-4 pb-4 last:pb-0"
             >
               <div className="flex-shrink-0">
-                <div className="w-[60px] h-[60px] rounded-lg border border-gray-300 bg-transparent" />
+                <img
+                  src={product.imageUrl || "/images/placeholders/no-image.svg"}
+                  alt={product.name}
+                  className="w-[60px] h-[60px] rounded-lg border border-gray-300 object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      "/images/placeholders/no-image.svg";
+                  }}
+                />
               </div>
               <div className="flex-1 flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -321,12 +519,12 @@ const ReturnRefundDetail: React.FC = () => {
                 Số tiền hoàn nhận được
               </span>
               <span className="text-[14px] font-semibold text-red-600">
-                {formatCurrencyVND(data.refundAmount)}
+                {formatCurrencyVND(displayData.refundAmount)}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-gray-700">Hoàn tiền vào</span>
-              <span className="text-[14px] text-gray-900">{data.bankInfo}</span>
+              <span className="text-[14px] text-gray-900">{displayData.bankInfo}</span>
             </div>
           </div>
         </div>
@@ -334,23 +532,23 @@ const ReturnRefundDetail: React.FC = () => {
         {/* Reason and Description */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 text-[14px]">
           <h2 className="text-[18px] font-bold text-gray-900 mb-3">
-            Lý do: {data.reason}
+            Lý do: {displayData.reason}
           </h2>
           <div className="border-b border-gray-200 mb-4" />
           <p className="text-[14px] text-gray-700 mb-4 whitespace-pre-line">
-            {data.description}
+            {displayData.description || "Không có mô tả"}
           </p>
-          {data.images.length > 0 && (
+          {displayData.images && displayData.images.length > 0 && (
             <div className="flex flex-wrap gap-3">
-              {data.images.map((imageUrl, index) => (
+              {displayData.images.map((imageUrl, index) => (
                 <img
                   key={index}
-                  src={imageUrl || "https://via.placeholder.com/60"}
+                  src={imageUrl || "/images/placeholders/no-image.svg"}
                   alt={`Return evidence ${index + 1}`}
                   className="w-[60px] h-[60px] rounded border border-gray-300 object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      "https://via.placeholder.com/60";
+                      "/images/placeholders/no-image.svg";
                   }}
                 />
               ))}

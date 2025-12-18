@@ -11,7 +11,8 @@ export interface ApiResponse<T = any> {
 export interface CreateReturnOrderRequest {
   orderId: number;
   returnType: string;
-  reason?: string;
+  returnReason?: string;
+  returnReasonNote?: string;
   notes?: string;
   images?: string[];
   returnOrderDetails: CreateReturnOrderDetailRequest[];
@@ -26,24 +27,56 @@ export interface CreateReturnOrderDetailRequest {
 
 // Return Order Response DTO
 export interface ReturnOrderResponse {
-  id: string;
-  orderCode: string;
-  createdAt: string;
-  customerId: string;
-  customerName: string;
-  customerUsername: string;
-  productName: string;
-  productVariant?: string;
-  productImage?: string;
-  totalAmount: number;
-  paymentMethod: string;
-  reason: string;
-  statusLabel: string;
-  statusKey: string;
-  refundStatus: string;
-  refundStatusLabel: string;
-  source: "Website" | "POS";
-  category: string;
+  id: number;
+  code: string;
+  orderId: number;
+  userId: number;
+  picId?: number;
+  status: string;
+  returnReason?: string;
+  returnReasonNote?: string;
+  notes?: string;
+  returnType?: string;
+  totalProductAmount?: number;
+  shippingFee?: number;
+  totalRefundedAmount?: number;
+  totalReturnAmount?: number;
+  createdDate: string;
+  updatedDate?: string;
+  images?: string[];
+  returnOrderDetails?: ReturnOrderDetailResponse[];
+}
+
+export interface ReturnOrderDetailResponse {
+  id: number;
+  returnOrderId: number;
+  productDetailId: number;
+  orderDetailId: number;
+  returnQuantity: number;
+  returnQuantityField?: number;
+  quantityReceived?: number;
+  receivedStatus?: string;
+  refundedStatus?: string;
+  refundedAmount?: number;
+  notes?: string;
+  returnPrice?: number;
+  totalReturnPrice?: number;
+  snapshotProductName?: string;
+  snapshotProductPrice?: number;
+  snapshotProductSku?: string;
+  snapshotProductImageUrl?: string;
+  snapshotVariantAttributes?: string;
+  createdDate?: string;
+  updatedDate?: string;
+}
+
+// Return Order Page Response
+export interface ReturnOrderPageResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  returnOrders: ReturnOrderResponse[];
 }
 
 class CustomerReturnOrderApi {
@@ -68,11 +101,12 @@ class CustomerReturnOrderApi {
     }
   }
 
-  // Get customer return orders
-  async getCustomerReturnOrders(): Promise<ReturnOrderResponse[]> {
+  // Get customer return orders (with pagination)
+  async getCustomerReturnOrders(params?: { page?: number; size?: number }): Promise<ReturnOrderPageResponse> {
     try {
-      const response = await apiClient.get<ApiResponse<ReturnOrderResponse[]>>(
-        this.baseUrl
+      const response = await apiClient.get<ApiResponse<ReturnOrderPageResponse>>(
+        this.baseUrl,
+        { params }
       );
 
       if (response.data.status === 200 && response.data.data) {

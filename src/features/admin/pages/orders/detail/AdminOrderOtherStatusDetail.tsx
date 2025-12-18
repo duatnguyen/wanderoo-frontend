@@ -1,8 +1,54 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ClipboardCopy, Package, RefreshCw, CheckCircle, XCircle, Clock, Truck, FileText, User, Calendar, AlertTriangle, CreditCard, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { PageContainer, ContentCard } from "@/components/common";
 import { ChipStatus } from "@/components/ui/chip-status";
+import { getImageUrl } from "@/utils/imageUtils";
+import apiClient from "@/api/apiClient";
+
+// API Response interface matching backend ReturnOrderResponseDTO
+interface ApiReturnOrderResponse {
+  id: number;
+  code: string;
+  orderId: number;
+  userId: number;
+  picId?: number;
+  status: string;
+  returnReason?: string;
+  returnReasonNote?: string;
+  notes?: string;
+  returnType?: string;
+  totalProductAmount?: number;
+  shippingFee?: number;
+  totalRefundedAmount?: number;
+  totalReturnAmount?: number;
+  createdDate?: string;
+  updatedDate?: string;
+  images?: string[];
+  returnOrderDetails?: Array<{
+    id: number;
+    returnOrderId: number;
+    productDetailId?: number;
+    orderDetailId?: number;
+    returnQuantity: number;
+    returnQuantityField?: number;
+    quantityReceived?: number;
+    receivedStatus?: string;
+    refundedStatus?: string;
+    refundedAmount?: number;
+    notes?: string;
+    returnPrice?: number;
+    totalReturnPrice?: number;
+    snapshotProductName?: string;
+    snapshotProductPrice?: number;
+    snapshotProductSku?: string;
+    snapshotProductImageUrl?: string;
+    snapshotVariantAttributes?: string;
+    createdDate?: string;
+    updatedDate?: string;
+  }>;
+}
 
 // Define types for ReturnOrder from the list page
 type ReturnOrderCategory = "RETURN" | "CANCEL" | "FAILED";
@@ -46,16 +92,179 @@ const currencyFormatter = new Intl.NumberFormat("vi-VN", {
 const formatCurrency = (value: number) =>
   currencyFormatter.format(value).replace(" ₫", "₫");
 
+// Map status from backend to frontend status key
+const mapStatusToStatusKey = (status?: string): ReturnOrderStatus => {
+  if (!status) return "UNDER_REVIEW";
+  const normalized = status.toUpperCase();
+  if (normalized === "PENDING" || normalized === "WAITING_APPROVAL" || normalized === "UNDER_REVIEW") {
+    return "UNDER_REVIEW";
+  }
+  if (normalized === "APPROVED" || normalized === "IN_TRANSIT" || normalized === "RETURNING") {
+    return "RETURNING";
+  }
+  if (normalized === "COMPLETED" || normalized === "REFUNDED") {
+    return "COMPLETED";
+  }
+  if (normalized === "REJECTED" || normalized === "CANCELLED" || normalized === "EXPIRED" || normalized === "INVALID") {
+    return "INVALID";
+  }
+  return "UNDER_REVIEW";
+};
+
+// Map status to label
+const mapStatusToLabel = (status?: string): string => {
+  if (!status) return "Đang xem xét";
+  const normalized = status.toUpperCase();
+  const statusMap: Record<string, string> = {
+    "PENDING": "Chờ xử lý",
+    "WAITING_APPROVAL": "Chờ phê duyệt",
+    "UNDER_REVIEW": "Đang chờ xét duyệt",
+    "APPROVED": "Đã chấp nhận",
+    "IN_TRANSIT": "Đang vận chuyển",
+    "RETURNING": "Đang trả hàng",
+    "COMPLETED": "Hoàn thành",
+    "REFUNDED": "Đã hoàn tiền",
+    "REJECTED": "Đã từ chối",
+    "CANCELLED": "Đã hủy",
+    "EXPIRED": "Đã hết hạn",
+    "INVALID": "Yêu cầu bị huỷ/không hợp lệ",
+  };
+  return statusMap[normalized] || "Đang xem xét";
+};
+
+// Map return type to category
+const mapReturnTypeToCategory = (returnType?: string): ReturnOrderCategory => {
+  if (!returnType) return "RETURN";
+  const normalized = returnType.toUpperCase();
+  if (normalized === "RETURN" || normalized === "EXCHANGE") {
+    return "RETURN";
+  }
+  if (normalized === "CANCEL" || normalized === "CANCELLATION") {
+    return "CANCEL";
+  }
+  if (normalized === "FAILED_DELIVERY" || normalized === "DELIVERY_FAILED") {
+    return "FAILED";
+  }
+  return "RETURN";
+};
+
+// Map refund status
+const mapRefundStatus = (status?: string): RefundStatus => {
+  if (!status) return "WAITING";
+  const normalized = status.toUpperCase();
+  if (normalized === "PENDING" || normalized === "WAITING_APPROVAL" || normalized === "APPROVED" || normalized === "IN_TRANSIT" || normalized === "RETURNING") {
+    return "WAITING";
+  }
+  if (normalized === "PARTIALLY_REFUNDED") {
+    return "PARTIAL";
+  }
+  if (normalized === "COMPLETED" || normalized === "REFUNDED") {
+    return "DONE";
+  }
+  return "WAITING";
+};
+
+// Map API ReturnOrderResponseDTO to component ReturnOrder format
+const mapApiResponseToReturnOrder = (apiResponse: ApiReturnOrderResponse): ReturnOrder => {
+  const firstDetail = apiResponse.returnOrderDetails?.[0];
+  
+  // Parse variant attributes
+  let productVariant: string | undefined;
+  if (firstDetail?.snapshotVariantAttributes) {
+    try {
+      const attrs = typeof firstDetail.snapshotVariantAttributes === 'string' 
+        ? JSON.parse(firstDetail.snapshotVariantAttributes) 
+        : firstDetail.snapshotVariantAttributes;
+      if (Array.isArray(attrs)) {
+        productVariant = attrs.map((attr: any) => {
+          if (attr?.name && attr?.value) {
+            return `${attr.name}: ${attr.value}`;
+          }
+          return attr?.value || attr?.name || null;
+        }).filter(Boolean).join(", ");
+      }
+    } catch (e) {
+      console.error("Error parsing variant attributes:", e);
+    }
+  }
+
+  const statusKey = mapStatusToStatusKey(apiResponse.status);
+  const refundStatus = mapRefundStatus(apiResponse.status);
+
+  return {
+    id: apiResponse.id?.toString() || apiResponse.code || "",
+    orderCode: apiResponse.code || "",
+    createdAt: apiResponse.createdDate ? new Date(apiResponse.createdDate).toLocaleString("vi-VN") : "",
+    customerId: apiResponse.userId?.toString() || "",
+    customerName: "", // Will need to fetch from order if needed
+    customerUsername: "", // Will need to fetch from order if needed
+    productName: firstDetail?.snapshotProductName || "Sản phẩm không tên",
+    productVariant,
+    productImage: firstDetail?.snapshotProductImageUrl ? getImageUrl(firstDetail.snapshotProductImageUrl) : undefined,
+    totalAmount: apiResponse.totalReturnAmount || apiResponse.totalProductAmount || 0,
+    paymentMethod: "BANKING", // Default, would need to get from order
+    reason: apiResponse.returnReasonNote || "",
+    buyerOptions: ["Trả hàng & hoàn tiền"], // Default
+    statusLabel: mapStatusToLabel(apiResponse.status),
+    statusKey,
+    resolutionNote: apiResponse.notes || "",
+    forwardShippingStatus: "Đã giao hàng", // Default
+    returnShippingStatus: statusKey === "RETURNING" ? "Đang vận chuyển" : statusKey === "COMPLETED" ? "Hoàn thành" : "Chưa có",
+    refundStatus,
+    refundStatusLabel: refundStatus === "WAITING" ? "Chờ hoàn tiền" : refundStatus === "PARTIAL" ? "Hoàn tiền 1 phần" : "Đã hoàn tiền",
+    source: "Website", // Default, would need to get from order
+    category: mapReturnTypeToCategory(apiResponse.returnType),
+    sourceNote: undefined,
+    images: apiResponse.images?.map(img => getImageUrl(img)).filter((img): img is string => Boolean(img)) || [],
+  };
+};
+
 const AdminOrderOtherStatusDetail = () => {
   document.title = "Chi tiết yêu cầu trả hàng | Wanderoo";
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams<{ orderId: string }>();
   const [copied, setCopied] = useState(false);
   const [isProductExpanded, setIsProductExpanded] = useState(true);
 
+  // Get returnOrderCode from URL params (orderId is actually returnOrderCode)
+  const returnOrderCode = params.orderId;
+
+  // Fetch return order detail from API
+  const {
+    data: apiResponse,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<ApiReturnOrderResponse>({
+    queryKey: ["return-order-detail", returnOrderCode],
+    queryFn: async () => {
+      if (!returnOrderCode) {
+        throw new Error("Return order code is required");
+      }
+      const response = await apiClient.get<{ status: number; message: string; data: ApiReturnOrderResponse }>(
+        `/auth/v1/private/return-orders/${returnOrderCode}`
+      );
+      if (response.data.status === 200 && response.data.data) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch return order detail');
+      }
+    },
+    enabled: !!returnOrderCode,
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  // Map API data to component format
   const orderFromState = (location.state as { fakeOrder?: ReturnOrder })
     ?.fakeOrder;
-  const order = orderFromState; // Only use data from navigation state
+  const order = useMemo(() => {
+    // Prefer API data, fallback to state data
+    if (apiResponse) {
+      return mapApiResponseToReturnOrder(apiResponse);
+    }
+    return orderFromState;
+  }, [apiResponse, orderFromState]);
 
   const statusBannerStyle = useMemo(() => {
     if (!order) {
@@ -118,19 +327,39 @@ const AdminOrderOtherStatusDetail = () => {
     }
   };
 
-  if (!order) {
+  // Loading state
+  if (isLoading) {
     return (
       <PageContainer className="flex flex-col gap-6">
         <ContentCard className="flex flex-col items-center gap-4 py-16 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#e04d30] mb-4"></div>
           <p className="text-[18px] font-semibold text-[#272424]">
-            Không tìm thấy yêu cầu
+            Đang tải thông tin đơn trả hàng...
+          </p>
+        </ContentCard>
+      </PageContainer>
+    );
+  }
+
+  // Error state
+  if (isError || !order) {
+    return (
+      <PageContainer className="flex flex-col gap-6">
+        <ContentCard className="flex flex-col items-center gap-4 py-16 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600" />
+          </div>
+          <p className="text-[18px] font-semibold text-[#272424]">
+            {isError ? "Không thể tải thông tin đơn trả hàng" : "Không tìm thấy yêu cầu"}
           </p>
           <p className="text-[13px] text-[#737373] max-w-[480px]">
-            Vui lòng quay lại danh sách đơn trạng thái khác và chọn lại yêu cầu.
+            {isError 
+              ? (error instanceof Error ? error.message : "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.")
+              : "Vui lòng quay lại danh sách đơn trạng thái khác và chọn lại yêu cầu."}
           </p>
           <button
             onClick={() => navigate(-1)}
-            className="rounded-[10px] bg-[#272424] px-5 py-2 text-[13px] font-semibold text-white"
+            className="rounded-[10px] bg-[#272424] px-5 py-2 text-[13px] font-semibold text-white hover:bg-[#1a1a1a] transition-colors"
           >
             Quay lại
           </button>

@@ -1742,13 +1742,12 @@ const OrderDetailTab: React.FC = () => {
                     {order.products.map((product) => (
                       <div
                         key={product.id}
-                        className={`flex gap-3 p-3 rounded-lg border transition-all ${
-                          isReturnSingleProduct
-                            ? selectedReturnProducts.has(product.id)
-                              ? "bg-blue-50 border-blue-300"
-                              : "bg-gray-50 border-gray-200"
+                        className={`flex gap-3 p-3 rounded-lg border transition-all ${isReturnSingleProduct
+                          ? selectedReturnProducts.has(product.id)
+                            ? "bg-blue-50 border-blue-300"
                             : "bg-gray-50 border-gray-200"
-                        }`}
+                          : "bg-gray-50 border-gray-200"
+                          }`}
                       >
                         {isReturnSingleProduct && (
                           <div className="flex items-center pt-1">
@@ -1821,35 +1820,38 @@ const OrderDetailTab: React.FC = () => {
                       }}
                       popupClassName="!z-[10001]"
                       options={[
-                        { value: "empty-package", label: "Thùng hàng rỗng" },
-                        { value: "not-received", label: "Chưa nhận được hàng" },
-                        { value: "broken", label: "Bể vỡ" },
-                        { value: "wrong-model", label: "Sai mẫu" },
-                        { value: "defective", label: "Hàng lỗi" },
-                        { value: "different-description", label: "Khác mô tả" },
-                        { value: "wrong-size", label: "Không đúng kích thước" },
-                        { value: "wrong-color", label: "Không đúng màu sắc" },
-                        { value: "not-fit", label: "Không vừa" },
-                        { value: "expired", label: "Hàng hết hạn" },
-                        { value: "damaged", label: "Hàng bị hư hỏng" },
-                        { value: "missing-parts", label: "Thiếu phụ kiện" },
-                        { value: "other", label: "Lý do khác" },
+                        { value: "EMPTY_PACKAGE", label: "Thùng hàng rỗng" },
+                        { value: "NOT_RECEIVED", label: "Chưa nhận được hàng" },
+                        { value: "BROKEN", label: "Bể vỡ" },
+                        { value: "WRONG_MODEL", label: "Sai mẫu" },
+                        { value: "DEFECTIVE", label: "Hàng lỗi" },
+                        { value: "DIFFERENT_DESCRIPTION", label: "Khác mô tả" },
+                        { value: "WRONG_SIZE", label: "Không đúng kích thước" },
+                        { value: "WRONG_COLOR", label: "Không đúng màu sắc" },
+                        { value: "NOT_FIT", label: "Không vừa" },
+                        { value: "EXPIRED", label: "Hàng hết hạn" },
+                        { value: "DAMAGED", label: "Hàng bị hư hỏng" },
+                        { value: "MISSING_PARTS", label: "Thiếu phụ kiện" },
+                        { value: "OTHER", label: "Lý do khác" },
                       ]}
                     />
                   </div>
 
-                  {/* Description */}
+                  {/* Return Reason Note */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mô tả chi tiết <span className="text-red-500">*</span>
+                      Chi tiết lý do <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       value={returnDescription}
                       onChange={(e) => setReturnDescription(e.target.value)}
-                      placeholder="Mô tả chi tiết vấn đề bạn gặp phải..."
+                      placeholder="Vui lòng mô tả chi tiết lý do bạn muốn trả hàng..."
                       rows={4}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Mô tả càng chi tiết sẽ giúp chúng tôi xử lý yêu cầu của bạn nhanh hơn
+                    </p>
                   </div>
 
                   {/* Image Upload */}
@@ -1922,24 +1924,21 @@ const OrderDetailTab: React.FC = () => {
                     try {
                       setIsSubmittingReturn(true);
 
-                      // Map reason to returnType
-                      const getReturnType = (reason: string): string => {
-                        const reasonMap: Record<string, string> = {
-                          "empty-package": "EMPTY_PACKAGE",
-                          "not-received": "NOT_RECEIVED",
-                          "broken": "BROKEN",
-                          "wrong-model": "WRONG_MODEL",
-                          "defective": "DEFECTIVE",
-                          "different-description": "DIFFERENT_DESCRIPTION",
-                          "wrong-size": "WRONG_SIZE",
-                          "wrong-color": "WRONG_COLOR",
-                          "not-fit": "NOT_FIT",
-                          "expired": "EXPIRED",
-                          "damaged": "DAMAGED",
-                          "missing-parts": "MISSING_PARTS",
-                          "other": "OTHER",
-                        };
-                        return reasonMap[reason] || "OTHER";
+                      // Map reason to returnType and returnReason enum
+                      const getReturnType = (): string => {
+                        // Return type is usually "RETURN" for most cases
+                        return "RETURN";
+                      };
+
+                      const getReturnReasonEnum = (reason: string): string => {
+                        // Reason is already in enum format (UPPER_SNAKE_CASE)
+                        // Just validate and return, default to OTHER if invalid
+                        const validReasons = [
+                          "EMPTY_PACKAGE", "NOT_RECEIVED", "BROKEN", "WRONG_MODEL",
+                          "DEFECTIVE", "DIFFERENT_DESCRIPTION", "WRONG_SIZE", "WRONG_COLOR",
+                          "NOT_FIT", "EXPIRED", "DAMAGED", "MISSING_PARTS", "OTHER"
+                        ];
+                        return validReasons.includes(reason) ? reason : "OTHER";
                       };
 
                       // Upload images if any
@@ -1959,15 +1958,16 @@ const OrderDetailTab: React.FC = () => {
                         orderDetailId: product.orderDetailId!,
                         productDetailId: product.productDetailId!,
                         returnQuantity: product.quantity || 1,
-                        notes: returnDescription,
+                        notes: "", // Notes for individual product detail (optional)
                       }));
 
                       // Create return order request
                       const request = {
                         orderId: Number(order.orderId ?? (orderData as any)?.orderId),
-                        returnType: getReturnType(returnReason),
-                        reason: returnReason,
-                        notes: returnDescription,
+                        returnType: getReturnType(),
+                        returnReason: getReturnReasonEnum(returnReason),
+                        returnReasonNote: returnDescription, // Chi tiết lý do từ người dùng
+                        notes: "", // General notes (optional, can be empty)
                         images: imageUrls.length > 0 ? imageUrls : undefined,
                         returnOrderDetails,
                       };
@@ -1976,7 +1976,7 @@ const OrderDetailTab: React.FC = () => {
                       const response = await customerReturnOrderApi.createReturnOrder(request);
 
                       toast.success("Tạo yêu cầu hoàn trả hàng thành công!", {
-                        description: `Mã yêu cầu: ${response.orderCode || response.id}`,
+                        description: `Mã yêu cầu: ${response.code || response.id}`,
                         duration: 5000,
                       });
 

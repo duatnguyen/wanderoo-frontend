@@ -9,6 +9,7 @@ import DateRangeFilter from "../../../../components/shop/DateRangeFilter";
 import OrderCard from "../../../../components/shop/OrderCard";
 import Pagination from "../../../../components/ui/pagination";
 import { getCustomerOrders } from "../../../../api/endpoints/websiteOrderApi";
+import { customerReturnOrderApi, type ReturnOrderResponse, type ReturnOrderPageResponse } from "../../../../api/customerReturnOrderApi";
 import { useAuth } from "../../../../context/AuthContext";
 import type {
   CustomerOrderResponse,
@@ -101,6 +102,7 @@ const mapDetailToProduct = (
     originalPrice: detail.snapshotProductPrice,
     discountAmount: detail.snapshotDiscountAmount,
     variant: buildVariantLabel(detail.snapshotVariantAttributes),
+    sku: detail.snapshotProductSku,
   };
 };
 
@@ -129,6 +131,7 @@ const mapOrderItemsToProducts = (
         name: item.name ?? `Sản phẩm ${item.productId}`,
         price: item.price ?? item.total ?? 0,
         variant: undefined,
+        sku: (item as any).sku,
       };
     });
   }
@@ -165,6 +168,84 @@ const mapCustomerOrderToOrder = (
   };
 };
 
+// Map return order status to frontend status
+const mapReturnOrderStatus = (status?: string | null): { status: OrderStatus; label: string } => {
+  if (!status) {
+    return { status: "return", label: "Đang xử lý" };
+  }
+  const normalized = status.toUpperCase();
+  const statusMap: Record<string, { status: OrderStatus; label: string }> = {
+    "UNDER_REVIEW": { status: "return", label: "Yêu cầu đang được xem xét" },
+    "APPROVED": { status: "return", label: "Chấp nhận yêu cầu" },
+    "REJECTED": { status: "return", label: "Từ chối yêu cầu" },
+    "RETURNING": { status: "return", label: "Đang trả hàng" },
+    "RETURNED": { status: "return", label: "Đã trả hàng" },
+    "RECEIVED": { status: "return", label: "Đã nhận hàng hoàn" },
+    "REFUNDED": { status: "return", label: "Đã hoàn tiền" },
+    "CANCELLED": { status: "cancelled", label: "Đã hủy" },
+  };
+  return statusMap[normalized] || { status: "return", label: "Đang xử lý" };
+};
+
+// Map return order to Order format
+const mapReturnOrderToOrder = (returnOrder: ReturnOrderResponse): Order | null => {
+  if (!returnOrder) return null;
+  const { status, label } = mapReturnOrderStatus(returnOrder.status);
+  
+  // Map return order details to products
+  const products: OrderProduct[] = (returnOrder.returnOrderDetails || []).map((detail, index) => {
+    // Parse variant attributes if available
+    let variant: string | undefined;
+    if (detail.snapshotVariantAttributes) {
+      try {
+        const attrs = typeof detail.snapshotVariantAttributes === 'string' 
+          ? JSON.parse(detail.snapshotVariantAttributes) 
+          : detail.snapshotVariantAttributes;
+        if (Array.isArray(attrs)) {
+          variant = attrs.map((attr: any) => {
+            if (attr?.name && attr?.value) {
+              return `${attr.name}: ${attr.value}`;
+            }
+            return attr?.value || attr?.name || null;
+          }).filter(Boolean).join(", ");
+        }
+      } catch (e) {
+        console.error("Error parsing variant attributes:", e);
+      }
+    }
+
+    // Get image URL
+    let imageUrl = FALLBACK_IMAGE;
+    if (detail.snapshotProductImageUrl && detail.snapshotProductImageUrl.trim() !== "") {
+      imageUrl = getImageUrl(detail.snapshotProductImageUrl) || FALLBACK_IMAGE;
+    }
+
+    return {
+      id: detail.id?.toString() || `${returnOrder.id}-${index}`,
+      imageUrl,
+      name: detail.snapshotProductName || "Sản phẩm không tên",
+      price: detail.returnPrice || detail.totalReturnPrice || 0,
+      originalPrice: detail.snapshotProductPrice,
+      variant,
+      sku: detail.snapshotProductSku,
+    };
+  });
+
+  return {
+    id: returnOrder.code || returnOrder.id?.toString() || "",
+    orderDate: formatOrderDate(returnOrder.createdDate) || "",
+    status,
+    statusLabel: label,
+    products: products.length > 0 ? products : [{
+      id: `${returnOrder.id}-placeholder`,
+      imageUrl: FALLBACK_IMAGE,
+      name: "Sản phẩm đang cập nhật",
+      price: returnOrder.totalReturnAmount || 0,
+    }],
+    totalPayment: returnOrder.totalReturnAmount || returnOrder.totalProductAmount || 0,
+  };
+};
+
 const OrdersTab: React.FC = () => {
   const location = useLocation() as {
     state?: {
@@ -188,9 +269,9 @@ const OrdersTab: React.FC = () => {
   // We'll fetch all pages to enable frontend filtering
   const {
     data: customerOrders,
-    isLoading,
-    isError,
-    refetch,
+    isLoading: isLoadingOrders,
+    isError: isErrorOrders,
+    refetch: refetchOrders,
   } = useQuery({
     queryKey: ["customer-orders", currentPage],
     queryFn: () => {
@@ -199,20 +280,66 @@ const OrdersTab: React.FC = () => {
         size: PAGE_SIZE,
       });
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && activeTab !== "return",
     staleTime: 60 * 1000,
   });
 
+  // Fetch return orders when return tab is active
+  const {
+    data: returnOrdersPage,
+    isLoading: isLoadingReturns,
+    isError: isErrorReturns,
+    refetch: refetchReturns,
+  } = useQuery<ReturnOrderPageResponse>({
+    queryKey: ["customer-return-orders", currentPage],
+    queryFn: () => {
+      return customerReturnOrderApi.getCustomerReturnOrders({
+        page: currentPage,
+        size: PAGE_SIZE,
+      });
+    },
+    enabled: isAuthenticated && activeTab === "return",
+    staleTime: 60 * 1000,
+  });
+
+  const isLoading = activeTab === "return" ? isLoadingReturns : isLoadingOrders;
+  const isError = activeTab === "return" ? isErrorReturns : isErrorOrders;
+  const refetch = activeTab === "return" ? refetchReturns : refetchOrders;
+
   const orders = useMemo(() => {
-    if (!customerOrders?.orders?.length) {
-      return [] as Order[];
+    if (activeTab === "return") {
+      // Map return orders
+      if (!returnOrdersPage?.returnOrders?.length) {
+        return [] as Order[];
+      }
+      return returnOrdersPage.returnOrders
+        .map(mapReturnOrderToOrder)
+        .filter((order): order is Order => Boolean(order));
+    } else {
+      // Map regular orders
+      if (!customerOrders?.orders?.length) {
+        return [] as Order[];
+      }
+      return customerOrders.orders
+        .map(mapCustomerOrderToOrder)
+        .filter((order): order is Order => Boolean(order));
     }
-    return customerOrders.orders
-      .map(mapCustomerOrderToOrder)
-      .filter((order): order is Order => Boolean(order));
-  }, [customerOrders]);
+  }, [customerOrders, returnOrdersPage, activeTab]);
 
   const orderCounts = useMemo(() => {
+    // For return tab, count from return orders page
+    if (activeTab === "return" && returnOrdersPage) {
+      return {
+        all: orders.length,
+        pending: 0,
+        confirmed: 0,
+        shipping: 0,
+        delivered: 0,
+        cancelled: 0,
+        return: returnOrdersPage.totalElements || orders.length,
+      };
+    }
+    // For other tabs, count from regular orders
     return {
       all: orders.length,
       pending: orders.filter((order) => order.status === "pending").length,
@@ -220,9 +347,9 @@ const OrdersTab: React.FC = () => {
       shipping: orders.filter((order) => order.status === "shipping").length,
       delivered: orders.filter((order) => order.status === "delivered").length,
       cancelled: orders.filter((order) => order.status === "cancelled").length,
-      return: orders.filter((order) => order.status === "return").length,
+      return: returnOrdersPage?.totalElements || 0,
     };
-  }, [orders]);
+  }, [orders, activeTab, returnOrdersPage]);
 
   // Initialize active tab from navigation state if present
   useEffect(() => {
@@ -392,20 +519,40 @@ const OrdersTab: React.FC = () => {
                 />
               ))}
               {/* Pagination */}
-              {customerOrders && customerOrders.totalPages > 1 && (
-                <div className="mt-6">
-                  <Pagination
-                    current={customerOrders.pageNumber}
-                    total={customerOrders.totalPages}
-                    onChange={handlePageChange}
-                  />
-                </div>
-              )}
-              {/* Show pagination info even if only 1 page if there are many orders */}
-              {customerOrders && customerOrders.totalElements > 0 && customerOrders.totalPages === 1 && customerOrders.totalElements > PAGE_SIZE && (
-                <div className="mt-4 text-center text-sm text-gray-600">
-                  Hiển thị tất cả {customerOrders.totalElements} đơn hàng
-                </div>
+              {activeTab === "return" ? (
+                <>
+                  {returnOrdersPage && returnOrdersPage.totalPages > 1 && (
+                    <div className="mt-6">
+                      <Pagination
+                        current={returnOrdersPage.pageNumber}
+                        total={returnOrdersPage.totalPages}
+                        onChange={handlePageChange}
+                      />
+                    </div>
+                  )}
+                  {returnOrdersPage && returnOrdersPage.totalElements > 0 && returnOrdersPage.totalPages === 1 && returnOrdersPage.totalElements > PAGE_SIZE && (
+                    <div className="mt-4 text-center text-sm text-gray-600">
+                      Hiển thị tất cả {returnOrdersPage.totalElements} đơn trả hàng
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {customerOrders && customerOrders.totalPages > 1 && (
+                    <div className="mt-6">
+                      <Pagination
+                        current={customerOrders.pageNumber}
+                        total={customerOrders.totalPages}
+                        onChange={handlePageChange}
+                      />
+                    </div>
+                  )}
+                  {customerOrders && customerOrders.totalElements > 0 && customerOrders.totalPages === 1 && customerOrders.totalElements > PAGE_SIZE && (
+                    <div className="mt-4 text-center text-sm text-gray-600">
+                      Hiển thị tất cả {customerOrders.totalElements} đơn hàng
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

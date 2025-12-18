@@ -31,7 +31,8 @@ export interface ReturnOrderListItem {
   productImage?: string;
   totalAmount: number;
   paymentMethod: string;
-  reason: string;
+  returnReason?: string;
+  returnReasonNote?: string;
   buyerOptions?: string[];
   statusLabel: string;
   statusKey: ReturnOrderStatus;
@@ -66,6 +67,8 @@ export interface ReturnOrderDetailItem {
   snapshotProductName?: string;
   snapshotProductPrice?: number;
   snapshotProductSku?: string;
+  snapshotProductImageUrl?: string;
+  snapshotVariantAttributes?: string;
   createdDate?: string;
   updatedDate?: string;
 }
@@ -84,7 +87,8 @@ export interface ReturnOrderDetail {
   productImage?: string;
   totalAmount: number;
   paymentMethod: string;
-  reason: string;
+  returnReason?: string;
+  returnReasonNote?: string;
   buyerOptions: string[];
   statusLabel: string;
   statusKey: ReturnOrderStatus;

@@ -9,36 +9,9 @@ import {
   getPublicCategoryChildren,
 } from "../../api/endpoints/attributeApi";
 import { searchProducts } from "../../api/endpoints/productApi";
+import { getCartItemCount } from "../../api/endpoints/cartApi";
 import type { ProductSearchResponse } from "../../types";
-
-// Helper function to get full image URL (same as order/components)
-const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
-  if (!imageUrl || imageUrl.trim() === '') return undefined;
-  
-  // Clean up the image URL
-  const cleanUrl = imageUrl.trim();
-  
-  // If already a full URL (http/https), return as is
-  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
-    return cleanUrl;
-  }
-  
-  // Get base URL from environment or default to localhost
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-  
-  // If relative path starting with /, add base URL
-  if (cleanUrl.startsWith('/')) {
-    return `${baseUrl}${cleanUrl}`;
-  }
-  
-  // Handle common image paths from backend
-  if (cleanUrl.startsWith('uploads/') || cleanUrl.startsWith('static/')) {
-    return `${baseUrl}/${cleanUrl}`;
-  }
-  
-  // Default: assume it's from uploads directory
-  return `${baseUrl}/uploads/${cleanUrl}`;
-};
+import { getImageUrl } from "../../utils/imageUtils";
 
 function Logo({ onClick }: { onClick: () => void }) {
   return (
@@ -51,28 +24,50 @@ function Logo({ onClick }: { onClick: () => void }) {
       <img
         src={shopLogo}
         alt="Wanderoo Logo"
-        className="h-32 w-auto max-h-[140px] object-contain"
+        className="h-20 w-auto max-h-[80px] object-contain"
       />
     </button>
   );
 }
 
-function UserAvatar({ src }: { src?: string }) {
+function UserAvatar({ src, userName }: { src?: string; userName?: string }) {
   const avatarUrl = src ? getImageUrl(src) : undefined;
-  const fallbackAvatar = "https://randomuser.me/api/portraits/men/32.jpg";
+  const displayName = userName?.trim() || "";
+  const initials = displayName
+    ? displayName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "U";
 
   return (
-    <img
-      src={avatarUrl || fallbackAvatar}
-      className="size-9 rounded-full object-cover border-2 border-white"
-      alt="User Avatar"
-      onError={(e) => {
-        const target = e.target as HTMLImageElement;
-        if (target.src !== fallbackAvatar) {
-          target.src = fallbackAvatar;
-        }
-      }}
-    />
+    <div className="size-9 rounded-full border-2 border-white overflow-hidden bg-gradient-to-br from-[#18345C] to-[#1c3b6c] flex items-center justify-center">
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          className="w-full h-full object-cover"
+          alt="User Avatar"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = "none";
+            const parent = target.parentElement;
+            if (parent) {
+              const fallback = parent.querySelector(".avatar-fallback") as HTMLElement;
+              if (fallback) {
+                fallback.style.display = "flex";
+              }
+            }
+          }}
+        />
+      ) : null}
+      <div
+        className={`avatar-fallback w-full h-full flex items-center justify-center text-white text-xs font-semibold ${avatarUrl ? "hidden" : ""}`}
+      >
+        {initials}
+      </div>
+    </div>
   );
 }
 
@@ -121,6 +116,7 @@ const Header: React.FC<HeaderProps> = ({
   };
   const [mainCategories, setMainCategories] = useState<DropdownCategory[]>([]);
   const [childLoadingState, setChildLoadingState] = useState<Record<string, boolean>>({});
+  const [cartItemCount, setCartItemCount] = useState<number>(cartCount || 0);
 
   // Debounce search
   useEffect(() => {
@@ -229,6 +225,33 @@ const Header: React.FC<HeaderProps> = ({
       });
   }, []);
 
+  // Fetch cart count when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const fetchCartCount = async () => {
+        try {
+          const count = await getCartItemCount();
+          setCartItemCount(count);
+        } catch (error) {
+          console.error("Error fetching cart count:", error);
+          // Keep current count or use prop value
+          setCartItemCount(cartCount || 0);
+        }
+      };
+      fetchCartCount();
+    } else {
+      // Reset to 0 if not authenticated
+      setCartItemCount(0);
+    }
+  }, [isAuthenticated, cartCount]);
+
+  // Update cart count when prop changes (for real-time updates from other pages)
+  useEffect(() => {
+    if (cartCount !== undefined) {
+      setCartItemCount(cartCount);
+    }
+  }, [cartCount]);
+
   const handleCategoryHover = useCallback(
     async (categoryId: string) => {
       const currentCategory = mainCategories.find((cat) => cat.id === categoryId);
@@ -282,12 +305,12 @@ const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="w-full bg-gradient-to-r from-[#132543] via-[#1c3b6c] to-[#132543] shadow-[0_4px_20px_rgba(9,22,45,0.25)] relative z-40 text-white">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-1 px-4 py-1">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-1 px-4 py-0.5">
         <div className="flex flex-wrap items-center gap-3 md:flex-nowrap md:gap-4">
           <Logo onClick={() => navigate("/shop")} />
           <div
             ref={categoryButtonRef}
-            className="relative flex h-[60px] flex-shrink-0 items-center gap-3 px-4 md:ml-6"
+            className="relative flex h-[48px] flex-shrink-0 items-center gap-3 px-4 md:ml-6"
           >
             <button
               className="flex items-center gap-2 cursor-pointer"
@@ -415,9 +438,9 @@ const Header: React.FC<HeaderProps> = ({
               type="button"
             >
               <ShoppingBag className="w-6 h-6 text-white" />
-              {cartCount !== undefined && cartCount > 0 && (
+              {cartItemCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ffc107] text-[#18345c] rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-[#1c3b6c]">
-                  {cartCount > 99 ? '99+' : cartCount}
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
             </button>
@@ -432,7 +455,7 @@ const Header: React.FC<HeaderProps> = ({
                   aria-label="Xem hồ sơ"
                   type="button"
                 >
-                  <UserAvatar src={displayAvatar} />
+                  <UserAvatar src={displayAvatar} userName={displayName} />
                   <div className="hidden md:flex flex-col items-start">
                     <span className="text-sm font-semibold text-white group-hover:underline">
                       {displayName}
