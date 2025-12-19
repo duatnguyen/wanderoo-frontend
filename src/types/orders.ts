@@ -93,6 +93,7 @@ export interface CustomerOrderResponse extends OrderResponse {
   shopDistrictName?: string | null;
   shopWardCode?: string | null;
   shopWardName?: string | null;
+  reasonCancel?: string | null; // Lý do hủy đơn hàng
 }
 
 export interface CustomerOrderPageResponse {

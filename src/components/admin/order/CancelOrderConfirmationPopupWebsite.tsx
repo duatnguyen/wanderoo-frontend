@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Package } from "lucide-react";
+import { Package, X } from "lucide-react";
+import { Select } from "antd";
 
 interface CancelOrderConfirmationPopupWebsiteProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (reasonCancel: string) => void;
   orderData: any;
 }
 
@@ -12,36 +13,44 @@ const CancelOrderConfirmationPopupWebsite: React.FC<
   CancelOrderConfirmationPopupWebsiteProps
 > = ({ isOpen, onClose, onConfirm, orderData }) => {
   const [selectedReason, setSelectedReason] = useState<string>("");
-  const [customReason, setCustomReason] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const cancelReasons = [
-    "Khách hàng yêu cầu hủy",
-    "Sản phẩm hết hàng",
-    "Thông tin giao hàng không chính xác",
-    "Khách hàng không liên lạc được",
-    "Sản phẩm bị lỗi/hỏng",
-    "Giá sản phẩm thay đổi",
-    "Khác (tự nhập lý do)",
+  // All cancel reasons from OrderCancelReasonEnum (for admin)
+  const cancelReasonOptions = [
+    // Customer reasons
+    { value: "CUSTOMER_CHANGE_MIND", label: "Khách hàng đổi ý" },
+    { value: "CUSTOMER_NOT_WANT", label: "Khách hàng không muốn mua nữa" },
+    { value: "CUSTOMER_NOT_RESPONDING", label: "Không liên lạc được khách hàng" },
+    { value: "CUSTOMER_REFUSED", label: "Khách hàng từ chối nhận hàng" },
+    { value: "CUSTOMER_FOUND_CHEAPER", label: "Khách hàng tìm được giá rẻ hơn" },
+    { value: "CUSTOMER_WRONG_ORDER", label: "Khách hàng đặt nhầm đơn hàng" },
+    { value: "CUSTOMER_ADDRESS_WRONG", label: "Khách hàng nhập sai địa chỉ" },
+    { value: "CUSTOMER_NO_MONEY", label: "Khách hàng không đủ tiền" },
+    { value: "CUSTOMER_DELAYED_DELIVERY", label: "Khách hàng không hài lòng về thời gian giao hàng" },
+    { value: "CUSTOMER_PRODUCT_NOT_MATCH", label: "Sản phẩm không đúng như mô tả" },
+    { value: "CUSTOMER_CANCEL_BEFORE_SHIP", label: "Khách hàng hủy trước khi giao hàng" },
+    // Shop/System reasons
+    { value: "OUT_OF_STOCK", label: "Hết hàng" },
+    { value: "PRICE_CHANGED", label: "Giá sản phẩm thay đổi" },
+    { value: "DELIVERY_ISSUE", label: "Vấn đề giao hàng" },
+    { value: "PAYMENT_FAILED", label: "Thanh toán thất bại" },
+    { value: "DUPLICATE_ORDER", label: "Đơn hàng trùng lặp" },
+    { value: "SYSTEM_ERROR", label: "Lỗi hệ thống" },
+    { value: "SHOP_CANNOT_FULFILL", label: "Shop không thể thực hiện đơn hàng" },
+    { value: "OTHER", label: "Lý do khác" },
   ];
 
   const handleSubmit = async () => {
-    const finalReason =
-      selectedReason === "Khác (tự nhập lý do)"
-        ? customReason.trim()
-        : selectedReason;
-
-    if (!finalReason) {
-      alert("Vui lòng chọn hoặc nhập lý do hủy đơn hàng!");
+    if (!selectedReason) {
+      alert("Vui lòng chọn lý do hủy đơn hàng!");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await onConfirm();
+      await onConfirm(selectedReason);
       // Reset form
       setSelectedReason("");
-      setCustomReason("");
       onClose();
     } catch (error) {
       console.error("Error canceling order:", error);
@@ -53,7 +62,6 @@ const CancelOrderConfirmationPopupWebsite: React.FC<
   const handleClose = () => {
     if (!isSubmitting) {
       setSelectedReason("");
-      setCustomReason("");
       onClose();
     }
   };
@@ -121,19 +129,7 @@ const CancelOrderConfirmationPopupWebsite: React.FC<
               disabled={isSubmitting}
               className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors disabled:opacity-50"
             >
-              <svg
-                className="w-4 h-4 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="w-4 h-4 text-white" />
             </button>
           </div>
         </div>
@@ -192,61 +188,20 @@ const CancelOrderConfirmationPopupWebsite: React.FC<
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1 h-5 bg-[#dc3545] rounded-full"></div>
               <h3 className="font-montserrat font-semibold text-[16px] text-gray-900">
-                Chọn lý do hủy đơn hàng
+                Chọn lý do hủy đơn hàng <span className="text-red-500">*</span>
               </h3>
             </div>
 
-            <div className="space-y-3">
-              {cancelReasons.map((reason, index) => (
-                <label
-                  key={index}
-                  className={`flex items-center p-4 rounded-[12px] border-2 cursor-pointer transition-all duration-200 ${
-                    selectedReason === reason
-                      ? "border-[#dc3545] bg-red-50"
-                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-                  } ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  <input
-                    type="radio"
-                    name="cancelReason"
-                    value={reason}
-                    checked={selectedReason === reason}
-                    onChange={(e) => setSelectedReason(e.target.value)}
-                    disabled={isSubmitting}
-                    className="w-4 h-4 text-[#dc3545] border-gray-300 focus:ring-[#dc3545] focus:ring-2"
-                  />
-                  <span
-                    className={`ml-3 font-montserrat font-medium text-[14px] ${
-                      selectedReason === reason
-                        ? "text-[#dc3545]"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    {reason}
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            {/* Custom Reason Input */}
-            {selectedReason === "Khác (tự nhập lý do)" && (
-              <div className="mt-4 animate-in slide-in-from-top-2 duration-300">
-                <label className="block font-montserrat font-medium text-[14px] text-gray-700 mb-2">
-                  Nhập lý do cụ thể
-                </label>
-                <textarea
-                  value={customReason}
-                  onChange={(e) => setCustomReason(e.target.value)}
-                  disabled={isSubmitting}
-                  placeholder="Vui lòng mô tả lý do hủy đơn hàng..."
-                  rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-[10px] font-montserrat text-[14px] focus:ring-2 focus:ring-[#dc3545] focus:border-[#dc3545] resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                <p className="mt-2 font-montserrat font-medium text-[12px] text-gray-500">
-                  Tối thiểu 10 ký tự ({customReason.length}/10)
-                </p>
-              </div>
-            )}
+            <Select
+              value={selectedReason}
+              onChange={(value) => setSelectedReason(value)}
+              placeholder="Chọn lý do hủy đơn hàng"
+              className="w-full"
+              size="large"
+              disabled={isSubmitting}
+              getPopupContainer={(triggerNode) => triggerNode.parentElement || document.body}
+              options={cancelReasonOptions}
+            />
           </div>
 
           {/* Action Buttons */}
@@ -261,12 +216,7 @@ const CancelOrderConfirmationPopupWebsite: React.FC<
 
             <button
               onClick={handleSubmit}
-              disabled={
-                isSubmitting ||
-                !selectedReason ||
-                (selectedReason === "Khác (tự nhập lý do)" &&
-                  customReason.trim().length < 10)
-              }
+              disabled={isSubmitting || !selectedReason}
               className="flex-1 sm:flex-none px-8 py-3 bg-[#dc3545] hover:bg-[#c82333] active:bg-[#bd2130] text-white font-montserrat font-semibold text-[14px] rounded-[12px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 min-w-[160px]"
             >
               {isSubmitting ? (

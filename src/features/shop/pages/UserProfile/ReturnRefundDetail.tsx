@@ -66,6 +66,7 @@ const ReturnRefundDetail: React.FC = () => {
   });
 
   // Map return order status to Vietnamese label
+  // Backend status values: UNDER_REVIEW, APPROVED, REJECTED, RETURNING, RECEIVED, REFUNDED, CANCELLED, COMPLETED, PENDING
   const mapReturnOrderStatus = (status?: string | null): { label: string; message: string } => {
     if (!status) {
       return { label: "Đang xử lý", message: "Yêu cầu đang được xử lý" };
@@ -73,6 +74,10 @@ const ReturnRefundDetail: React.FC = () => {
     const normalized = status.toUpperCase();
     const statusMap: Record<string, { label: string; message: string }> = {
       "UNDER_REVIEW": {
+        label: "Yêu cầu đang được xem xét",
+        message: "Shop đang xem xét yêu cầu trả hàng & hoàn tiền của bạn",
+      },
+      "PENDING": {
         label: "Yêu cầu đang được xem xét",
         message: "Shop đang xem xét yêu cầu trả hàng & hoàn tiền của bạn",
       },
@@ -88,10 +93,6 @@ const ReturnRefundDetail: React.FC = () => {
         label: "Đang trả hàng",
         message: "Đơn hàng đang được hoàn trả",
       },
-      "RETURNED": {
-        label: "Đã trả hàng",
-        message: "Hàng đã được trả về",
-      },
       "RECEIVED": {
         label: "Đã nhận hàng hoàn",
         message: "Shop đã nhận được hàng hoàn",
@@ -99,6 +100,10 @@ const ReturnRefundDetail: React.FC = () => {
       "REFUNDED": {
         label: "Đã hoàn tiền",
         message: "Tiền đã được hoàn trả",
+      },
+      "COMPLETED": {
+        label: "Hoàn thành",
+        message: "Yêu cầu trả hàng đã hoàn thành",
       },
       "CANCELLED": {
         label: "Đã hủy",
@@ -109,10 +114,12 @@ const ReturnRefundDetail: React.FC = () => {
   };
 
   // Map return reason value to Vietnamese label
+  // Backend returns enum name (e.g., "DEFECTIVE", "EMPTY_PACKAGE") which we normalize to lowercase with dashes
   const mapReturnReason = (reason?: string | null): string => {
     if (!reason) {
       return "Không có lý do";
     }
+    // Normalize: "DEFECTIVE" -> "defective", "EMPTY_PACKAGE" -> "empty-package"
     const normalized = reason.toLowerCase().replace(/_/g, '-');
     const reasonMap: Record<string, string> = {
       "empty-package": "Thùng hàng rỗng",
@@ -129,7 +136,8 @@ const ReturnRefundDetail: React.FC = () => {
       "missing-parts": "Thiếu phụ kiện",
       "other": "Lý do khác",
     };
-    return reasonMap[normalized] || reason;
+    // If not found in map, return the original reason (shouldn't happen if backend is correct)
+    return reasonMap[normalized] || reason || "Không có lý do";
   };
 
   // Map return order data to component format
@@ -189,32 +197,33 @@ const ReturnRefundDetail: React.FC = () => {
     });
 
     // Build status steps based on current status
+    // Backend status flow: UNDER_REVIEW -> APPROVED -> RETURNING -> RECEIVED -> REFUNDED/COMPLETED
     const statusSteps: ReturnRefundStatus[] = [
       {
         id: "reviewing",
         label: "Yêu cầu đang được xem xét",
-        completed: ["UNDER_REVIEW", "APPROVED", "REJECTED", "RETURNING", "RETURNED", "RECEIVED", "REFUNDED", "CANCELLED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: ["UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED", "CANCELLED"].includes(returnOrderData.status?.toUpperCase() || ""),
         date: createdDate,
       },
       {
         id: "accepted",
         label: "Chấp nhận yêu cầu",
-        completed: ["APPROVED", "REJECTED", "RETURNING", "RETURNED", "RECEIVED", "REFUNDED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: ["APPROVED", "REJECTED", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(returnOrderData.status?.toUpperCase() || ""),
       },
       {
         id: "returning",
         label: "Trả hàng",
-        completed: ["RETURNING", "RETURNED", "RECEIVED", "REFUNDED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: ["RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(returnOrderData.status?.toUpperCase() || ""),
       },
       {
         id: "checking",
         label: "Kiểm tra hàng hoàn",
-        completed: ["RECEIVED", "REFUNDED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: ["RECEIVED", "REFUNDED", "COMPLETED"].includes(returnOrderData.status?.toUpperCase() || ""),
       },
       {
         id: "refunded",
         label: "Đã hoàn tiền",
-        completed: returnOrderData.status?.toUpperCase() === "REFUNDED",
+        completed: ["REFUNDED", "COMPLETED"].includes(returnOrderData.status?.toUpperCase() || ""),
       },
     ];
 
@@ -238,7 +247,7 @@ const ReturnRefundDetail: React.FC = () => {
       bankInfo: "Thông tin ngân hàng sẽ được cập nhật", // TODO: Get from user profile or order
       returnOrderCode: returnOrderData.code,
       reason: mappedReason,
-      description: returnOrderData.returnReasonNote || returnOrderData.notes || "",
+      description: returnOrderData.returnReasonNote || "", // Lấy từ returnReasonNote (return_reason_note)
       images: processedImages,
       statusSteps,
     };
@@ -264,6 +273,29 @@ const ReturnRefundDetail: React.FC = () => {
       toast.error(error?.message || "Không thể hủy yêu cầu trả hàng");
     }
   };
+
+  // Calculate stepsToRender - must be before early returns (React hooks rule)
+  const stepsToRender = useMemo(() => {
+    if (!displayData) {
+      return [];
+    }
+    
+    if (!isCancelled) {
+      return displayData.statusSteps;
+    }
+
+    return [
+      ...displayData.statusSteps.map((step) => ({
+        ...step,
+        completed: step.id === "reviewing",
+      })),
+      {
+        id: "cancelled",
+        label: "Yêu cầu đã được hủy",
+        completed: true,
+      },
+    ];
+  }, [displayData?.statusSteps, isCancelled]);
 
   // Loading state
   if (isLoading) {
@@ -308,24 +340,6 @@ const ReturnRefundDetail: React.FC = () => {
   if (!displayData) {
     return null;
   }
-
-  const stepsToRender = useMemo(() => {
-    if (!isCancelled) {
-      return displayData.statusSteps;
-    }
-
-    return [
-      ...displayData.statusSteps.map((step) => ({
-        ...step,
-        completed: step.id === "reviewing",
-      })),
-      {
-        id: "cancelled",
-        label: "Yêu cầu đã được hủy",
-        completed: true,
-      },
-    ];
-  }, [displayData.statusSteps, isCancelled]);
 
   const activeStatus = isCancelled ? "Yêu cầu đã được hủy" : displayData.status;
   const statusTitle =
@@ -531,27 +545,52 @@ const ReturnRefundDetail: React.FC = () => {
 
         {/* Reason and Description */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 text-[14px]">
-          <h2 className="text-[18px] font-bold text-gray-900 mb-3">
-            Lý do: {displayData.reason}
+          <h2 className="text-[18px] font-bold text-gray-900 mb-4">
+            Lý do trả hàng
           </h2>
-          <div className="border-b border-gray-200 mb-4" />
-          <p className="text-[14px] text-gray-700 mb-4 whitespace-pre-line">
-            {displayData.description || "Không có mô tả"}
-          </p>
+          
+          {/* Loại lý do (enum reason) */}
+          {displayData.reason && displayData.reason !== "Không có lý do" && (
+            <div className="mb-4">
+              <div className="text-[14px] font-semibold text-gray-700 mb-2">
+                Loại lý do:
+              </div>
+              <div className="text-[14px] text-gray-900">
+                {displayData.reason}
+              </div>
+            </div>
+          )}
+          
+          {/* Lý do chi tiết (notes) */}
+          <div className="mb-4">
+            <div className="text-[14px] font-semibold text-gray-700 mb-2">
+              Lý do chi tiết:
+            </div>
+            <p className="text-[14px] text-gray-700 whitespace-pre-line">
+              {displayData.description || "Không có mô tả chi tiết"}
+            </p>
+          </div>
+          
+          {/* Images */}
           {displayData.images && displayData.images.length > 0 && (
-            <div className="flex flex-wrap gap-3">
-              {displayData.images.map((imageUrl, index) => (
-                <img
-                  key={index}
-                  src={imageUrl || "/images/placeholders/no-image.svg"}
-                  alt={`Return evidence ${index + 1}`}
-                  className="w-[60px] h-[60px] rounded border border-gray-300 object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "/images/placeholders/no-image.svg";
-                  }}
-                />
-              ))}
+            <div className="mt-4">
+              <div className="text-[14px] font-semibold text-gray-700 mb-2">
+                Hình ảnh minh chứng:
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {displayData.images.map((imageUrl, index) => (
+                  <img
+                    key={index}
+                    src={imageUrl || "/images/placeholders/no-image.svg"}
+                    alt={`Return evidence ${index + 1}`}
+                    className="w-[60px] h-[60px] rounded border border-gray-300 object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "/images/placeholders/no-image.svg";
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>

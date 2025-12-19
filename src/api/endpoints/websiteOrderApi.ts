@@ -60,10 +60,12 @@ export const createOrder = async (
 };
 
 export const cancelOrder = async (
-  orderId: number
+  orderId: number,
+  reasonCancel?: string
 ): Promise<CustomerOrderCancelResponse> => {
   const response = await api.patch<ApiResponse<CustomerOrderCancelResponse>>(
-    `/auth/v1/public/orders/${orderId}/cancel`
+    `/auth/v1/public/orders/${orderId}/cancel`,
+    reasonCancel ? { reasonCancel } : undefined
   );
   return response.data.data;
 };
@@ -179,10 +181,12 @@ export const createShippingOrder = async (
 export const confirmOrderAndCreateShipping = createShippingOrder;
 
 export const cancelAdminOrder = async (
-  id: number
+  id: number,
+  reasonCancel?: string
 ): Promise<OrderCancelResponse> => {
   const response = await api.post<ApiResponse<OrderCancelResponse>>(
-    `/auth/v1/private/orders/${id}/cancel`
+    `/auth/v1/private/orders/${id}/cancel`,
+    reasonCancel ? { reasonCancel } : undefined
   );
   return response.data.data;
 };

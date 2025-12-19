@@ -94,6 +94,53 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData, onCreate
     };
   };
 
+  // Map cancel reason enum to Vietnamese (for admin view - full description)
+  const getCancelReasonLabel = (reason?: string | null): string => {
+    if (!reason) return "Chưa có lý do";
+    switch (reason) {
+      case "CUSTOMER_CHANGE_MIND":
+        return "Khách hàng đổi ý";
+      case "CUSTOMER_NOT_WANT":
+        return "Khách hàng không muốn mua nữa";
+      case "CUSTOMER_NOT_RESPONDING":
+        return "Không liên lạc được khách hàng";
+      case "CUSTOMER_REFUSED":
+        return "Khách hàng từ chối nhận hàng";
+      case "CUSTOMER_FOUND_CHEAPER":
+        return "Khách hàng tìm được giá rẻ hơn";
+      case "CUSTOMER_WRONG_ORDER":
+        return "Khách hàng đặt nhầm đơn hàng";
+      case "CUSTOMER_ADDRESS_WRONG":
+        return "Khách hàng nhập sai địa chỉ";
+      case "CUSTOMER_NO_MONEY":
+        return "Khách hàng không đủ tiền";
+      case "CUSTOMER_DELAYED_DELIVERY":
+        return "Khách hàng không hài lòng về thời gian giao hàng";
+      case "CUSTOMER_PRODUCT_NOT_MATCH":
+        return "Sản phẩm không đúng như mô tả";
+      case "CUSTOMER_CANCEL_BEFORE_SHIP":
+        return "Khách hàng hủy trước khi giao hàng";
+      case "OUT_OF_STOCK":
+        return "Hết hàng";
+      case "PRICE_CHANGED":
+        return "Giá sản phẩm thay đổi";
+      case "DELIVERY_ISSUE":
+        return "Vấn đề giao hàng";
+      case "PAYMENT_FAILED":
+        return "Thanh toán thất bại";
+      case "DUPLICATE_ORDER":
+        return "Đơn hàng trùng lặp";
+      case "SYSTEM_ERROR":
+        return "Lỗi hệ thống";
+      case "SHOP_CANNOT_FULFILL":
+        return "Shop không thể thực hiện đơn hàng";
+      case "OTHER":
+        return "Lý do khác";
+      default:
+        return reason;
+    }
+  };
+
   return (
     <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] relative rounded-[8px] w-full overflow-hidden min-w-0">
       {/* Header */}
@@ -312,6 +359,44 @@ const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData, onCreate
           </p>
         </div>
       </div>
+
+      {/* Cancel Reason Section - Only show if order is canceled */}
+      {orderData.status === "CANCELED" && orderData.reasonCancel && (
+        <div className="flex gap-[14px] items-start w-full">
+          <div className="flex items-center justify-center w-[40px] h-[40px] bg-red-50 rounded-[8px] shrink-0">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+                stroke="#dc2626"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M15 9L9 15M9 9L15 15"
+                stroke="#dc2626"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
+            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-red-600">
+              Lý do hủy đơn hàng
+            </p>
+            <p className="font-montserrat font-semibold text-[13px] leading-[1.3] text-red-900 break-words min-w-0">
+              {getCancelReasonLabel(orderData.reasonCancel)}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Timeline - Only show if shipping has been created (based on shipping_provider) */}
       {(orderData as any).shippingProvider && (

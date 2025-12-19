@@ -19,16 +19,8 @@ export interface UserInfo {
 // Data interfaces matching backend DTOs
 export interface ReturnOrderListItem {
   id: number; // Changed from string to number to match backend Long
-  orderCode: string;
-  returnOrderCode: string;
+  returnOrderCode: string; // Only returnOrderCode, no orderCode
   createdAt: string;
-  customerId: number; // Changed from string to number
-  customerName: string;
-  customerUsername: string;
-  customerInfo?: UserInfo; // UserInfo from Order
-  productName: string;
-  productVariant?: string;
-  productImage?: string;
   totalAmount: number;
   paymentMethod: string;
   returnReason?: string;
@@ -48,7 +40,8 @@ export interface ReturnOrderListItem {
   picName?: string;
   lastUpdated?: string;
   priority?: number;
-  returnOrderDetails?: ReturnOrderDetailItem[];
+  returnOrderDetails?: ReturnOrderDetailItem[]; // Use snapshot data from details
+  userInfo?: UserInfo; // User information
 }
 
 export interface ReturnOrderDetailItem {

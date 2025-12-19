@@ -401,6 +401,7 @@ const OrderDetailTab: React.FC = () => {
       expectedDeliveryDate: orderData.expectedDeliveryDate,
       paymentStatus: orderData.paymentStatus,
       paymentMethod: orderData.method,
+      reasonCancel: orderData.reasonCancel,
     };
   }, [orderData, orderId, location.state?.order]);
 
@@ -575,6 +576,53 @@ const OrderDetailTab: React.FC = () => {
     }
   };
 
+  // Map cancel reason enum to Vietnamese (for customer view - using "Tôi" instead of "Khách hàng")
+  const getCancelReasonLabel = (reason?: string | null): string => {
+    if (!reason) return "Chưa có lý do";
+    switch (reason) {
+      case "CUSTOMER_CHANGE_MIND":
+        return "Tôi đổi ý";
+      case "CUSTOMER_NOT_WANT":
+        return "Tôi không muốn mua nữa";
+      case "CUSTOMER_NOT_RESPONDING":
+        return "Không liên lạc được";
+      case "CUSTOMER_REFUSED":
+        return "Từ chối nhận hàng";
+      case "CUSTOMER_FOUND_CHEAPER":
+        return "Tôi tìm được giá rẻ hơn";
+      case "CUSTOMER_WRONG_ORDER":
+        return "Tôi đặt nhầm đơn hàng";
+      case "CUSTOMER_ADDRESS_WRONG":
+        return "Tôi nhập sai địa chỉ";
+      case "CUSTOMER_NO_MONEY":
+        return "Tôi không đủ tiền";
+      case "CUSTOMER_DELAYED_DELIVERY":
+        return "Tôi không hài lòng về thời gian giao hàng";
+      case "CUSTOMER_PRODUCT_NOT_MATCH":
+        return "Sản phẩm không đúng như mô tả";
+      case "CUSTOMER_CANCEL_BEFORE_SHIP":
+        return "Tôi hủy trước khi giao hàng";
+      case "OUT_OF_STOCK":
+        return "Hết hàng";
+      case "PRICE_CHANGED":
+        return "Giá sản phẩm thay đổi";
+      case "DELIVERY_ISSUE":
+        return "Vấn đề giao hàng";
+      case "PAYMENT_FAILED":
+        return "Thanh toán thất bại";
+      case "DUPLICATE_ORDER":
+        return "Đơn hàng trùng lặp";
+      case "SYSTEM_ERROR":
+        return "Lỗi hệ thống";
+      case "SHOP_CANNOT_FULFILL":
+        return "Shop không thể thực hiện đơn hàng";
+      case "OTHER":
+        return "Lý do khác";
+      default:
+        return reason;
+    }
+  };
+
   // Handle payment button click
   const handlePayment = async () => {
     if (!order?.orderId) {
@@ -648,7 +696,7 @@ const OrderDetailTab: React.FC = () => {
     try {
       setIsCancellingOrder(true);
       setShowCancelConfirmDialog(false);
-      const response = await cancelOrder(order.orderId);
+      const response = await cancelOrder(order.orderId, cancelReason || undefined);
 
       toast.success("Hủy đơn hàng thành công", {
         description: response.message || "Đơn hàng của bạn đã được hủy.",
@@ -1269,6 +1317,24 @@ const OrderDetailTab: React.FC = () => {
                   </span>
                 </div>
               </div>
+              {/* Show cancel reason if order is canceled */}
+              {order.statusKey === "CANCELED" && order.reasonCancel && (
+                <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-sm font-semibold text-red-600 block mb-1">
+                      Lý do hủy đơn hàng
+                    </span>
+                    <span className="text-base font-semibold text-red-900">
+                      {getCancelReasonLabel(order.reasonCancel)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2070,13 +2136,16 @@ const OrderDetailTab: React.FC = () => {
                     }}
                     popupClassName="!z-[10001]"
                     options={[
-                      { value: "change-mind", label: "Thay đổi ý định" },
-                      { value: "wrong-product", label: "Đặt nhầm sản phẩm" },
-                      { value: "found-cheaper", label: "Tìm thấy sản phẩm rẻ hơn" },
-                      { value: "wrong-shipping-info", label: "Thông tin giao hàng sai" },
-                      { value: "delivery-too-slow", label: "Thời gian giao hàng quá lâu" },
-                      { value: "payment-issue", label: "Vấn đề thanh toán" },
-                      { value: "other", label: "Lý do khác" },
+                      { value: "CUSTOMER_CHANGE_MIND", label: "Tôi đổi ý" },
+                      { value: "CUSTOMER_NOT_WANT", label: "Tôi không muốn mua nữa" },
+                      { value: "CUSTOMER_FOUND_CHEAPER", label: "Tôi tìm được giá rẻ hơn" },
+                      { value: "CUSTOMER_WRONG_ORDER", label: "Tôi đặt nhầm đơn hàng" },
+                      { value: "CUSTOMER_ADDRESS_WRONG", label: "Tôi nhập sai địa chỉ" },
+                      { value: "CUSTOMER_NO_MONEY", label: "Tôi không đủ tiền" },
+                      { value: "CUSTOMER_DELAYED_DELIVERY", label: "Tôi không hài lòng về thời gian giao hàng" },
+                      { value: "CUSTOMER_PRODUCT_NOT_MATCH", label: "Sản phẩm không đúng như mô tả" },
+                      { value: "CUSTOMER_CANCEL_BEFORE_SHIP", label: "Tôi hủy trước khi giao hàng" },
+                      { value: "OTHER", label: "Lý do khác" },
                     ]}
                   />
                 </div>
@@ -2116,14 +2185,17 @@ const OrderDetailTab: React.FC = () => {
                 <br />
                 <br />
                 <strong>Lý do hủy:</strong> {
-                  cancelReason === "change-mind" ? "Thay đổi ý định" :
-                    cancelReason === "wrong-product" ? "Đặt nhầm sản phẩm" :
-                      cancelReason === "found-cheaper" ? "Tìm thấy sản phẩm rẻ hơn" :
-                        cancelReason === "wrong-shipping-info" ? "Thông tin giao hàng sai" :
-                          cancelReason === "delivery-too-slow" ? "Thời gian giao hàng quá lâu" :
-                            cancelReason === "payment-issue" ? "Vấn đề thanh toán" :
-                              cancelReason === "other" ? "Lý do khác" :
-                                "Chưa chọn lý do"
+                  cancelReason === "CUSTOMER_CHANGE_MIND" ? "Khách hàng đổi ý" :
+                    cancelReason === "CUSTOMER_NOT_WANT" ? "Khách hàng không muốn mua nữa" :
+                      cancelReason === "CUSTOMER_FOUND_CHEAPER" ? "Khách hàng tìm được giá rẻ hơn" :
+                        cancelReason === "CUSTOMER_WRONG_ORDER" ? "Khách hàng đặt nhầm đơn hàng" :
+                          cancelReason === "CUSTOMER_ADDRESS_WRONG" ? "Khách hàng nhập sai địa chỉ" :
+                            cancelReason === "CUSTOMER_NO_MONEY" ? "Khách hàng không đủ tiền" :
+                              cancelReason === "CUSTOMER_DELAYED_DELIVERY" ? "Khách hàng không hài lòng về thời gian giao hàng" :
+                                cancelReason === "CUSTOMER_PRODUCT_NOT_MATCH" ? "Sản phẩm không đúng như mô tả" :
+                                  cancelReason === "CUSTOMER_CANCEL_BEFORE_SHIP" ? "Khách hàng hủy trước khi giao hàng" :
+                                    cancelReason === "OTHER" ? "Lý do khác" :
+                                      "Chưa chọn lý do"
                 }
                 <br />
                 <br />

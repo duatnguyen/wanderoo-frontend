@@ -658,6 +658,7 @@ export interface CustomerOrderResponse extends OrderResponse {
   totalDiscountAmount?: number;
   orderDiscountAmount?: number;
   productDiscountAmount?: number;
+  reasonCancel?: string | null; // Lý do hủy đơn hàng
 }
 
 export interface CustomerOrderPageResponse {

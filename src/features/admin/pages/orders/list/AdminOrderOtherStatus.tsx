@@ -240,7 +240,7 @@ const AdminOrderOtherStatus = () => {
   }, [fetchReturnOrders]);
 
   const handleViewDetail = (order: ReturnOrderListItem) => {
-    navigate(`/admin/orders/otherstatus/${order.returnOrderCode || order.orderCode}`, {
+    navigate(`/admin/orders/otherstatus/${order.returnOrderCode}`, {
       state: {
         returnOrderId: order.id.toString(),
         returnTo: {
@@ -303,54 +303,43 @@ const AdminOrderOtherStatus = () => {
         return [];
       };
 
-      // Use returnOrderDetails if available, otherwise fallback to single product
+      // Use returnOrderDetails - required field with snapshot data
       const products = order.returnOrderDetails && order.returnOrderDetails.length > 0
         ? order.returnOrderDetails.map((detail) => {
             const variantAttrs = parseVariantAttributes(detail.snapshotVariantAttributes);
-            // Fallback to order.productVariant if no variant attributes in detail
-            const finalVariantAttributes = variantAttrs.length > 0 
-              ? variantAttrs 
-              : (order.productVariant ? [{
-                  groupName: "Phân loại",
-                  value: order.productVariant,
-                  groupLevel: 1,
-                }] : []);
 
             return {
               id: detail.id,
-              name: detail.snapshotProductName || order.productName || "Sản phẩm không tên",
+              name: detail.snapshotProductName || "Sản phẩm không tên",
               price: `${Number(detail.totalReturnPrice || detail.returnPrice || 0).toLocaleString("vi-VN")}₫`,
               unitPrice: detail.returnPrice || 0,
               quantity: detail.returnQuantity,
-              image: detail.snapshotProductImageUrl || order.productImage || "",
-              sku: detail.snapshotProductSku || order.orderCode,
-              variantAttributes: finalVariantAttributes,
+              image: detail.snapshotProductImageUrl || "",
+              sku: detail.snapshotProductSku || "",
+              variantAttributes: variantAttrs,
             };
           })
         : [{
             id: 1,
-            name: order.productName,
+            name: "Sản phẩm không tên",
             price: `${Number(order.totalAmount).toLocaleString("vi-VN")}₫`,
             unitPrice: order.totalAmount,
             quantity: 1,
-            image: order.productImage || "",
-            sku: order.orderCode,
-            variantAttributes: order.productVariant ? [{
-              groupName: "Phân loại",
-              value: order.productVariant,
-              groupLevel: 1,
-            }] : [],
+            image: "",
+            sku: "",
+            variantAttributes: [],
           }];
 
       const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
 
       return {
-        id: order.returnOrderCode || order.orderCode,
+        id: order.returnOrderCode,
+        returnOrderCode: order.returnOrderCode,
         customer: {
-          name: order.customerInfo?.name || order.customerName,
-          username: order.customerInfo?.username || order.customerUsername,
-          image: order.customerInfo?.image || order.productImage || "",
-          orderCode: order.orderCode,
+          name: order.userInfo?.name || "Khách hàng",
+          username: order.userInfo?.username || "",
+          image: order.userInfo?.image || "",
+          orderCode: "", // orderCode removed from response
         },
         products,
         paymentType: order.paymentMethod,
@@ -421,7 +410,7 @@ const AdminOrderOtherStatus = () => {
     _orderSource: string
   ) => {
     const order = paginatedOrders.find(o => 
-      o.returnOrderCode === orderId || o.orderCode === orderId
+      o.returnOrderCode === orderId
     );
     if (order) {
       handleViewDetail(order);

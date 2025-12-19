@@ -107,6 +107,7 @@ export interface OrderRowProps {
     totalAmount: number;
     shippingFee: number;
     orderCode?: string;
+    returnOrderCode?: string;
     itemsCount: number;
     date: string;
   };
@@ -175,7 +176,7 @@ export const OrderTableRow = ({
               </p>
             </div>
             <p className="font-montserrat font-medium text-[#1a71f6] text-[11px] leading-[1.4]">
-              Mã đơn: {order.customer.orderCode}
+              Mã đơn trả hàng: {order.returnOrderCode || order.customer.orderCode || order.id}
             </p>
             <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.4]">
               Đặt lúc: {order.date}
