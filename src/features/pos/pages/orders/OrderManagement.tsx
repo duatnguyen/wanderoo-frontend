@@ -103,6 +103,7 @@ const OrderManagement: React.FC = () => {
         })),
         totalAmount: orderDetailData.paymentSummary?.totalProductPrice || 0,
         discount: orderDetailData.paymentSummary?.orderDiscountAmount || 0,
+        productDiscountAmount: orderDetailData.paymentSummary?.productDiscountAmount || 0,
         finalAmount: orderDetailData.paymentSummary?.totalOrderPrice || 0,
         amountPaid: orderDetailData.paymentSummary?.cashReceived || 0,
         change: orderDetailData.paymentSummary?.change || 0,

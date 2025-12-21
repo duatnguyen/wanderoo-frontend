@@ -175,13 +175,13 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
                 {/* Original Unit price */}
                 <div className="box-border flex gap-[4px] items-center justify-center p-[10px] relative w-[100px] min-w-[100px]">
                   <div className="text-center">
-                    {item.discountAmount && item.discountAmount > 0 ? (
+                    {item.discountAmount && item.discountAmount > 0 && item.finalPrice && item.finalPrice < item.unitPrice ? (
                       <>
                         <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-black text-[12px] text-nowrap line-through">
                           {formatCurrency(item.unitPrice)}
                         </p>
                         <p className="font-montserrat font-medium leading-[1.4] relative shrink-0 text-red-600 text-[10px] text-nowrap mt-1">
-                          {formatCurrency(item.finalPrice ?? (item.unitPrice - item.discountAmount))}
+                          {formatCurrency(item.finalPrice)}
                         </p>
                       </>
                     ) : (
@@ -191,7 +191,7 @@ const AdminPaymentTable: React.FC<AdminPaymentTableProps> = ({
                     )}
                   </div>
                 </div>
-                {/* Discount Amount */}
+                {/* Discount Amount (tổng giảm giá) */}
                 <div className="box-border flex gap-[4px] items-center justify-center p-[10px] relative w-[90px] min-w-[90px]">
                   {item.discountAmount && item.discountAmount > 0 ? (
                     <div className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 border border-red-200 rounded text-xs font-medium text-red-600">

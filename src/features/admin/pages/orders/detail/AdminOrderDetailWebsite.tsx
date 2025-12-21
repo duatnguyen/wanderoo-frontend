@@ -628,11 +628,11 @@ const AdminOrderDetailWebsite: React.FC = () => {
               id: item.id,
               name: item.snapshotProductName || "Sản phẩm không tên",
               productImage: item.productImage,
-              unitPrice: item.snapshotProductPrice, // Giá gốc
-              discountAmount: item.snapshotDiscountAmount, // Số tiền được giảm
-              finalPrice: item.snapshotFinalPrice, // Giá cuối cùng sau giảm
+              unitPrice: item.snapshotProductPrice || 0, // Giá gốc per unit
+              discountAmount: item.snapshotDiscountAmount || 0, // Tổng số tiền giảm (đã nhân quantity)
+              finalPrice: item.snapshotProductFinalPrice || item.snapshotProductPrice || 0, // Giá sản phẩm sau giảm (per unit)
               quantity: item.quantity,
-              total: item.snapshotFinalPrice * item.quantity, // Thành tiền = giá cuối cùng * số lượng
+              total: item.snapshotFinalPrice || 0, // Tổng giá cuối (đã nhân quantity, không cần nhân lại)
               variantText: item.snapshotVariantAttributes && item.snapshotVariantAttributes.length > 0
                 ? item.snapshotVariantAttributes
                   .sort((a, b) => (a.groupLevel || 0) - (b.groupLevel || 0))

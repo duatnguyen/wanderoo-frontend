@@ -371,8 +371,10 @@ export interface SaleProductResponse {
   imageUrl?: string;
   productName: string;
   attributes?: string;
+  barcode?: string; // Barcode
   posSoldQuantity?: number | null;
-  sellingPrice?: number | null;
+  sellingPrice?: number | null; // Giá gốc
+  discountedPrice?: number | null; // Giá sau giảm (nếu có discount)
 }
 
 export type SaleProductListResponse = SaleProductResponse[];
@@ -402,7 +404,7 @@ export interface DiscountResponse {
   description?: string;
 }
 
-export interface DiscountPageResponse extends PageResponse<DiscountResponse> {}
+export interface DiscountPageResponse extends PageResponse<DiscountResponse> { }
 
 export interface DraftOrderResponse {
   id: number;
@@ -449,7 +451,7 @@ export interface SimpleInventoryItemResponse {
 }
 
 export interface SimpleInventoryPageResponse
-  extends PageResponse<SimpleInventoryItemResponse> {}
+  extends PageResponse<SimpleInventoryItemResponse> { }
 
 export interface ProviderResponse {
   id: number;
@@ -639,6 +641,28 @@ export interface CreateOrderResponse {
   totalOrderPrice: number;
 }
 
+// Order Detail Response (for orderDetails in CustomerOrderResponse)
+export interface OrderDetailItemResponse {
+  id: number;
+  orderId: number;
+  productDetailId: number;
+  productId?: number;
+  quantity: number;
+  snapshotProductName?: string;
+  snapshotProductSku?: string;
+  snapshotProductPrice?: number; // giá gốc per unit
+  snapshotDiscountAmount?: number; // tổng số tiền giảm (đã nhân quantity)
+  snapshotFinalPrice?: number; // tổng giá cuối (đã nhân quantity)
+  snapshotProductFinalPrice?: number; // giá sản phẩm sau khi giảm (per unit)
+  snapshotPackagedWeight?: number;
+  snapshotLength?: number;
+  snapshotWidth?: number;
+  snapshotHeight?: number;
+  snapshotVariantAttributes?: VariantAttributeSnapshot[];
+  productImage?: string;
+  barcode?: string;
+}
+
 export interface CustomerOrderResponse extends OrderResponse {
   userInfo: UserInfo;
   receiverName?: string | null;
@@ -659,6 +683,8 @@ export interface CustomerOrderResponse extends OrderResponse {
   orderDiscountAmount?: number;
   productDiscountAmount?: number;
   reasonCancel?: string | null; // Lý do hủy đơn hàng
+  orderDetails?: OrderDetailItemResponse[]; // Order details with snapshot data
+  shippingDetail?: GHNOrderDetailResponse; // Shipping detail from GHN
 }
 
 export interface CustomerOrderPageResponse {

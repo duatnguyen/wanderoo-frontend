@@ -463,21 +463,36 @@ const AdminOrders: React.FC = () => {
 
         // Format price with proper currency formatting
         // Support both snapshotProductPrice (from orderDetails) and price (from items)
-        const unitPrice = item.snapshotProductPrice || item.price || 0;
+        const unitPrice = item.snapshotProductPrice ?? item.price ?? undefined;
         const formattedPrice =
-          unitPrice > 0
+          unitPrice && unitPrice > 0
             ? `${Number(unitPrice).toLocaleString("vi-VN")}₫`
             : "0₫";
+
+        // Get discount amount and final price from snapshot
+        // Only set to number if value exists and > 0, otherwise keep as undefined
+        const discountAmount = (item.snapshotDiscountAmount && item.snapshotDiscountAmount > 0) 
+          ? Number(item.snapshotDiscountAmount) 
+          : undefined; // Tổng giá giảm (đã nhân quantity)
+        const finalPrice = (item.snapshotFinalPrice && item.snapshotFinalPrice > 0)
+          ? Number(item.snapshotFinalPrice)
+          : undefined; // Tổng đơn giá (đã nhân quantity)
+        const productFinalPrice = (item.snapshotProductFinalPrice && item.snapshotProductFinalPrice > 0)
+          ? Number(item.snapshotProductFinalPrice)
+          : ((item.snapshotProductPrice && item.snapshotProductPrice > 0) ? Number(item.snapshotProductPrice) : undefined); // Giá sau giảm per unit
 
         return {
           id: item.id || index,
           name: productName, // Clean product name without variant info
           price: formattedPrice,
-          unitPrice: Number(unitPrice), // Store numeric price for calculations
-          quantity: item.quantity || 0,
+          unitPrice: unitPrice && unitPrice > 0 ? Number(unitPrice) : undefined, // Giá gốc per unit (snapshotProductPrice)
+          productFinalPrice: productFinalPrice, // Giá sau giảm per unit (snapshotProductFinalPrice)
+          quantity: (item.quantity && item.quantity > 0) ? item.quantity : undefined,
           image: item.productImage || item.image || "", // Product image from API response
           sku: item.snapshotProductSku || item.sku || "",
           variantAttributes: variantAttributes,
+          discountAmount: discountAmount, // Tổng giá giảm
+          finalPrice: finalPrice, // Tổng đơn giá
         };
       }),
       paymentType:

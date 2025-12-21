@@ -43,9 +43,10 @@ export interface OrderDetailItemResponse {
   quantity: number;
   snapshotProductName: string;
   snapshotProductSku: string;
-  snapshotProductPrice: number;
-  snapshotDiscountAmount: number; // Số tiền được giảm
-  snapshotFinalPrice: number; // Giá cuối cùng sau giảm
+  snapshotProductPrice: number; // giá gốc per unit
+  snapshotDiscountAmount: number; // Tổng số tiền giảm (đã nhân quantity)
+  snapshotFinalPrice: number; // Tổng giá cuối (đã nhân quantity)
+  snapshotProductFinalPrice?: number; // Giá sản phẩm sau khi giảm (per unit)
   snapshotPackagedWeight?: number;
   snapshotLength?: number;
   snapshotWidth?: number;
@@ -53,6 +54,7 @@ export interface OrderDetailItemResponse {
   barcode?: string | null;
   productImage?: string; // Product image URL from ProductDetail
   snapshotVariantAttributes?: VariantAttribute[];
+  productId?: number; // Product ID for navigation
 }
 
 export interface CustomerOrderResponse extends OrderResponse {

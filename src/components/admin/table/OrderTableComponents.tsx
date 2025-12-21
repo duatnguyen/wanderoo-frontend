@@ -90,8 +90,9 @@ export interface OrderRowProps {
       id: number;
       name: string;
       price: string;
-      unitPrice?: number;
-      quantity: number;
+      unitPrice?: number; // Giá gốc per unit (snapshotProductPrice)
+      productFinalPrice?: number; // Giá sau giảm per unit (snapshotProductFinalPrice)
+      quantity?: number; // Số lượng (có thể undefined nếu null/0)
       image: string;
       sku?: string;
       variantAttributes?: Array<{
@@ -99,6 +100,8 @@ export interface OrderRowProps {
         value: string;
         groupLevel: number;
       }>;
+      discountAmount?: number; // Tổng giá giảm (snapshotDiscountAmount)
+      finalPrice?: number; // Tổng đơn giá (snapshotFinalPrice)
     }>;
     paymentType: string;
     status: string;
@@ -303,6 +306,31 @@ export const OrderTableRow = ({
                 <p className="font-montserrat font-semibold text-[#272424] text-[13px] leading-[1.4] line-clamp-2">
                   {product.name}
                 </p>
+                
+                {/* Giá gốc và giá sau giảm */}
+                {(product.unitPrice && product.unitPrice > 0) && (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {product.productFinalPrice && 
+                     product.productFinalPrice > 0 && 
+                     product.productFinalPrice < product.unitPrice ? (
+                      // Có discount: hiển thị giá gốc gạch ngang + giá sau giảm
+                      <>
+                        <span className="font-montserrat font-medium text-[#666] text-[11px] leading-[1.3] line-through">
+                          {product.unitPrice.toLocaleString("vi-VN")}₫
+                        </span>
+                        <span className="font-montserrat font-semibold text-red-600 text-[11px] leading-[1.3]">
+                          {product.productFinalPrice.toLocaleString("vi-VN")}₫
+                        </span>
+                      </>
+                    ) : (
+                      // Không có discount: chỉ hiển thị giá gốc màu đỏ (không gạch ngang)
+                      <span className="font-montserrat font-semibold text-red-600 text-[11px] leading-[1.3]">
+                        {product.unitPrice.toLocaleString("vi-VN")}₫
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {product.variantAttributes &&
                 product.variantAttributes.length > 0 ? (
                   <div className="flex flex-wrap gap-x-1.5 gap-y-1 mt-0.5">
@@ -338,33 +366,38 @@ export const OrderTableRow = ({
               </div>
             </div>
 
-            {/* Quantity and Price */}
-            <div className="flex items-center gap-[20px] min-w-[220px] justify-end">
-              <div className="text-center min-w-[60px]">
-                <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
-                  Số lượng
-                </p>
-                <p className="font-montserrat font-semibold text-[#272424] text-[13px] leading-[1.3]">
-                  x{product.quantity}
-                </p>
-              </div>
-              <div className="text-right min-w-[100px]">
-                <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
-                  Đơn giá
-                </p>
-                <p className="font-montserrat font-semibold text-[#e04d30] text-[13px] leading-[1.3]">
-                  {product.price}
-                </p>
-                {product.unitPrice && product.quantity > 0 && (
-                  <p className="font-montserrat font-medium text-[#666] text-[10px] leading-[1.3] mt-0.5">
-                    Tổng:{" "}
-                    {(
-                      (product.unitPrice || 0) * product.quantity
-                    ).toLocaleString("vi-VN")}
-                    ₫
+            {/* Quantity, Discount, and Final Price */}
+            <div className="flex items-center gap-[16px] min-w-[280px] justify-end">
+              {product.quantity && product.quantity > 0 && (
+                <div className="text-center min-w-[60px]">
+                  <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
+                    Số lượng
                   </p>
-                )}
-              </div>
+                  <p className="font-montserrat font-semibold text-[#272424] text-[13px] leading-[1.3]">
+                    x{product.quantity}
+                  </p>
+                </div>
+              )}
+              {product.discountAmount && product.discountAmount > 0 && (
+                <div className="text-right min-w-[90px]">
+                  <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
+                    Tổng giảm
+                  </p>
+                  <p className="font-montserrat font-semibold text-red-600 text-[12px] leading-[1.3]">
+                    -{product.discountAmount.toLocaleString("vi-VN")}₫
+                  </p>
+                </div>
+              )}
+              {product.finalPrice && product.finalPrice > 0 && (
+                <div className="text-right min-w-[100px]">
+                  <p className="font-montserrat font-medium text-[#888] text-[10px] leading-[1.3] mb-1">
+                    Tổng đơn giá
+                  </p>
+                  <p className="font-montserrat font-semibold text-[#e04d30] text-[13px] leading-[1.3]">
+                    {product.finalPrice.toLocaleString("vi-VN")}₫
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         ))}

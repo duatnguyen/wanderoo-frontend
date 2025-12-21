@@ -107,8 +107,28 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     }
 
     const keyword = searchValue?.trim() ?? "";
+    
+    // Nếu keyword rỗng, clear results ngay lập tức
+    if (!keyword) {
+      setProductResults([]);
+      setProductSearchError(null);
+      setIsSearchingProducts(false);
+      return;
+    }
+
+    // Chỉ search nếu keyword có ít nhất 1 ký tự (có thể tìm theo barcode)
+    // Nếu muốn tối ưu hơn, có thể tăng lên 2-3 ký tự
+    const MIN_KEYWORD_LENGTH = 1;
+    if (keyword.length < MIN_KEYWORD_LENGTH) {
+      setProductResults([]);
+      setProductSearchError(null);
+      setIsSearchingProducts(false);
+      return;
+    }
+
     const cacheKey = keyword.toLowerCase();
 
+    // Kiểm tra cache trước
     const cachedResults = productSearchCacheRef.current.get(cacheKey);
     if (cachedResults) {
       setProductResults(cachedResults);
@@ -117,20 +137,37 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
       return;
     }
 
+    // Tăng timeout lên 400ms để giảm số lần gọi API khi user gõ nhanh
+    const SEARCH_DEBOUNCE_MS = 400;
+    
     const currentSearchId = ++latestSearchIdRef.current;
     setIsSearchingProducts(true);
     setProductSearchError(null);
 
     const handler = window.setTimeout(async () => {
       try {
-        const results = await searchProducts(keyword || undefined);
+        // Kiểm tra lại keyword sau timeout (có thể đã thay đổi)
+        const currentKeyword = searchValue?.trim() ?? "";
+        if (!currentKeyword || currentKeyword.length < MIN_KEYWORD_LENGTH) {
+          if (currentSearchId === latestSearchIdRef.current) {
+            setProductResults([]);
+            setIsSearchingProducts(false);
+          }
+          return;
+        }
 
+        const results = await searchProducts(currentKeyword || undefined);
+
+        // Kiểm tra xem search này có còn hợp lệ không
         if (currentSearchId !== latestSearchIdRef.current) {
           return;
         }
 
-        productSearchCacheRef.current.set(cacheKey, results);
+        // Lưu vào cache
+        const finalCacheKey = currentKeyword.toLowerCase();
+        productSearchCacheRef.current.set(finalCacheKey, results);
         setProductResults(results);
+        setProductSearchError(null);
       } catch (error) {
         console.error("Không thể tìm sản phẩm:", error);
         if (currentSearchId === latestSearchIdRef.current) {
@@ -142,7 +179,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
           setIsSearchingProducts(false);
         }
       }
-    }, 250);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       clearTimeout(handler);
@@ -255,14 +292,44 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                         <p className="text-sm font-semibold text-[#272424] line-clamp-1">
                           {product.productName}
                         </p>
-                        <p className="text-sm font-bold text-[#272424] whitespace-nowrap">
-                          {formatCurrency(product.sellingPrice)}
-                        </p>
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          {product.discountedPrice != null &&
+                           product.sellingPrice != null &&
+                           product.discountedPrice < product.sellingPrice &&
+                           Math.abs(product.discountedPrice - product.sellingPrice) > 0.01 ? (
+                            <>
+                              <span className="text-sm text-gray-400 line-through">
+                                {formatCurrency(product.sellingPrice)}
+                              </span>
+                              <p className="text-sm font-bold text-[#e04d30]">
+                                {formatCurrency(product.discountedPrice)}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-sm font-bold text-[#272424]">
+                              {formatCurrency(product.sellingPrice)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center justify-between text-xs mt-1">
-                        <span className={`line-clamp-1 ${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
-                          {product.attributes || "—"}
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {product.barcode && (
+                            <span className={`font-medium ${isOutOfStock ? "text-gray-400" : "text-[#6F6F6F]"}`}>
+                              Barcode: {product.barcode}
+                            </span>
+                          )}
+                          {product.attributes && (
+                            <span className={`line-clamp-1 ${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
+                              {product.attributes}
+                            </span>
+                          )}
+                          {!product.barcode && !product.attributes && (
+                            <span className={`${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
+                              —
+                            </span>
+                          )}
+                        </div>
                         <span className={`font-medium whitespace-nowrap ${isOutOfStock ? "text-red-500" : "text-[#737373]"
                           }`}>
                           {isOutOfStock

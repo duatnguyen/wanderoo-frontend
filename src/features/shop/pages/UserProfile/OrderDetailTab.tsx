@@ -58,9 +58,10 @@ type ProductType = {
   id: string;
   imageUrl: string;
   name: string;
-  price: number; // snapshotFinalPrice - giá sau giảm
-  originalPrice: number; // snapshotProductPrice - giá gốc
-  discountAmount?: number; // snapshotDiscountAmount - số tiền giảm
+  price: number; // snapshotProductFinalPrice - giá sản phẩm sau giảm (per unit)
+  originalPrice: number; // snapshotProductPrice - giá gốc (per unit)
+  discountAmount?: number; // snapshotDiscountAmount - tổng số tiền giảm (đã nhân quantity)
+  finalPrice?: number; // snapshotFinalPrice - tổng giá cuối (đã nhân quantity)
   variant?: string;
   quantity: number;
   sku?: string;
@@ -339,13 +340,28 @@ const OrderDetailTab: React.FC = () => {
         imageUrl = getImageUrl(productImagePath) || FALLBACK_IMAGE;
       }
 
+      // Only set values if they exist and > 0, otherwise keep as undefined
+      const snapshotProductPrice = detail.snapshotProductPrice && detail.snapshotProductPrice > 0
+        ? detail.snapshotProductPrice
+        : undefined;
+      const snapshotProductFinalPrice = detail.snapshotProductFinalPrice && detail.snapshotProductFinalPrice > 0
+        ? detail.snapshotProductFinalPrice
+        : undefined;
+      const snapshotDiscountAmount = detail.snapshotDiscountAmount && detail.snapshotDiscountAmount > 0
+        ? detail.snapshotDiscountAmount
+        : undefined;
+      const snapshotFinalPrice = detail.snapshotFinalPrice && detail.snapshotFinalPrice > 0
+        ? detail.snapshotFinalPrice
+        : undefined;
+
       return {
         id: detail.id?.toString() || detail.productDetailId?.toString() || String(idx + 1),
         imageUrl,
         name: detail.snapshotProductName || "Sản phẩm không tên",
-        price: (detail.snapshotProductPrice || 0) - (detail.snapshotDiscountAmount || 0), // Tính giá cuối = giá gốc - giảm giá
-        originalPrice: detail.snapshotProductPrice || 0, // Giá gốc
-        discountAmount: detail.snapshotDiscountAmount || 0, // Số tiền giảm
+        price: snapshotProductFinalPrice ?? snapshotProductPrice, // Giá sản phẩm sau giảm (per unit), fallback về giá gốc nếu không có
+        originalPrice: snapshotProductPrice, // Giá gốc (per unit)
+        discountAmount: snapshotDiscountAmount, // Tổng số tiền giảm (đã nhân quantity)
+        finalPrice: snapshotFinalPrice, // Tổng giá cuối (đã nhân quantity)
         variant: detail.snapshotVariantAttributes
           ?.map((attr: any) => {
             // Format as "name: value" for better clarity
@@ -384,15 +400,16 @@ const OrderDetailTab: React.FC = () => {
         notes: orderData.notes || "-",
       },
       payment: {
-        productQuantity: products.reduce((sum, p) => sum + p.quantity, 0),
-        subtotal: orderData.totalProductPrice || 0,
-        // Individual discount amounts from backend
-        orderDiscount: orderData.orderDiscountAmount || 0,
-        productDiscount: orderData.productDiscountAmount || 0,
-        totalDiscount: orderData.totalDiscountAmount || 0,
-        shipping: orderData.shippingFee || 0,
-        total: orderData.totalOrderPrice || 0,
-        hasDiscount: (orderData.totalDiscountAmount && orderData.totalDiscountAmount > 0),
+        productQuantity: products.reduce((sum, p) => sum + (p.quantity || 0), 0),
+        // Set values if they exist (including 0.0), otherwise keep as undefined
+        // Note: Float values like 0.0 are valid and should be preserved
+        subtotal: (orderData.totalProductPrice !== null && orderData.totalProductPrice !== undefined) ? orderData.totalProductPrice : undefined,
+        orderDiscount: (orderData.orderDiscountAmount !== null && orderData.orderDiscountAmount !== undefined) ? orderData.orderDiscountAmount : undefined,
+        productDiscount: (orderData.productDiscountAmount !== null && orderData.productDiscountAmount !== undefined) ? orderData.productDiscountAmount : undefined,
+        totalDiscount: (orderData.totalDiscountAmount !== null && orderData.totalDiscountAmount !== undefined) ? orderData.totalDiscountAmount : undefined,
+        shipping: (orderData.shippingFee !== null && orderData.shippingFee !== undefined) ? orderData.shippingFee : undefined,
+        total: (orderData.totalOrderPrice !== null && orderData.totalOrderPrice !== undefined) ? orderData.totalOrderPrice : undefined,
+        hasDiscount: (orderData.totalDiscountAmount !== null && orderData.totalDiscountAmount !== undefined && orderData.totalDiscountAmount > 0),
       },
       shippingStatus: orderData.shippingStatus,
       shippingDetail: orderData.shippingDetail,
@@ -875,7 +892,7 @@ const OrderDetailTab: React.FC = () => {
     return null;
   }
 
-  const totalPayment = order.payment.total;
+  const totalPayment = order.payment.total && order.payment.total > 0 ? order.payment.total : 0;
   const orderStatusTimelineSteps = getOrderStatusTimelineSteps();
   const shippingTimelineSteps = getShippingTimelineSteps();
   const shippingTimelineText = getShippingTimelineText();
@@ -956,43 +973,64 @@ const OrderDetailTab: React.FC = () => {
                   {product.name}
                 </h3>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* 1. Giá gốc */}
-                  {product.originalPrice && product.originalPrice > 0 && (
-                    <span key="original" className="text-sm text-gray-500 line-through">
-                      {formatCurrencyVND(product.originalPrice)}
-                    </span>
-                  )}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  {/* Bên trái: Giá gốc, Giá đã giảm, Biến thể */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Có discount: hiển thị giá gốc gạch ngang + giá sau giảm */}
+                    {product.originalPrice && product.originalPrice > 0 && product.price && product.price > 0 && product.price < product.originalPrice && (
+                      <>
+                        <span key="original" className="text-sm text-gray-500 line-through">
+                          {formatCurrencyVND(product.originalPrice)}
+                        </span>
+                        <span key="price" className="text-sm font-bold text-red-600">
+                          {formatCurrencyVND(product.price)}
+                        </span>
+                      </>
+                    )}
 
-                  {/* 2. Giá sau giảm */}
-                  {product.price > 0 && (
-                    <span key="price" className="text-sm font-bold text-green-600 bg-green-50 px-2.5 py-0.5 rounded border border-green-200">
-                      {formatCurrencyVND(product.price)}
-                    </span>
-                  )}
-
-                  {/* 3. Số tiền giảm (nếu có) */}
-                  {product.discountAmount && product.discountAmount > 0 && (
-                    <span key="discount" className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded font-medium">
-                      -{formatCurrencyVND(product.discountAmount)}
-                    </span>
-                  )}
-
-                  {/* 4. Biến thể */}
-                  {product.variant && (
-                    <div key="variant" className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-blue-50 border border-blue-100 text-blue-700">
-                      <span className="text-xs font-medium">
-                        {product.variant}
+                    {/* Không có discount: chỉ hiển thị giá gốc màu đỏ (không gạch ngang) */}
+                    {product.originalPrice && product.originalPrice > 0 && (!product.price || product.price >= product.originalPrice) && (
+                      <span key="no-discount-price" className="text-sm font-bold text-red-600">
+                        {formatCurrencyVND(product.originalPrice)}
                       </span>
-                    </div>
-                  )}
+                    )}
 
-                  {/* 5. Số lượng */}
-                  {product.quantity > 0 && (
-                    <span className="text-sm text-gray-600 font-medium">
-                      x{product.quantity}
-                    </span>
-                  )}
+                    {/* 3. Biến thể */}
+                    {product.variant && (
+                      <div key="variant" className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-blue-50 border border-blue-100 text-blue-700">
+                        <span className="text-xs font-medium">
+                          {product.variant}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bên phải: Số lượng, Tổng tiền giảm, Tổng tiền */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {/* Số lượng */}
+                    {product.quantity && product.quantity > 0 && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500">Số lượng:</span>
+                        <span className="text-gray-700 font-medium">{product.quantity}</span>
+                      </div>
+                    )}
+
+                    {/* Tổng tiền giảm */}
+                    {product.discountAmount && product.discountAmount > 0 && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500">Tổng tiền giảm:</span>
+                        <span className="text-red-600 font-medium">-{formatCurrencyVND(product.discountAmount)}</span>
+                      </div>
+                    )}
+
+                    {/* Tổng tiền (giá cuối) */}
+                    {product.finalPrice && product.finalPrice > 0 && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500">Tổng tiền:</span>
+                        <span className="text-red-600 font-semibold">{formatCurrencyVND(product.finalPrice)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {product.sku && (
@@ -1348,75 +1386,91 @@ const OrderDetailTab: React.FC = () => {
 
             {/* Payment Sub-section */}
             <div>
-              <h3 className="text-base font-semibold text-gray-800 mb-4">
-                Thông tin thanh toán
-              </h3>
               <div className="space-y-4">
                 {/* Payment calculation breakdown */}
-                {order.payment.hasDiscount && (
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <div className="text-sm font-semibold text-gray-700 mb-3">Chi tiết tính toán giá</div>
-                    <div className="space-y-2 text-sm">
-                      {/* Bước 1: Tổng tiền gốc */}
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">1. Tổng tiền hàng (chưa giảm giá):</span>
-                        <span className="font-medium">{formatCurrencyVND(order.payment.subtotal)}</span>
+                {/* Chỉ hiển thị khi có ít nhất một discount > 0 hoặc có subtotal/shipping > 0 */}
+                {((order.payment.productDiscount && order.payment.productDiscount > 0) ||
+                  (order.payment.orderDiscount && order.payment.orderDiscount > 0) ||
+                  (order.payment.subtotal && order.payment.subtotal > 0) ||
+                  (order.payment.shipping && order.payment.shipping > 0)) && (
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div className="text-sm font-semibold text-gray-700 mb-3">Chi tiết tính toán giá</div>
+                      <div className="space-y-2 text-sm">
+                        {/* Bước 1: Tổng tiền gốc */}
+                        {order.payment.subtotal && order.payment.subtotal > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">1. Tổng tiền hàng (chưa giảm giá):</span>
+                            <span className="font-medium">{formatCurrencyVND(order.payment.subtotal)}</span>
+                          </div>
+                        )}
+
+                        {/* Bước 2: Giảm giá sản phẩm - chỉ hiển thị khi > 0 */}
+                        {order.payment.productDiscount &&
+                          typeof order.payment.productDiscount === 'number' &&
+                          order.payment.productDiscount > 0 && (
+                            <div className="flex justify-between text-red-600">
+                              <span className="pl-2">2. Trừ giảm giá sản phẩm:</span>
+                              <span className="font-medium">-{formatCurrencyVND(order.payment.productDiscount)}</span>
+                            </div>
+                          )}
+
+                        {/* Bước 3: Giảm giá đơn hàng - chỉ hiển thị khi > 0 */}
+                        {order.payment.orderDiscount &&
+                          typeof order.payment.orderDiscount === 'number' &&
+                          order.payment.orderDiscount > 0 && (
+                            <div className="flex justify-between text-orange-600">
+                              <span className="pl-2">3. Trừ giảm giá đơn hàng (voucher):</span>
+                              <span className="font-medium">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
+                            </div>
+                          )}
+
+                        {/* Tiền sau giảm giá - chỉ hiển thị khi có discount thực sự */}
+                        {order.payment.subtotal &&
+                          order.payment.subtotal > 0 &&
+                          order.payment.totalDiscount &&
+                          typeof order.payment.totalDiscount === 'number' &&
+                          order.payment.totalDiscount > 0 && (
+                            <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded">
+                              <span className="font-medium">= Tiền sau giảm giá:</span>
+                              <span className="font-semibold">{formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}</span>
+                            </div>
+                          )}
+
+                        {/* Bước 4: Phí ship - chỉ hiển thị khi > 0 */}
+                        {order.payment.shipping &&
+                          typeof order.payment.shipping === 'number' &&
+                          order.payment.shipping > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">4. Cộng phí vận chuyển:</span>
+                              <span className="font-medium">+{formatCurrencyVND(order.payment.shipping)}</span>
+                            </div>
+                          )}
+
+
                       </div>
-
-                      {/* Bước 2: Giảm giá sản phẩm */}
-                      {order.payment.productDiscount > 0 && (
-                        <div className="flex justify-between text-red-600">
-                          <span className="pl-2">2. Trừ giảm giá sản phẩm:</span>
-                          <span className="font-medium">-{formatCurrencyVND(order.payment.productDiscount)}</span>
-                        </div>
-                      )}
-
-                      {/* Bước 3: Giảm giá đơn hàng */}
-                      {order.payment.orderDiscount > 0 && (
-                        <div className="flex justify-between text-orange-600">
-                          <span className="pl-2">3. Trừ giảm giá đơn hàng (voucher):</span>
-                          <span className="font-medium">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
-                        </div>
-                      )}
-
-                      {/* Tiền sau giảm giá */}
-                      <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded">
-                        <span className="font-medium">= Tiền sau giảm giá:</span>
-                        <span className="font-semibold">{formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}</span>
-                      </div>
-
-                      {/* Bước 4: Phí ship */}
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">4. Cộng phí vận chuyển:</span>
-                        <span className="font-medium">+{formatCurrencyVND(order.payment.shipping)}</span>
-                      </div>
-
-                      {/* Kết quả cuối */}
-                      <div className="border-t border-gray-300 pt-2 mt-3">
-                        <div className="flex justify-between font-semibold text-blue-700">
-                          <span>= Tổng cuối cùng phải trả:</span>
-                          <span className="text-lg">{formatCurrencyVND(totalPayment)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-blue-600 p-3 rounded-lg text-white">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium opacity-90">
-                      Tổng số tiền
-                    </span>
-                    <span className="text-xl font-bold">
-                      {formatCurrencyVND(totalPayment)}
-                    </span>
-                  </div>
-                  {order.payment.hasDiscount && (
-                    <div className="text-xs opacity-80 mt-1">
-                      Đã bao gồm giảm giá {formatCurrencyVND(order.payment.totalDiscount)}
                     </div>
                   )}
-                </div>
+
+                {totalPayment > 0 && (
+                  <div className="bg-blue-600 p-3 rounded-lg text-white">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium opacity-90">
+                        Tổng số tiền
+                      </span>
+                      <span className="text-xl font-bold">
+                        {formatCurrencyVND(totalPayment)}
+                      </span>
+                    </div>
+                    {order.payment.hasDiscount &&
+                      order.payment.totalDiscount !== null &&
+                      order.payment.totalDiscount !== undefined &&
+                      typeof order.payment.totalDiscount === 'number' && (
+                        <div className="text-xs opacity-80 mt-1">
+                          Đã bao gồm giảm giá {formatCurrencyVND(order.payment.totalDiscount)}
+                        </div>
+                      )}
+                  </div>
+                )}
                 <div className="space-y-3 bg-gray-50 p-3 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="flex items-center gap-2 text-gray-700">

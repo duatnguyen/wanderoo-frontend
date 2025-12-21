@@ -188,8 +188,10 @@ const POSPage: React.FC = () => {
     return () => clearTimeout(handler);
   }, [draftOrderId, noteValue, noteSyncedValue]);
 
+  // Convert order items to products - giữ nguyên thứ tự từ backend, không sort
   const products: POSProduct[] = useMemo(() => {
     if (!orderDetail) return [];
+    // Giữ nguyên thứ tự items từ backend (theo thời gian thêm vào)
     return orderDetail.items.map((item) => {
       // BE luôn trả:
       // - unitPrice: giá gốc
@@ -206,7 +208,7 @@ const POSPage: React.FC = () => {
         Math.abs(discountedPrice - originalPrice) > 0.01;
 
       // Process image URL - convert relative paths to full URLs
-      const processedImageUrl = item.imageUrl 
+      const processedImageUrl = item.imageUrl
         ? (getImageUrl(item.imageUrl) || item.imageUrl)
         : undefined;
 
@@ -456,10 +458,10 @@ const POSPage: React.FC = () => {
         } else {
           // Thêm sản phẩm mới với dữ liệu tạm
           // Process image URL for optimistic update
-          const processedImageUrl = product.imageUrl 
+          const processedImageUrl = product.imageUrl
             ? (getImageUrl(product.imageUrl) || product.imageUrl)
             : undefined;
-          
+
           const tempItem: DraftOrderItemResponse = {
             id: tempItemId, // Sử dụng số âm làm temp ID
             productName: product.name,

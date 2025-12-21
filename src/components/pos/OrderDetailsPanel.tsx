@@ -10,7 +10,8 @@ export type OrderDetails = {
   createdAt: string;
   products: POSProduct[];
   totalAmount: number;
-  discount: number;
+  discount: number; // Order discount (voucher)
+  productDiscountAmount?: number; // Tổng tiền sản phẩm được giảm (snapshot_discount_amount)
   finalAmount: number;
   amountPaid: number;
   change: number;
@@ -88,8 +89,8 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
                 >
                   Trả hàng
                 </Button>
-                <Button 
-                  onClick={onPrintInvoice} 
+                <Button
+                  onClick={onPrintInvoice}
                   className="px-6 py-2 bg-[#e04d30] hover:bg-[#d04327] text-white"
                 >
                   <Printer className="w-4 h-4 mr-2" />
@@ -131,78 +132,78 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
 
             return (
               <div key={product.id} className="flex items-center hover:bg-gray-50 h-[100px]">
-              <div className="flex-1 px-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100">
-                    {product.image ? (
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center p-1.5">
-                        {product.sku ? (
-                          <span className="text-[10px] font-medium text-gray-600 text-center leading-tight whitespace-pre-line">
-                            {product.sku.length > 8 
-                              ? `${product.sku.substring(0, 8)}\n${product.sku.substring(8)}`
-                              : product.sku}
+                <div className="flex-1 px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-16 h-16 rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100">
+                      {product.image ? (
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center p-1.5">
+                          {product.sku ? (
+                            <span className="text-[10px] font-medium text-gray-600 text-center leading-tight whitespace-pre-line">
+                              {product.sku.length > 8
+                                ? `${product.sku.substring(0, 8)}\n${product.sku.substring(8)}`
+                                : product.sku}
+                            </span>
+                          ) : (
+                            <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#272424] line-clamp-2">
+                        {product.name}
+                      </p>
+                      {(product.category || product.variant) && (
+                        <p className="text-xs text-[#737373] mt-1">
+                          Phân loại hàng:{" "}
+                          <span className="text-[#272424]">
+                            {product.variant || product.category}
                           </span>
-                        ) : (
-                          <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#272424] line-clamp-2">
-                      {product.name}
-                    </p>
-                    {(product.category || product.variant) && (
-                      <p className="text-xs text-[#737373] mt-1">
-                        Phân loại hàng:{" "}
-                        <span className="text-[#272424]">
-                          {product.variant || product.category}
-                        </span>
-                      </p>
-                    )}
-                    {product.sku && (
-                      <p className="text-xs text-[#737373] mt-1">
-                        SKU: <span className="text-[#272424]">{product.sku}</span>
-                      </p>
-                    )}
+                        </p>
+                      )}
+                      {product.sku && (
+                        <p className="text-xs text-[#737373] mt-1">
+                          SKU: <span className="text-[#272424]">{product.sku}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="w-32 px-6 text-center">
-                {shouldShowDiscount ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-sm text-gray-400 line-through">
-                      {formatCurrency(product.originalPrice ?? 0)}
-                    </span>
-                    <span className="text-sm text-[#272424] font-semibold">
+                <div className="w-32 px-6 text-center">
+                  {shouldShowDiscount ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-sm text-gray-400 line-through">
+                        {formatCurrency(product.originalPrice ?? 0)}
+                      </span>
+                      <span className="text-sm text-[#272424] font-semibold">
+                        {formatCurrency(product.price)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-[#272424] font-medium">
                       {formatCurrency(product.price)}
                     </span>
-                  </div>
-                ) : (
+                  )}
+                </div>
+                <div className="w-28 px-6 text-center">
                   <span className="text-sm text-[#272424] font-medium">
-                    {formatCurrency(product.price)}
+                    {product.quantity}
                   </span>
-                )}
+                </div>
+                <div className="w-36 px-6 text-right">
+                  <span className="text-sm font-bold text-[#272424]">
+                    {formatCurrency(lineTotal)}
+                  </span>
+                </div>
               </div>
-              <div className="w-28 px-6 text-center">
-                <span className="text-sm text-[#272424] font-medium">
-                  {product.quantity}
-                </span>
-              </div>
-              <div className="w-36 px-6 text-right">
-                <span className="text-sm font-bold text-[#272424]">
-                  {formatCurrency(lineTotal)}
-                </span>
-              </div>
-            </div>
             );
           })}
         </div>
