@@ -35,7 +35,10 @@ interface ReturnRefundDetailData {
   statusMessage: string;
   products: ProductType[];
   refundAmount: number;
-  bankInfo: string;
+  refundedStatus?: string;
+  refundedStatusLabel?: string;
+  refundMethod?: string;
+  refundMethodLabel?: string;
   returnOrderCode?: string;
   reason: string;
   description: string;
@@ -65,94 +68,59 @@ const ReturnRefundDetail: React.FC = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Map return order status to Vietnamese label
-  // Backend status values: UNDER_REVIEW, APPROVED, REJECTED, RETURNING, RECEIVED, REFUNDED, CANCELLED, COMPLETED, PENDING
-  const mapReturnOrderStatus = (status?: string | null): { label: string; message: string } => {
-    if (!status) {
-      return { label: "Đang xử lý", message: "Yêu cầu đang được xử lý" };
+  // Helper function to generate status message based on status label
+  // This is a fallback if API doesn't provide status message
+  const getStatusMessage = (statusLabel?: string, statusKey?: string): string => {
+    if (!statusLabel) {
+      return "Yêu cầu đang được xử lý";
     }
-    const normalized = status.toUpperCase();
-    const statusMap: Record<string, { label: string; message: string }> = {
-      "UNDER_REVIEW": {
-        label: "Yêu cầu đang được xem xét",
-        message: "Shop đang xem xét yêu cầu trả hàng & hoàn tiền của bạn",
-      },
-      "PENDING": {
-        label: "Yêu cầu đang được xem xét",
-        message: "Shop đang xem xét yêu cầu trả hàng & hoàn tiền của bạn",
-      },
-      "APPROVED": {
-        label: "Chấp nhận yêu cầu",
-        message: "Yêu cầu của bạn đã được chấp nhận",
-      },
-      "REJECTED": {
-        label: "Từ chối yêu cầu",
-        message: "Yêu cầu của bạn đã bị từ chối",
-      },
-      "RETURNING": {
-        label: "Đang trả hàng",
-        message: "Đơn hàng đang được hoàn trả",
-      },
-      "RECEIVED": {
-        label: "Đã nhận hàng hoàn",
-        message: "Shop đã nhận được hàng hoàn",
-      },
-      "REFUNDED": {
-        label: "Đã hoàn tiền",
-        message: "Tiền đã được hoàn trả",
-      },
-      "COMPLETED": {
-        label: "Hoàn thành",
-        message: "Yêu cầu trả hàng đã hoàn thành",
-      },
-      "CANCELLED": {
-        label: "Đã hủy",
-        message: "Yêu cầu đã được hủy",
-      },
-    };
-    return statusMap[normalized] || { label: "Đang xử lý", message: "Yêu cầu đang được xử lý" };
-  };
-
-  // Map return reason value to Vietnamese label
-  // Backend returns enum name (e.g., "DEFECTIVE", "EMPTY_PACKAGE") which we normalize to lowercase with dashes
-  const mapReturnReason = (reason?: string | null): string => {
-    if (!reason) {
-      return "Không có lý do";
+    const normalizedStatus = (statusKey || "").toUpperCase();
+    
+    // Generate appropriate message based on status
+    if (normalizedStatus === "CANCELLED") {
+      return "Yêu cầu đã được hủy";
     }
-    // Normalize: "DEFECTIVE" -> "defective", "EMPTY_PACKAGE" -> "empty-package"
-    const normalized = reason.toLowerCase().replace(/_/g, '-');
-    const reasonMap: Record<string, string> = {
-      "empty-package": "Thùng hàng rỗng",
-      "not-received": "Chưa nhận được hàng",
-      "broken": "Bể vỡ",
-      "wrong-model": "Sai mẫu",
-      "defective": "Hàng lỗi",
-      "different-description": "Khác mô tả",
-      "wrong-size": "Không đúng kích thước",
-      "wrong-color": "Không đúng màu sắc",
-      "not-fit": "Không vừa",
-      "expired": "Hàng hết hạn",
-      "damaged": "Hàng bị hư hỏng",
-      "missing-parts": "Thiếu phụ kiện",
-      "other": "Lý do khác",
-    };
-    // If not found in map, return the original reason (shouldn't happen if backend is correct)
-    return reasonMap[normalized] || reason || "Không có lý do";
+    if (statusLabel.includes("xem xét") || statusLabel.includes("chờ")) {
+      return "Shop đang xem xét yêu cầu trả hàng & hoàn tiền của bạn";
+    }
+    if (statusLabel.includes("chấp nhận")) {
+      return "Yêu cầu của bạn đã được chấp nhận";
+    }
+    if (statusLabel.includes("từ chối")) {
+      return "Yêu cầu của bạn đã bị từ chối";
+    }
+    if (statusLabel.includes("trả hàng")) {
+      return "Đơn hàng đang được hoàn trả";
+    }
+    if (statusLabel.includes("nhận hàng")) {
+      return "Shop đã nhận được hàng hoàn";
+    }
+    if (statusLabel.includes("hoàn tiền")) {
+      return "Tiền đã được hoàn trả";
+    }
+    if (statusLabel.includes("hoàn thành")) {
+      return "Yêu cầu trả hàng đã hoàn thành";
+    }
+    
+    return `Trạng thái: ${statusLabel}`;
   };
 
   // Map return order data to component format
   const data = useMemo<ReturnRefundDetailData | null>(() => {
     if (!returnOrderData) return null;
 
-    const statusInfo = mapReturnOrderStatus(returnOrderData.status);
+    // Use statusLabel from API
+    const statusLabel = returnOrderData.statusLabel || "Đang xử lý";
+    const statusMessage = getStatusMessage(statusLabel, returnOrderData.statusKey || returnOrderData.status);
+
     const createdDate = returnOrderData.createdDate
       ? new Date(returnOrderData.createdDate).toLocaleString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        })
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
       : "";
 
     // Map return order details to products
@@ -198,32 +166,36 @@ const ReturnRefundDetail: React.FC = () => {
 
     // Build status steps based on current status
     // Backend status flow: UNDER_REVIEW -> APPROVED -> RETURNING -> RECEIVED -> REFUNDED/COMPLETED
+    // For CANCELLED status, only show reviewing step as completed
+    const currentStatus = (returnOrderData.statusKey || returnOrderData.status)?.toUpperCase() || "";
+    const isCancelledStatus = currentStatus === "CANCELLED";
+
     const statusSteps: ReturnRefundStatus[] = [
       {
         id: "reviewing",
         label: "Yêu cầu đang được xem xét",
-        completed: ["UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED", "CANCELLED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: ["UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED", "CANCELLED"].includes(currentStatus),
         date: createdDate,
       },
       {
         id: "accepted",
         label: "Chấp nhận yêu cầu",
-        completed: ["APPROVED", "REJECTED", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: !isCancelledStatus && ["APPROVED", "REJECTED", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
       },
       {
         id: "returning",
         label: "Trả hàng",
-        completed: ["RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: !isCancelledStatus && ["RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
       },
       {
         id: "checking",
         label: "Kiểm tra hàng hoàn",
-        completed: ["RECEIVED", "REFUNDED", "COMPLETED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: !isCancelledStatus && ["RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
       },
       {
         id: "refunded",
         label: "Đã hoàn tiền",
-        completed: ["REFUNDED", "COMPLETED"].includes(returnOrderData.status?.toUpperCase() || ""),
+        completed: !isCancelledStatus && ["REFUNDED", "COMPLETED"].includes(currentStatus),
       },
     ];
 
@@ -233,20 +205,22 @@ const ReturnRefundDetail: React.FC = () => {
       return getImageUrl(img) || img;
     }).filter((img) => img !== "");
 
-    // Map reason to Vietnamese label
-    const rawReason = returnOrderData.returnReason || (returnOrderData as any).reason || "";
-    const mappedReason = mapReturnReason(rawReason);
+    // Use returnReasonLabel from API, fallback to returnReason if not available
+    const reasonLabel = returnOrderData.returnReasonLabel || returnOrderData.returnReason || "Không có lý do";
 
     return {
       orderId: returnOrderData.orderId?.toString() || "",
       requestDate: createdDate,
-      status: statusInfo.label,
-      statusMessage: statusInfo.message,
+      status: statusLabel,
+      statusMessage: statusMessage,
       products: products.length > 0 ? products : [],
       refundAmount: returnOrderData.totalRefundedAmount || returnOrderData.totalReturnAmount || 0,
-      bankInfo: "Thông tin ngân hàng sẽ được cập nhật", // TODO: Get from user profile or order
+      refundedStatus: returnOrderData.refundedStatus,
+      refundedStatusLabel: returnOrderData.refundedStatusLabel,
+      refundMethod: returnOrderData.refundMethod,
+      refundMethodLabel: returnOrderData.refundMethodLabel,
       returnOrderCode: returnOrderData.code,
-      reason: mappedReason,
+      reason: reasonLabel,
       description: returnOrderData.returnReasonNote || "", // Lấy từ returnReasonNote (return_reason_note)
       images: processedImages,
       statusSteps,
@@ -255,7 +229,12 @@ const ReturnRefundDetail: React.FC = () => {
 
   // Use data from API only, no fallback to mock data
   const displayData = data;
-  const [isCancelled, setIsCancelled] = useState(false);
+
+  // Check if order is cancelled from API status, or from user action
+  const currentStatus = returnOrderData?.statusKey || returnOrderData?.status || "";
+  const isCancelledFromApi = currentStatus.toUpperCase() === "CANCELLED";
+  const [isCancelledByUser, setIsCancelledByUser] = useState(false);
+  const isCancelled = isCancelledFromApi || isCancelledByUser;
 
   // Handle cancel return order
   const handleCancelReturnOrder = async () => {
@@ -266,8 +245,10 @@ const ReturnRefundDetail: React.FC = () => {
 
     try {
       await customerReturnOrderApi.cancelReturnOrder(requestId);
-      setIsCancelled(true);
+      setIsCancelledByUser(true);
       toast.success("Hủy yêu cầu trả hàng thành công");
+      // Refetch data to get updated status
+      window.location.reload();
     } catch (error: any) {
       console.error("Error canceling return order:", error);
       toast.error(error?.message || "Không thể hủy yêu cầu trả hàng");
@@ -279,23 +260,26 @@ const ReturnRefundDetail: React.FC = () => {
     if (!displayData) {
       return [];
     }
-    
-    if (!isCancelled) {
-      return displayData.statusSteps;
+
+    // If cancelled, show only reviewing step as completed + cancelled step
+    if (isCancelled) {
+      return [
+        {
+          id: "reviewing",
+          label: "Yêu cầu đang được xem xét",
+          completed: true,
+          date: displayData.requestDate,
+        },
+        {
+          id: "cancelled",
+          label: "Yêu cầu đã được hủy",
+          completed: true,
+        },
+      ];
     }
 
-    return [
-      ...displayData.statusSteps.map((step) => ({
-        ...step,
-        completed: step.id === "reviewing",
-      })),
-      {
-        id: "cancelled",
-        label: "Yêu cầu đã được hủy",
-        completed: true,
-      },
-    ];
-  }, [displayData?.statusSteps, isCancelled]);
+    return displayData.statusSteps;
+  }, [displayData?.statusSteps, displayData?.requestDate, isCancelled]);
 
   // Loading state
   if (isLoading) {
@@ -536,10 +520,18 @@ const ReturnRefundDetail: React.FC = () => {
                 {formatCurrencyVND(displayData.refundAmount)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[14px] text-gray-700">Hoàn tiền vào</span>
-              <span className="text-[14px] text-gray-900">{displayData.bankInfo}</span>
-            </div>
+            {displayData.refundedStatusLabel && (
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-gray-700">Trạng thái hoàn tiền</span>
+                <span className="text-[14px] text-gray-900">{displayData.refundedStatusLabel}</span>
+              </div>
+            )}
+            {displayData.refundMethodLabel && (
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-gray-700">Phương thức hoàn tiền</span>
+                <span className="text-[14px] text-gray-900">{displayData.refundMethodLabel}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -548,7 +540,7 @@ const ReturnRefundDetail: React.FC = () => {
           <h2 className="text-[18px] font-bold text-gray-900 mb-4">
             Lý do trả hàng
           </h2>
-          
+
           {/* Loại lý do (enum reason) */}
           {displayData.reason && displayData.reason !== "Không có lý do" && (
             <div className="mb-4">
@@ -560,7 +552,7 @@ const ReturnRefundDetail: React.FC = () => {
               </div>
             </div>
           )}
-          
+
           {/* Lý do chi tiết (notes) */}
           <div className="mb-4">
             <div className="text-[14px] font-semibold text-gray-700 mb-2">
@@ -570,7 +562,7 @@ const ReturnRefundDetail: React.FC = () => {
               {displayData.description || "Không có mô tả chi tiết"}
             </p>
           </div>
-          
+
           {/* Images */}
           {displayData.images && displayData.images.length > 0 && (
             <div className="mt-4">

@@ -9,7 +9,9 @@ export function filterOrders(
 ): Order[] {
   return orders.filter((order) => {
     // Filter by status
-    if (activeTab !== "all" && order.status !== activeTab) {
+    // For "return" tab, show all return orders (including cancelled ones)
+    // Backend already filters return orders, so we don't need to filter by status here
+    if (activeTab !== "all" && activeTab !== "return" && order.status !== activeTab) {
       return false;
     }
 

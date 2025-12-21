@@ -14,11 +14,16 @@ interface ApiReturnOrderResponse {
   orderId: number;
   userId: number;
   picId?: number;
-  status: string;
-  returnReason?: string;
+  status: string; // Raw status from DB
+  statusKey?: string; // Mapped status key (UNDER_REVIEW, RETURNING, COMPLETED, INVALID)
+  statusLabel?: string; // Mapped status label in Vietnamese
+  returnReason?: string; // Raw return reason enum name
+  returnReasonLabel?: string; // Mapped return reason description in Vietnamese
   returnReasonNote?: string;
   notes?: string;
-  returnType?: string;
+  returnType?: string; // Raw return type from DB
+  returnTypeLabel?: string; // Mapped return type label in Vietnamese
+  category?: string; // Mapped category (RETURN, CANCEL, FAILED)
   totalProductAmount?: number;
   shippingFee?: number;
   totalRefundedAmount?: number;
@@ -26,6 +31,12 @@ interface ApiReturnOrderResponse {
   createdDate?: string;
   updatedDate?: string;
   images?: string[];
+  receiverName?: string; // From orders.receiver_name
+  receiverPhone?: string; // From orders.receiver_phone
+  receiverAddress?: string; // From orders.receiver_address
+  forwardShippingStatus?: string; // From orders.shipping_status
+  shippingOrderCode?: string; // From orders.shipping_order_code
+  shippingProvider?: string; // From orders.shipping_provider
   returnOrderDetails?: Array<{
     id: number;
     returnOrderId: number;
@@ -59,6 +70,9 @@ interface ReturnOrder {
   id: string;
   orderCode: string;
   createdAt: string;
+  receiverName?: string; // From orders.receiver_name
+  receiverPhone?: string; // From orders.receiver_phone
+  receiverAddress?: string; // From orders.receiver_address
   customerId: string;
   customerName: string;
   customerUsername: string;
@@ -67,17 +81,23 @@ interface ReturnOrder {
   productImage?: string;
   totalAmount: number;
   paymentMethod: string;
-  reason: string;
+  reason: string; // Keep for backward compatibility
+  returnReason?: string; // Raw enum name
+  returnReasonLabel?: string; // Mapped return reason description in Vietnamese
+  returnReasonNote?: string; // Lý do chi tiết (return_reason_note)
   buyerOptions: string[];
   statusLabel: string;
   statusKey: ReturnOrderStatus;
   resolutionNote: string;
   forwardShippingStatus: string;
   returnShippingStatus: string;
+  shippingOrderCode?: string; // From orders.shipping_order_code
+  shippingProvider?: string; // From orders.shipping_provider
   refundStatus: RefundStatus;
   refundStatusLabel: string;
   source: "Website" | "POS";
   category: ReturnOrderCategory;
+  returnTypeLabel?: string; // Mapped return type label in Vietnamese
   sourceNote?: string;
   images?: string[]; // Images array from JSON
 }
@@ -164,16 +184,17 @@ const mapRefundStatus = (status?: string): RefundStatus => {
   return "WAITING";
 };
 
+
 // Map API ReturnOrderResponseDTO to component ReturnOrder format
 const mapApiResponseToReturnOrder = (apiResponse: ApiReturnOrderResponse): ReturnOrder => {
   const firstDetail = apiResponse.returnOrderDetails?.[0];
-  
+
   // Parse variant attributes
   let productVariant: string | undefined;
   if (firstDetail?.snapshotVariantAttributes) {
     try {
-      const attrs = typeof firstDetail.snapshotVariantAttributes === 'string' 
-        ? JSON.parse(firstDetail.snapshotVariantAttributes) 
+      const attrs = typeof firstDetail.snapshotVariantAttributes === 'string'
+        ? JSON.parse(firstDetail.snapshotVariantAttributes)
         : firstDetail.snapshotVariantAttributes;
       if (Array.isArray(attrs)) {
         productVariant = attrs.map((attr: any) => {
@@ -188,7 +209,8 @@ const mapApiResponseToReturnOrder = (apiResponse: ApiReturnOrderResponse): Retur
     }
   }
 
-  const statusKey = mapStatusToStatusKey(apiResponse.status);
+  // Use mapped values from backend
+  const statusKey = (apiResponse.statusKey || mapStatusToStatusKey(apiResponse.status)) as ReturnOrderStatus;
   const refundStatus = mapRefundStatus(apiResponse.status);
 
   return {
@@ -198,22 +220,31 @@ const mapApiResponseToReturnOrder = (apiResponse: ApiReturnOrderResponse): Retur
     customerId: apiResponse.userId?.toString() || "",
     customerName: "", // Will need to fetch from order if needed
     customerUsername: "", // Will need to fetch from order if needed
+    receiverName: apiResponse.receiverName || "", // From orders.receiver_name
+    receiverPhone: apiResponse.receiverPhone || "", // From orders.receiver_phone
+    receiverAddress: apiResponse.receiverAddress || "", // From orders.receiver_address
     productName: firstDetail?.snapshotProductName || "Sản phẩm không tên",
     productVariant,
     productImage: firstDetail?.snapshotProductImageUrl ? getImageUrl(firstDetail.snapshotProductImageUrl) : undefined,
     totalAmount: apiResponse.totalReturnAmount || apiResponse.totalProductAmount || 0,
     paymentMethod: "BANKING", // Default, would need to get from order
-    reason: apiResponse.returnReasonNote || "",
+    reason: apiResponse.returnReasonNote || "", // Keep for backward compatibility
+    returnReason: apiResponse.returnReason || "", // Raw enum name
+    returnReasonLabel: apiResponse.returnReasonLabel || "", // Mapped from backend
+    returnReasonNote: apiResponse.returnReasonNote || "", // Lý do chi tiết
     buyerOptions: ["Trả hàng & hoàn tiền"], // Default
-    statusLabel: mapStatusToLabel(apiResponse.status),
+    statusLabel: apiResponse.statusLabel || mapStatusToLabel(apiResponse.status), // Use mapped from backend, fallback to frontend map
     statusKey,
     resolutionNote: apiResponse.notes || "",
-    forwardShippingStatus: "Đã giao hàng", // Default
-    returnShippingStatus: statusKey === "RETURNING" ? "Đang vận chuyển" : statusKey === "COMPLETED" ? "Hoàn thành" : "Chưa có",
+    returnTypeLabel: apiResponse.returnTypeLabel || "", // Mapped from backend
+    forwardShippingStatus: apiResponse.forwardShippingStatus || "", // From orders.shipping_status
+    returnShippingStatus: "", // Will be set from backend if available
+    shippingOrderCode: apiResponse.shippingOrderCode, // From orders.shipping_order_code
+    shippingProvider: apiResponse.shippingProvider, // From orders.shipping_provider
     refundStatus,
     refundStatusLabel: refundStatus === "WAITING" ? "Chờ hoàn tiền" : refundStatus === "PARTIAL" ? "Hoàn tiền 1 phần" : "Đã hoàn tiền",
     source: "Website", // Default, would need to get from order
-    category: mapReturnTypeToCategory(apiResponse.returnType),
+    category: (apiResponse.category || mapReturnTypeToCategory(apiResponse.returnType)) as ReturnOrderCategory, // Use mapped from backend, fallback to frontend map
     sourceNote: undefined,
     images: apiResponse.images?.map(img => getImageUrl(img)).filter((img): img is string => Boolean(img)) || [],
   };
@@ -261,7 +292,12 @@ const AdminOrderOtherStatusDetail = () => {
   const order = useMemo(() => {
     // Prefer API data, fallback to state data
     if (apiResponse) {
-      return mapApiResponseToReturnOrder(apiResponse);
+      const mappedOrder = mapApiResponseToReturnOrder(apiResponse);
+      // returnShippingStatus will be set from backend if available
+      if (!mappedOrder.returnShippingStatus) {
+        mappedOrder.returnShippingStatus = "Chưa có thông tin";
+      }
+      return mappedOrder;
     }
     return orderFromState;
   }, [apiResponse, orderFromState]);
@@ -353,7 +389,7 @@ const AdminOrderOtherStatusDetail = () => {
             {isError ? "Không thể tải thông tin đơn trả hàng" : "Không tìm thấy yêu cầu"}
           </p>
           <p className="text-[13px] text-[#737373] max-w-[480px]">
-            {isError 
+            {isError
               ? (error instanceof Error ? error.message : "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.")
               : "Vui lòng quay lại danh sách đơn trạng thái khác và chọn lại yêu cầu."}
           </p>
@@ -435,7 +471,7 @@ const AdminOrderOtherStatusDetail = () => {
                     Loại yêu cầu
                   </p>
                   <p className="font-montserrat font-bold text-purple-800 text-[18px] leading-[1.2] truncate">
-                    {order.category === "RETURN" ? "Trả hàng" : order.category === "CANCEL" ? "Hủy đơn" : "Giao thất bại"}
+                    {order.returnTypeLabel || (order.category === "RETURN" ? "Trả hàng" : order.category === "CANCEL" ? "Hủy đơn" : "Giao thất bại")}
                   </p>
                 </div>
               </div>
@@ -640,7 +676,7 @@ const AdminOrderOtherStatusDetail = () => {
                         </span>
                       </div>
                       <span className="font-montserrat font-semibold text-sm text-red-600">
-                        {order.category === "RETURN" ? "Trả hàng" : order.category === "CANCEL" ? "Hủy đơn" : "Giao thất bại"}
+                        {order.returnTypeLabel || (order.category === "RETURN" ? "Trả hàng" : order.category === "CANCEL" ? "Hủy đơn" : "Giao thất bại")}
                       </span>
                     </div>
                   </div>
@@ -657,7 +693,8 @@ const AdminOrderOtherStatusDetail = () => {
                 </div>
               </div>
             </div>
-          </div>          {/* Return Request Info Section */}
+          </div>
+          {/* Return Request Info Section */}
           <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0 mb-6">
             {/* Header */}
             <div className="flex items-center gap-[8px] w-full">
@@ -674,11 +711,16 @@ const AdminOrderOtherStatusDetail = () => {
               </div>
               <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
                 <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
-                  Khách hàng: {order.customerName}
+                  Tên người nhận: {order.receiverName || "Chưa có thông tin"}
                 </p>
                 <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
-                  ID: {order.customerId} • Username: {order.customerUsername}
+                  Số điện thoại: {order.receiverPhone || "Chưa có thông tin"}
                 </p>
+                {order.receiverAddress && (
+                  <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
+                    Địa chỉ: {order.receiverAddress}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -706,9 +748,23 @@ const AdminOrderOtherStatusDetail = () => {
                 <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
                   Lý do trả hàng
                 </p>
-                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
-                  {order.reason}
-                </p>
+                {order.returnReason && (
+                  <p className="font-montserrat font-semibold text-[13px] text-[#272424] leading-[1.4]">
+                    Lý do chính: <span className="font-medium text-[#856404]">
+                      {order.returnReasonLabel || order.returnReason}
+                    </span>
+                  </p>
+                )}
+                {order.returnReasonNote && (
+                  <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
+                    Chi tiết: {order.returnReasonNote}
+                  </p>
+                )}
+                {!order.returnReason && !order.returnReasonNote && (
+                  <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
+                    {order.reason || "Chưa có thông tin"}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -735,41 +791,45 @@ const AdminOrderOtherStatusDetail = () => {
                     Hình ảnh đính kèm
                   </p>
                   <div className="flex flex-wrap gap-[8px] w-full">
-                    {order.images.map((imageUrl, index) => (
-                      <div
-                        key={index}
-                        className="relative group cursor-pointer"
-                        onClick={() => {
-                          // Open image in new tab or modal
-                          window.open(imageUrl, "_blank");
-                        }}
-                      >
-                        <img
-                          src={imageUrl || "https://via.placeholder.com/100"}
-                          alt={`Hình ảnh minh chứng ${index + 1}`}
-                          className="w-[100px] h-[100px] rounded-[8px] border-2 border-[#e7e7e7] object-cover hover:border-[#1976d2] transition-all duration-200 hover:shadow-md"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "https://via.placeholder.com/100";
+                    {order.images.map((imageUrl, index) => {
+                      const fullImageUrl = imageUrl ? getImageUrl(imageUrl) : "https://via.placeholder.com/100";
+                      return (
+                        <div
+                          key={index}
+                          className="relative group cursor-pointer"
+                          onClick={() => {
+                            // Open image in new tab or modal
+                            window.open(fullImageUrl, "_blank");
                           }}
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-[8px] transition-all duration-200 flex items-center justify-center">
-                          <svg
-                            className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                            />
-                          </svg>
+                        >
+                          <img
+                            src={fullImageUrl}
+                            alt={`Hình ảnh minh chứng ${index + 1}`}
+                            className="w-[100px] h-[100px] rounded-[8px] border-2 border-[#e7e7e7] object-cover hover:border-[#1976d2] transition-all duration-200 hover:shadow-md"
+                            loading="eager"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                "https://via.placeholder.com/100";
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-[8px] transition-all duration-200 flex items-center justify-center">
+                            <svg
+                              className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                              />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -785,7 +845,7 @@ const AdminOrderOtherStatusDetail = () => {
                   Ghi chú xử lý
                 </p>
                 <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
-                  {order.resolutionNote}
+                  {order.resolutionNote || "Không có thông tin"}
                 </p>
               </div>
             </div>
@@ -810,11 +870,20 @@ const AdminOrderOtherStatusDetail = () => {
                   Trạng thái giao hàng
                 </p>
                 <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
-                  {order.forwardShippingStatus}
+                  {order.forwardShippingStatus || "Chưa có thông tin"}
                 </p>
-                <p className="font-montserrat font-medium text-[11px] text-[#6c757d] leading-[1.4]">
-                  {order.sourceNote || "Thông tin vận chuyển đang cập nhật"}
-                </p>
+                {(order.shippingOrderCode || order.shippingProvider) && (
+                  <p className="font-montserrat font-medium text-[11px] text-[#6c757d] leading-[1.4]">
+                    {order.shippingOrderCode && `Mã vận đơn: ${order.shippingOrderCode}`}
+                    {order.shippingOrderCode && order.shippingProvider && " • "}
+                    {order.shippingProvider && `Đơn vị: ${order.shippingProvider}`}
+                  </p>
+                )}
+                {!order.shippingOrderCode && !order.shippingProvider && (
+                  <p className="font-montserrat font-medium text-[11px] text-[#6c757d] leading-[1.4]">
+                    {order.sourceNote || "Thông tin vận chuyển đang cập nhật"}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -828,7 +897,9 @@ const AdminOrderOtherStatusDetail = () => {
                   Trạng thái trả hàng
                 </p>
                 <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
-                  {order.returnShippingStatus}
+                  {order?.returnShippingStatus && order.returnShippingStatus.trim() !== ""
+                    ? order.returnShippingStatus
+                    : "Chưa có thông tin"}
                 </p>
               </div>
             </div>

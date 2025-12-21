@@ -32,7 +32,6 @@ import { toast } from "sonner";
 import type {
   CheckoutItem,
   AddressOption,
-  EditFormState,
   PaymentMethod,
   AddressFormData,
 } from "../../../../types/checkout";
@@ -40,10 +39,12 @@ import {
   PAYMENT_METHODS,
   SHIPPING_CONFIG,
 } from "../../../../types/checkout";
-import { parseRegion } from "../../../../utils/addressUtils";
 import { useShippingCalculation } from "../../../../hooks/useShippingCalculation";
 import { useAddressManagement } from "../../../../hooks/useAddressManagement";
 import { useDiscountCalculation } from "../../../../hooks/useDiscountCalculation";
+import AddressForm from "../../../../components/ui/address-form";
+import { getUserAddresses, updateAddress, setDefaultAddress } from "../../../../api/endpoints/userApi";
+import type { AddressResponse } from "../../../../types/auth";
 
 
 
@@ -62,7 +63,6 @@ const CheckoutPage: React.FC = () => {
     setSelectedAddressId,
     fetchAddresses,
     createAddress,
-    updateExistingAddress,
     removeAddress,
   } = useAddressManagement();
 
@@ -84,15 +84,7 @@ const CheckoutPage: React.FC = () => {
   const [pendingAddressId, setPendingAddressId] = useState<number>(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<AddressOption | null>(null);
-  const [editForm, setEditForm] = useState<EditFormState>({
-    name: "",
-    phone: "",
-    province: "",
-    district: "",
-    ward: "",
-    setAsDefault: false,
-    detailAddress: "",
-  });
+  const [editingAddressDetail, setEditingAddressDetail] = useState<AddressResponse | null>(null);
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null);
   const [isPaymentMethodModalOpen, setIsPaymentMethodModalOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod["id"]>(PAYMENT_METHODS[0].id);
@@ -359,20 +351,27 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
+  // Fetch address detail when editing
   useEffect(() => {
-    if (editingAddress) {
-      const { province, district, ward } = parseRegion(editingAddress.region);
+    const fetchAddressDetail = async () => {
+      if (editingAddress) {
+        try {
+          const addressResponse = await getUserAddresses();
+          const addressDetail = addressResponse.addresses?.find(
+            (addr: AddressResponse) => addr.id === editingAddress.id
+          );
+          if (addressDetail) {
+            setEditingAddressDetail(addressDetail);
+          }
+        } catch (error) {
+          console.error("Error fetching address detail:", error);
+        }
+      } else {
+        setEditingAddressDetail(null);
+      }
+    };
 
-      setEditForm({
-        name: editingAddress.name,
-        phone: editingAddress.phone,
-        province,
-        district,
-        ward,
-        setAsDefault: false,
-        detailAddress: editingAddress.detailAddress,
-      });
-    }
+    fetchAddressDetail();
   }, [editingAddress]);
 
   // Calculate shipping fee when selected address or cart data changes
@@ -674,48 +673,61 @@ const CheckoutPage: React.FC = () => {
   const handleCloseEditModal = (reopenList = false) => {
     setIsEditModalOpen(false);
     setEditingAddress(null);
+    setEditingAddressDetail(null);
     if (reopenList) {
       setIsAddressModalOpen(true);
     }
   };
 
-  const handleChangeEditForm = (
-    field: keyof EditFormState,
-    value: string | boolean
-  ) => {
-    setEditForm((prev) => {
-      if (field === "province") {
-        return { ...prev, province: value as string, district: "", ward: "" };
-      }
+  const handleAddressFormSubmit = async (formData: {
+    fullName: string;
+    phone: string;
+    province: string;
+    provinceId?: number;
+    district: string;
+    districtId?: number;
+    ward: string;
+    wardCode?: string;
+    detailAddress: string;
+    isDefault: boolean;
+  }) => {
+    if (!editingAddress || !editingAddressDetail) return;
 
-      if (field === "district") {
-        return { ...prev, district: value as string, ward: "" };
-      }
-
-      if (field === "setAsDefault") {
-        return { ...prev, setAsDefault: Boolean(value) };
-      }
-
-      return {
-        ...prev,
-        [field]: value,
-      } as EditFormState;
-    });
-  };
-
-  // Note: Location options are now managed through API calls in address modals
-
-  // Note: refreshAddresses is now handled by the useAddressManagement hook
-
-  const handleSaveEditAddress = async () => {
-    if (!editingAddress) return;
+    if (!formData.districtId || !formData.wardCode) {
+      toast.error("Vui lòng chọn đầy đủ tỉnh/thành, quận/huyện và phường/xã");
+      return;
+    }
 
     try {
-      await updateExistingAddress(editingAddress, editForm, editForm.setAsDefault);
+      // Create update request similar to AdminShipping
+      const updateData = {
+        id: editingAddress.id,
+        name: formData.fullName.trim(),
+        phone: formData.phone.trim().replace(/\D/g, "").slice(0, 13),
+        street: formData.detailAddress.trim(),
+        wardCode: formData.wardCode,
+        wardName: formData.ward.trim(),
+        districtId: formData.districtId,
+        districtName: formData.district.trim(),
+        provinceName: formData.province.trim(),
+        fullAddress: `${formData.detailAddress.trim()}, ${formData.ward.trim()}, ${formData.district.trim()}, ${formData.province.trim()}`,
+      };
+
+      // Use updateAddress from userApi
+      await updateAddress(updateData);
+
+      if (formData.isDefault && !editingAddress.isDefault) {
+        await setDefaultAddress(editingAddress.id);
+      }
+
+      await fetchAddresses();
       handleCloseEditModal(false);
+      toast.success("Đã cập nhật địa chỉ");
     } catch (err: any) {
       console.error("Error updating address:", err);
-      setError(err?.response?.data?.message || "Không thể cập nhật địa chỉ");
+      const errorMessage = err?.response?.data?.message || "Không thể cập nhật địa chỉ";
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -1407,187 +1419,32 @@ const CheckoutPage: React.FC = () => {
       )}
 
       {/* Address Edit Modal */}
-      {isEditModalOpen && editingAddress && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => handleCloseEditModal()}
-          />
-          <div className="relative w-full max-w-[520px] bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Cập nhật địa chỉ
-              </h3>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-600 mb-2">Họ và tên</label>
-                  <input
-                    type="text"
-                    value={editForm.name}
-                    onChange={(e) =>
-                      handleChangeEditForm("name", e.target.value)
-                    }
-                    className="w-full h-11 border border-gray-300 rounded-lg px-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-600 mb-2">
-                    Số điện thoại
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.phone}
-                    onChange={(e) =>
-                      handleChangeEditForm("phone", e.target.value)
-                    }
-                    className="w-full h-11 border border-gray-300 rounded-lg px-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30]"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
-                  <label className="block text-gray-600 mb-2">
-                    Tỉnh/Thành phố
-                  </label>
-                  <select
-                    value={editForm.province}
-                    onChange={(e) =>
-                      handleChangeEditForm("province", e.target.value)
-                    }
-                    className="w-full h-11 border border-gray-300 rounded-lg pr-10 pl-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30] appearance-none bg-white"
-                  >
-                    <option value="">Chọn Tỉnh/Thành phố</option>
-                    {/* Province options would be loaded from API */}
-                  </select>
-                  <span className="pointer-events-none absolute bottom-3 right-3 flex h-5 w-5 items-center justify-center text-gray-400">
-                    <svg
-                      className="w-4 h-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                      />
-                    </svg>
-                  </span>
-                </div>
-                <div className="relative">
-                  <label className="block text-gray-600 mb-2">Quận/Huyện</label>
-                  <select
-                    value={editForm.district}
-                    onChange={(e) =>
-                      handleChangeEditForm("district", e.target.value)
-                    }
-                    className="w-full h-11 border border-gray-300 rounded-lg pr-10 pl-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30] appearance-none bg-white disabled:bg-gray-100"
-                    disabled={!editForm.province}
-                  >
-                    <option value="">Chọn Quận/Huyện</option>
-                    {/* District options would be loaded from API */}
-                  </select>
-                  <span className="pointer-events-none absolute bottom-3 right-3 flex h-5 w-5 items-center justify-center text-gray-400">
-                    <svg
-                      className="w-4 h-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                      />
-                    </svg>
-                  </span>
-                </div>
-                <div className="relative">
-                  <label className="block text-gray-600 mb-2">Phường/Xã</label>
-                  <select
-                    value={editForm.ward}
-                    onChange={(e) =>
-                      handleChangeEditForm("ward", e.target.value)
-                    }
-                    className="w-full h-11 border border-gray-300 rounded-lg pr-10 pl-3 text-[14px] text-gray-900 focus:outline-none focus:border-[#E04D30] appearance-none bg-white disabled:bg-gray-100"
-                    disabled={!editForm.district}
-                  >
-                    <option value="">Chọn Phường/Xã</option>
-                    {/* Ward options would be loaded from API */}
-                  </select>
-                  <span className="pointer-events-none absolute bottom-3 right-3 flex h-5 w-5 items-center justify-center text-gray-400">
-                    <svg
-                      className="w-4 h-4"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        clipRule="evenodd"
-                        d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                      />
-                    </svg>
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-gray-600 mb-2">
-                  Địa chỉ cụ thể
-                </label>
-                <textarea
-                  value={editForm.detailAddress}
-                  onChange={(e) =>
-                    handleChangeEditForm("detailAddress", e.target.value)
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[14px] text-gray-900 h-20 resize-none focus:outline-none focus:border-[#E04D30]"
-                />
-              </div>
-              {!editingAddress.isDefault && (
-                <div className="flex items-center gap-2 -mt-1">
-                  <input
-                    type="checkbox"
-                    id="set-default-address"
-                    checked={editForm.setAsDefault}
-                    onChange={(e) =>
-                      handleChangeEditForm("setAsDefault", e.target.checked)
-                    }
-                    className={`h-4 w-4 rounded border ${editForm.setAsDefault ? "border-[#E04D30] bg-[#E04D30]" : "border-gray-300 bg-white"} appearance-none flex items-center justify-center focus:outline-none focus:ring-0`}
-                    style={{
-                      backgroundImage: editForm.setAsDefault
-                        ? "url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22 fill=%22white%22%3E%3Cpath d=%22M12.78 4.22a.75.75 0 010 1.06l-5.25 5.25a.75.75 0 01-1.06 0L3.22 7.28a.75.75 0 011.06-1.06L6.97 8.91l4.72-4.69a.75.75 0 011.09 0z%22/%3E%3C/svg%3E')"
-                        : "none",
-                      backgroundSize: "0.75rem",
-                      backgroundPosition: "center",
-                      backgroundRepeat: "no-repeat",
-                    }}
-                  />
-                  <label
-                    htmlFor="set-default-address"
-                    className="text-[14px] text-gray-700 select-none cursor-pointer"
-                  >
-                    Đặt làm địa chỉ mặc định
-                  </label>
-                </div>
-              )}
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-3">
-              <button
-                onClick={() => handleCloseEditModal(true)}
-                className="px-4 py-2 text-[14px] text-gray-700 font-medium hover:text-gray-900 transition-colors"
-              >
-                Trở lại
-              </button>
-              <Button
-                variant="primary"
-                onClick={handleSaveEditAddress}
-                className="px-6"
-              >
-                Hoàn thành
-              </Button>
-            </div>
+      {isEditModalOpen && editingAddress && editingAddressDetail && (
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 px-[16px] sm:px-4">
+          <div className="relative w-full max-w-[530px] mx-auto">
+            <AddressForm
+              title="Cập nhật địa chỉ"
+              initialData={{
+                fullName: editingAddressDetail.receiverName || editingAddressDetail.name || editingAddress.name || "",
+                phone: editingAddressDetail.receiverPhone || editingAddressDetail.phone || editingAddress.phone || "",
+                province: editingAddressDetail.provinceName || "",
+                district: editingAddressDetail.districtName || "",
+                ward: editingAddressDetail.wardName || "",
+                detailAddress: editingAddressDetail.street || editingAddress.detailAddress || "",
+                districtId: editingAddressDetail.districtId ?? undefined,
+                wardCode: editingAddressDetail.wardCode ?? undefined,
+                isDefault: editingAddress.isDefault || false,
+              }}
+              onSubmit={handleAddressFormSubmit}
+              onCancel={() => handleCloseEditModal(true)}
+              totalAddresses={addresses.length}
+              isEditingDefaultOnly={addresses.length === 1 && editingAddress !== null}
+              isEditingDefault={
+                editingAddress !== null &&
+                addresses.length > 1 &&
+                editingAddress.isDefault
+              }
+            />
           </div>
         </div>
       )}

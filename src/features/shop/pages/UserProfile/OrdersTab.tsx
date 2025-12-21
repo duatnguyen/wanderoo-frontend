@@ -168,38 +168,27 @@ const mapCustomerOrderToOrder = (
   };
 };
 
-// Map return order status to frontend status
-const mapReturnOrderStatus = (status?: string | null): { status: OrderStatus; label: string } => {
-  if (!status) {
-    return { status: "return", label: "Đang xử lý" };
-  }
-  const normalized = status.toUpperCase();
-  const statusMap: Record<string, { status: OrderStatus; label: string }> = {
-    "UNDER_REVIEW": { status: "return", label: "Yêu cầu đang được xem xét" },
-    "APPROVED": { status: "return", label: "Chấp nhận yêu cầu" },
-    "REJECTED": { status: "return", label: "Từ chối yêu cầu" },
-    "RETURNING": { status: "return", label: "Đang trả hàng" },
-    "RETURNED": { status: "return", label: "Đã trả hàng" },
-    "RECEIVED": { status: "return", label: "Đã nhận hàng hoàn" },
-    "REFUNDED": { status: "return", label: "Đã hoàn tiền" },
-    "CANCELLED": { status: "cancelled", label: "Đã hủy" },
-  };
-  return statusMap[normalized] || { status: "return", label: "Đang xử lý" };
-};
-
 // Map return order to Order format
 const mapReturnOrderToOrder = (returnOrder: ReturnOrderResponse): Order | null => {
   if (!returnOrder) return null;
-  const { status, label } = mapReturnOrderStatus(returnOrder.status);
-  
+
+  // Use statusLabel from API, fallback to "Đang xử lý" if not available
+  const statusLabel = returnOrder.statusLabel || "Đang xử lý";
+
+  // Determine OrderStatus based on status key or status value
+  // For return orders, always use "return" status (even if cancelled)
+  // This ensures correct navigation to return-refund detail page
+  // The statusLabel from API will show "Đã hủy" for cancelled orders
+  let orderStatus: OrderStatus = "return";
+
   // Map return order details to products
   const products: OrderProduct[] = (returnOrder.returnOrderDetails || []).map((detail, index) => {
     // Parse variant attributes if available
     let variant: string | undefined;
     if (detail.snapshotVariantAttributes) {
       try {
-        const attrs = typeof detail.snapshotVariantAttributes === 'string' 
-          ? JSON.parse(detail.snapshotVariantAttributes) 
+        const attrs = typeof detail.snapshotVariantAttributes === 'string'
+          ? JSON.parse(detail.snapshotVariantAttributes)
           : detail.snapshotVariantAttributes;
         if (Array.isArray(attrs)) {
           variant = attrs.map((attr: any) => {
@@ -234,8 +223,8 @@ const mapReturnOrderToOrder = (returnOrder: ReturnOrderResponse): Order | null =
   return {
     id: returnOrder.code || returnOrder.id?.toString() || "",
     orderDate: formatOrderDate(returnOrder.createdDate) || "",
-    status,
-    statusLabel: label,
+    status: orderStatus,
+    statusLabel: statusLabel,
     products: products.length > 0 ? products : [{
       id: `${returnOrder.id}-placeholder`,
       imageUrl: FALLBACK_IMAGE,

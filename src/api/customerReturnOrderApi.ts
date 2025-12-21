@@ -33,10 +33,14 @@ export interface ReturnOrderResponse {
   userId: number;
   picId?: number;
   status: string;
+  statusKey?: string;
+  statusLabel?: string;
   returnReason?: string;
+  returnReasonLabel?: string;
   returnReasonNote?: string;
   notes?: string;
   returnType?: string;
+  returnTypeLabel?: string;
   totalProductAmount?: number;
   shippingFee?: number;
   totalRefundedAmount?: number;
@@ -44,6 +48,10 @@ export interface ReturnOrderResponse {
   createdDate: string;
   updatedDate?: string;
   images?: string[];
+  refundMethod?: string;
+  refundMethodLabel?: string;
+  refundedStatus?: string;
+  refundedStatusLabel?: string;
   returnOrderDetails?: ReturnOrderDetailResponse[];
 }
 
@@ -80,7 +88,7 @@ export interface ReturnOrderPageResponse {
 }
 
 class CustomerReturnOrderApi {
-  private readonly baseUrl = '/api/customer/return-orders';
+  private readonly baseUrl = '/auth/v1/private/customer/return-orders';
 
   // Create return order
   async createReturnOrder(request: CreateReturnOrderRequest): Promise<ReturnOrderResponse> {
