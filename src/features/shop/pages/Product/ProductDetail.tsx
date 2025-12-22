@@ -14,6 +14,8 @@ import RelatedProducts from "../../../../components/shop/Product/RelatedProducts
 import { getProductDetail, getProductVariants, getProductVariantsStock, type VariantStockInfoResponse } from "../../../../api/endpoints/productApi";
 import { getSuggestionProducts, type HomepageProductResponse } from "../../../../api/endpoints/homepageApi";
 import type { ProductDetailsResponse } from "../../../../types";
+import type { BackendCartResponse, SelectedCartWithShippingResponse, VariantAttributeSnapshot } from "../../../../types/api";
+import { SHIPPING_CONFIG } from "../../../../types/checkout";
 
 type EnrichedProduct = Product & {
   priceRange?: {
@@ -399,6 +401,97 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     }
   };
 
+  const handleBuyNow = async () => {
+    // Check if product has attributes but no variant is selected
+    const hasAttributes = productDetail?.attributes && productDetail.attributes.length > 0;
+    if (hasAttributes && !variantData) {
+      // Show error message or prevent buying
+      return;
+    }
+    
+    // Check stock availability
+    const availableStock = variantData ? variantData.productDetailQuantity : product.stock;
+    if (quantity > availableStock) {
+      alert(`Chỉ còn ${availableStock} sản phẩm trong kho. Vui lòng giảm số lượng.`);
+      return;
+    }
+    
+    if (availableStock <= 0) {
+      alert('Sản phẩm đã hết hàng.');
+      return;
+    }
+    
+    setIsAddingToCart(true);
+    try {
+      // Get product details
+      const productIdNum = product.id ? (typeof product.id === 'string' ? parseInt(product.id, 10) : product.id) : 0;
+      const productDetailId = variantData ? variantData.productDetailId : productIdNum;
+      const productPrice = variantData 
+        ? parseFloat(variantData.productDetailDiscountPrice || variantData.productDetailPrice || '0')
+        : product.price;
+      const originalPrice = variantData 
+        ? parseFloat(variantData.productDetailPrice || '0')
+        : (product.originalPrice || product.price);
+      const imageUrl = variantData?.imageUrl || product.imageUrl || '';
+      
+      // Build attributes array from productDetail based on selectedAttributeIds
+      const attributes: VariantAttributeSnapshot[] = [];
+      if (productDetail?.attributes && selectedAttributeIds.length > 0) {
+        productDetail.attributes.forEach((attr, attrIndex) => {
+          const selectedValueId = selectedAttributeIds[attrIndex];
+          if (selectedValueId && attr.values) {
+            const selectedValue = attr.values.find((v: any) => v.id === selectedValueId);
+            if (selectedValue) {
+              attributes.push({
+                groupLevel: attrIndex,
+                name: attr.name || '',
+                id: selectedValue.id,
+                value: selectedValue.value || '',
+              });
+            }
+          }
+        });
+      }
+      
+      // Create BackendCartResponse object
+      const cartItem: BackendCartResponse = {
+        id: 0, // Temporary ID for buy now (not in cart)
+        productId: productIdNum,
+        productDetailId: productDetailId,
+        imageUrl: imageUrl,
+        productName: product.name,
+        attributes: attributes,
+        originalPrice: originalPrice,
+        discountedPrice: productPrice,
+        productPrice: productPrice,
+        discountValue: variantData?.discountValue || null,
+        quantity: quantity,
+        totalPrice: productPrice * quantity,
+        websiteSoldQuantity: variantData?.productDetailQuantity || product.stock || 0,
+      };
+      
+      // Create SelectedCartWithShippingResponse
+      const selectedCartItems: SelectedCartWithShippingResponse = {
+        cartItems: [cartItem],
+        totalProductPrice: productPrice * quantity,
+        estimatedShippingFee: SHIPPING_CONFIG.DEFAULT_SHIPPING_FEE,
+        totalPrice: (productPrice * quantity) + SHIPPING_CONFIG.DEFAULT_SHIPPING_FEE,
+      };
+      
+      // Navigate to checkout page with selected item (not adding to cart)
+      navigate('/shop/checkout', {
+        state: {
+          selectedCartItems: selectedCartItems,
+        },
+      });
+    } catch (error) {
+      console.error('Error preparing buy now:', error);
+      alert('Có lỗi xảy ra. Vui lòng thử lại.');
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
   const handleAttributeSelect = (attributeIndex: number, valueId: number) => {
     setSelectedAttributeIds((prev) => {
       const newIds = [...prev];
@@ -460,6 +553,7 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
                   quantity={quantity}
                   onQuantityChange={handleQuantityChange}
                   onAddToCart={handleAddToCart}
+                  onBuyNow={handleBuyNow}
                   selectedAttributeIds={selectedAttributeIds}
                   onAttributeSelect={handleAttributeSelect}
                   variantData={variantData}
