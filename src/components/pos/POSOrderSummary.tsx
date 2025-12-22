@@ -12,7 +12,7 @@ export type POSOrderSummaryProps = {
   orderDiscountAmount?: number;
   productCount?: number;
   onCheckout?: (data: {
-    paymentMethod: "cash" | "transfer" | "vnpay";
+    paymentMethod: "cash" | "vnpay";
     amountPaid: number;
     change: number;
   }) => Promise<void> | void;
@@ -64,15 +64,22 @@ const POSOrderSummaryComponent: React.FC<POSOrderSummaryProps> = ({
         : "Thanh toán";
 
   const handleCompleteCheckout = async (data: {
-    paymentMethod: "cash" | "transfer" | "vnpay";
+    paymentMethod: "cash" | "vnpay";
     amountPaid: number;
     change: number;
   }) => {
     try {
       await onCheckout?.(data);
       // Hiển thị toast thành công
+      const methodLabel =
+        data.paymentMethod === "cash"
+          ? "Tiền mặt"
+          : data.paymentMethod === "vnpay"
+          ? "VNPay"
+          : data.paymentMethod;
+
       toast.success("Thanh toán thành công!", {
-        description: `Phương thức: ${data.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'} - ${new Intl.NumberFormat("vi-VN").format(data.amountPaid)}đ`,
+      description: `Phương thức: ${methodLabel} - ${new Intl.NumberFormat("vi-VN").format(data.amountPaid)}đ`,
         duration: 4000,
       });
     } catch (error) {

@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, User, Mail, Phone, UserCircle, Edit2, Check, X, Venus, Mars } from "lucide-react";
+import { CalendarIcon, User, Mail, Phone, UserCircle, Edit2, Check, X, Venus, Mars, Camera, Upload } from "lucide-react";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import CustomRadio from "../../../../components/ui/custom-radio";
@@ -17,6 +17,8 @@ import {
 import { updateUserProfile } from "../../../../api/endpoints/userApi";
 import { useAuth } from "../../../../context/AuthContext";
 import type { UserUpdateRequest } from "../../../../types/auth";
+import { getImageUrl } from "../../../../utils/imageUtils";
+import api from "../../../../api/apiClient";
 
 type EditableField = "fullName" | "email" | "phone";
 
@@ -109,6 +111,10 @@ const ProfileTab: React.FC = () => {
     const [pendingDateOfBirth, setPendingDateOfBirth] = useState<Date | undefined>(undefined);
     const [month, setMonth] = useState<Date>(new Date());
     const [calendarOpen, setCalendarOpen] = useState(false);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleCalendarChange = (
         value: string | number,
@@ -218,6 +224,83 @@ const ProfileTab: React.FC = () => {
         return str;
     };
 
+    // Reset avatar error when user changes
+    useEffect(() => {
+        setAvatarError(false);
+    }, [user?.avatar]);
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            setErrorMessage("Vui lòng chọn file ảnh hợp lệ.");
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setErrorMessage("Kích thước ảnh không được vượt quá 5MB.");
+            return;
+        }
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPreviewAvatar(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload avatar
+        setIsUploadingAvatar(true);
+        setErrorMessage(null);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await api.post<{ status: number; message: string; data: string }>(
+                "/files/avatar",
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+            );
+
+            const imageUrl = response.data.data;
+            if (!imageUrl) {
+                throw new Error("Không nhận được URL ảnh từ server");
+            }
+
+            // Update profile with new avatar URL
+            const payload = buildProfilePayload({ image_url: imageUrl });
+            await updateUserProfile(payload);
+            await refreshProfile();
+
+            setSuccessMessage("Ảnh đại diện đã được cập nhật thành công!");
+            setPreviewAvatar(null);
+            setAvatarError(false);
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (error: any) {
+            console.error("Failed to upload avatar", error);
+            setPreviewAvatar(null);
+            const backendMessage = error?.response?.data?.message || error?.message;
+            setErrorMessage(backendMessage || "Không thể tải ảnh lên. Vui lòng thử lại.");
+        } finally {
+            setIsUploadingAvatar(false);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
     if (isLoading || !user) {
         return (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
@@ -261,390 +344,458 @@ const ProfileTab: React.FC = () => {
             </div>
 
             {/* Profile Fields */}
-            <div className="px-6 pb-6 space-y-3">
-                {/* Username Field */}
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
-                            <UserCircle className="w-4 h-4 text-gray-600" />
+            <div className="px-6 pb-6">
+                {/* Avatar Section */}
+                <div className="flex flex-col sm:flex-row gap-6 mb-6 pb-6 border-b border-gray-200">
+                    <div className="flex-shrink-0">
+                        <div className="relative w-32 h-32 mx-auto sm:mx-0">
+                            <div className="w-full h-full rounded-lg border-2 border-dashed border-[#E04D30] bg-gray-50 flex items-center justify-center overflow-hidden">
+                                {previewAvatar ? (
+                                    <img
+                                        src={previewAvatar}
+                                        alt="Preview"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : user?.avatar && !avatarError ? (
+                                    <img
+                                        src={getImageUrl(user.avatar) || user.avatar}
+                                        alt={user.name || "Avatar"}
+                                        className="w-full h-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                        <UserCircle className="w-12 h-12 mb-2" />
+                                        <span className="text-xs font-medium">Profile</span>
+                                    </div>
+                                )}
+                            </div>
+                            {isUploadingAvatar && (
+                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex-1">
-                            <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tên tài khoản</dt>
-                            <dd className="text-sm text-gray-900 font-semibold">
-                                @{displayValue(user.username, "Không xác định")}
-                            </dd>
-                        </div>
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-1">Ảnh đại diện</h3>
+                        <p className="text-xs text-gray-600 mb-4">
+                            JPG, PNG hoặc GIF. Kích thước tối đa 5MB.
+                        </p>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="hidden"
+                        />
+                        <Button
+                            type="button"
+                            onClick={handleAvatarClick}
+                            disabled={isUploadingAvatar}
+                            className="w-full sm:w-auto bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                            size="sm"
+                        >
+                            {isUploadingAvatar ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                                    Đang tải...
+                                </>
+                            ) : (
+                                <>
+                                    <Camera className="w-4 h-4 mr-2" />
+                                    Chọn ảnh
+                                </>
+                            )}
+                        </Button>
                     </div>
                 </div>
 
-                {/* Editable Fields */}
-                {(Object.keys(fieldConfig) as EditableField[]).map((field) => {
-                    const config = fieldConfig[field];
-                    const currentValue = config.accessor(user);
-                    const isFieldEditing = editingField === field;
-
-                    return (
-                        <div
-                            key={field}
-                            className={`bg-white rounded-lg border transition-all ${isFieldEditing
-                                ? 'border-[#E04D30] shadow-md'
-                                : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                                }`}
-                        >
-                            <div className="p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isFieldEditing
-                                            ? 'bg-[#E04D30]/10 text-[#E04D30]'
-                                            : 'bg-gray-100 text-gray-600'
-                                            }`}>
-                                            {config.icon}
-                                        </div>
-                                        <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                                            {config.label}
-                                        </dt>
-                                    </div>
-                                    {!isFieldEditing && (
-                                        <button
-                                            onClick={() => beginEditingField(field)}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
-                                        >
-                                            <Edit2 className="w-3.5 h-3.5" />
-                                            Chỉnh sửa
-                                        </button>
-                                    )}
-                                </div>
-                                <dd>
-                                    {isFieldEditing ? (
-                                        <div className="space-y-3">
-                                            <Input
-                                                type={config.type}
-                                                value={pendingValue}
-                                                onChange={(e) => setPendingValue(e.target.value)}
-                                                className="w-full border-gray-300 focus:border-[#E04D30] focus:ring-[#E04D30]"
-                                                autoFocus
-                                            />
-                                            <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={cancelFieldEdit}
-                                                    disabled={isSaving}
-                                                    className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
-                                                >
-                                                    <X className="w-4 h-4 mr-1.5" />
-                                                    Hủy
-                                                </Button>
-                                                <Button
-                                                    variant="default"
-                                                    size="sm"
-                                                    onClick={() => void saveField()}
-                                                    disabled={isSaving || pendingValue === currentValue}
-                                                    className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
-                                                >
-                                                    {isSaving ? (
-                                                        <>
-                                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
-                                                            Đang lưu...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Check className="w-4 h-4 mr-1.5" />
-                                                            Lưu
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-gray-900 font-medium ml-11">
-                                            {displayValue(currentValue)}
-                                        </p>
-                                    )}
+                <div className="space-y-3">
+                    {/* Username Field */}
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
+                                <UserCircle className="w-4 h-4 text-gray-600" />
+                            </div>
+                            <div className="flex-1">
+                                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tên tài khoản</dt>
+                                <dd className="text-sm text-gray-900 font-semibold">
+                                    @{displayValue(user.username, "Không xác định")}
                                 </dd>
                             </div>
                         </div>
-                    );
-                })}
-
-                {/* Gender Field */}
-                <div className={`bg-white rounded-lg border transition-all ${isEditingGender
-                    ? 'border-[#E04D30] shadow-md'
-                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                    }`}>
-                    <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEditingGender
-                                    ? 'bg-[#E04D30]/10 text-[#E04D30]'
-                                    : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                    {user.gender?.toUpperCase() === "FEMALE" ? (
-                                        <Venus className="w-4 h-4" />
-                                    ) : (
-                                        <Mars className="w-4 h-4" />
-                                    )}
-                                </div>
-                                <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                                    Giới tính
-                                </dt>
-                            </div>
-                            {!isEditingGender && (
-                                <button
-                                    onClick={() => {
-                                        const currentGender = user?.gender || "MALE";
-                                        setPendingGender(currentGender as "MALE" | "FEMALE");
-                                        setIsEditingGender(true);
-                                    }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
-                                >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                    Chỉnh sửa
-                                </button>
-                            )}
-                        </div>
-                        <dd>
-                            {isEditingGender ? (
-                                <div className="space-y-3">
-                                    <div className="space-y-2">
-                                        <CustomRadio
-                                            name="gender"
-                                            value="MALE"
-                                            checked={pendingGender === "MALE"}
-                                            onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
-                                            label="Nam"
-                                        />
-                                        <CustomRadio
-                                            name="gender"
-                                            value="FEMALE"
-                                            checked={pendingGender === "FEMALE"}
-                                            onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
-                                            label="Nữ"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => {
-                                                setIsEditingGender(false);
-                                                setPendingGender("MALE");
-                                                setErrorMessage(null);
-                                                setSuccessMessage(null);
-                                            }}
-                                            disabled={isSaving}
-                                            className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
-                                        >
-                                            <X className="w-4 h-4 mr-1.5" />
-                                            Hủy
-                                        </Button>
-                                        <Button
-                                            variant="default"
-                                            size="sm"
-                                            onClick={async () => {
-                                                setIsSaving(true);
-                                                setErrorMessage(null);
-                                                try {
-                                                    const payload = buildProfilePayload({ gender: pendingGender });
-                                                    await updateUserProfile(payload);
-                                                    await refreshProfile();
-                                                    setSuccessMessage("Thông tin đã được cập nhật thành công!");
-                                                    setIsEditingGender(false);
-                                                    setTimeout(() => setSuccessMessage(null), 3000);
-                                                } catch (error) {
-                                                    console.error("Failed to update gender", error);
-                                                    setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
-                                                } finally {
-                                                    setIsSaving(false);
-                                                }
-                                            }}
-                                            disabled={isSaving}
-                                            className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
-                                        >
-                                            {isSaving ? (
-                                                <>
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
-                                                    Đang lưu...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Check className="w-4 h-4 mr-1.5" />
-                                                    Lưu
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-gray-900 font-medium ml-11">
-                                    {user.gender?.toUpperCase() === "FEMALE" ? "Nữ" : "Nam"}
-                                </p>
-                            )}
-                        </dd>
                     </div>
-                </div>
 
-                {/* Date of Birth Field */}
-                <div className={`bg-white rounded-lg border transition-all ${isEditingDateOfBirth
-                    ? 'border-[#E04D30] shadow-md'
-                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                    }`}>
-                    <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEditingDateOfBirth
-                                    ? 'bg-[#E04D30]/10 text-[#E04D30]'
-                                    : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                    <CalendarIcon className="w-4 h-4" />
-                                </div>
-                                <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                                    Ngày sinh
-                                </dt>
-                            </div>
-                            {!isEditingDateOfBirth && (
-                                <button
-                                    onClick={() => {
-                                        const currentDateOfBirth = user?.dateOfBirth || "";
-                                        setPendingDateOfBirth(currentDateOfBirth ? new Date(currentDateOfBirth) : undefined);
-                                        setIsEditingDateOfBirth(true);
-                                    }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
-                                >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                    Chỉnh sửa
-                                </button>
-                            )}
-                        </div>
-                        <dd>
-                            {isEditingDateOfBirth ? (
-                                <div className="space-y-3">
-                                    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                className="w-full justify-start text-left font-normal border-gray-300 hover:bg-gray-50"
-                                                variant="outline"
+                    {/* Editable Fields */}
+                    {(Object.keys(fieldConfig) as EditableField[]).map((field) => {
+                        const config = fieldConfig[field];
+                        const currentValue = config.accessor(user);
+                        const isFieldEditing = editingField === field;
+
+                        return (
+                            <div
+                                key={field}
+                                className={`bg-white rounded-lg border transition-all ${isFieldEditing
+                                    ? 'border-[#E04D30] shadow-md'
+                                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                                    }`}
+                            >
+                                <div className="p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isFieldEditing
+                                                ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                                : 'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                {config.icon}
+                                            </div>
+                                            <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                                                {config.label}
+                                            </dt>
+                                        </div>
+                                        {!isFieldEditing && (
+                                            <button
+                                                onClick={() => beginEditingField(field)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
                                             >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {pendingDateOfBirth ? format(pendingDateOfBirth, "PPP") : <span className="text-gray-500">Chọn ngày sinh</span>}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent align="start" className="w-auto p-0">
-                                            <Calendar
-                                                captionLayout="dropdown"
-                                                components={{
-                                                    DropdownNav: (props) => (
-                                                        <div className="flex w-full items-center gap-2">
-                                                            {props.children}
-                                                        </div>
-                                                    ),
-                                                    Dropdown: (props) => (
-                                                        <Select
-                                                            onValueChange={(value) => {
-                                                                if (props.onChange) {
-                                                                    handleCalendarChange(value, props.onChange);
-                                                                }
-                                                            }}
-                                                            value={String(props.value)}
-                                                        >
-                                                            <SelectTrigger className="first:flex-1 last:shrink-0">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                {props.options?.map((option) => (
-                                                                    <SelectItem
-                                                                        disabled={option.disabled}
-                                                                        key={option.value}
-                                                                        value={String(option.value)}
-                                                                    >
-                                                                        {option.label}
-                                                                    </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    ),
-                                                }}
-                                                hideNavigation
-                                                mode="single"
-                                                month={month}
-                                                onMonthChange={setMonth}
-                                                onSelect={(date) => {
-                                                    setPendingDateOfBirth(date);
-                                                    setCalendarOpen(false);
-                                                }}
-                                                selected={pendingDateOfBirth}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                    <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => {
-                                                setIsEditingDateOfBirth(false);
-                                                setPendingDateOfBirth(undefined);
-                                                setErrorMessage(null);
-                                                setSuccessMessage(null);
-                                            }}
-                                            disabled={isSaving}
-                                            className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
-                                        >
-                                            <X className="w-4 h-4 mr-1.5" />
-                                            Hủy
-                                        </Button>
-                                        <Button
-                                            variant="default"
-                                            size="sm"
-                                            onClick={async () => {
-                                                setErrorMessage(null);
-
-                                                const dobError = validateBirthdate(pendingDateOfBirth);
-                                                if (dobError) {
-                                                    setErrorMessage(dobError);
-                                                    return;
-                                                }
-
-                                                setIsSaving(true);
-                                                try {
-                                                    const dateString = pendingDateOfBirth
-                                                        ? pendingDateOfBirth.toISOString().split('T')[0]
-                                                        : null;
-                                                    const payload = buildProfilePayload({ birthday: dateString });
-                                                    await updateUserProfile(payload);
-                                                    await refreshProfile();
-                                                    setSuccessMessage("Thông tin đã được cập nhật thành công!");
-                                                    setIsEditingDateOfBirth(false);
-                                                    setTimeout(() => setSuccessMessage(null), 3000);
-                                                } catch (error) {
-                                                    console.error("Failed to update birthday", error);
-                                                    setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
-                                                } finally {
-                                                    setIsSaving(false);
-                                                }
-                                            }}
-                                            disabled={isSaving}
-                                            className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
-                                        >
-                                            {isSaving ? (
-                                                <>
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
-                                                    Đang lưu...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Check className="w-4 h-4 mr-1.5" />
-                                                    Lưu
-                                                </>
-                                            )}
-                                        </Button>
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                                Chỉnh sửa
+                                            </button>
+                                        )}
                                     </div>
+                                    <dd>
+                                        {isFieldEditing ? (
+                                            <div className="space-y-3">
+                                                <Input
+                                                    type={config.type}
+                                                    value={pendingValue}
+                                                    onChange={(e) => setPendingValue(e.target.value)}
+                                                    className="w-full border-gray-300 focus:border-[#E04D30] focus:ring-[#E04D30]"
+                                                    autoFocus
+                                                />
+                                                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={cancelFieldEdit}
+                                                        disabled={isSaving}
+                                                        className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
+                                                    >
+                                                        <X className="w-4 h-4 mr-1.5" />
+                                                        Hủy
+                                                    </Button>
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        onClick={() => void saveField()}
+                                                        disabled={isSaving || pendingValue === currentValue}
+                                                        className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                                                    >
+                                                        {isSaving ? (
+                                                            <>
+                                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
+                                                                Đang lưu...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Check className="w-4 h-4 mr-1.5" />
+                                                                Lưu
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-900 font-medium ml-11">
+                                                {displayValue(currentValue)}
+                                            </p>
+                                        )}
+                                    </dd>
                                 </div>
-                            ) : (
-                                <p className="text-sm text-gray-900 font-medium ml-11">
-                                    {displayValue(user.dateOfBirth)}
-                                </p>
-                            )}
-                        </dd>
+                            </div>
+                        );
+                    })}
+
+                    {/* Gender Field */}
+                    <div className={`bg-white rounded-lg border transition-all ${isEditingGender
+                        ? 'border-[#E04D30] shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}>
+                        <div className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEditingGender
+                                        ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                        : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                        {user.gender?.toUpperCase() === "FEMALE" ? (
+                                            <Venus className="w-4 h-4" />
+                                        ) : (
+                                            <Mars className="w-4 h-4" />
+                                        )}
+                                    </div>
+                                    <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                                        Giới tính
+                                    </dt>
+                                </div>
+                                {!isEditingGender && (
+                                    <button
+                                        onClick={() => {
+                                            const currentGender = user?.gender || "MALE";
+                                            setPendingGender(currentGender as "MALE" | "FEMALE");
+                                            setIsEditingGender(true);
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                        Chỉnh sửa
+                                    </button>
+                                )}
+                            </div>
+                            <dd>
+                                {isEditingGender ? (
+                                    <div className="space-y-3">
+                                        <div className="space-y-2">
+                                            <CustomRadio
+                                                name="gender"
+                                                value="MALE"
+                                                checked={pendingGender === "MALE"}
+                                                onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
+                                                label="Nam"
+                                            />
+                                            <CustomRadio
+                                                name="gender"
+                                                value="FEMALE"
+                                                checked={pendingGender === "FEMALE"}
+                                                onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
+                                                label="Nữ"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setIsEditingGender(false);
+                                                    setPendingGender("MALE");
+                                                    setErrorMessage(null);
+                                                    setSuccessMessage(null);
+                                                }}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
+                                            >
+                                                <X className="w-4 h-4 mr-1.5" />
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                onClick={async () => {
+                                                    setIsSaving(true);
+                                                    setErrorMessage(null);
+                                                    try {
+                                                        const payload = buildProfilePayload({ gender: pendingGender });
+                                                        await updateUserProfile(payload);
+                                                        await refreshProfile();
+                                                        setSuccessMessage("Thông tin đã được cập nhật thành công!");
+                                                        setIsEditingGender(false);
+                                                        setTimeout(() => setSuccessMessage(null), 3000);
+                                                    } catch (error) {
+                                                        console.error("Failed to update gender", error);
+                                                        setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
+                                                    } finally {
+                                                        setIsSaving(false);
+                                                    }
+                                                }}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                                            >
+                                                {isSaving ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
+                                                        Đang lưu...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Check className="w-4 h-4 mr-1.5" />
+                                                        Lưu
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-900 font-medium ml-11">
+                                        {user.gender?.toUpperCase() === "FEMALE" ? "Nữ" : "Nam"}
+                                    </p>
+                                )}
+                            </dd>
+                        </div>
+                    </div>
+
+                    {/* Date of Birth Field */}
+                    <div className={`bg-white rounded-lg border transition-all ${isEditingDateOfBirth
+                        ? 'border-[#E04D30] shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}>
+                        <div className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEditingDateOfBirth
+                                        ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                        : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                        <CalendarIcon className="w-4 h-4" />
+                                    </div>
+                                    <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                                        Ngày sinh
+                                    </dt>
+                                </div>
+                                {!isEditingDateOfBirth && (
+                                    <button
+                                        onClick={() => {
+                                            const currentDateOfBirth = user?.dateOfBirth || "";
+                                            setPendingDateOfBirth(currentDateOfBirth ? new Date(currentDateOfBirth) : undefined);
+                                            setIsEditingDateOfBirth(true);
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                        Chỉnh sửa
+                                    </button>
+                                )}
+                            </div>
+                            <dd>
+                                {isEditingDateOfBirth ? (
+                                    <div className="space-y-3">
+                                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    className="w-full justify-start text-left font-normal border-gray-300 hover:bg-gray-50"
+                                                    variant="outline"
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {pendingDateOfBirth ? format(pendingDateOfBirth, "PPP") : <span className="text-gray-500">Chọn ngày sinh</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent align="start" className="w-auto p-0">
+                                                <Calendar
+                                                    captionLayout="dropdown"
+                                                    components={{
+                                                        DropdownNav: (props) => (
+                                                            <div className="flex w-full items-center gap-2">
+                                                                {props.children}
+                                                            </div>
+                                                        ),
+                                                        Dropdown: (props) => (
+                                                            <Select
+                                                                onValueChange={(value) => {
+                                                                    if (props.onChange) {
+                                                                        handleCalendarChange(value, props.onChange);
+                                                                    }
+                                                                }}
+                                                                value={String(props.value)}
+                                                            >
+                                                                <SelectTrigger className="first:flex-1 last:shrink-0">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {props.options?.map((option) => (
+                                                                        <SelectItem
+                                                                            disabled={option.disabled}
+                                                                            key={option.value}
+                                                                            value={String(option.value)}
+                                                                        >
+                                                                            {option.label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        ),
+                                                    }}
+                                                    hideNavigation
+                                                    mode="single"
+                                                    month={month}
+                                                    onMonthChange={setMonth}
+                                                    onSelect={(date) => {
+                                                        setPendingDateOfBirth(date);
+                                                        setCalendarOpen(false);
+                                                    }}
+                                                    selected={pendingDateOfBirth}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setIsEditingDateOfBirth(false);
+                                                    setPendingDateOfBirth(undefined);
+                                                    setErrorMessage(null);
+                                                    setSuccessMessage(null);
+                                                }}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
+                                            >
+                                                <X className="w-4 h-4 mr-1.5" />
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                onClick={async () => {
+                                                    setErrorMessage(null);
+
+                                                    const dobError = validateBirthdate(pendingDateOfBirth);
+                                                    if (dobError) {
+                                                        setErrorMessage(dobError);
+                                                        return;
+                                                    }
+
+                                                    setIsSaving(true);
+                                                    try {
+                                                        const dateString = pendingDateOfBirth
+                                                            ? pendingDateOfBirth.toISOString().split('T')[0]
+                                                            : null;
+                                                        const payload = buildProfilePayload({ birthday: dateString });
+                                                        await updateUserProfile(payload);
+                                                        await refreshProfile();
+                                                        setSuccessMessage("Thông tin đã được cập nhật thành công!");
+                                                        setIsEditingDateOfBirth(false);
+                                                        setTimeout(() => setSuccessMessage(null), 3000);
+                                                    } catch (error) {
+                                                        console.error("Failed to update birthday", error);
+                                                        setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
+                                                    } finally {
+                                                        setIsSaving(false);
+                                                    }
+                                                }}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                                            >
+                                                {isSaving ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
+                                                        Đang lưu...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Check className="w-4 h-4 mr-1.5" />
+                                                        Lưu
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-900 font-medium ml-11">
+                                        {displayValue(user.dateOfBirth)}
+                                    </p>
+                                )}
+                            </dd>
+                        </div>
                     </div>
                 </div>
             </div>

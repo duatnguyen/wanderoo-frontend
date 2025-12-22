@@ -17,14 +17,14 @@ const AdminWarehouseImportDetail: React.FC = () => {
   const [invoiceDetail, setInvoiceDetail] = useState<InvoiceDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Payment modal state
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("Chọn hình thức thanh toán");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [referenceCode, setReferenceCode] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
-  
+
   // Form validation errors
   const [paymentMethodError, setPaymentMethodError] = useState("");
   const [paymentAmountError, setPaymentAmountError] = useState("");
@@ -75,6 +75,22 @@ const AdminWarehouseImportDetail: React.FC = () => {
       .replace(/\s/g, "");
   };
 
+  // Format number with thousand separators (e.g., 2420000 -> "2.420.000")
+  const formatNumber = (value: string | number): string => {
+    if (!value && value !== 0) return "";
+    const numValue = typeof value === "string" ? parseFloat(value.replace(/\./g, "")) : value;
+    if (isNaN(numValue)) return "";
+    return new Intl.NumberFormat("vi-VN").format(numValue);
+  };
+
+  // Parse formatted number string to number (e.g., "2.420.000" -> 2420000)
+  const parseFormattedNumber = (value: string): number => {
+    if (!value) return 0;
+    const cleaned = value.replace(/\./g, "").replace(/,/g, "");
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  };
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -119,16 +135,16 @@ const AdminWarehouseImportDetail: React.FC = () => {
   }
 
   const totals = calculateTotals();
-  
+
   // Map status: "Hoàn thành" -> completed, others -> processing
   const invoiceStatus = invoiceDetail.status || "";
   const isCompleted = invoiceStatus === "Hoàn thành" || invoiceStatus === "DONE";
-  
+
   // Map productStatus: Use the exact text from API
   // API returns: "Đã nhập kho" or "Chưa nhập kho" (or similar Vietnamese text)
   const productStatus = invoiceDetail.productStatus || "";
   const isImported = productStatus === "Đã nhập kho" || productStatus === "DONE";
-  
+
   // Map paymentStatus: Use the exact text from API
   // API returns: "Đã thanh toán" or "Chưa thanh toán" (or similar Vietnamese text)
   const paymentStatus = invoiceDetail.paymentStatus || "";
@@ -187,14 +203,14 @@ const AdminWarehouseImportDetail: React.FC = () => {
       console.error("Error confirming import:", err);
       console.error("Error response:", err?.response);
       console.error("Error response data:", err?.response?.data);
-      
+
       // Extract error message from various possible response structures
       let errorMessage = "Không thể xác nhận nhập kho";
-      
+
       // Backend trả về ApiResponse với structure: { status, message, data }
       if (err?.response?.data?.message) {
         errorMessage = err.response.data.message;
-      } 
+      }
       // Nếu backend trả về error object khác
       else if (err?.response?.data?.error) {
         errorMessage = err.response.data.error;
@@ -207,7 +223,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
       else if (err?.message) {
         errorMessage = err.message;
       }
-      
+
       toast.error(errorMessage);
     } finally {
       setIsConfirming(false);
@@ -244,7 +260,8 @@ const AdminWarehouseImportDetail: React.FC = () => {
       hasError = true;
     }
 
-    if (!paymentAmount || isNaN(Number(paymentAmount)) || Number(paymentAmount) <= 0) {
+    const parsedAmount = parseFormattedNumber(paymentAmount);
+    if (!paymentAmount || parsedAmount <= 0) {
       setPaymentAmountError("Vui lòng nhập số tiền hợp lệ");
       hasError = true;
     }
@@ -261,16 +278,16 @@ const AdminWarehouseImportDetail: React.FC = () => {
 
     try {
       setIsConfirming(true);
-      
+
       // Map payment method
-      const method: PaymentMethod = paymentMethod === "Tiền mặt" ? "CASH" : 
-                                    paymentMethod === "Chuyển khoản" ? "BANKING" : 
-                                    "UNDEFINED";
+      const method: PaymentMethod = paymentMethod === "Tiền mặt" ? "CASH" :
+        paymentMethod === "Chuyển khoản" ? "BANKING" :
+          "UNDEFINED";
 
       const paymentRequest: PaymentRequest = {
         invoiceId: invoiceDetail.id,
         method: method,
-        paidAmount: Number(paymentAmount),
+        paidAmount: parseFormattedNumber(paymentAmount),
         referenceCode: paymentMethod === "Chuyển khoản" ? referenceCode.trim() : undefined,
       };
 
@@ -282,14 +299,14 @@ const AdminWarehouseImportDetail: React.FC = () => {
       console.error("Error confirming payment:", err);
       console.error("Error response:", err?.response);
       console.error("Error response data:", err?.response?.data);
-      
+
       // Extract error message from various possible response structures
       let errorMessage = "Không thể xác nhận thanh toán";
-      
+
       // Backend trả về ApiResponse với structure: { status, message, data }
       if (err?.response?.data?.message) {
         errorMessage = err.response.data.message;
-      } 
+      }
       // Nếu backend trả về error object khác
       else if (err?.response?.data?.error) {
         errorMessage = err.response.data.error;
@@ -302,11 +319,11 @@ const AdminWarehouseImportDetail: React.FC = () => {
       else if (err?.message) {
         errorMessage = err.message;
       }
-      
+
       // Check if error is related to payment amount
       if (errorMessage.toLowerCase().includes("số tiền") || errorMessage.toLowerCase().includes("tiền thanh toán")) {
         setPaymentAmountError(errorMessage);
-      } 
+      }
       // Check if error is related to reference code
       else if (errorMessage.toLowerCase().includes("mã tham chiếu") || errorMessage.toLowerCase().includes("reference")) {
         setReferenceCodeError(errorMessage);
@@ -377,11 +394,10 @@ const AdminWarehouseImportDetail: React.FC = () => {
           invoiceDetail.cartItem.map((item, index) => (
             <div
               key={index}
-              className={`grid grid-cols-[2fr_1fr_1fr_1fr] items-center ${
-                index === invoiceDetail.cartItem.length - 1
+              className={`grid grid-cols-[2fr_1fr_1fr_1fr] items-center ${index === invoiceDetail.cartItem.length - 1
                   ? "border-b-0"
                   : "border-b border-[#D1D1D1]"
-              }`}
+                }`}
             >
               <div className="px-[14px] py-3 flex items-center gap-3">
                 <div className="w-[60px] h-[60px] rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100 relative">
@@ -405,7 +421,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
                       }}
                     />
                   ) : null}
-                  <div 
+                  <div
                     className="fallback-placeholder w-full h-full flex items-center justify-center"
                     style={{ display: item.imageUrl ? 'none' : 'flex' }}
                   >
@@ -450,7 +466,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
         {/* Confirm import button - only show when not imported */}
         {!isImported && (
           <div className="px-[14px] py-3 flex justify-end border-t border-[#D1D1D1]">
-            <Button 
+            <Button
               onClick={handleConfirmImport}
               disabled={isConfirming}
               className="bg-[#e04d30] hover:bg-[#c93e26] text-white disabled:opacity-50"
@@ -497,7 +513,7 @@ const AdminWarehouseImportDetail: React.FC = () => {
         {/* Confirm payment button - only show when not paid */}
         {!isPaid && (
           <div className="px-[14px] py-3 flex justify-end border-t border-[#D1D1D1]">
-            <Button 
+            <Button
               onClick={() => setIsPaymentModalOpen(true)}
               className="bg-[#e04d30] hover:bg-[#c93e26] text-white"
             >
@@ -599,10 +615,19 @@ const AdminWarehouseImportDetail: React.FC = () => {
                   Số tiền thanh toán
                 </label>
                 <FormInput
-                  type="number"
-                  value={paymentAmount}
+                  type="text"
+                  value={formatNumber(paymentAmount)}
                   onChange={(e) => {
-                    setPaymentAmount(e.target.value);
+                    const inputValue = e.target.value;
+                    // Allow only digits and dots/commas (for formatting)
+                    const cleaned = inputValue.replace(/[^\d.,]/g, "");
+                    // Remove all dots/commas to get raw number, then format
+                    const rawNumber = cleaned.replace(/\./g, "").replace(/,/g, "");
+                    if (rawNumber === "" || rawNumber === "0") {
+                      setPaymentAmount("");
+                    } else {
+                      setPaymentAmount(rawNumber);
+                    }
                     setPaymentAmountError(""); // Clear error when user changes value
                   }}
                   placeholder="Nhập số tiền thanh toán"

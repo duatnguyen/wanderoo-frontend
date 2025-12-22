@@ -1079,6 +1079,7 @@ export interface UpdateNoteRequest {
 
 export interface CheckoutRequest {
   cashReceived: number;
+  method?: "CASH" | "BANKING" | "UNDEFINED";
 }
 
 export interface CheckoutResponse {

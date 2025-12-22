@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import QRCode from "react-qr-code";
 import { createVNPayPayment } from "@/api/endpoints/paymentApi";
 
-export type PaymentMethod = "cash" | "transfer" | "vnpay";
+export type PaymentMethod = "cash" | "vnpay";
 
 export type CheckoutModalProps = {
   isOpen: boolean;
@@ -160,19 +160,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         change,
       });
     } else if (paymentMethod === "vnpay") {
-      // For VNPay, amount paid equals final amount and redirect to VNPay
-      onComplete({
-        paymentMethod,
-        amountPaid: finalAmount,
-        change: 0,
-      });
-      
-      // Redirect to VNPay URL if available
-      if (vnpayUrl) {
-        window.open(vnpayUrl, '_blank');
-      }
-    } else {
-      // For bank transfer, amount paid equals final amount
+      // Với VNPay: xử lý hoàn tất hóa đơn tương tự tiền mặt,
+      // không redirect sang sandbox, amountPaid = finalAmount
       onComplete({
         paymentMethod,
         amountPaid: finalAmount,
@@ -221,7 +210,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Payment Method Selection */}
           <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {/* Cash Payment */}
               <button
                 type="button"
@@ -258,50 +247,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   )}
                 </div>
                 <span className="text-xs font-medium text-[#272424]">Tiền mặt</span>
-              </button>
-
-              {/* Bank Transfer */}
-              <button
-                type="button"
-                onClick={() => handlePaymentMethodChange("transfer")}
-                className={cn(
-                  "flex flex-col items-center gap-2 p-3 border-2 rounded-lg transition-all",
-                  paymentMethod === "transfer"
-                    ? "border-[#e04d30] bg-[#e04d30]/5"
-                    : "border-[#e7e7e7] bg-white hover:border-[#e04d30]/50"
-                )}
-              >
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-blue-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4"
-                      />
-                    </svg>
-                  </div>
-                  {paymentMethod === "transfer" && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-                <span className="text-xs font-medium text-[#272424]">Chuyển khoản</span>
               </button>
 
               {/* VNPay */}
