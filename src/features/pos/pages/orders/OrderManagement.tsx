@@ -8,6 +8,7 @@ import OrderDetailsPanel, {
   type OrderDetails,
 } from "../../../../components/pos/OrderDetailsPanel";
 import { getPosOrderList, getPosOrderDetail } from "../../../../api/endpoints/posApi";
+import { getImageUrl } from "../../../../utils/imageUtils";
 import Loading from "../../../../components/common/Loading";
 
 const OrderManagement: React.FC = () => {
@@ -54,8 +55,8 @@ const OrderManagement: React.FC = () => {
         console.error("Error fetching order detail:", error);
         throw new Error(
           error.response?.data?.message ||
-            error.message ||
-            "Không thể tải chi tiết đơn hàng"
+          error.message ||
+          "Không thể tải chi tiết đơn hàng"
         );
       }
     },
@@ -85,29 +86,29 @@ const OrderManagement: React.FC = () => {
   // Convert order detail to component type
   const selectedOrder: OrderDetails | undefined = orderDetailData
     ? {
-        id: orderDetailData.code || orderDetailData.id.toString(), // Use code if available
-        createdBy: orderDetailData.createdBy || "N/A",
-        createdAt: orderDetailData.createdAt,
-        products: orderDetailData.products.map((product) => ({
-          id: product.id.toString(),
-          name: product.productName,
-          image: product.productImage,
-          sku: product.productSku,
-          variant: product.category,
-          price: product.unitPrice || 0,
-          originalPrice: product.originalPrice ?? product.unitPrice ?? 0,
-          quantity: product.quantity || 0,
-          totalPrice:
-            product.totalPrice ??
-            (product.unitPrice || 0) * (product.quantity || 0),
-        })),
-        totalAmount: orderDetailData.paymentSummary?.totalProductPrice || 0,
-        discount: orderDetailData.paymentSummary?.orderDiscountAmount || 0,
-        productDiscountAmount: orderDetailData.paymentSummary?.productDiscountAmount || 0,
-        finalAmount: orderDetailData.paymentSummary?.totalOrderPrice || 0,
-        amountPaid: orderDetailData.paymentSummary?.cashReceived || 0,
-        change: orderDetailData.paymentSummary?.change || 0,
-      }
+      id: orderDetailData.code || orderDetailData.id.toString(), // Use code if available
+      createdBy: orderDetailData.createdBy || "N/A",
+      createdAt: orderDetailData.createdAt,
+      products: orderDetailData.products.map((product) => ({
+        id: product.id.toString(),
+        name: product.productName,
+        image: product.productImage ? (getImageUrl(product.productImage) || product.productImage) : undefined,
+        sku: product.productSku,
+        variant: product.category,
+        price: product.unitPrice || 0,
+        originalPrice: product.originalPrice ?? product.unitPrice ?? 0,
+        quantity: product.quantity || 0,
+        totalPrice:
+          product.totalPrice ??
+          (product.unitPrice || 0) * (product.quantity || 0),
+      })),
+      totalAmount: orderDetailData.paymentSummary?.totalProductPrice || 0,
+      discount: orderDetailData.paymentSummary?.orderDiscountAmount || 0,
+      productDiscountAmount: orderDetailData.paymentSummary?.productDiscountAmount || 0,
+      finalAmount: orderDetailData.paymentSummary?.totalOrderPrice || 0,
+      amountPaid: orderDetailData.paymentSummary?.cashReceived || 0,
+      change: orderDetailData.paymentSummary?.change || 0,
+    }
     : undefined;
 
   // Helper function to convert payment status
@@ -181,7 +182,7 @@ const OrderManagement: React.FC = () => {
           selectedOrderId={
             selectedOrderId
               ? ordersData?.content.find((o) => o.id === selectedOrderId)?.code ||
-                selectedOrderId.toString()
+              selectedOrderId.toString()
               : undefined
           }
           onOrderSelect={handleOrderSelect}

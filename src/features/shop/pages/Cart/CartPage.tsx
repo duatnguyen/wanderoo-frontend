@@ -7,6 +7,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import CartTable from "../../../../components/shop/Cart/CartTable";
 import RecommendedProducts from "../../../../components/shop/Cart/RecommendedProducts";
 import { getCart, updateCartItem, removeCartItem, getSelectedCartItems, updateCartItemProductDetail } from "../../../../api/endpoints/cartApi";
+import { getSuggestionProducts, type HomepageProductResponse } from "../../../../api/endpoints/homepageApi";
 import type { BackendCartResponse, ProductDetailVariantResponse } from "../../../../types/api";
 import { getImageUrl } from "../../../../utils/imageUtils";
 
@@ -37,6 +38,73 @@ const CartPage: React.FC = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [page] = useState(1);
   const [size] = useState(20);
+  const [recommendedProducts, setRecommendedProducts] = useState<{
+    id: number;
+    imageUrl: string;
+    name: string;
+    price: number;
+    originalPrice?: number;
+    rating: number;
+    discountPercent?: number;
+  }[]>([]);
+
+  // Map HomepageProductResponse -> RecommendedProduct (similar to landing page logic)
+  const mapToRecommendedProduct = (item: HomepageProductResponse) => {
+    // Prefer minSellingPrice/discountSellingPrice when available
+    const hasMinPrice = item.minSellingPrice !== null && item.minSellingPrice !== undefined;
+
+    let price = 0;
+    let originalPrice: number | undefined;
+
+    if (hasMinPrice) {
+      const hasDiscount =
+        item.discountSellingPrice !== null &&
+        item.discountSellingPrice !== undefined &&
+        item.discountSellingPrice > 0 &&
+        item.discountSellingPrice < (item.minSellingPrice ?? 0);
+
+      price = hasDiscount
+        ? item.discountSellingPrice ?? item.minSellingPrice ?? 0
+        : item.minSellingPrice ?? 0;
+
+      originalPrice = hasDiscount ? item.minSellingPrice ?? undefined : undefined;
+    } else {
+      const salePrice = item.salePrice ?? 0;
+      const baseOriginal = item.originalPrice ?? salePrice;
+      const hasDiscount =
+        item.discountPercent !== null &&
+        item.discountPercent !== undefined &&
+        item.discountPercent > 0 &&
+        salePrice > 0 &&
+        baseOriginal > 0 &&
+        salePrice < baseOriginal;
+
+      price = hasDiscount ? salePrice : baseOriginal;
+      originalPrice = hasDiscount ? baseOriginal : undefined;
+    }
+
+    let discountPercent: number | undefined;
+    if (item.discountValue) {
+      const match = item.discountValue.match(/(\d+(?:\.\d+)?)/);
+      if (match) {
+        discountPercent = Math.round(Number(match[1]));
+      }
+    } else if (typeof item.discountPercent === "number") {
+      discountPercent = Math.round(item.discountPercent);
+    }
+
+    const imageUrl = item.image ? getImageUrl(item.image) || item.image : "";
+
+    return {
+      id: item.productId,
+      name: item.name,
+      imageUrl,
+      price,
+      originalPrice,
+      rating: item.rating ?? 0,
+      discountPercent,
+    };
+  };
 
   // Fetch cart data from API
   useEffect(() => {
@@ -62,6 +130,24 @@ const CartPage: React.FC = () => {
 
     fetchCartData();
   }, [isAuthenticated, page, size]);
+
+  // Fetch recommended products (6 random suggestions from backend)
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        const data = await getSuggestionProducts(6);
+        const mapped = (data || [])
+          .filter((p) => p && p.productId != null)
+          .map(mapToRecommendedProduct)
+          .slice(0, 6);
+        setRecommendedProducts(mapped);
+      } catch (err) {
+        console.error("Error fetching recommended products:", err);
+      }
+    };
+
+    fetchRecommendations();
+  }, []);
 
   // If not authenticated, show login prompt
   if (!isAuthenticated) {
@@ -409,64 +495,6 @@ const CartPage: React.FC = () => {
     }
   };
 
-  // Recommended products
-  const recommendedProducts = [
-    {
-      id: 6,
-      imageUrl: "",
-      name: "Ghế xếp du lịch nhẹ",
-      price: 320000,
-      originalPrice: 450000,
-      rating: 4.4,
-      discountPercent: 29,
-    },
-    {
-      id: 7,
-      imageUrl: "",
-      name: "Đèn pin siêu sáng LED",
-      price: 280000,
-      originalPrice: 380000,
-      rating: 4.2,
-      discountPercent: 26,
-    },
-    {
-      id: 8,
-      imageUrl: "",
-      name: "Bộ dụng cụ đa năng",
-      price: 180000,
-      originalPrice: 250000,
-      rating: 4.5,
-      discountPercent: 28,
-    },
-    {
-      id: 9,
-      imageUrl: "",
-      name: "Áo khoác gió chống nước",
-      price: 750000,
-      originalPrice: 950000,
-      rating: 4.7,
-      discountPercent: 21,
-    },
-    {
-      id: 4,
-      imageUrl: "",
-      name: "Ba lô trekking 30L",
-      price: 950000,
-      originalPrice: 1150000,
-      rating: 4.6,
-      discountPercent: 17,
-    },
-    {
-      id: 101,
-      imageUrl: "",
-      name: "Lều trại 4 người siêu giảm giá",
-      price: 1890000,
-      originalPrice: 3200000,
-      rating: 4.9,
-      discountPercent: 41,
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header
@@ -562,7 +590,7 @@ const CartPage: React.FC = () => {
           </div>
         </section>
 
-        {cartItemsDisplay.length > 0 && (
+        {recommendedProducts.length > 0 && (
           <RecommendedProducts products={recommendedProducts} />
         )}
       </main>

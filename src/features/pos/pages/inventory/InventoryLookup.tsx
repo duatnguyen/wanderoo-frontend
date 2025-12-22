@@ -5,6 +5,7 @@ import InventoryProductTable, {
   type InventoryProduct,
 } from "@/components/pos/InventoryProductTable";
 import { getInventory } from "@/api/endpoints/inventoryApi";
+import { getImageUrl } from "@/utils/imageUtils";
 import type {
   SimpleInventoryItemResponse,
   SimpleInventoryPageResponse,
@@ -59,7 +60,7 @@ const InventoryLookup: React.FC = () => {
       rawProducts.map((item: SimpleInventoryItemResponse, index: number) => ({
         id: item.id != null ? item.id.toString() : `temp-${index}`,
         name: item.productName,
-        image: item.imageUrl ?? undefined,
+        image: item.imageUrl ? (getImageUrl(item.imageUrl) || item.imageUrl) : undefined,
         barcode:
           item.barcode && item.barcode.trim().length > 0 ? item.barcode : "—",
         variant: item.attributes ?? undefined,

@@ -138,6 +138,9 @@ export interface InvoicePreviewResponse {
 
 export interface InvoiceDetailCartItemResponse {
   productName: string;
+  nameDetail?: string | null;
+  skuDetail?: string | null;
+  imageUrl?: string | null;
   quantity: number;
   productPrice: number;
   amount: number;

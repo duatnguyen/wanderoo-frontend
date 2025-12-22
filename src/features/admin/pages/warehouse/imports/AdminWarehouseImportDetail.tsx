@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Square } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Square, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
 import { getInvoiceDetail, confirmInvoiceProductStatus, confirmInvoicePayment } from "@/api/endpoints/warehouseApi";
+import { getImageUrl } from "@/utils/imageUtils";
 import type { InvoiceDetailResponse, PaymentRequest, PaymentMethod } from "@/types/warehouse";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { toast } from "sonner";
@@ -383,11 +384,50 @@ const AdminWarehouseImportDetail: React.FC = () => {
               }`}
             >
               <div className="px-[14px] py-3 flex items-center gap-3">
-                <div className="w-[60px] h-[60px] rounded bg-gray-200 flex-shrink-0 flex items-center justify-center">
-                  <span className="text-[10px] text-gray-400">Image</span>
+                <div className="w-[60px] h-[60px] rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100 relative">
+                  {item.imageUrl ? (
+                    <img
+                      src={getImageUrl(item.imageUrl) || item.imageUrl}
+                      alt={item.productName}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.currentTarget as HTMLImageElement;
+                        if (target.dataset.fallbackApplied === "true") {
+                          return;
+                        }
+                        target.dataset.fallbackApplied = "true";
+                        target.style.display = "none";
+                        const fallback = target.parentElement?.querySelector('.fallback-placeholder') as HTMLElement;
+                        if (fallback) {
+                          fallback.style.display = "flex";
+                        }
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className="fallback-placeholder w-full h-full flex items-center justify-center"
+                    style={{ display: item.imageUrl ? 'none' : 'flex' }}
+                  >
+                    <Package className="w-6 h-6 text-gray-400" />
+                  </div>
                 </div>
-                <div className="text-black text-[14px] font-[500] font-montserrat leading-[14px]">
-                  {item.productName || "N/A"}
+                <div className="flex-1 min-w-0">
+                  <div className="text-black text-[14px] font-[500] font-montserrat leading-[14px] mb-1">
+                    {item.productName || "N/A"}
+                  </div>
+                  {item.nameDetail && (
+                    <div className="text-[#737373] text-[12px] font-[400] font-montserrat leading-[16px] mb-0.5">
+                      <span className="text-[#a0a0a0]">Phân loại:</span>{" "}
+                      <span className="font-medium text-[#606060]">{item.nameDetail}</span>
+                    </div>
+                  )}
+                  {item.skuDetail && (
+                    <div className="text-[#737373] text-[12px] font-[400] font-montserrat leading-[16px]">
+                      <span className="text-[#a0a0a0]">SKU:</span>{" "}
+                      <span className="font-medium text-[#606060]">{item.skuDetail}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="px-[14px] py-3 text-[#272424] text-[14px] font-[500] font-montserrat leading-[14px] text-center">

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Icon from "@/components/icons/Icon";
 import { Pagination } from "@/components/ui/pagination";
+import { Package } from "lucide-react";
+import { getImageUrl } from "@/utils/imageUtils";
 import {
   searchInvoiceProducts,
   getProviderList,
@@ -355,7 +357,7 @@ const AdminWarehouseCreateImport = () => {
         name: product.productName,
         quantity: 1,
         price: product.importPrice ?? 0,
-        image: product.imageUrl ?? null,
+        image: product.imageUrl ? (getImageUrl(product.imageUrl) || product.imageUrl) : null,
         availableStock: product.totalQuantity ?? 0,
       }));
 
@@ -491,7 +493,34 @@ const AdminWarehouseCreateImport = () => {
                       >
                         {/* Product Info */}
                         <div className="flex-[2] min-w-0 flex items-start gap-3">
-                          <div className="h-[38px] w-[38px] bg-gray-200 rounded flex items-center justify-center shrink-0 border border-gray-300"></div>
+                          <div className="h-[38px] w-[38px] bg-gray-100 rounded-lg flex items-center justify-center shrink-0 border border-gray-200 overflow-hidden relative">
+                            {product.image ? (
+                              <img
+                                src={getImageUrl(product.image) || product.image}
+                                alt={product.name}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const target = e.currentTarget as HTMLImageElement;
+                                  if (target.dataset.fallbackApplied === "true") {
+                                    return;
+                                  }
+                                  target.dataset.fallbackApplied = "true";
+                                  target.style.display = "none";
+                                  const fallback = target.parentElement?.querySelector('.fallback-placeholder') as HTMLElement;
+                                  if (fallback) {
+                                    fallback.style.display = "flex";
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="fallback-placeholder w-full h-full flex items-center justify-center"
+                              style={{ display: product.image ? 'none' : 'flex' }}
+                            >
+                              <Package className="w-5 h-5 text-gray-400" />
+                            </div>
+                          </div>
                           <span className="font-['Montserrat'] font-normal text-[14px] text-[#272424] truncate min-w-0">
                             {product.name}
                           </span>
@@ -729,7 +758,7 @@ const AdminWarehouseCreateImport = () => {
         >
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <div
-            className="relative z-10 w-[550px] max-h-[85vh] bg-white flex flex-col rounded-xl shadow-2xl overflow-hidden"
+            className="relative z-10 w-[700px] max-h-[85vh] bg-white flex flex-col rounded-xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-white flex flex-col h-full max-h-[85vh]">
@@ -869,18 +898,33 @@ const AdminWarehouseCreateImport = () => {
                             aria-label={`Chọn ${product.productName}`}
                             className="mt-1"
                           />
-                          <div className="h-[56px] w-[56px] bg-gray-100 rounded-lg flex items-center justify-center shrink-0 border border-gray-200 overflow-hidden shadow-sm">
+                          <div className="h-[56px] w-[56px] bg-gray-100 rounded-lg flex items-center justify-center shrink-0 border border-gray-200 overflow-hidden shadow-sm relative">
                             {product.imageUrl ? (
                               <img
-                                src={product.imageUrl}
+                                src={getImageUrl(product.imageUrl) || product.imageUrl}
                                 alt={product.productName}
                                 className="h-full w-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const target = e.currentTarget as HTMLImageElement;
+                                  if (target.dataset.fallbackApplied === "true") {
+                                    return;
+                                  }
+                                  target.dataset.fallbackApplied = "true";
+                                  target.style.display = "none";
+                                  const fallback = target.parentElement?.querySelector('.fallback-placeholder') as HTMLElement;
+                                  if (fallback) {
+                                    fallback.style.display = "flex";
+                                  }
+                                }}
                               />
-                            ) : (
-                              <span className="text-[10px] text-[#737373]">
-                                N/A
-                              </span>
-                            )}
+                            ) : null}
+                            <div 
+                              className="fallback-placeholder w-full h-full flex items-center justify-center"
+                              style={{ display: product.imageUrl ? 'none' : 'flex' }}
+                            >
+                              <Package className="w-6 h-6 text-gray-400" />
+                            </div>
                           </div>
                           <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                             <p

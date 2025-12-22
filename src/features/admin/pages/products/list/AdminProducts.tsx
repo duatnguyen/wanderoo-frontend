@@ -319,41 +319,10 @@ const AdminProducts: React.FC = () => {
     setIsIndeterminate(false);
   };
 
-  // Bulk Actions Handlers
-  const handleBulkDelete = () => {
-    if (selectedProducts.size === 0) return;
-
-    const productNames = Array.from(selectedProducts)
-      .map((id) => products.find((p) => p.id === id)?.name)
-      .filter(Boolean)
-      .slice(0, 3) // Show first 3 names
-      .join(', ');
-
-    const moreCount = selectedProducts.size - 3;
-    const displayText = selectedProducts.size <= 3
-      ? productNames
-      : `${productNames}${moreCount > 0 ? ` và ${moreCount} sản phẩm khác` : ''}`;
-
-    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedProducts.size} sản phẩm?\n\n${displayText}`)) {
-      console.log('Deleting products:', Array.from(selectedProducts));
-      // TODO: Implement actual deletion
-      handleClearSelection();
-      alert(`Đã xóa ${selectedProducts.size} sản phẩm thành công!`);
-    }
-  };
-
   const buildSelectedIdPayload = (): number[] => {
     return Array.from(selectedProducts)
       .map((id) => Number(id))
       .filter((id) => !Number.isNaN(id));
-  };
-
-  const handleBulkExport = () => {
-    if (selectedProducts.size === 0) return;
-
-    console.log('Exporting products:', Array.from(selectedProducts));
-    // TODO: Implement actual export
-    alert(`Đang xuất dữ liệu ${selectedProducts.size} sản phẩm...`);
   };
   const handleUpdate = (productId: string) => {
     navigate(`/admin/products/${productId}/edit`);
@@ -469,11 +438,6 @@ const AdminProducts: React.FC = () => {
         handleClearSelection();
       }
 
-      // Delete key to delete selected products
-      if (event.key === 'Delete' && selectedProducts.size > 0) {
-        event.preventDefault();
-        handleBulkDelete();
-      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
@@ -584,10 +548,6 @@ const AdminProducts: React.FC = () => {
                 <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Esc</kbd>
                 <span className="text-xs">Bỏ chọn</span>
               </span>
-              <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Del</kbd>
-                <span className="text-xs">Xóa</span>
-              </span>
             </div>
           </div>
         </div>
@@ -603,9 +563,7 @@ const AdminProducts: React.FC = () => {
             totalCount={filteredProducts.length}
             onSelectAll={handleSelectAll}
             onClearSelection={handleClearSelection}
-            onBulkDelete={handleBulkDelete}
             onBulkHide={handleBulkHide}
-            onBulkExport={handleBulkExport}
             showSelectionActions={selectedProducts.size > 0}
             onBulkShow={handleBulkShow}
             onShowChannelModal={handleShowChannelModal}
@@ -672,32 +630,12 @@ const AdminProducts: React.FC = () => {
 
             <div className="flex gap-2">
               <button
-                onClick={handleBulkExport}
-                className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
-                title="Xuất Excel"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </button>
-
-              <button
                 onClick={handleBulkHide}
                 className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full transition-colors"
                 title="Ẩn sản phẩm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                </svg>
-              </button>
-
-              <button
-                onClick={handleBulkDelete}
-                className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                title="Xóa sản phẩm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
 

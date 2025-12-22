@@ -32,16 +32,13 @@ const RecommendedProducts: React.FC<RecommendedProductsProps> = ({
               </h2>
             </div>
           </div>
-          <a
-            href="#"
+          <button
+            type="button"
             className="text-blue-600 text-[16px] font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/shop");
-            }}
+            onClick={() => navigate("/shop/products/all")}
           >
             Xem tất cả &gt;&gt;
-          </a>
+          </button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

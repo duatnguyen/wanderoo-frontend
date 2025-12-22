@@ -173,18 +173,34 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
                     {/* Product Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
-                        {product.image ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-12 h-12 rounded-lg object-cover border border-[#e7e7e7] flex-shrink-0 shadow-sm"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 rounded-lg border border-[#e7e7e7] flex-shrink-0 shadow-sm overflow-hidden bg-gray-100 relative">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement;
+                                if (target.dataset.fallbackApplied === "true") {
+                                  return;
+                                }
+                                target.dataset.fallbackApplied = "true";
+                                target.style.display = "none";
+                                const fallback = target.parentElement?.querySelector('.fallback-icon') as HTMLElement;
+                                if (fallback) {
+                                  fallback.style.display = "flex";
+                                }
+                              }}
+                            />
+                          ) : null}
+                          <div 
+                            className="fallback-icon w-full h-full flex items-center justify-center"
+                            style={{ display: product.image ? 'none' : 'flex' }}
+                          >
                             <Package className="w-6 h-6 text-gray-400" />
                           </div>
-                        )}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-[#272424] line-clamp-1 mb-0.5">
                             {product.name}

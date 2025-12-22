@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
+import { getImageUrl } from "../../../../utils/imageUtils";
 import type { POSProduct } from "../../../../components/pos/POSProductList";
 import {
   getPosOrderDetail,
@@ -75,7 +76,7 @@ const CreateReturnOrder: React.FC = () => {
           product: {
             id: product.id.toString(),
             name: product.productName,
-            image: product.productImage,
+            image: product.productImage ? (getImageUrl(product.productImage) || product.productImage) : undefined,
             sku: product.productSku,
             variant: product.category,
             price: product.unitPrice || 0,
@@ -328,30 +329,33 @@ const CreateReturnOrder: React.FC = () => {
                 >
                   <div className="flex items-center gap-4">
                     {/* Hình ảnh */}
-                    <div className="w-[64px] h-[64px] rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100">
+                    <div className="w-[64px] h-[64px] rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100 relative">
                       {item.product.image ? (
                         <img
                           src={item.product.image}
                           alt={item.product.name}
                           className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (target.dataset.fallbackApplied === "true") {
+                              return;
+                            }
+                            target.dataset.fallbackApplied = "true";
+                            target.style.display = "none";
+                            const fallback = target.parentElement?.querySelector('.fallback-placeholder') as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = "flex";
+                            }
+                          }}
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <svg
-                            className="w-7 h-7 text-gray-300"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </div>
-                      )}
+                      ) : null}
+                      <div 
+                        className="fallback-placeholder w-full h-full flex items-center justify-center"
+                        style={{ display: item.product.image ? 'none' : 'flex' }}
+                      >
+                        <Package className="w-7 h-7 text-gray-400" />
+                      </div>
                     </div>
                     {/* Thông tin + điều chỉnh số lượng + tổng tiền */}
                     <div className="flex-1 min-w-0">
