@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Edit, FileText, X } from "lucide-react";
+import { MoreVertical, Edit, X } from "lucide-react";
 
 import { ChipStatus } from "@/components/ui/chip-status";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
@@ -21,7 +21,6 @@ export interface DiscountTableProps {
   onSelectRow?: (id: string | number, checked: boolean) => void;
   onSelectAll?: (checked: boolean) => void;
   onEdit?: (voucher: Voucher) => void;
-  onViewOrders?: (voucher: Voucher) => void;
   onEnd?: (voucher: Voucher) => void;
   className?: string;
   selectable?: boolean;
@@ -60,7 +59,6 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
   onSelectRow,
   onSelectAll,
   onEdit,
-  onViewOrders,
   onEnd,
   className,
   selectable = false,
@@ -158,9 +156,9 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
     },
     {
       key: "maxUsage",
-      title: "Lượt dùng tối đa",
-      width: "120px",
-      minWidth: "100px",
+      title: "Tổng lượt sử dụng tối đa",
+      width: "150px",
+      minWidth: "130px",
       className: "text-center justify-center hidden sm:flex",
       render: (_, voucher: Voucher) => (
         <div className="text-center w-full flex items-center justify-center">
@@ -172,14 +170,14 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
     },
     {
       key: "used",
-      title: "Đã dùng",
-      width: "80px",
-      minWidth: "70px",
+      title: "Tổng số lượng",
+      width: "120px",
+      minWidth: "100px",
       className: "text-center justify-center hidden lg:flex",
       render: (_, voucher: Voucher) => (
         <div className="text-center w-full flex items-center justify-center">
           <p className="font-medium text-xs sm:text-[13px] text-[#272424] leading-[1.4]">
-            {voucher.used}
+            {voucher.quantity ?? 0}
           </p>
         </div>
       ),
@@ -226,7 +224,7 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
       minWidth: "80px",
       className: "text-center justify-center",
       render: (_, voucher: Voucher) => {
-        const hasActions = (onEdit || onViewOrders || (onEnd && voucher.status !== "Đã kết thúc"));
+        const hasActions = (onEdit || (onEnd && voucher.status !== "Đã kết thúc"));
         
         if (!hasActions) {
           return (
@@ -259,18 +257,6 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
                   >
                     <Edit className="w-4 h-4" />
                     <span>Chỉnh sửa</span>
-                  </DropdownMenuItem>
-                )}
-                {onViewOrders && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onViewOrders(voucher);
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Xem đơn hàng</span>
                   </DropdownMenuItem>
                 )}
                 {onEnd && voucher.status !== "Đã kết thúc" && (

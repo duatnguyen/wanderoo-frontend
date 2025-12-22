@@ -22,11 +22,8 @@ import {
 
 import type {
   Voucher,
-  VoucherOrder,
-  VoucherOrderSummary,
   VoucherEditData,
 } from "@/types/voucher";
-import VoucherOrdersModal from "@/components/admin/voucher/VoucherOrdersModal";
 import { getDiscounts, getDiscountDetail, toggleDiscountStatus } from "@/api/endpoints/discountApi";
 import type {
   AdminDiscountResponse,
@@ -46,205 +43,6 @@ const formatDisplayDate = (iso: string) => {
   return `${time} ${day}`;
 };
 
-const defaultSummary: VoucherOrderSummary = {
-  totalOrders: 0,
-  totalDiscountAmount: 0,
-  totalRevenue: 0,
-};
-
-const createSummary = (orders: VoucherOrder[]): VoucherOrderSummary => {
-  return orders.reduce(
-    (acc, order) => {
-      acc.totalOrders += 1;
-      acc.totalDiscountAmount += order.discountAmount;
-      acc.totalRevenue += order.totalAmount;
-      return acc;
-    },
-    { ...defaultSummary }
-  );
-};
-
-const voucherOrdersData: Record<
-  string,
-  { orders: VoucherOrder[]; summary: VoucherOrderSummary }
-> = {
-  "SHOP-001": (() => {
-    const orders: VoucherOrder[] = [
-      {
-        id: "order-1",
-        code: "250826TT6YWKXG",
-        items: [
-          {
-            id: "item-1",
-            name: "Áo khoác leo núi cao cấp",
-            image: "https://via.placeholder.com/80x80.png?text=SP1",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 34500,
-        totalAmount: 300000,
-        orderDate: "26/08/2025",
-        status: "Đang xử lý",
-      },
-      {
-        id: "order-2",
-        code: "250901B563VJWU",
-        items: [
-          {
-            id: "item-2",
-            name: "Đầm dạ hội hè",
-            image: "https://via.placeholder.com/80x80.png?text=SP2",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 53300,
-        totalAmount: 0,
-        orderDate: "01/09/2025",
-        status: "Đã hủy",
-      },
-      {
-        id: "order-3",
-        code: "250904K83X45ER",
-        items: [
-          {
-            id: "item-3",
-            name: "Đầm công sở kẻ caro",
-            image: "https://via.placeholder.com/80x80.png?text=SP3",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 42800,
-        totalAmount: 320000,
-        orderDate: "04/09/2025",
-        status: "Đang giao",
-      },
-      {
-        id: "order-4",
-        code: "250905P0AYWQGB",
-        items: [
-          {
-            id: "item-4",
-            name: "Set trang phục vũ công",
-            image: "https://via.placeholder.com/80x80.png?text=SP4",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 36500,
-        totalAmount: 320000,
-        orderDate: "05/09/2025",
-        status: "Đã giao",
-      },
-      {
-        id: "order-5",
-        code: "250906RA1V74TR",
-        items: [
-          {
-            id: "item-5",
-            name: "Mô hình anime Hatsune",
-            image: "https://via.placeholder.com/80x80.png?text=SP5",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 55000,
-        totalAmount: 320000,
-        orderDate: "06/09/2025",
-        status: "Đã hoàn thành",
-      },
-      {
-        id: "order-6",
-        code: "250907TVAVAFN0",
-        items: [
-          {
-            id: "item-6",
-            name: "Tượng mô hình nghệ thuật",
-            image: "https://via.placeholder.com/80x80.png?text=SP6",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 134000,
-        totalAmount: 650000,
-        orderDate: "07/09/2025",
-        status: "Đang giao",
-      },
-    ];
-    return {
-      orders,
-      summary: createSummary(orders),
-    };
-  })(),
-  "NEW-001": (() => {
-    const orders: VoucherOrder[] = [
-      {
-        id: "order-7",
-        code: "2508209CRMBY9R",
-        items: [
-          {
-            id: "item-7",
-            name: "Quần jean trơn xanh đậm",
-            image: "https://via.placeholder.com/80x80.png?text=SP7",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 53750,
-        totalAmount: 330000,
-        orderDate: "20/08/2025",
-        status: "Đã hoàn thành",
-      },
-      {
-        id: "order-8",
-        code: "250820BPT70UB9",
-        items: [
-          {
-            id: "item-8",
-            name: "Váy dự tiệc công chúa",
-            image: "https://via.placeholder.com/80x80.png?text=SP8",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 32500,
-        totalAmount: 0,
-        orderDate: "20/08/2025",
-        status: "Đã hủy",
-      },
-      {
-        id: "order-9",
-        code: "250821BVDVQTVP",
-        items: [
-          {
-            id: "item-9",
-            name: "Trang phục múa truyền thống",
-            image: "https://via.placeholder.com/80x80.png?text=SP9",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 62756,
-        totalAmount: 0,
-        orderDate: "21/08/2025",
-        status: "Đang xử lý",
-      },
-      {
-        id: "order-10",
-        code: "250825R79R66SX",
-        items: [
-          {
-            id: "item-10",
-            name: "Mô hình robot sưu tầm",
-            image: "https://via.placeholder.com/80x80.png?text=SP10",
-            quantity: 1,
-          },
-        ],
-        discountAmount: 46300,
-        totalAmount: 0,
-        orderDate: "25/08/2025",
-        status: "Đang giao",
-      },
-    ];
-    return {
-      orders,
-      summary: createSummary(orders),
-    };
-  })(),
-};
 // Tab data
 const discountTabs: TabItemWithBadge[] = [
   { id: "all", label: "Tất cả" },
@@ -366,6 +164,7 @@ const mapDiscountToVoucher = (discount: AdminDiscountResponse): Voucher => {
     discount: discountValueText,
     maxUsage: discount.discountUsage ?? discount.quantity ?? 0,
     used: 0,
+    quantity: discount.quantity ?? 0,
     savedCount: undefined,
     display: applyOnLabel,
     startDate: formatDisplayDate(discount.startDate?.toString() ?? ""),
@@ -380,8 +179,6 @@ const AdminDiscounts: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
-  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
   const { data, isLoading, error } = useQuery<AdminDiscountPageResponse, Error>({
     queryKey: ["admin-discounts", activeTab, searchTerm],
@@ -468,11 +265,6 @@ const AdminDiscounts: React.FC = () => {
     const route = voucherRouteMap[voucher.type] || "/admin/discounts/new";
     const querySuffix = voucher.id ? `?id=${voucher.id}` : "";
     navigate(`${route}${querySuffix}`, { state: { mode: "edit", voucher } });
-  };
-
-  const handleViewOrders = (voucher: Voucher) => {
-    setSelectedVoucher(voucher);
-    setIsOrdersModalOpen(true);
   };
 
   // Mutation để toggle status voucher (ENABLE/DISABLE)
@@ -578,24 +370,9 @@ const AdminDiscounts: React.FC = () => {
           vouchers={filteredVouchers}
           loading={isLoading}
           onEdit={handleEdit}
-          onViewOrders={handleViewOrders}
           onEnd={handleEnd}
         />
       </ContentCard>
-      <VoucherOrdersModal
-        isOpen={isOrdersModalOpen}
-        voucher={selectedVoucher}
-        orders={selectedVoucher ? voucherOrdersData[selectedVoucher.id]?.orders ?? [] : []}
-        summary={
-          selectedVoucher
-            ? voucherOrdersData[selectedVoucher.id]?.summary ?? defaultSummary
-            : defaultSummary
-        }
-        onClose={() => {
-          setIsOrdersModalOpen(false);
-          setSelectedVoucher(null);
-        }}
-      />
     </PageContainer>
   );
 };

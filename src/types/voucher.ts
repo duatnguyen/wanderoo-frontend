@@ -39,6 +39,7 @@ export interface Voucher {
   discount: string;
   maxUsage: number;
   used: number;
+  quantity?: number;
   display: string;
   startDate: string;
   endDate: string;
