@@ -9,7 +9,7 @@ import { ChipStatus } from "../../../../components/ui/chip-status";
 import { getCustomerOrderDetail, cancelOrder } from "../../../../api/endpoints/websiteOrderApi";
 import { createVNPayPayment } from "../../../../api/endpoints/paymentApi";
 import { useAuth } from "../../../../context/AuthContext";
-import { createMyReview, getMyReviews } from "../../../../api/endpoints/reviewApi";
+import { createMyReview, getMyReviews, updateReview } from "../../../../api/endpoints/reviewApi";
 import { uploadFile, uploadReturnOrderImages } from "../../../../api/endpoints/fileApi";
 import { customerReturnOrderApi } from "../../../../api/customerReturnOrderApi";
 import { formatTimelineDate, formatOrderDate } from "../../../../utils/dateUtils";
@@ -149,7 +149,12 @@ const OrderDetailTab: React.FC = () => {
   const [selectedProducts, setSelectedProducts] = useState<ProductType[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [reviewedProducts, setReviewedProducts] = useState<Set<string>>(new Set());
-  const [productReviews, setProductReviews] = useState<Map<string, { rating: number; comment: string; images?: string[] }>>(new Map());
+  const [productReviews, setProductReviews] = useState<
+    Map<
+      string,
+      { reviewId?: number; rating: number; comment: string; images?: string[] }
+    >
+  >(new Map());
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isCancellingOrder, setIsCancellingOrder] = useState(false);
@@ -249,7 +254,10 @@ const OrderDetailTab: React.FC = () => {
   // Populate productReviews state when myReviewsData changes
   useEffect(() => {
     if (myReviewsData?.reviews && orderData?.orderDetails) {
-      const newProductReviews = new Map<string, { rating: number; comment: string; images?: string[] }>();
+      const newProductReviews = new Map<
+        string,
+        { reviewId?: number; rating: number; comment: string; images?: string[] }
+      >();
       const newReviewedProducts = new Set<string>();
 
       myReviewsData.reviews.forEach((review: any) => {
@@ -265,6 +273,7 @@ const OrderDetailTab: React.FC = () => {
           const productId = matchingDetail.id?.toString() || matchingDetail.productDetailId?.toString();
           if (productId) {
             newProductReviews.set(productId, {
+              reviewId: review.id,
               rating: review.rating,
               comment: review.judging || "",
               images: review.images || [],
@@ -1006,29 +1015,12 @@ const OrderDetailTab: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Bên phải: Số lượng, Tổng tiền giảm, Tổng tiền */}
+                  {/* Bên phải: chỉ hiển thị Số lượng (ẩn block tổng tiền giảm / tổng tiền) */}
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {/* Số lượng */}
                     {product.quantity && product.quantity > 0 && (
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">Số lượng:</span>
                         <span className="text-gray-700 font-medium">{product.quantity}</span>
-                      </div>
-                    )}
-
-                    {/* Tổng tiền giảm */}
-                    {product.discountAmount && product.discountAmount > 0 && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-500">Tổng tiền giảm:</span>
-                        <span className="text-red-600 font-medium">-{formatCurrencyVND(product.discountAmount)}</span>
-                      </div>
-                    )}
-
-                    {/* Tổng tiền (giá cuối) */}
-                    {product.finalPrice && product.finalPrice > 0 && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-500">Tổng tiền:</span>
-                        <span className="text-red-600 font-semibold">{formatCurrencyVND(product.finalPrice)}</span>
                       </div>
                     )}
                   </div>
@@ -1114,7 +1106,9 @@ const OrderDetailTab: React.FC = () => {
                   },
                   {
                     id: "review",
-                    label: "Đánh giá",
+                    label: order.products.some((p) => productReviews.has(p.id))
+                      ? "Xem lại đánh giá"
+                      : "Đánh giá",
                     onClick: () => {
                       if (order.products.length > 0) {
                         setSelectedProducts(order.products);
@@ -1397,30 +1391,30 @@ const OrderDetailTab: React.FC = () => {
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <div className="text-sm font-semibold text-gray-700 mb-3">Chi tiết tính toán giá</div>
                       <div className="space-y-2 text-sm">
-                        {/* Bước 1: Tổng tiền gốc */}
+                        {/* Tổng tiền gốc */}
                         {order.payment.subtotal != null && order.payment.subtotal > 0 && (
                           <div className="flex justify-between">
-                            <span className="text-gray-600">1. Tổng tiền hàng (chưa giảm giá):</span>
+                            <span className="text-gray-600">Tổng tiền hàng (chưa giảm giá):</span>
                             <span className="font-medium">{formatCurrencyVND(order.payment.subtotal)}</span>
                           </div>
                         )}
 
-                        {/* Bước 2: Giảm giá sản phẩm - chỉ hiển thị khi > 0 */}
+                        {/* Giảm giá sản phẩm - chỉ hiển thị khi > 0 */}
                         {order.payment.productDiscount != null &&
                           typeof order.payment.productDiscount === 'number' &&
                           order.payment.productDiscount > 0 && (
                             <div className="flex justify-between text-red-600">
-                              <span className="pl-2">2. Trừ giảm giá sản phẩm:</span>
+                              <span className="text-red-600">Trừ giảm giá sản phẩm:</span>
                               <span className="font-medium">-{formatCurrencyVND(order.payment.productDiscount)}</span>
                             </div>
                           )}
 
-                        {/* Bước 3: Giảm giá đơn hàng - chỉ hiển thị khi > 0 */}
+                        {/* Giảm giá đơn hàng - chỉ hiển thị khi > 0 */}
                         {order.payment.orderDiscount != null &&
                           typeof order.payment.orderDiscount === 'number' &&
                           order.payment.orderDiscount > 0 && (
                             <div className="flex justify-between text-orange-600">
-                              <span className="pl-2">3. Trừ giảm giá đơn hàng (voucher):</span>
+                              <span className="text-orange-600">Trừ giảm giá đơn hàng (voucher):</span>
                               <span className="font-medium">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
                             </div>
                           )}
@@ -1432,21 +1426,20 @@ const OrderDetailTab: React.FC = () => {
                           typeof order.payment.totalDiscount === 'number' &&
                           order.payment.totalDiscount > 0 && (
                             <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded">
-                              <span className="font-medium">= Tiền sau giảm giá:</span>
+                              <span className="font-medium">Tiền sau giảm giá:</span>
                               <span className="font-semibold">{formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}</span>
                             </div>
                           )}
 
-                        {/* Bước 4: Phí ship - chỉ hiển thị khi > 0 */}
+                        {/* Phí ship - chỉ hiển thị khi > 0 */}
                         {order.payment.shipping != null &&
                           typeof order.payment.shipping === 'number' &&
                           order.payment.shipping > 0 && (
                             <div className="flex justify-between">
-                              <span className="text-gray-600">4. Cộng phí vận chuyển:</span>
+                              <span className="text-gray-600">Cộng phí vận chuyển:</span>
                               <span className="font-medium">+{formatCurrencyVND(order.payment.shipping)}</span>
                             </div>
                           )}
-
 
                       </div>
                     </div>
@@ -1462,15 +1455,6 @@ const OrderDetailTab: React.FC = () => {
                         {formatCurrencyVND(totalPayment)}
                       </span>
                     </div>
-                    {order.payment.hasDiscount &&
-                      order.payment.totalDiscount !== null &&
-                      order.payment.totalDiscount !== undefined &&
-                      typeof order.payment.totalDiscount === 'number' &&
-                      order.payment.totalDiscount > 0 && (
-                        <div className="text-xs opacity-80 mt-1">
-                          Đã bao gồm giảm giá {formatCurrencyVND(order.payment.totalDiscount)}
-                        </div>
-                      )}
                   </div>
                 )}
                 <div className="space-y-3 bg-gray-50 p-3 rounded-lg">
@@ -1553,13 +1537,16 @@ const OrderDetailTab: React.FC = () => {
 
               setIsSubmittingReview(true);
               try {
-                // Store image URLs for each review
+                // Store media URLs (ảnh + video) cho mỗi review
                 const reviewImageUrlsMap = new Map<string, string[]>();
+
+                // Store reviewId for each product (new or updated)
+                const reviewIdMap = new Map<string, number>();
 
                 // Submit each review
                 for (const review of reviews) {
                   // Find the product detail ID from selectedProducts
-                  const product = selectedProducts.find(p => p.id === review.productId);
+                  const product = selectedProducts.find((p) => p.id === review.productId);
                   if (!product?.productDetailId) {
                     console.error(`Product detail ID not found for product ${review.productId}`);
                     continue;
@@ -1569,7 +1556,9 @@ const OrderDetailTab: React.FC = () => {
                   let imageUrls: string[] = [];
                   if (review.images && review.images.length > 0) {
                     try {
-                      const uploadPromises = review.images.map(file => uploadFile(file, 'reviews'));
+                      const uploadPromises = review.images.map((file) =>
+                        uploadFile(file, "reviews")
+                      );
                       imageUrls = await Promise.all(uploadPromises);
                     } catch (uploadError) {
                       console.error("Error uploading review images:", uploadError);
@@ -1578,31 +1567,77 @@ const OrderDetailTab: React.FC = () => {
                     }
                   }
 
-                  // Store image URLs for this review
-                  reviewImageUrlsMap.set(review.productId, imageUrls);
+                  // Upload videos nếu có (lưu chung vào danh sách media)
+                  let videoUrls: string[] = [];
+                  if ((review as any).videos && (review as any).videos.length > 0) {
+                    try {
+                      const uploadVideoPromises = (review as any).videos.map((file: File) =>
+                        uploadFile(file, "reviews")
+                      );
+                      videoUrls = await Promise.all(uploadVideoPromises);
+                    } catch (uploadError) {
+                      console.error("Error uploading review videos:", uploadError);
+                      toast.error("Không thể tải lên một số video");
+                    }
+                  }
 
-                  // Create review via customer API endpoint
-                  // This endpoint uses orderId and productDetailId, backend will find orderHistoryId automatically
-                  await createMyReview({
-                    orderId: order.orderId!,
-                    productDetailId: product.productDetailId!,
-                    images: imageUrls.length > 0 ? imageUrls : undefined,
-                    rating: review.rating,
-                    judging: review.comment || undefined,
-                  });
+                  // Bao gồm cả media cũ (đã lưu trên server) trừ những cái user đã xoá trong existingImages
+                  const existingMedia = review.existingImages || [];
+                  const mediaUrls = [...existingMedia, ...imageUrls, ...videoUrls];
+
+                  // Store media URLs for this review
+                  reviewImageUrlsMap.set(review.productId, mediaUrls);
+
+                  // Nếu sản phẩm đã có đánh giá, gọi API update, ngược lại thì tạo mới
+                  const existingReviewMeta = productReviews.get(review.productId);
+                  const existingReviewId = existingReviewMeta?.reviewId;
+                  if (existingReviewId) {
+                    try {
+                      const updatePayload = {
+                        // Backend yêu cầu userId & productDetailId cho ReviewUpdateRequest
+                        userId: user!.id,
+                        productDetailId: product.productDetailId!,
+                        rating: review.rating,
+                        judging: review.comment || undefined,
+                        images: mediaUrls.length > 0 ? mediaUrls : undefined,
+                      };
+                      const updateRes = await updateReview(existingReviewId, updatePayload);
+                      const updated = updateRes.data;
+                      reviewIdMap.set(review.productId, updated?.id ?? existingReviewId);
+                    } catch (updateErr) {
+                      // Ghi log lỗi nhưng không hiện toast gây hiểu nhầm với người dùng
+                      console.error("Error updating review:", updateErr);
+                      continue;
+                    }
+                  } else {
+                    const createRes = await createMyReview({
+                      orderId: order.orderId!,
+                      productDetailId: product.productDetailId!,
+                      images: mediaUrls.length > 0 ? mediaUrls : undefined,
+                      rating: review.rating,
+                      judging: review.comment || undefined,
+                    });
+                    if (createRes?.data != null) {
+                      reviewIdMap.set(review.productId, createRes.data);
+                    }
+                  }
                 }
 
-                // Update local state
+                // Update local state (cả đánh giá mới và đánh giá sửa)
                 reviews.forEach((review) => {
                   if (!reviewedProducts.has(review.productId)) {
                     setReviewedProducts((prev) => new Set(prev).add(review.productId));
                   }
                   setProductReviews((prev) => {
                     const newMap = new Map(prev);
+                    const existing = prev.get(review.productId);
+                    const newReviewId =
+                      reviewIdMap.get(review.productId) || existing?.reviewId;
                     newMap.set(review.productId, {
+                      reviewId: newReviewId,
                       rating: review.rating,
                       comment: review.comment,
-                      images: reviewImageUrlsMap.get(review.productId) || [], // Store the uploaded URLs
+                      images: reviewImageUrlsMap.get(review.productId) || existing?.images || [],
                     });
                     return newMap;
                   });

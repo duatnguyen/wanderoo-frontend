@@ -228,6 +228,7 @@ export interface ReviewResponse {
   userName?: string; // User's name
   productDetailId: number;
   productName?: string; // Product's name
+  productImage?: string | null; // Main product image (first image from product)
   orderHistoryId?: number;
   orderCode?: string; // Order code
   images?: string[];

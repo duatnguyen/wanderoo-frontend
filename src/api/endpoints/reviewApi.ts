@@ -108,8 +108,9 @@ export const updateReview = async (
   id: number,
   reviewData: ReviewUpdateRequest
 ): Promise<ApiResponse<ReviewResponse>> => {
+  // Sử dụng endpoint cập nhật review cho khách hàng
   const response = await api.put<ApiResponse<ReviewResponse>>(
-    `/auth/v1/private/reviews/${id}`,
+    `/auth/v1/reviews/my/${id}`,
     reviewData
   );
   return response.data;

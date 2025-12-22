@@ -476,6 +476,14 @@ const CheckoutPage: React.FC = () => {
     return null;
   }, [selectedVoucherId, voucherSections]);
 
+  // Mã voucher đang áp dụng (ưu tiên dữ liệu tính giảm giá để phản ánh cả trường hợp nhập tay)
+  const appliedVoucherCode = useMemo(() => {
+    if (discountData?.discountCode) return discountData.discountCode;
+    if (selectedVoucher?.code) return selectedVoucher.code;
+    if (selectedVoucherId?.startsWith("voucher-")) return selectedVoucherId.replace("voucher-", "");
+    return selectedVoucherId || null;
+  }, [discountData?.discountCode, selectedVoucher?.code, selectedVoucherId]);
+
   // Debug selectedVoucher
   React.useEffect(() => {
     console.log("🎫 Selected Voucher Changed:", {
@@ -1026,10 +1034,10 @@ const CheckoutPage: React.FC = () => {
                         onClick={handleOpenVoucherModal}
                         className="text-sm text-[#E04D30] hover:text-[#c53b1d] transition-colors font-semibold flex items-center gap-1 group"
                       >
-                        {selectedVoucher ? (
+                        {appliedVoucherCode ? (
                           <>
                             <span className="px-3 py-1 bg-[#E04D30]/10 text-[#E04D30] rounded-md font-medium">
-                              {selectedVoucher.code}
+                              {appliedVoucherCode}
                             </span>
                             <span className="group-hover:underline">Thay đổi</span>
                           </>

@@ -492,6 +492,23 @@ const AdminDiscounts: React.FC = () => {
     },
   });
 
+  const endVoucherMutation = useMutation({
+    mutationFn: async (discountId: number) => {
+      // Gọi API deleteDiscount: backend sẽ set endDate = now nếu còn tương lai và đổi status sang DISABLE
+      const { deleteDiscount } = await import("@/api/endpoints/discountApi");
+      return deleteDiscount(discountId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-discounts"] });
+      toast.success("Đã kết thúc voucher và cập nhật ngày kết thúc là thời gian hiện tại");
+    },
+    onError: (error: unknown) => {
+      const message =
+        (error as any)?.response?.data?.message ?? "Không thể kết thúc voucher. Vui lòng thử lại.";
+      toast.error(message);
+    },
+  });
+
   const handleEnd = async (voucher: Voucher) => {
     // Lấy discount ID từ voucher
     const discountId = typeof voucher.id === "string" ? Number(voucher.id) : voucher.id;
@@ -500,21 +517,19 @@ const AdminDiscounts: React.FC = () => {
       return;
     }
 
-    // Lấy chi tiết discount để biết status hiện tại
+    // Khi kết thúc voucher: set ngày kết thúc = thời gian hiện tại và DISABLE (dùng deleteDiscount)
+    if (
+      !window.confirm(
+        `Bạn có chắc chắn muốn kết thúc voucher "${voucher.name}" (${voucher.code}) ngay bây giờ?`
+      )
+    ) {
+      return;
+    }
+
     try {
-      const discountDetail = await getDiscountDetail(discountId);
-      const currentStatus = discountDetail.status;
-      const newStatus = currentStatus === "ENABLE" ? "DISABLE" : "ENABLE";
-      const actionText = newStatus === "DISABLE" ? "vô hiệu hóa" : "kích hoạt";
-
-      // Xác nhận trước khi thay đổi status
-      if (!window.confirm(`Bạn có chắc chắn muốn ${actionText} voucher "${voucher.name}" (${voucher.code})?`)) {
-        return;
-      }
-
-      await toggleVoucherStatusMutation.mutateAsync({ discountId, newStatus });
-    } catch (error) {
-      // Error đã được xử lý trong mutation onError
+      await endVoucherMutation.mutateAsync(discountId);
+    } catch {
+      // lỗi đã được xử lý trong mutation onError
     }
   };
 

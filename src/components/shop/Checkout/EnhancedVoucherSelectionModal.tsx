@@ -157,36 +157,7 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                     </button>
                 </div>
 
-                <div className="px-5 py-4">
-                    <div className="bg-white border border-gray-200 rounded-2xl px-4 py-3">
-                        <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
-                            <span className="text-gray-700 font-medium whitespace-nowrap">
-                                Mã Voucher
-                            </span>
-                            <div className="flex-1 flex items-center gap-3">
-                                <input
-                                    type="text"
-                                    placeholder="Nhập mã voucher"
-                                    value={manualVoucherCode}
-                                    onChange={(e) => handleManualVoucherChange(e.target.value)}
-                                    className="flex-1 h-10 bg-white border border-gray-200 rounded-xl px-3 text-gray-900 focus:outline-none focus:border-[#E04D30] focus:ring-1 focus:ring-[#E04D30]"
-                                />
-                                <button
-                                    onClick={() => setManualVoucherCode("")}
-                                    disabled={!manualVoucherCode.trim()}
-                                    className={`h-10 px-5 rounded-xl border font-medium transition-colors ${manualVoucherCode.trim()
-                                        ? 'border-[#E04D30] text-[#E04D30] hover:bg-[#E04D30] hover:text-white'
-                                        : 'border-gray-200 text-gray-500 cursor-not-allowed bg-[#F5F6FA]'
-                                        }`}
-                                >
-                                    {manualVoucherCode.trim() ? "Xóa" : "Lưu"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="h-[360px] overflow-y-auto px-5 pb-6">
+                <div className="h-[400px] overflow-y-auto px-5 pb-6 pt-4">
                     {loading ? (
                         <div className="flex items-center justify-center h-full">
                             <div className="text-gray-500">Đang tải voucher...</div>
