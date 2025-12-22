@@ -87,6 +87,22 @@ const AddressTab: React.FC = () => {
   >([]);
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
 
+  // ===== Logic liên quan đến địa chỉ mặc định (reuse từ Admin Shipping) =====
+  // Đang thêm địa chỉ đầu tiên
+  const isFirstAddress = isAddingNew && addresses.length === 0;
+  // Địa chỉ đang được chỉnh sửa
+  const editingAddress = editingId
+    ? addresses.find((a) => a.id === editingId)
+    : null;
+
+  // Nếu chỉ có 1 địa chỉ và đang edit nó -> luôn là địa chỉ mặc định (không cho bỏ chọn)
+  const isOnlyAddress =
+    !!editingAddress && addresses.length === 1 && addresses[0].id === editingAddress.id;
+
+  // Nếu đang edit địa chỉ mặc định khi có nhiều hơn 1 địa chỉ -> không cho bỏ chọn checkbox
+  const isEditingDefaultAddress =
+    !!editingAddress && addresses.length > 1 && editingAddress.isDefault;
+
   const shouldHideLocationName = (name: string) => {
     const normalized = name
       .normalize("NFD")
@@ -299,34 +315,37 @@ const AddressTab: React.FC = () => {
           const addressId = parseInt(editingId);
           const addressDetail = await getAddressById(addressId);
 
-          // Find province ID from name
+          // Tìm provinceId từ tên (dùng cho Select tỉnh)
           let provinceId: number | null = null;
           if (addressDetail.provinceName) {
             provinceId = getProvinceIdByName(addressDetail.provinceName);
           }
 
-          // Load districts if we have province
-          let districtId: number | null = null;
-          if (provinceId) {
-            try {
+          // Lấy districtId trực tiếp từ dữ liệu API (tránh phụ thuộc state districts)
+          let districtId: number | null =
+            typeof addressDetail.districtId === "number"
+              ? addressDetail.districtId
+              : null;
+
+          // Load danh sách district/ward tương ứng để Select có options
+          try {
+            if (provinceId) {
               await fetchDistricts(provinceId);
-
-              // Find district ID from name after districts are loaded
-              if (addressDetail.districtName) {
-                districtId = getDistrictIdByName(addressDetail.districtName);
-              }
-
-              // Load wards if we have district
-              if (districtId) {
-                try {
-                  await fetchWards(districtId);
-                } catch (error) {
-                  console.warn("Failed to load wards for district:", districtId);
-                }
-              }
-            } catch (error) {
-              console.warn("Failed to load districts for province:", provinceId);
             }
+
+            if (districtId) {
+              try {
+                await fetchWards(districtId);
+              } catch (error) {
+                console.warn("Failed to load wards for district:", districtId);
+              }
+            }
+          } catch (error) {
+            console.warn(
+              "Failed to load location data for province/district:",
+              provinceId,
+              districtId
+            );
           }
 
           // Clean phone number safely
@@ -347,13 +366,17 @@ const AddressTab: React.FC = () => {
             district: districtId ? districtId.toString() : "",
             ward: addressDetail.wardCode || "",
             detailAddress: addressDetail.street || "",
+            // Nếu đây là địa chỉ duy nhất thì luôn hiển thị là mặc định,
+            // bất kể backend đang trả isDefault là gì (đồng bộ với logic Admin)
             isDefault:
-              addressDetail.isDefault === true ||
-              (typeof addressDetail.isDefault === "string" && (
-                addressDetail.isDefault === "Địa chỉ mặc định" ||
-                addressDetail.isDefault === "true" ||
-                addressDetail.isDefault.toLowerCase() === "true"
-              )),
+              addresses.length === 1
+                ? true
+                : addressDetail.isDefault === true ||
+                  (typeof addressDetail.isDefault === "string" && (
+                    addressDetail.isDefault === "Địa chỉ mặc định" ||
+                    addressDetail.isDefault === "true" ||
+                    addressDetail.isDefault.toLowerCase() === "true"
+                  )),
           });
         } catch (error: any) {
           console.error("Error loading address:", error);
@@ -361,6 +384,9 @@ const AddressTab: React.FC = () => {
           handleCloseModal();
         }
       } else if (isAddingNew) {
+        // Nếu đang thêm mới:
+        // - Nếu hiện chưa có địa chỉ nào -> địa chỉ đầu tiên phải là mặc định (isDefault = true)
+        // - Nếu đã có địa chỉ khác -> để mặc định theo checkbox (ban đầu là false)
         setFormData({
           name: "",
           phone: "",
@@ -368,7 +394,7 @@ const AddressTab: React.FC = () => {
           district: "",
           ward: "",
           detailAddress: "",
-          isDefault: false,
+          isDefault: addresses.length === 0,
         });
         setDistricts([]);
         setWards([]);
@@ -454,10 +480,14 @@ const AddressTab: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // Find the address being edited to get API fields
-      const editingAddress = editingId
-        ? addresses.find((a) => a.id === editingId)
-        : null;
+      // Xác định giá trị isDefault cuối cùng theo cùng logic với Admin Shipping:
+      // - Nếu đang thêm địa chỉ đầu tiên, hoặc chỉ có 1 địa chỉ,
+      //   hoặc đang chỉnh sửa địa chỉ mặc định -> luôn true
+      // - Các trường hợp khác sử dụng theo checkbox người dùng chọn
+      const effectiveIsDefault =
+        isFirstAddress || isOnlyAddress || isEditingDefaultAddress
+          ? true
+          : formData.isDefault;
 
       // Get IDs and names from form data
       const provinceId = parseInt(formData.province);
@@ -486,8 +516,8 @@ const AddressTab: React.FC = () => {
         await updateAddress(updateRequest);
         message.success("Đã cập nhật địa chỉ");
 
-        // If setting as default, call setDefaultAddress
-        if (formData.isDefault) {
+        // Nếu được chọn làm mặc định (hoặc buộc phải mặc định), gọi API setDefault
+        if (effectiveIsDefault) {
           await setDefaultAddress(parseInt(editingId));
         }
       } else if (isAddingNew) {
@@ -507,8 +537,8 @@ const AddressTab: React.FC = () => {
         const response = await addAddress(createRequest);
         message.success("Đã thêm địa chỉ mới");
 
-        // If setting as default, call setDefaultAddress
-        if (formData.isDefault && response?.data) {
+        // Nếu được chọn làm mặc định (hoặc buộc phải mặc định), gọi API setDefault
+        if (effectiveIsDefault && response?.data) {
           try {
             await setDefaultAddress(response.data);
           } catch (defaultError) {
@@ -534,6 +564,14 @@ const AddressTab: React.FC = () => {
     field: keyof AddressFormData,
     value: string | boolean
   ) => {
+    // Không cho phép tắt isDefault nếu đang edit địa chỉ mặc định,
+    // hoặc chỉ có 1 địa chỉ / đang thêm địa chỉ đầu tiên (theo logic bên Admin Shipping)
+    if (
+      field === "isDefault" &&
+      (isFirstAddress || isOnlyAddress || isEditingDefaultAddress)
+    ) {
+      return;
+    }
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
