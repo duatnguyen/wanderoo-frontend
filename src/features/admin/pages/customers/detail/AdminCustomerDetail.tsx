@@ -893,7 +893,7 @@ const AdminCustomerDetail = () => {
                   </p>
                   <p className="font-bold text-[#272424] text-[24px] leading-normal">
                     {customer.totalOrderAmount 
-                      ? new Intl.NumberFormat('vi-VN').format(customer.totalOrderAmount) + "đ"
+                      ? new Intl.NumberFormat('vi-VN').format(Number(customer.totalOrderAmount)) + "đ"
                       : "0đ"}
                   </p>
                 </div>
