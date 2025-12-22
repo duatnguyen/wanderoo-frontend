@@ -34,12 +34,15 @@ interface ProductType {
   finalPrice?: number; // Giá sau khi giảm (snapshotProductFinalPrice)
   variant?: string;
   quantity: number;
+  quantityReceived?: number; // Số lượng đã nhận khi shop xác nhận
   sku?: string;
   totalReturnPrice?: number;
+  refundedAmount?: number; // Số tiền đã hoàn cho sản phẩm này
   receivedStatus?: string;
   receivedStatusLabel?: string; // Mô tả trạng thái nhận hàng bằng tiếng Việt
   refundedStatus?: string;
   refundedStatusLabel?: string; // Mô tả trạng thái hoàn tiền bằng tiếng Việt
+  notes?: string; // Ghi chú cho sản phẩm này
 }
 
 interface ReturnRefundStatus {
@@ -52,11 +55,14 @@ interface ReturnRefundStatus {
 interface ReturnRefundDetailData {
   orderId: string;
   requestDate: string;
+  updatedDate?: string;
   status: string;
   statusMessage: string;
   products: ProductType[];
   refundAmount: number;
   totalReturnAmount: number;
+  totalProductAmount?: number; // Tổng giá trị sản phẩm (chưa tính phí ship)
+  shippingFee?: number; // Phí vận chuyển
   refundedStatus?: string;
   refundedStatusLabel?: string;
   refundMethod?: string;
@@ -152,6 +158,16 @@ const ReturnRefundDetail: React.FC = () => {
       })
       : "";
 
+    const updatedDate = returnOrderData.updatedDate
+      ? new Date(returnOrderData.updatedDate).toLocaleString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+      : undefined;
+
     // Map return order details to products
     const products: ProductType[] = (returnOrderData.returnOrderDetails || []).map((detail, index) => {
       // Parse variant attributes if available
@@ -191,12 +207,15 @@ const ReturnRefundDetail: React.FC = () => {
         finalPrice: detail.snapshotProductFinalPrice, // Giá sau khi giảm
         variant,
         quantity: detail.quantityRequested || 1,
+        quantityReceived: detail.quantityReceived, // Số lượng đã nhận
         sku: detail.snapshotProductSku,
         totalReturnPrice: detail.totalReturnPrice,
+        refundedAmount: detail.refundedAmount, // Số tiền đã hoàn cho sản phẩm này
         receivedStatus: detail.receivedStatus,
         receivedStatusLabel: detail.receivedStatusLabel,
         refundedStatus: detail.refundedStatus,
         refundedStatusLabel: detail.refundedStatusLabel,
+        notes: detail.notes, // Ghi chú cho sản phẩm
       };
     });
 
@@ -247,13 +266,14 @@ const ReturnRefundDetail: React.FC = () => {
     return {
       orderId: returnOrderData.orderId?.toString() || "",
       requestDate: createdDate,
+      updatedDate: updatedDate,
       status: statusLabel,
       statusMessage: statusMessage,
       products: products.length > 0 ? products : [],
-      refundAmount: returnOrderData.totalRefundedAmount != null && returnOrderData.totalRefundedAmount > 0 
-        ? returnOrderData.totalRefundedAmount 
-        : (returnOrderData.totalReturnAmount || 0),
+      refundAmount: returnOrderData.totalRefundedAmount || 0,
       totalReturnAmount: returnOrderData.totalReturnAmount || 0,
+      totalProductAmount: returnOrderData.totalProductAmount,
+      shippingFee: returnOrderData.shippingFee,
       refundedStatus: returnOrderData.refundedStatus,
       refundedStatusLabel: returnOrderData.refundedStatusLabel,
       refundMethod: returnOrderData.refundMethod,
@@ -501,6 +521,12 @@ const ReturnRefundDetail: React.FC = () => {
               )}
               <span className="hidden sm:inline">|</span>
               <span>Đã yêu cầu lúc: {displayData.requestDate}</span>
+              {displayData.updatedDate && displayData.updatedDate !== displayData.requestDate && (
+                <>
+                  <span className="hidden sm:inline">|</span>
+                  <span className="text-gray-500 text-[12px]">Cập nhật: {displayData.updatedDate}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -562,7 +588,12 @@ const ReturnRefundDetail: React.FC = () => {
                       )}
                       {product.quantity != null && product.quantity > 0 && (
                         <span className="text-[12px] text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
-                          x{product.quantity}
+                          SL yêu cầu: {product.quantity}
+                        </span>
+                      )}
+                      {product.quantityReceived != null && product.quantityReceived > 0 && (
+                        <span className="text-[12px] text-blue-600 bg-blue-50 px-2 py-1 rounded font-medium">
+                          SL đã nhận: {product.quantityReceived}
                         </span>
                       )}
                     </div>
@@ -575,11 +606,32 @@ const ReturnRefundDetail: React.FC = () => {
                       </div>
                     )}
                     {product.totalReturnPrice != null && product.totalReturnPrice > 0 && (
-                      <div className="mt-2 text-[13px] text-gray-700">
-                        <span className="font-medium">Tổng tiền trả ({product.quantity} sản phẩm): </span>
-                        <span className="font-semibold text-red-600">
-                          {formatCurrencyVND(product.totalReturnPrice)}
-                        </span>
+                      <div className="mt-2 space-y-1">
+                        <div className="text-[13px] text-gray-700">
+                          <span className="font-medium">Tổng tiền trả ({product.quantity} sản phẩm): </span>
+                          <span className="font-semibold text-red-600">
+                            {formatCurrencyVND(product.totalReturnPrice)}
+                          </span>
+                        </div>
+                        {product.refundedAmount != null && product.refundedAmount > 0 && (
+                          <div className="text-[13px] text-gray-700">
+                            <span className="font-medium">Đã hoàn tiền: </span>
+                            <span className="font-semibold text-green-600">
+                              {formatCurrencyVND(product.refundedAmount)}
+                            </span>
+                            {product.totalReturnPrice > product.refundedAmount && (
+                              <span className="text-[12px] text-gray-500 ml-2">
+                                (Còn lại: {formatCurrencyVND(product.totalReturnPrice - product.refundedAmount)})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {product.notes && (
+                      <div className="mt-2 text-[12px] text-gray-600 italic bg-gray-50 p-2 rounded">
+                        <span className="font-medium">Ghi chú: </span>
+                        {product.notes}
                       </div>
                     )}
                     {/* Status Information */}
@@ -611,8 +663,24 @@ const ReturnRefundDetail: React.FC = () => {
           
           {/* Total Return Amount Summary */}
           {displayData.totalReturnAmount != null && displayData.totalReturnAmount > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center">
+            <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+              {displayData.totalProductAmount != null && displayData.totalProductAmount > 0 && (
+                <div className="flex justify-between items-center text-[13px]">
+                  <span className="text-gray-600">Tổng giá trị sản phẩm:</span>
+                  <span className="font-medium text-gray-900">
+                    {formatCurrencyVND(displayData.totalProductAmount)}
+                  </span>
+                </div>
+              )}
+              {displayData.shippingFee != null && displayData.shippingFee > 0 && (
+                <div className="flex justify-between items-center text-[13px]">
+                  <span className="text-gray-600">Phí vận chuyển:</span>
+                  <span className="font-medium text-gray-900">
+                    {formatCurrencyVND(displayData.shippingFee)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                 <span className="text-[14px] font-semibold text-gray-900">
                   Tổng số tiền trả hàng:
                 </span>
@@ -640,32 +708,52 @@ const ReturnRefundDetail: React.FC = () => {
                 </span>
               </div>
             )}
-            {displayData.refundAmount != null && displayData.refundAmount > 0 && (
-              <div className="flex justify-between items-center">
-                <span className="text-[14px] text-gray-700">
-                  Số tiền đã hoàn nhận được
-                </span>
-                <span className="text-[14px] font-semibold text-red-600">
-                  {formatCurrencyVND(displayData.refundAmount)}
-                </span>
-              </div>
+            {displayData.refundAmount != null && displayData.refundAmount >= 0 && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-[14px] text-gray-700">
+                    Số tiền đã hoàn nhận được
+                  </span>
+                  <span className="text-[14px] font-semibold text-green-600">
+                    {formatCurrencyVND(displayData.refundAmount)}
+                  </span>
+                </div>
+                {displayData.totalReturnAmount > displayData.refundAmount && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[14px] text-gray-700">
+                      Số tiền còn lại chưa hoàn
+                    </span>
+                    <span className="text-[14px] font-semibold text-orange-600">
+                      {formatCurrencyVND(displayData.totalReturnAmount - displayData.refundAmount)}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
             {displayData.refundedStatusLabel && (
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                 <span className="text-[14px] text-gray-700">Trạng thái hoàn tiền</span>
-                <span className="text-[14px] text-gray-900">{displayData.refundedStatusLabel}</span>
+                <span className={`text-[14px] font-medium ${
+                  displayData.refundedStatusLabel.includes("Đã hoàn") 
+                    ? "text-green-600" 
+                    : displayData.refundedStatusLabel.includes("Chưa hoàn") || displayData.refundedStatusLabel.includes("không thành công")
+                    ? "text-red-600"
+                    : "text-orange-600"
+                }`}>
+                  {displayData.refundedStatusLabel}
+                </span>
               </div>
             )}
             {displayData.refundMethodLabel && (
               <div className="flex justify-between items-center">
                 <span className="text-[14px] text-gray-700">Phương thức hoàn tiền</span>
-                <span className="text-[14px] text-gray-900">{displayData.refundMethodLabel}</span>
+                <span className="text-[14px] text-gray-900 font-medium">{displayData.refundMethodLabel}</span>
               </div>
             )}
             {displayData.returnTypeLabel && (
               <div className="flex justify-between items-center">
                 <span className="text-[14px] text-gray-700">Loại yêu cầu</span>
-                <span className="text-[14px] text-gray-900">{displayData.returnTypeLabel}</span>
+                <span className="text-[14px] text-gray-900 font-medium">{displayData.returnTypeLabel}</span>
               </div>
             )}
           </div>

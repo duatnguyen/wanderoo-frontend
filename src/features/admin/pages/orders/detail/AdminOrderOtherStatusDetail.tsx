@@ -1,11 +1,23 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ClipboardCopy, Package, RefreshCw, CheckCircle, XCircle, Clock, Truck, FileText, User, Calendar, AlertTriangle, CreditCard, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { PageContainer, ContentCard } from "@/components/common";
 import { ChipStatus } from "@/components/ui/chip-status";
 import { getImageUrl } from "@/utils/imageUtils";
 import apiClient from "@/api/apiClient";
+import { returnOrderService } from "@/api/returnOrderService";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // API Response interface matching backend ReturnOrderResponseDTO
 interface ApiReturnOrderResponse {
@@ -37,22 +49,35 @@ interface ApiReturnOrderResponse {
   forwardShippingStatus?: string; // From orders.shipping_status
   shippingOrderCode?: string; // From orders.shipping_order_code
   shippingProvider?: string; // From orders.shipping_provider
+  refundMethod?: string;
+  refundMethodLabel?: string;
+  refundedStatus?: string;
+  refundedStatusLabel?: string;
+  userInfo?: {
+    id: number;
+    name: string;
+    image?: string;
+    username: string;
+    phone?: string;
+  };
   returnOrderDetails?: Array<{
     id: number;
     returnOrderId: number;
     productDetailId?: number;
     orderDetailId?: number;
-    returnQuantity: number;
-    returnQuantityField?: number;
+    quantityRequested: number;
     quantityReceived?: number;
     receivedStatus?: string;
+    receivedStatusLabel?: string;
     refundedStatus?: string;
+    refundedStatusLabel?: string;
     refundedAmount?: number;
     notes?: string;
     returnPrice?: number;
     totalReturnPrice?: number;
     snapshotProductName?: string;
     snapshotProductPrice?: number;
+    snapshotProductFinalPrice?: number;
     snapshotProductSku?: string;
     snapshotProductImageUrl?: string;
     snapshotVariantAttributes?: string;
@@ -189,6 +214,11 @@ const mapRefundStatus = (status?: string): RefundStatus => {
 const mapApiResponseToReturnOrder = (apiResponse: ApiReturnOrderResponse): ReturnOrder => {
   const firstDetail = apiResponse.returnOrderDetails?.[0];
 
+  // Calculate total amount from details if not provided
+  const calculatedTotal = apiResponse.returnOrderDetails?.reduce((sum, detail) => {
+    return sum + (detail.totalReturnPrice || (detail.returnPrice || 0) * (detail.quantityRequested || 0));
+  }, 0) || 0;
+
   // Parse variant attributes
   let productVariant: string | undefined;
   if (firstDetail?.snapshotVariantAttributes) {
@@ -211,22 +241,31 @@ const mapApiResponseToReturnOrder = (apiResponse: ApiReturnOrderResponse): Retur
 
   // Use mapped values from backend
   const statusKey = (apiResponse.statusKey || mapStatusToStatusKey(apiResponse.status)) as ReturnOrderStatus;
-  const refundStatus = mapRefundStatus(apiResponse.status);
+
+  // Map refund status based on refundedStatusLabel from API
+  let refundStatus: RefundStatus = "WAITING";
+  if (apiResponse.refundedStatusLabel) {
+    if (apiResponse.refundedStatusLabel.includes("Đã hoàn tiền") || apiResponse.refundedStatusLabel.includes("Đã hoàn đủ")) {
+      refundStatus = "DONE";
+    } else if (apiResponse.refundedStatusLabel.includes("một phần") || apiResponse.refundedStatusLabel.includes("một phần")) {
+      refundStatus = "PARTIAL";
+    }
+  }
 
   return {
     id: apiResponse.id?.toString() || apiResponse.code || "",
     orderCode: apiResponse.code || "",
     createdAt: apiResponse.createdDate ? new Date(apiResponse.createdDate).toLocaleString("vi-VN") : "",
     customerId: apiResponse.userId?.toString() || "",
-    customerName: "", // Will need to fetch from order if needed
-    customerUsername: "", // Will need to fetch from order if needed
+    customerName: apiResponse.userInfo?.name || "", // Use userInfo from API
+    customerUsername: apiResponse.userInfo?.username || "", // Use userInfo from API
     receiverName: apiResponse.receiverName || "", // From orders.receiver_name
     receiverPhone: apiResponse.receiverPhone || "", // From orders.receiver_phone
     receiverAddress: apiResponse.receiverAddress || "", // From orders.receiver_address
     productName: firstDetail?.snapshotProductName || "Sản phẩm không tên",
     productVariant,
     productImage: firstDetail?.snapshotProductImageUrl ? getImageUrl(firstDetail.snapshotProductImageUrl) : undefined,
-    totalAmount: apiResponse.totalReturnAmount || apiResponse.totalProductAmount || 0,
+    totalAmount: apiResponse.totalReturnAmount || calculatedTotal || apiResponse.totalProductAmount || 0,
     paymentMethod: "BANKING", // Default, would need to get from order
     reason: apiResponse.returnReasonNote || "", // Keep for backward compatibility
     returnReason: apiResponse.returnReason || "", // Raw enum name
@@ -242,7 +281,7 @@ const mapApiResponseToReturnOrder = (apiResponse: ApiReturnOrderResponse): Retur
     shippingOrderCode: apiResponse.shippingOrderCode, // From orders.shipping_order_code
     shippingProvider: apiResponse.shippingProvider, // From orders.shipping_provider
     refundStatus,
-    refundStatusLabel: refundStatus === "WAITING" ? "Chờ hoàn tiền" : refundStatus === "PARTIAL" ? "Hoàn tiền 1 phần" : "Đã hoàn tiền",
+    refundStatusLabel: apiResponse.refundedStatusLabel || (refundStatus === "WAITING" ? "Chờ hoàn tiền" : refundStatus === "PARTIAL" ? "Hoàn tiền 1 phần" : "Đã hoàn tiền"), // Use from API
     source: "Website", // Default, would need to get from order
     category: (apiResponse.category || mapReturnTypeToCategory(apiResponse.returnType)) as ReturnOrderCategory, // Use mapped from backend, fallback to frontend map
     sourceNote: undefined,
@@ -255,8 +294,15 @@ const AdminOrderOtherStatusDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams<{ orderId: string }>();
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [isProductExpanded, setIsProductExpanded] = useState(true);
+
+  // Dialog states
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<"approve" | "reject" | "request-info" | null>(null);
+  const [notes, setNotes] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Get returnOrderCode from URL params (orderId is actually returnOrderCode)
   const returnOrderCode = params.orderId;
@@ -297,10 +343,117 @@ const AdminOrderOtherStatusDetail = () => {
       if (!mappedOrder.returnShippingStatus) {
         mappedOrder.returnShippingStatus = "Chưa có thông tin";
       }
+
+      // Debug log to check status mapping
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Order Status Debug:', {
+          apiStatus: apiResponse.status,
+          apiStatusKey: apiResponse.statusKey,
+          mappedStatusKey: mappedOrder.statusKey,
+          shouldShowButtons: mappedOrder.statusKey === "UNDER_REVIEW" ||
+            (apiResponse.status && (apiResponse.status.toUpperCase() === "PENDING" || apiResponse.status.toUpperCase() === "WAITING_APPROVAL"))
+        });
+      }
+
       return mappedOrder;
     }
     return orderFromState;
   }, [apiResponse, orderFromState]);
+
+  // Helper to check if buttons should be shown
+  const shouldShowActionButtons = useMemo(() => {
+    if (!apiResponse?.id) return false;
+    const status = apiResponse.status?.toUpperCase() || '';
+    const statusKey = order?.statusKey || '';
+
+    return statusKey === "UNDER_REVIEW" ||
+      status === "PENDING" ||
+      status === "WAITING_APPROVAL" ||
+      status === "UNDER_REVIEW";
+  }, [apiResponse, order]);
+
+  // Process images for display - use direct API URL with authentication
+  const processedImages = useMemo(() => {
+    if (!apiResponse?.images || apiResponse.images.length === 0) {
+      return [];
+    }
+    return apiResponse.images
+      .map((img) => {
+        if (!img || typeof img !== 'string' || img.trim() === "") return null;
+        // Get full URL using helper
+        const fullUrl = getImageUrl(img);
+        if (!fullUrl) {
+          console.warn('Failed to process image URL:', img);
+          return null;
+        }
+        return fullUrl;
+      })
+      .filter((url): url is string => url !== null);
+  }, [apiResponse?.images]);
+
+  // State to track blob URLs for images (to handle CORS/auth issues)
+  const [imageBlobUrls, setImageBlobUrls] = useState<Record<number, string>>({});
+
+  // Fetch images as blob using axios to handle CORS/auth issues
+  useEffect(() => {
+    if (processedImages.length === 0) return;
+
+    const fetchImages = async () => {
+      const newBlobUrls: Record<number, string> = {};
+
+      await Promise.all(
+        processedImages.map(async (imageUrl, index) => {
+          try {
+            // Extract path from full URL (apiClient has baseURL, so we need relative path)
+            let imagePath = imageUrl;
+            try {
+              const url = new URL(imageUrl);
+              imagePath = url.pathname; // Get only the path part
+            } catch {
+              // If it's already a relative path, use it as is
+              if (imageUrl.startsWith('/')) {
+                imagePath = imageUrl;
+              } else {
+                imagePath = `/${imageUrl}`;
+              }
+            }
+
+            // Use axios from apiClient which already handles authentication headers
+            const response = await apiClient.get(imagePath, {
+              responseType: 'blob',
+            });
+
+            const blob = response.data;
+            const blobUrl = URL.createObjectURL(blob);
+            newBlobUrls[index] = blobUrl;
+
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`✅ Fetched image ${index + 1} as blob:`, imagePath);
+            }
+          } catch (error) {
+            console.error(`Error fetching image ${index + 1}:`, error);
+            // Continue with original URL if blob fetch fails
+          }
+        })
+      );
+
+      setImageBlobUrls(newBlobUrls);
+    };
+
+    fetchImages();
+
+    // Cleanup blob URLs on unmount or when images change
+    return () => {
+      // Cleanup will happen when component unmounts or processedImages changes
+      // We'll clean up the previous blob URLs
+      setImageBlobUrls(prev => {
+        Object.values(prev).forEach(url => {
+          if (url) URL.revokeObjectURL(url);
+        });
+        return {};
+      });
+    };
+  }, [processedImages]);
 
   const statusBannerStyle = useMemo(() => {
     if (!order) {
@@ -363,6 +516,146 @@ const AdminOrderOtherStatusDetail = () => {
     }
   };
 
+  // Handle action button clicks
+  const handleApproveClick = () => {
+    setDialogType("approve");
+    setNotes("");
+    setDialogOpen(true);
+  };
+
+  const handleRejectClick = () => {
+    setDialogType("reject");
+    setNotes("");
+    setDialogOpen(true);
+  };
+
+  const handleRequestInfoClick = () => {
+    setDialogType("request-info");
+    setNotes("");
+    setDialogOpen(true);
+  };
+
+  const handleConfirmReceiptClick = async () => {
+    if (!apiResponse?.id) {
+      toast.error("Không tìm thấy ID đơn trả hàng");
+      return;
+    }
+
+    if (!window.confirm("Bạn có chắc chắn muốn xác nhận đã nhận hàng hoàn trả?")) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await returnOrderService.confirmReceipt(apiResponse.id.toString());
+      toast.success("Đã xác nhận nhận hàng hoàn trả thành công");
+      // Refetch data
+      queryClient.invalidateQueries({ queryKey: ["return-order-detail", returnOrderCode] });
+    } catch (error: any) {
+      console.error("Error confirming receipt:", error);
+      toast.error(error?.message || "Không thể xác nhận nhận hàng. Vui lòng thử lại.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleProcessRefundClick = async () => {
+    if (!apiResponse?.id) {
+      toast.error("Không tìm thấy ID đơn trả hàng");
+      return;
+    }
+
+    if (!window.confirm("Bạn có chắc chắn muốn xử lý hoàn tiền cho đơn hàng này?")) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await returnOrderService.processRefund(apiResponse.id.toString());
+      toast.success("Đã xử lý hoàn tiền thành công");
+      // Refetch data
+      queryClient.invalidateQueries({ queryKey: ["return-order-detail", returnOrderCode] });
+    } catch (error: any) {
+      console.error("Error processing refund:", error);
+      toast.error(error?.message || "Không thể xử lý hoàn tiền. Vui lòng thử lại.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle dialog confirm
+  const handleDialogConfirm = async () => {
+    if (!apiResponse?.id) {
+      toast.error("Không tìm thấy ID đơn trả hàng");
+      return;
+    }
+
+    if (dialogType === "request-info" && !notes.trim()) {
+      toast.error("Vui lòng nhập yêu cầu thông tin");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      switch (dialogType) {
+        case "approve":
+          await returnOrderService.approveReturnOrder(apiResponse.id.toString(), notes.trim() || undefined);
+          toast.success("Đã chấp nhận yêu cầu trả hàng thành công");
+          break;
+        case "reject":
+          await returnOrderService.rejectReturnOrder(apiResponse.id.toString(), notes.trim() || undefined);
+          toast.success("Đã từ chối yêu cầu trả hàng");
+          break;
+        case "request-info":
+          await returnOrderService.requestMoreInformation(apiResponse.id.toString(), notes.trim());
+          toast.success("Đã gửi yêu cầu bổ sung thông tin đến khách hàng");
+          break;
+      }
+
+      setDialogOpen(false);
+      setNotes("");
+      setDialogType(null);
+
+      // Refetch data
+      queryClient.invalidateQueries({ queryKey: ["return-order-detail", returnOrderCode] });
+    } catch (error: any) {
+      console.error(`Error ${dialogType}:`, error);
+      toast.error(error?.message || `Không thể thực hiện thao tác. Vui lòng thử lại.`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Get dialog title and description
+  const getDialogContent = () => {
+    switch (dialogType) {
+      case "approve":
+        return {
+          title: "Chấp nhận yêu cầu trả hàng",
+          description: "Bạn có chắc chắn muốn chấp nhận yêu cầu trả hàng này? Khách hàng sẽ nhận được thông báo và hướng dẫn gửi hàng hoàn trả.",
+          placeholder: "Ghi chú (tùy chọn)...",
+        };
+      case "reject":
+        return {
+          title: "Từ chối yêu cầu trả hàng",
+          description: "Bạn có chắc chắn muốn từ chối yêu cầu trả hàng này? Vui lòng nhập lý do từ chối.",
+          placeholder: "Lý do từ chối (bắt buộc)...",
+        };
+      case "request-info":
+        return {
+          title: "Yêu cầu thêm thông tin",
+          description: "Nhập yêu cầu thông tin bạn muốn khách hàng cung cấp thêm.",
+          placeholder: "Yêu cầu thông tin (bắt buộc)...",
+        };
+      default:
+        return {
+          title: "",
+          description: "",
+          placeholder: "",
+        };
+    }
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -410,7 +703,7 @@ const AdminOrderOtherStatusDetail = () => {
     <PageContainer>
       <div className="flex flex-col gap-[10px] items-center w-full">
         {/* Header */}
-        <div className="flex flex-col gap-[8px] items-start justify-center w-full">
+        <div className="flex flex-col sm:flex-row gap-[8px] items-start sm:items-center justify-between w-full">
           <div className="flex gap-[4px] items-center">
             <button
               onClick={() => navigate(-1)}
@@ -511,7 +804,7 @@ const AdminOrderOtherStatusDetail = () => {
                   </div>
                   <div className="text-left flex-1 min-w-0">
                     <p className="font-montserrat font-semibold text-sm text-[#272424] leading-tight truncate">
-                      Sản phẩm trả hàng
+                      Sản phẩm trả hàng {apiResponse?.returnOrderDetails && apiResponse.returnOrderDetails.length > 1 ? `(${apiResponse.returnOrderDetails.length} sản phẩm)` : ""}
                     </p>
                     <p className="font-montserrat font-bold text-base text-purple-600 leading-tight truncate">
                       {order.productName}
@@ -526,7 +819,7 @@ const AdminOrderOtherStatusDetail = () => {
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-indigo-700 bg-indigo-50 border-indigo-200">
                       <Package className="w-3.5 h-3.5 text-indigo-600" />
                       <span className="font-montserrat font-semibold text-[10px] text-indigo-700 whitespace-nowrap">
-                        Số lượng: 1
+                        SL: {apiResponse?.returnOrderDetails?.reduce((sum, d) => sum + (d.quantityRequested || 0), 0) || 0}
                       </span>
                     </div>
 
@@ -543,7 +836,7 @@ const AdminOrderOtherStatusDetail = () => {
                     <div className="flex items-center gap-1 px-2 py-1 rounded border text-indigo-700 bg-indigo-50 border-indigo-200 flex-1 justify-center">
                       <Package className="w-3 h-3 text-indigo-600" />
                       <span className="font-montserrat font-semibold text-[10px] text-indigo-700 truncate">
-                        SL: 1
+                        SL: {apiResponse?.returnOrderDetails?.reduce((sum, d) => sum + (d.quantityRequested || 0), 0) || 0}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 px-2 py-1 rounded border text-green-700 bg-green-50 border-green-200 flex-1 justify-center">
@@ -572,67 +865,152 @@ const AdminOrderOtherStatusDetail = () => {
                 }`}
             >
               <div className="px-4 sm:px-6 py-4 bg-[#fafbfc]">
-                {/* Product Card */}
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 box-border flex gap-[16px] items-center p-[20px] relative rounded-[12px] w-full overflow-hidden shadow-sm mb-4">
-                  {/* Product Image */}
-                  <div className="flex items-center justify-center w-[80px] h-[80px] bg-white rounded-[12px] shadow-sm shrink-0 overflow-hidden border-2 border-indigo-200">
-                    {order.productImage ? (
-                      <img
-                        src={order.productImage}
-                        alt={order.productName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Package className="w-8 h-8 text-indigo-400" />
-                    )}
-                  </div>
+                {/* Product Cards - Display all products */}
+                {apiResponse?.returnOrderDetails && apiResponse.returnOrderDetails.length > 0 ? (
+                  <div className="space-y-4 mb-4">
+                    {apiResponse.returnOrderDetails.map((detail) => {
+                      // Parse variant attributes
+                      let variant: string | undefined;
+                      if (detail.snapshotVariantAttributes) {
+                        try {
+                          const attrs = typeof detail.snapshotVariantAttributes === 'string'
+                            ? JSON.parse(detail.snapshotVariantAttributes)
+                            : detail.snapshotVariantAttributes;
+                          if (Array.isArray(attrs)) {
+                            variant = attrs.map((attr: any) => {
+                              if (attr?.name && attr?.value) {
+                                return `${attr.name}: ${attr.value}`;
+                              }
+                              return attr?.value || attr?.name || null;
+                            }).filter(Boolean).join(", ");
+                          }
+                        } catch (e) {
+                          console.error("Error parsing variant attributes:", e);
+                        }
+                      }
 
-                  {/* Product Details */}
-                  <div className="flex flex-col gap-[8px] flex-1 min-w-0">
-                    <div className="flex flex-col gap-[4px]">
-                      <p className="font-montserrat font-bold text-[16px] text-indigo-800 leading-[1.4] truncate">
+                      const productImage = detail.snapshotProductImageUrl ? getImageUrl(detail.snapshotProductImageUrl) : undefined;
+                      const productPrice = detail.snapshotProductFinalPrice || detail.returnPrice || 0;
+                      const totalPrice = detail.totalReturnPrice || (productPrice * (detail.quantityRequested || 0));
+
+                      return (
+                        <div key={detail.id} className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 box-border flex flex-col sm:flex-row gap-[16px] p-[20px] relative rounded-[12px] w-full overflow-hidden shadow-sm">
+                          {/* Product Image */}
+                          <div className="flex items-center justify-center w-[80px] h-[80px] bg-white rounded-[12px] shadow-sm shrink-0 overflow-hidden border-2 border-indigo-200">
+                            {productImage ? (
+                              <img
+                                src={productImage}
+                                alt={detail.snapshotProductName || "Sản phẩm"}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Package className="w-8 h-8 text-indigo-400" />
+                            )}
+                          </div>
+
+                          {/* Product Details */}
+                          <div className="flex flex-col gap-[8px] flex-1 min-w-0">
+                            <div className="flex flex-col gap-[4px]">
+                              <p className="font-montserrat font-bold text-[16px] text-indigo-800 leading-[1.4]">
+                                {detail.snapshotProductName || "Sản phẩm không tên"}
+                              </p>
+                              {variant && (
+                                <p className="font-montserrat font-medium text-[12px] text-indigo-600 leading-[1.4]">
+                                  Phân loại: {variant}
+                                </p>
+                              )}
+                              {detail.snapshotProductSku && (
+                                <p className="font-montserrat font-medium text-[11px] text-gray-500 leading-[1.4]">
+                                  SKU: {detail.snapshotProductSku}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
+                                <span className="text-[12px] font-medium text-indigo-700">
+                                  SL yêu cầu: {detail.quantityRequested || 0}
+                                </span>
+                              </div>
+                              {detail.quantityReceived != null && detail.quantityReceived > 0 && (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                                  <span className="text-[12px] font-medium text-green-700">
+                                    SL đã nhận: {detail.quantityReceived}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                                <span className="text-[12px] font-medium text-purple-700">
+                                  Giá: {formatCurrency(productPrice)}/sp
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                                <span className="text-[12px] font-medium text-orange-700">
+                                  Tổng: {formatCurrency(totalPrice)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Product Status Badges */}
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              {detail.receivedStatusLabel && (
+                                <div className="px-2 py-1 bg-blue-100 border border-blue-200 rounded-full">
+                                  <span className="text-[10px] font-semibold text-blue-700">
+                                    {detail.receivedStatusLabel}
+                                  </span>
+                                </div>
+                              )}
+                              {detail.refundedStatusLabel && (
+                                <div className="px-2 py-1 bg-green-100 border border-green-200 rounded-full">
+                                  <span className="text-[10px] font-semibold text-green-700">
+                                    {detail.refundedStatusLabel}
+                                  </span>
+                                </div>
+                              )}
+                              {detail.refundedAmount != null && detail.refundedAmount > 0 && (
+                                <div className="px-2 py-1 bg-purple-100 border border-purple-200 rounded-full">
+                                  <span className="text-[10px] font-semibold text-purple-700">
+                                    Đã hoàn: {formatCurrency(detail.refundedAmount)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {detail.notes && (
+                              <div className="mt-2 text-[11px] text-gray-600 italic bg-white/60 p-2 rounded">
+                                <span className="font-medium">Ghi chú: </span>
+                                {detail.notes}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Decorative Elements */}
+                          <div className="absolute top-4 right-4">
+                            <div className="w-8 h-8 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-full opacity-20"></div>
+                          </div>
+                          <div className="absolute bottom-4 right-6">
+                            <div className="w-4 h-4 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full opacity-30"></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-100 box-border flex gap-[16px] items-center p-[20px] relative rounded-[12px] w-full overflow-hidden shadow-sm mb-4">
+                    <div className="flex items-center justify-center w-[80px] h-[80px] bg-white rounded-[12px] shadow-sm shrink-0 overflow-hidden border-2 border-indigo-200">
+                      <Package className="w-8 h-8 text-indigo-400" />
+                    </div>
+                    <div className="flex flex-col gap-[8px] flex-1 min-w-0">
+                      <p className="font-montserrat font-bold text-[16px] text-indigo-800 leading-[1.4]">
                         {order.productName}
                       </p>
-                      {order.productVariant && (
-                        <p className="font-montserrat font-medium text-[12px] text-indigo-600 leading-[1.4]">
-                          Phân loại: {order.productVariant}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
-                        <span className="text-[12px] font-medium text-indigo-700">
-                          Số lượng: 1
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                        <span className="text-[12px] font-medium text-purple-700">
-                          Giá trị: {formatCurrency(order.totalAmount)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Product Status Badge */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="px-3 py-1 bg-gradient-to-r from-orange-100 to-amber-100 border border-orange-200 rounded-full">
-                        <span className="text-[11px] font-semibold text-orange-700 uppercase tracking-wide">
-                          Sản phẩm trả hàng
-                        </span>
-                      </div>
                     </div>
                   </div>
-
-                  {/* Decorative Elements */}
-                  <div className="absolute top-4 right-4">
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-full opacity-20"></div>
-                  </div>
-                  <div className="absolute bottom-4 right-6">
-                    <div className="w-4 h-4 bg-gradient-to-br from-purple-200 to-pink-200 rounded-full opacity-30"></div>
-                  </div>
-                </div>
+                )}
 
                 {/* Additional Product Information */}
                 <div className="space-y-2">
@@ -682,13 +1060,45 @@ const AdminOrderOtherStatusDetail = () => {
                   </div>
 
                   {/* Summary */}
-                  <div className="flex items-center justify-between py-3 px-4 mt-4 border border-purple-100 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-[10px] shadow-sm">
-                    <span className="font-montserrat font-bold text-[14px] text-gray-800">
-                      Tổng giá trị sản phẩm
-                    </span>
-                    <span className="font-montserrat font-bold text-[16px] text-purple-600">
-                      {formatCurrency(order.totalAmount)}
-                    </span>
+                  <div className="space-y-2 mt-4">
+                    {apiResponse?.totalProductAmount != null && apiResponse.totalProductAmount > 0 && (
+                      <div className="flex items-center justify-between py-2 px-4 border border-gray-200 bg-white rounded-[8px]">
+                        <span className="font-montserrat font-medium text-[13px] text-gray-700">
+                          Tổng giá trị sản phẩm
+                        </span>
+                        <span className="font-montserrat font-semibold text-[14px] text-gray-900">
+                          {formatCurrency(apiResponse.totalProductAmount)}
+                        </span>
+                      </div>
+                    )}
+                    {apiResponse?.shippingFee != null && apiResponse.shippingFee > 0 && (
+                      <div className="flex items-center justify-between py-2 px-4 border border-gray-200 bg-white rounded-[8px]">
+                        <span className="font-montserrat font-medium text-[13px] text-gray-700">
+                          Phí vận chuyển
+                        </span>
+                        <span className="font-montserrat font-semibold text-[14px] text-gray-900">
+                          {formatCurrency(apiResponse.shippingFee)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between py-3 px-4 border border-purple-100 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-[10px] shadow-sm">
+                      <span className="font-montserrat font-bold text-[14px] text-gray-800">
+                        Tổng số tiền trả hàng
+                      </span>
+                      <span className="font-montserrat font-bold text-[16px] text-purple-600">
+                        {formatCurrency(apiResponse?.totalReturnAmount || order.totalAmount)}
+                      </span>
+                    </div>
+                    {apiResponse?.totalRefundedAmount != null && apiResponse.totalRefundedAmount > 0 && (
+                      <div className="flex items-center justify-between py-2 px-4 border border-green-200 bg-green-50 rounded-[8px]">
+                        <span className="font-montserrat font-medium text-[13px] text-gray-700">
+                          Đã hoàn tiền
+                        </span>
+                        <span className="font-montserrat font-semibold text-[14px] text-green-600">
+                          {formatCurrency(apiResponse.totalRefundedAmount)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -710,17 +1120,37 @@ const AdminOrderOtherStatusDetail = () => {
                 <User className="h-[20px] w-[20px] text-[#28a745]" />
               </div>
               <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
-                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
-                  Tên người nhận: {order.receiverName || "Chưa có thông tin"}
-                </p>
-                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
-                  Số điện thoại: {order.receiverPhone || "Chưa có thông tin"}
-                </p>
-                {order.receiverAddress && (
-                  <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
-                    Địa chỉ: {order.receiverAddress}
-                  </p>
+                {apiResponse?.userInfo && (
+                  <>
+                    <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                      Khách hàng: {apiResponse.userInfo.name || order.customerName || "Chưa có thông tin"}
+                    </p>
+                    <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                      Username: {apiResponse.userInfo.username || order.customerUsername || "Chưa có thông tin"}
+                    </p>
+                    {apiResponse.userInfo.phone && (
+                      <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                        SĐT khách hàng: {apiResponse.userInfo.phone}
+                      </p>
+                    )}
+                  </>
                 )}
+                <div className="mt-2 pt-2 border-t border-gray-200 w-full">
+                  <p className="font-montserrat font-semibold text-[13px] text-[#272424] leading-[1.4] mb-1">
+                    Thông tin người nhận:
+                  </p>
+                  <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                    Tên: {order.receiverName || "Chưa có thông tin"}
+                  </p>
+                  <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                    Số điện thoại: {order.receiverPhone || "Chưa có thông tin"}
+                  </p>
+                  {order.receiverAddress && (
+                    <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
+                      Địa chỉ: {order.receiverAddress}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -769,7 +1199,7 @@ const AdminOrderOtherStatusDetail = () => {
             </div>
 
             {/* Images Section */}
-            {order.images && order.images.length > 0 && (
+            {processedImages.length > 0 && (
               <div className="flex gap-[14px] items-start w-full">
                 <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#e7f3ff] rounded-[8px] shrink-0">
                   <svg
@@ -788,49 +1218,114 @@ const AdminOrderOtherStatusDetail = () => {
                 </div>
                 <div className="flex flex-col gap-[8px] items-start flex-1 min-w-0">
                   <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
-                    Hình ảnh đính kèm
+                    Hình ảnh đính kèm ({processedImages.length})
                   </p>
                   <div className="flex flex-wrap gap-[8px] w-full">
-                    {order.images.map((imageUrl, index) => {
-                      const fullImageUrl = imageUrl ? getImageUrl(imageUrl) : "https://via.placeholder.com/100";
+                    {processedImages.map((imageUrl, index) => {
+                      const originalPath = apiResponse?.images?.[index];
+
+                      // Log for debugging
+                      if (process.env.NODE_ENV === 'development') {
+                        console.log(`Image ${index + 1}:`, {
+                          original: originalPath,
+                          processed: imageUrl
+                        });
+                      }
+
                       return (
                         <div
-                          key={index}
+                          key={`image-${index}-${imageUrl}`}
                           className="relative group cursor-pointer"
                           onClick={() => {
-                            // Open image in new tab or modal
-                            window.open(fullImageUrl, "_blank");
+                            // Open image in new tab
+                            const urlToOpen = imageBlobUrls[index] || imageUrl;
+                            window.open(urlToOpen, "_blank");
                           }}
                         >
-                          <img
-                            src={fullImageUrl}
-                            alt={`Hình ảnh minh chứng ${index + 1}`}
-                            className="w-[100px] h-[100px] rounded-[8px] border-2 border-[#e7e7e7] object-cover hover:border-[#1976d2] transition-all duration-200 hover:shadow-md"
-                            loading="eager"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src =
-                                "https://via.placeholder.com/100";
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-[8px] transition-all duration-200 flex items-center justify-center">
-                            <svg
-                              className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                              />
-                            </svg>
+                          <div className="relative w-[100px] h-[100px] rounded-[8px] border-2 border-[#e7e7e7] overflow-hidden bg-white hover:border-[#1976d2] transition-all duration-200 hover:shadow-md">
+                            <img
+                              src={imageBlobUrls[index] || imageUrl}
+                              alt={`Hình ảnh minh chứng ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              style={{
+                                display: 'block',
+                                opacity: 1,
+                                visibility: 'visible'
+                              }}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                console.error(`❌ Failed to load image ${index + 1}:`, {
+                                  url: imageUrl,
+                                  blobUrl: imageBlobUrls[index],
+                                  original: originalPath,
+                                  error: 'Image failed to load'
+                                });
+                                // Show error placeholder
+                                target.onerror = null; // Prevent infinite loop
+                                target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-size='10'%3EKhông tải được%3C/text%3E%3C/svg%3E";
+                                target.className = "w-full h-full object-contain bg-gray-100";
+                              }}
+                              onLoad={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                // Ensure image is visible
+                                target.style.opacity = '1';
+                                target.style.display = 'block';
+                                target.style.visibility = 'visible';
+                                if (process.env.NODE_ENV === 'development') {
+                                  console.log(`✅ Successfully loaded image ${index + 1}:`, {
+                                    url: imageUrl,
+                                    blobUrl: imageBlobUrls[index],
+                                    usingBlob: !!imageBlobUrls[index],
+                                    naturalWidth: target.naturalWidth,
+                                    naturalHeight: target.naturalHeight,
+                                    width: target.width,
+                                    height: target.height
+                                  });
+                                }
+                              }}
+                              onLoadStart={() => {
+                                if (process.env.NODE_ENV === 'development') {
+                                  console.log(`🔄 Loading image ${index + 1}:`, {
+                                    url: imageUrl,
+                                    blobUrl: imageBlobUrls[index],
+                                    usingBlob: !!imageBlobUrls[index]
+                                  });
+                                }
+                              }}
+                            />
+                            {/* Hover overlay */}
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-[8px] transition-all duration-200 flex items-center justify-center pointer-events-none z-10">
+                              <svg
+                                className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                                />
+                              </svg>
+                            </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
+                  {/* Debug info in development */}
+                  {process.env.NODE_ENV === 'development' && apiResponse?.images && (
+                    <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600 space-y-1 max-w-full overflow-auto">
+                      <p><strong>Original paths:</strong> {JSON.stringify(apiResponse.images)}</p>
+                      <p><strong>Processed URLs:</strong></p>
+                      <ul className="list-disc list-inside ml-2 break-all">
+                        {processedImages.map((url, idx) => (
+                          <li key={idx} className="break-all">{url}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -966,11 +1461,28 @@ const AdminOrderOtherStatusDetail = () => {
                 <div className="flex items-center gap-2">
                   <ChipStatus
                     status={order.refundStatus === "WAITING" ? "pending" : order.refundStatus === "PARTIAL" ? "transfer" : "completed"}
-                    labelOverride={order.refundStatusLabel}
+                    labelOverride={apiResponse?.refundedStatusLabel || order.refundStatusLabel}
                   />
                 </div>
               </div>
             </div>
+
+            {/* Refund Method */}
+            {apiResponse?.refundMethodLabel && (
+              <div className="flex gap-[14px] items-start w-full">
+                <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#e7f3ff] rounded-[8px] shrink-0">
+                  <CreditCard className="h-[20px] w-[20px] text-[#1976d2]" />
+                </div>
+                <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                  <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
+                    Phương thức hoàn tiền
+                  </p>
+                  <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
+                    {apiResponse.refundMethodLabel}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Refund Amount */}
             <div className="flex gap-[14px] items-start w-full">
@@ -982,8 +1494,23 @@ const AdminOrderOtherStatusDetail = () => {
                   Số tiền hoàn dự kiến
                 </p>
                 <p className="font-montserrat font-bold text-[16px] text-[#28a745] leading-[1.4]">
-                  {formatCurrency(order.totalAmount)}
+                  {formatCurrency(apiResponse?.totalReturnAmount || order.totalAmount)}
                 </p>
+                {apiResponse?.totalRefundedAmount != null && apiResponse.totalRefundedAmount > 0 && (
+                  <>
+                    <p className="font-montserrat font-semibold text-[13px] text-[#272424] leading-[1.4] mt-2">
+                      Đã hoàn tiền
+                    </p>
+                    <p className="font-montserrat font-bold text-[15px] text-green-600 leading-[1.4]">
+                      {formatCurrency(apiResponse.totalRefundedAmount)}
+                    </p>
+                    {apiResponse.totalReturnAmount && apiResponse.totalReturnAmount > apiResponse.totalRefundedAmount && (
+                      <p className="font-montserrat font-medium text-[12px] text-orange-600 leading-[1.4]">
+                        Còn lại: {formatCurrency(apiResponse.totalReturnAmount - apiResponse.totalRefundedAmount)}
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
@@ -995,7 +1522,7 @@ const AdminOrderOtherStatusDetail = () => {
           </div>
 
           {/* Action Buttons Section */}
-          {order.statusKey === "UNDER_REVIEW" && (
+          {shouldShowActionButtons && (
             <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
               {/* Header */}
               <div className="flex items-center gap-[8px] w-full">
@@ -1008,38 +1535,32 @@ const AdminOrderOtherStatusDetail = () => {
               <div className="flex flex-wrap gap-3 items-center justify-start w-full">
                 {/* Approve Button */}
                 <button
-                  onClick={() => {
-                    console.log("Approve return request for order:", order.orderCode);
-                    // Handle approve action
-                  }}
-                  className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                  onClick={handleApproveClick}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
                   <CheckCircle size={18} />
-                  Chấp nhận yêu cầu
+                  {isProcessing ? "Đang xử lý..." : "Chấp nhận yêu cầu"}
                 </button>
 
                 {/* Reject Button */}
                 <button
-                  onClick={() => {
-                    console.log("Reject return request for order:", order.orderCode);
-                    // Handle reject action
-                  }}
-                  className="flex items-center gap-2 rounded-[12px] bg-[#dc3545] hover:bg-[#c82333] px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                  onClick={handleRejectClick}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#dc3545] hover:bg-[#c82333] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
                   <XCircle size={18} />
-                  Từ chối yêu cầu
+                  {isProcessing ? "Đang xử lý..." : "Từ chối yêu cầu"}
                 </button>
 
                 {/* Request More Info Button */}
                 <button
-                  onClick={() => {
-                    console.log("Request more info for order:", order.orderCode);
-                    // Handle request more info action
-                  }}
-                  className="flex items-center gap-2 rounded-[12px] border-2 border-[#ffc107] bg-[#fff3cd] hover:bg-[#ffeaa7] px-6 py-3 text-[14px] font-semibold text-[#856404] transition-colors duration-200 shadow-sm hover:shadow-md"
+                  onClick={handleRequestInfoClick}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 rounded-[12px] border-2 border-[#ffc107] bg-[#fff3cd] hover:bg-[#ffeaa7] disabled:bg-gray-100 disabled:border-gray-300 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-[#856404] transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
                   <AlertTriangle size={18} />
-                  Yêu cầu thêm thông tin
+                  {isProcessing ? "Đang xử lý..." : "Yêu cầu thêm thông tin"}
                 </button>
               </div>
 
@@ -1064,26 +1585,22 @@ const AdminOrderOtherStatusDetail = () => {
               <div className="flex flex-wrap gap-3 items-center justify-start w-full">
                 {/* Confirm Receipt Button */}
                 <button
-                  onClick={() => {
-                    console.log("Confirm receipt for order:", order.orderCode);
-                    // Handle confirm receipt action
-                  }}
-                  className="flex items-center gap-2 rounded-[12px] bg-[#17a2b8] hover:bg-[#138496] px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                  onClick={handleConfirmReceiptClick}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#17a2b8] hover:bg-[#138496] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
                   <Package size={18} />
-                  Xác nhận đã nhận hàng
+                  {isProcessing ? "Đang xử lý..." : "Xác nhận đã nhận hàng"}
                 </button>
 
                 {/* Process Refund Button */}
                 <button
-                  onClick={() => {
-                    console.log("Process refund for order:", order.orderCode);
-                    // Handle process refund action
-                  }}
-                  className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                  onClick={handleProcessRefundClick}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
                   <CreditCard size={18} />
-                  Xử lý hoàn tiền
+                  {isProcessing ? "Đang xử lý..." : "Xử lý hoàn tiền"}
                 </button>
               </div>
 
@@ -1096,6 +1613,60 @@ const AdminOrderOtherStatusDetail = () => {
           )}
         </ContentCard>
       </div>
+
+      {/* Action Dialog */}
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{getDialogContent().title}</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              {getDialogContent().description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {dialogType === "reject" || dialogType === "request-info" ? "Ghi chú *" : "Ghi chú (tùy chọn)"}
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={getDialogContent().placeholder}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                required={dialogType === "reject" || dialogType === "request-info"}
+              />
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setDialogOpen(false);
+                setNotes("");
+                setDialogType(null);
+              }}
+              disabled={isProcessing}
+            >
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDialogConfirm}
+              disabled={isProcessing || (dialogType === "request-info" && !notes.trim())}
+              className={
+                dialogType === "approve"
+                  ? "bg-[#28a745] hover:bg-[#218838]"
+                  : dialogType === "reject"
+                    ? "bg-[#dc3545] hover:bg-[#c82333]"
+                    : "bg-[#ffc107] hover:bg-[#e0a800] text-[#856404]"
+              }
+            >
+              {isProcessing ? "Đang xử lý..." : "Xác nhận"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageContainer>
   );
 };

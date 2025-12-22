@@ -296,7 +296,7 @@ const OrderDetailTab: React.FC = () => {
     if (!orderData) return null;
 
     const incomingOrder = location.state?.order;
-    // Consistent status mapping with admin view
+    // Sử dụng statusLabel từ API nếu có, nếu không thì fallback về map thủ công
     const getStatusDisplayName = (status: string) => {
       switch (status) {
         case "PENDING":
@@ -322,7 +322,7 @@ const OrderDetailTab: React.FC = () => {
       }
     };
 
-    const statusLabel = incomingOrder?.statusLabel || getStatusDisplayName(orderData.status || "");
+    const statusLabel = orderData.statusLabel || incomingOrder?.statusLabel || getStatusDisplayName(orderData.status || "");
 
     // Create a set of reviewed productDetailIds for this order
     // Prefer strict match by orderCode; fall back to productDetailId match if orderCode is missing on the review
@@ -443,6 +443,12 @@ const OrderDetailTab: React.FC = () => {
     const updatedAt = orderData.updatedAt ? formatTimelineDate(orderData.updatedAt) : "";
     const status = order.statusKey?.toUpperCase() || "";
 
+    // Check if order is waiting for payment (BANKING + paymentStatus PENDING)
+    // Note: This determines if we should start timeline with "Chờ thanh toán"
+    const isWaitingForPayment =
+      orderData.method === "BANKING" &&
+      orderData.paymentStatus === "PENDING";
+
     // Handle special cases for canceled/failed orders
     if (status === "CANCELED") {
       return [
@@ -470,59 +476,123 @@ const OrderDetailTab: React.FC = () => {
     }
 
     // Normal flow timeline for successful orders
-    const steps: TimelineStep[] = [
-      { label: "Đặt hàng thành công", completed: false },
-      { label: "Đã xác nhận", completed: false },
-      { label: "Đang vận chuyển", completed: false },
-      { label: "Đã nhận hàng", completed: false },
-    ];
+    // If waiting for payment, start with "Chờ thanh toán" instead of "Đặt hàng thành công"
+    const steps: TimelineStep[] = isWaitingForPayment
+      ? [
+        { label: "Chờ thanh toán", completed: false },
+        { label: "Đã xác nhận", completed: false },
+        { label: "Đang vận chuyển", completed: false },
+        { label: "Đã nhận hàng", completed: false },
+      ]
+      : [
+        { label: "Đặt hàng thành công", completed: false },
+        { label: "Đã xác nhận", completed: false },
+        { label: "Đang vận chuyển", completed: false },
+        { label: "Đã nhận hàng", completed: false },
+      ];
 
-    // Step 1: Order placed - always completed
-    steps[0].completed = true;
-    steps[0].date = createdAt;
+    // Step 1: Chờ thanh toán (if waiting for payment) or Đặt hàng thành công
+    if (isWaitingForPayment) {
+      // Step 1: Chờ thanh toán - always completed when in this state
+      steps[0].completed = true;
+      steps[0].date = createdAt;
 
-    // Step 2: Confirmed - completed if status is CONFIRMED or later
-    if (["CONFIRMED", "PROCESSING", "SHIPPING", "COMPLETE"].includes(status)) {
-      steps[1].completed = true;
-      steps[1].date = updatedAt || createdAt;
-    }
-
-    // Step 3: Shipping - completed if status is SHIPPING or COMPLETE
-    if (["SHIPPING", "COMPLETE"].includes(status)) {
-      steps[2].completed = true;
-      // Use shipping detail date if available, otherwise use updatedAt
-      if (order.shippingDetail && order.shippingDetail.log && Array.isArray(order.shippingDetail.log) && order.shippingDetail.log.length > 0) {
-        const sortedLog = [...order.shippingDetail.log].sort((a: any, b: any) => {
-          const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
-          const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
-          return dateA - dateB;
-        });
-        const firstLogDate = sortedLog[0]?.updated_date;
-        steps[2].date = firstLogDate ? formatTimelineDate(firstLogDate) : updatedAt;
-      } else {
-        steps[2].date = updatedAt;
+      // Step 2: Confirmed - completed if status is CONFIRMED or later
+      // Note: status can change after payment, so we check the actual status
+      const confirmedStatuses = ["CONFIRMED", "PROCESSING", "SHIPPING", "COMPLETE"];
+      if (confirmedStatuses.includes(status as any)) {
+        steps[1].completed = true;
+        steps[1].date = updatedAt || createdAt;
       }
-    }
 
-    // Step 4: Delivered - completed only if status is COMPLETE
-    if (status === "COMPLETE") {
-      steps[3].completed = true;
-      // Use latest shipping log date if available
-      if (order.shippingDetail && order.shippingDetail.log && Array.isArray(order.shippingDetail.log) && order.shippingDetail.log.length > 0) {
-        const sortedLog = [...order.shippingDetail.log].sort((a: any, b: any) => {
-          const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
-          const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
-          return dateA - dateB;
-        });
-        const deliveredLog = sortedLog.find((log: any) => {
-          const statusLower = (log.status || "").toLowerCase();
-          return statusLower.includes("delivered") || statusLower.includes("giao hàng thành công");
-        });
-        const lastLog = sortedLog[sortedLog.length - 1];
-        const logDate = deliveredLog?.updated_date || lastLog?.updated_date;
-        steps[3].date = logDate ? formatTimelineDate(logDate) : updatedAt;
-      } else {
-        steps[3].date = updatedAt;
+      // Step 3: Shipping - completed if status is SHIPPING or COMPLETE
+      const shippingStatuses = ["SHIPPING", "COMPLETE"];
+      if (shippingStatuses.includes(status as any)) {
+        steps[2].completed = true;
+        // Use shipping detail date if available, otherwise use updatedAt
+        if (order.shippingDetail && order.shippingDetail.log && Array.isArray(order.shippingDetail.log) && order.shippingDetail.log.length > 0) {
+          const sortedLog = [...order.shippingDetail.log].sort((a: any, b: any) => {
+            const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
+            const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
+            return dateA - dateB;
+          });
+          const firstLogDate = sortedLog[0]?.updated_date;
+          steps[2].date = firstLogDate ? formatTimelineDate(firstLogDate) : updatedAt;
+        } else {
+          steps[2].date = updatedAt;
+        }
+      }
+
+      // Step 4: Delivered - completed only if status is COMPLETE
+      if (status === "COMPLETE") {
+        steps[3].completed = true;
+        // Use latest shipping log date if available
+        if (order.shippingDetail && order.shippingDetail.log && Array.isArray(order.shippingDetail.log) && order.shippingDetail.log.length > 0) {
+          const sortedLog = [...order.shippingDetail.log].sort((a: any, b: any) => {
+            const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
+            const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
+            return dateA - dateB;
+          });
+          const deliveredLog = sortedLog.find((log: any) => {
+            const statusLower = (log.status || "").toLowerCase();
+            return statusLower.includes("delivered") || statusLower.includes("giao hàng thành công");
+          });
+          const lastLog = sortedLog[sortedLog.length - 1];
+          const logDate = deliveredLog?.updated_date || lastLog?.updated_date;
+          steps[3].date = logDate ? formatTimelineDate(logDate) : updatedAt;
+        } else {
+          steps[3].date = updatedAt;
+        }
+      }
+    } else {
+      // Normal flow without payment step
+      // Step 1: Order placed - always completed
+      steps[0].completed = true;
+      steps[0].date = createdAt;
+
+      // Step 2: Confirmed - completed if status is CONFIRMED or later
+      if (["CONFIRMED", "PROCESSING", "SHIPPING", "COMPLETE"].includes(status)) {
+        steps[1].completed = true;
+        steps[1].date = updatedAt || createdAt;
+      }
+
+      // Step 3: Shipping - completed if status is SHIPPING or COMPLETE
+      if (["SHIPPING", "COMPLETE"].includes(status)) {
+        steps[2].completed = true;
+        // Use shipping detail date if available, otherwise use updatedAt
+        if (order.shippingDetail && order.shippingDetail.log && Array.isArray(order.shippingDetail.log) && order.shippingDetail.log.length > 0) {
+          const sortedLog = [...order.shippingDetail.log].sort((a: any, b: any) => {
+            const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
+            const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
+            return dateA - dateB;
+          });
+          const firstLogDate = sortedLog[0]?.updated_date;
+          steps[2].date = firstLogDate ? formatTimelineDate(firstLogDate) : updatedAt;
+        } else {
+          steps[2].date = updatedAt;
+        }
+      }
+
+      // Step 4: Delivered - completed only if status is COMPLETE
+      if (status === "COMPLETE") {
+        steps[3].completed = true;
+        // Use latest shipping log date if available
+        if (order.shippingDetail && order.shippingDetail.log && Array.isArray(order.shippingDetail.log) && order.shippingDetail.log.length > 0) {
+          const sortedLog = [...order.shippingDetail.log].sort((a: any, b: any) => {
+            const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
+            const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
+            return dateA - dateB;
+          });
+          const deliveredLog = sortedLog.find((log: any) => {
+            const statusLower = (log.status || "").toLowerCase();
+            return statusLower.includes("delivered") || statusLower.includes("giao hàng thành công");
+          });
+          const lastLog = sortedLog[sortedLog.length - 1];
+          const logDate = deliveredLog?.updated_date || lastLog?.updated_date;
+          steps[3].date = logDate ? formatTimelineDate(logDate) : updatedAt;
+        } else {
+          steps[3].date = updatedAt;
+        }
       }
     }
 
@@ -573,10 +643,14 @@ const OrderDetailTab: React.FC = () => {
     target.src = FALLBACK_IMAGE;
   };
 
-  // Map payment status to Vietnamese
-  const getPaymentStatusLabel = (status?: string | null): string => {
-    if (!status) return "Chưa thanh toán";
-    const normalized = status.toUpperCase();
+  // Map payment status to Vietnamese - sử dụng label từ API nếu có
+  const getPaymentStatusLabel = (order: CustomerOrderResponse): string => {
+    if (order.paymentStatusLabel) {
+      return order.paymentStatusLabel;
+    }
+    // Fallback về map thủ công nếu không có label từ API
+    if (!order.paymentStatus) return "Chưa thanh toán";
+    const normalized = order.paymentStatus.toUpperCase();
     switch (normalized) {
       case "PAID":
         return "Đã thanh toán";
@@ -589,22 +663,31 @@ const OrderDetailTab: React.FC = () => {
     }
   };
 
-  // Map payment method to Vietnamese
-  const getPaymentMethodLabel = (method?: string | null): string => {
-    if (!method) return "Chưa xác định";
-    const normalized = method.toUpperCase();
+  // Map payment method to Vietnamese - sử dụng label từ API nếu có
+  const getPaymentMethodLabel = (order: CustomerOrderResponse): string => {
+    if (order.methodLabel) {
+      return order.methodLabel;
+    }
+    // Fallback về map thủ công nếu không có label từ API
+    if (!order.method) return "Chưa xác định";
+    const normalized = order.method.toUpperCase();
     switch (normalized) {
       case "CASH":
         return "Tiền mặt";
       case "BANKING":
         return "Chuyển khoản";
       default:
-        return method;
+        return order.method;
     }
   };
 
-  // Map cancel reason enum to Vietnamese (for customer view - using "Tôi" instead of "Khách hàng")
-  const getCancelReasonLabel = (reason?: string | null): string => {
+  // Map cancel reason enum to Vietnamese - sử dụng label từ API nếu có
+  const getCancelReasonLabel = (order: CustomerOrderResponse): string => {
+    if (order.reasonCancelLabel) {
+      return order.reasonCancelLabel;
+    }
+    // Fallback về map thủ công nếu không có label từ API
+    const reason = order.reasonCancel;
     if (!reason) return "Chưa có lý do";
     switch (reason) {
       case "CUSTOMER_CHANGE_MIND":
@@ -1015,12 +1098,18 @@ const OrderDetailTab: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Bên phải: chỉ hiển thị Số lượng (ẩn block tổng tiền giảm / tổng tiền) */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {/* Bên phải: hiển thị Số lượng và Tổng tiền */}
+                  <div className="flex flex-col items-end gap-1 text-xs">
                     {product.quantity && product.quantity > 0 && (
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">Số lượng:</span>
                         <span className="text-gray-700 font-medium">{product.quantity}</span>
+                      </div>
+                    )}
+                    {product.finalPrice && product.finalPrice > 0 && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500">Tổng tiền:</span>
+                        <span className="text-gray-900 font-bold">{formatCurrencyVND(product.finalPrice)}</span>
                       </div>
                     )}
                   </div>
@@ -1351,7 +1440,7 @@ const OrderDetailTab: React.FC = () => {
                 </div>
               </div>
               {/* Show cancel reason if order is canceled */}
-              {order.statusKey === "CANCELED" && order.reasonCancel && (
+              {order.statusKey === "CANCELED" && order.reasonCancel && orderData && (
                 <div className="flex items-start gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
                   <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
@@ -1363,7 +1452,7 @@ const OrderDetailTab: React.FC = () => {
                       Lý do hủy đơn hàng
                     </span>
                     <span className="text-base font-semibold text-red-900">
-                      {getCancelReasonLabel(order.reasonCancel)}
+                      {getCancelReasonLabel(orderData)}
                     </span>
                   </div>
                 </div>
@@ -1380,131 +1469,129 @@ const OrderDetailTab: React.FC = () => {
             </div>
 
             {/* Payment Sub-section */}
-            <div>
-              <div className="space-y-4">
-                {/* Payment calculation breakdown */}
-                {/* Chỉ hiển thị khi có ít nhất một discount > 0 hoặc có subtotal/shipping > 0 */}
-                {((order.payment.productDiscount != null && order.payment.productDiscount > 0) ||
-                  (order.payment.orderDiscount != null && order.payment.orderDiscount > 0) ||
-                  (order.payment.subtotal != null && order.payment.subtotal > 0) ||
-                  (order.payment.shipping != null && order.payment.shipping > 0)) && (
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                      <div className="text-sm font-semibold text-gray-700 mb-3">Chi tiết tính toán giá</div>
-                      <div className="space-y-2 text-sm">
-                        {/* Tổng tiền gốc */}
-                        {order.payment.subtotal != null && order.payment.subtotal > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tổng tiền hàng (chưa giảm giá):</span>
-                            <span className="font-medium">{formatCurrencyVND(order.payment.subtotal)}</span>
+            <div className="space-y-4">
+              {/* Payment calculation breakdown */}
+              {/* Chỉ hiển thị khi có ít nhất một discount > 0 hoặc có subtotal/shipping > 0 */}
+              {((order.payment.productDiscount != null && order.payment.productDiscount > 0) ||
+                (order.payment.orderDiscount != null && order.payment.orderDiscount > 0) ||
+                (order.payment.subtotal != null && order.payment.subtotal > 0) ||
+                (order.payment.shipping != null && order.payment.shipping > 0)) && (
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="text-sm font-semibold text-gray-700 mb-3">Chi tiết tính toán giá</div>
+                    <div className="space-y-2 text-sm">
+                      {/* Tổng tiền gốc */}
+                      {order.payment.subtotal != null && order.payment.subtotal > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tổng tiền hàng (chưa giảm giá):</span>
+                          <span className="font-medium">{formatCurrencyVND(order.payment.subtotal)}</span>
+                        </div>
+                      )}
+
+                      {/* Giảm giá sản phẩm - chỉ hiển thị khi > 0 */}
+                      {order.payment.productDiscount != null &&
+                        typeof order.payment.productDiscount === 'number' &&
+                        order.payment.productDiscount > 0 && (
+                          <div className="flex justify-between text-red-600">
+                            <span className="text-red-600">Trừ giảm giá sản phẩm:</span>
+                            <span className="font-medium">-{formatCurrencyVND(order.payment.productDiscount)}</span>
                           </div>
                         )}
 
-                        {/* Giảm giá sản phẩm - chỉ hiển thị khi > 0 */}
-                        {order.payment.productDiscount != null &&
-                          typeof order.payment.productDiscount === 'number' &&
-                          order.payment.productDiscount > 0 && (
-                            <div className="flex justify-between text-red-600">
-                              <span className="text-red-600">Trừ giảm giá sản phẩm:</span>
-                              <span className="font-medium">-{formatCurrencyVND(order.payment.productDiscount)}</span>
-                            </div>
-                          )}
+                      {/* Giảm giá đơn hàng - chỉ hiển thị khi > 0 */}
+                      {order.payment.orderDiscount != null &&
+                        typeof order.payment.orderDiscount === 'number' &&
+                        order.payment.orderDiscount > 0 && (
+                          <div className="flex justify-between text-orange-600">
+                            <span className="text-orange-600">Trừ giảm giá đơn hàng (voucher):</span>
+                            <span className="font-medium">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
+                          </div>
+                        )}
 
-                        {/* Giảm giá đơn hàng - chỉ hiển thị khi > 0 */}
-                        {order.payment.orderDiscount != null &&
-                          typeof order.payment.orderDiscount === 'number' &&
-                          order.payment.orderDiscount > 0 && (
-                            <div className="flex justify-between text-orange-600">
-                              <span className="text-orange-600">Trừ giảm giá đơn hàng (voucher):</span>
-                              <span className="font-medium">-{formatCurrencyVND(order.payment.orderDiscount)}</span>
-                            </div>
-                          )}
+                      {/* Tiền sau giảm giá - chỉ hiển thị khi có discount thực sự */}
+                      {order.payment.subtotal != null &&
+                        order.payment.subtotal > 0 &&
+                        order.payment.totalDiscount != null &&
+                        typeof order.payment.totalDiscount === 'number' &&
+                        order.payment.totalDiscount > 0 && (
+                          <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded">
+                            <span className="font-medium">Tiền sau giảm giá:</span>
+                            <span className="font-semibold">{formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}</span>
+                          </div>
+                        )}
 
-                        {/* Tiền sau giảm giá - chỉ hiển thị khi có discount thực sự */}
-                        {order.payment.subtotal != null &&
-                          order.payment.subtotal > 0 &&
-                          order.payment.totalDiscount != null &&
-                          typeof order.payment.totalDiscount === 'number' &&
-                          order.payment.totalDiscount > 0 && (
-                            <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded">
-                              <span className="font-medium">Tiền sau giảm giá:</span>
-                              <span className="font-semibold">{formatCurrencyVND(order.payment.subtotal - order.payment.totalDiscount)}</span>
-                            </div>
-                          )}
+                      {/* Phí ship - chỉ hiển thị khi > 0 */}
+                      {order.payment.shipping != null &&
+                        typeof order.payment.shipping === 'number' &&
+                        order.payment.shipping > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Cộng phí vận chuyển:</span>
+                            <span className="font-medium">+{formatCurrencyVND(order.payment.shipping)}</span>
+                          </div>
+                        )}
 
-                        {/* Phí ship - chỉ hiển thị khi > 0 */}
-                        {order.payment.shipping != null &&
-                          typeof order.payment.shipping === 'number' &&
-                          order.payment.shipping > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Cộng phí vận chuyển:</span>
-                              <span className="font-medium">+{formatCurrencyVND(order.payment.shipping)}</span>
-                            </div>
-                          )}
-
-                      </div>
-                    </div>
-                  )}
-
-                {totalPayment > 0 && (
-                  <div className="bg-blue-600 p-3 rounded-lg text-white">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium opacity-90">
-                        Tổng số tiền
-                      </span>
-                      <span className="text-xl font-bold">
-                        {formatCurrencyVND(totalPayment)}
-                      </span>
                     </div>
                   </div>
                 )}
-                <div className="space-y-3 bg-gray-50 p-3 rounded-lg">
+
+              {totalPayment > 0 && (
+                <div className="bg-blue-600 p-3 rounded-lg text-white">
                   <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-2 text-gray-700">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
-                      </svg>
-                      Phương thức thanh toán
+                    <span className="text-sm font-medium opacity-90">
+                      Tổng số tiền
                     </span>
-                    <span className="font-semibold text-gray-900">
-                      {getPaymentMethodLabel(order.paymentMethod)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-2 text-gray-700">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      Trạng thái thanh toán
-                    </span>
-                    <span className="font-semibold text-gray-900">
-                      {getPaymentStatusLabel(order.paymentStatus)}
+                    <span className="text-xl font-bold">
+                      {formatCurrencyVND(totalPayment)}
                     </span>
                   </div>
                 </div>
-                {shouldShowPaymentButton() && (
-                  <div className="pt-2">
-                    <Button
-                      onClick={handlePayment}
-                      disabled={isProcessingPayment}
-                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 border-transparent text-white font-semibold rounded-lg transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {isProcessingPayment ? (
-                        <>
-                          <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
-                          Đang xử lý...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
-                          </svg>
-                          Thanh toán ngay
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
+              )}
+              <div className="space-y-3 bg-gray-50 p-3 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center gap-2 text-gray-700">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
+                    </svg>
+                    Phương thức thanh toán
+                  </span>
+                  <span className="font-semibold text-gray-900">
+                    {orderData ? getPaymentMethodLabel(orderData) : "Chưa xác định"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center gap-2 text-gray-700">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Trạng thái thanh toán
+                  </span>
+                  <span className="font-semibold text-gray-900">
+                    {orderData ? getPaymentStatusLabel(orderData) : "Chưa thanh toán"}
+                  </span>
+                </div>
               </div>
+              {shouldShowPaymentButton() && (
+                <div className="pt-2">
+                  <Button
+                    onClick={handlePayment}
+                    disabled={isProcessingPayment}
+                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 border-transparent text-white font-semibold rounded-lg transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {isProcessingPayment ? (
+                      <>
+                        <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" />
+                        </svg>
+                        Thanh toán ngay
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2149,7 +2236,7 @@ const OrderDetailTab: React.FC = () => {
                         const returnQuantity = isReturnSingleProduct
                           ? (returnQuantities.get(product.id) || product.quantity || 1)
                           : (product.quantity || 1);
-                        
+
                         // Validate return quantity
                         if (returnQuantity < 1 || returnQuantity > (product.quantity || 1)) {
                           throw new Error(`Số lượng trả lại không hợp lệ cho sản phẩm ${product.name}`);

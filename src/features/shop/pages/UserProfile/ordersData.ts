@@ -29,6 +29,7 @@ export type Order = {
   statusLabel: string;
   products: OrderProduct[];
   totalPayment: number;
+  shippingFee?: number;
 };
 
 // Mock orders data - shared between OrdersTab and OrderDetailTab

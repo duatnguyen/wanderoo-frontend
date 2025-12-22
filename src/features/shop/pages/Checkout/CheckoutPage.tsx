@@ -836,6 +836,7 @@ const CheckoutPage: React.FC = () => {
       const orderResponse = await createOrder(orderData);
       const orderId = orderResponse.order.id;
       const orderCode = orderResponse.order.code;
+      const orderPaymentStatus = orderResponse.order.paymentStatus;
 
       // Remove selected cart items after successful order creation
       try {
@@ -859,11 +860,18 @@ const CheckoutPage: React.FC = () => {
       if (selectedPaymentMethod === "BANKING") {
         const paymentResponse = await createVNPayPayment(orderId);
         if (paymentResponse.url) {
-          // Show success toast before redirecting
-          toast.success("Đặt hàng thành công!", {
-            description: "Đơn hàng đã được tạo. Đang chuyển hướng đến trang thanh toán...",
-            duration: 2000,
-          });
+          // Show toast message - check if payment status is PENDING
+          if (orderPaymentStatus === "PENDING") {
+            toast.success("Đơn hàng đã được tạo!", {
+              description: "Đang chuyển hướng đến trang thanh toán...",
+              duration: 2000,
+            });
+          } else {
+            toast.success("Đặt hàng thành công!", {
+              description: "Đang chuyển hướng đến trang thanh toán...",
+              duration: 2000,
+            });
+          }
           // Small delay to show toast before redirect
           setTimeout(() => {
             window.location.href = paymentResponse.url;
@@ -871,10 +879,18 @@ const CheckoutPage: React.FC = () => {
           return;
         } else {
           setError("Không thể tạo URL thanh toán. Vui lòng thử lại.");
-          toast.error("Lỗi thanh toán", {
-            description: "Đơn hàng đã được tạo nhưng không thể tạo URL thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
-            duration: 5000,
-          });
+          // Show appropriate message based on payment status
+          if (orderPaymentStatus === "PENDING") {
+            toast.error("Lỗi thanh toán", {
+              description: "Đơn hàng đã được tạo và đang chờ thanh toán nhưng không thể tạo URL thanh toán. Vui lòng vào chi tiết đơn hàng để thanh toán.",
+              duration: 5000,
+            });
+          } else {
+            toast.error("Lỗi thanh toán", {
+              description: "Đơn hàng đã được tạo nhưng không thể tạo URL thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.",
+              duration: 5000,
+            });
+          }
           // Navigate to order detail even if payment URL creation fails
           navigate(`/user/profile/orders/${orderCode}?newOrder=true`);
         }

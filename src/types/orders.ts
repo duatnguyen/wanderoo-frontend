@@ -63,10 +63,13 @@ export interface CustomerOrderResponse extends OrderResponse {
   items?: OrderItemResponse[]; // Order items (legacy, for backward compatibility)
   orderDetails?: OrderDetailItemResponse[]; // Order details with product information
   source?: string; // Order source (WEBSITE, POS, etc.)
+  sourceLabel?: string | null; // Label tiếng Việt cho source
   picInfo?: UserInfo | null; // PIC user info from backend
   discountId?: number | null;
   method?: string;
+  methodLabel?: string | null; // Label tiếng Việt cho method
   paymentStatus?: string;
+  paymentStatusLabel?: string | null; // Label tiếng Việt cho paymentStatus
   shippingFee?: number;
   totalProductPrice?: number;
   totalOrderPrice?: number;
@@ -96,6 +99,8 @@ export interface CustomerOrderResponse extends OrderResponse {
   shopWardCode?: string | null;
   shopWardName?: string | null;
   reasonCancel?: string | null; // Lý do hủy đơn hàng
+  reasonCancelLabel?: string | null; // Label tiếng Việt cho reasonCancel
+  statusLabel?: string | null; // Label tiếng Việt cho status
 }
 
 export interface CustomerOrderPageResponse {

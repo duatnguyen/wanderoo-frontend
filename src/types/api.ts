@@ -684,8 +684,15 @@ export interface CustomerOrderResponse extends OrderResponse {
   orderDiscountAmount?: number;
   productDiscountAmount?: number;
   reasonCancel?: string | null; // Lý do hủy đơn hàng
+  reasonCancelLabel?: string | null; // Label tiếng Việt cho reasonCancel
   orderDetails?: OrderDetailItemResponse[]; // Order details with snapshot data
   shippingDetail?: GHNOrderDetailResponse; // Shipping detail from GHN
+  source?: string; // Order source (WEBSITE, POS, etc.)
+  sourceLabel?: string | null; // Label tiếng Việt cho source
+  method?: string; // Payment method
+  methodLabel?: string | null; // Label tiếng Việt cho method
+  paymentStatusLabel?: string | null; // Label tiếng Việt cho paymentStatus
+  statusLabel?: string | null; // Label tiếng Việt cho status
 }
 
 export interface CustomerOrderPageResponse {

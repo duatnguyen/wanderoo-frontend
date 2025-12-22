@@ -42,12 +42,20 @@ const STATUS_MAPPING: Record<
 };
 
 const mapStatusFromBackend = (
-  status?: string | null
+  order: CustomerOrderResponse
 ): { status: OrderStatus; label: string } => {
-  if (!status) {
+  // Sử dụng statusLabel từ API nếu có, nếu không thì fallback về map thủ công
+  if (order.statusLabel) {
+    const normalized = (order.status || "").toUpperCase();
+    const statusMapping = STATUS_MAPPING[normalized] ?? { status: "pending" as OrderStatus, label: order.statusLabel };
+    return { status: statusMapping.status, label: order.statusLabel };
+  }
+
+  // Fallback về map thủ công nếu không có statusLabel
+  if (!order.status) {
     return { status: "pending", label: "Đang xử lý" };
   }
-  const normalized = status.toUpperCase();
+  const normalized = order.status.toUpperCase();
   return (
     STATUS_MAPPING[normalized] ?? { status: "pending", label: "Đang xử lý" }
   );
@@ -91,6 +99,11 @@ const mapDetailToProduct = (
     imageUrl = getImageUrl(productImagePath) || FALLBACK_IMAGE;
   }
 
+  // Calculate discount per unit if discount exists
+  const discountPerUnit = detail.snapshotDiscountAmount && detail.quantity && detail.quantity > 0
+    ? detail.snapshotDiscountAmount / detail.quantity
+    : undefined;
+
   return {
     id: detail.id?.toString() ?? `${orderId}-${index}`,
     imageUrl,
@@ -98,9 +111,9 @@ const mapDetailToProduct = (
       detail.snapshotProductName ??
       detail.snapshotProductSku ??
       `Sản phẩm ${index + 1}`,
-    price: detail.snapshotFinalPrice ?? detail.snapshotProductPrice ?? 0,
-    originalPrice: detail.snapshotProductPrice,
-    discountAmount: detail.snapshotDiscountAmount,
+    price: detail.snapshotProductFinalPrice ?? detail.snapshotProductPrice ?? 0, // Giá sau giảm per unit
+    originalPrice: detail.snapshotProductPrice, // Giá gốc per unit
+    discountAmount: discountPerUnit, // Số tiền giảm per unit (để hiển thị)
     variant: buildVariantLabel(detail.snapshotVariantAttributes),
     sku: detail.snapshotProductSku,
     quantity: detail.quantity,
@@ -152,7 +165,7 @@ const mapCustomerOrderToOrder = (
   order: CustomerOrderResponse
 ): Order | null => {
   if (!order) return null;
-  const { status, label } = mapStatusFromBackend(order.status);
+  const { status, label } = mapStatusFromBackend(order);
   return {
     id: order.code || order.id?.toString() || "",
     orderDate:
@@ -167,6 +180,7 @@ const mapCustomerOrderToOrder = (
       order.totalAmount ??
       order.totalProductPrice ??
       0,
+    shippingFee: order.shippingFee,
   };
 };
 

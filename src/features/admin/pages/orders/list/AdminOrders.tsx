@@ -93,24 +93,34 @@ const AdminOrders: React.FC = () => {
 
       const orderSource = getOrderSource();
       const hasDateFilter = dateRange?.from || dateRange?.to;
-      const hasFilters = paymentStatusFilter !== "ALL" || paymentMethodFilter !== "ALL" || (status && status !== "ALL") || hasDateFilter;
+      const hasStatusFilter = status && status !== "ALL";
+      const hasPaymentStatusFilter = paymentStatusFilter !== "ALL";
+      const hasPaymentMethodFilter = paymentMethodFilter !== "ALL";
+      const hasFilters = hasStatusFilter || hasPaymentStatusFilter || hasPaymentMethodFilter || hasDateFilter;
       let response;
-
-      // Add date filters if provided
-      if (dateRange?.from) {
-        params.fromDate = format(dateRange.from, "yyyy-MM-dd");
-      }
-      if (dateRange?.to) {
-        params.toDate = format(dateRange.to, "yyyy-MM-dd");
-      }
 
       // Determine which API to use based on order source
       if (orderSource === 'POS') {
         // For POS orders, use POS-specific APIs
         if (hasFilters) {
-          params.status = status && status !== "ALL" ? status : undefined;
-          params.paymentStatus = paymentStatusFilter !== "ALL" ? paymentStatusFilter : undefined;
-          params.method = paymentMethodFilter !== "ALL" ? paymentMethodFilter : undefined;
+          // Add all filters to params
+          if (hasStatusFilter) {
+            params.status = status;
+          }
+          if (hasPaymentStatusFilter) {
+            params.paymentStatus = paymentStatusFilter;
+          }
+          if (hasPaymentMethodFilter) {
+            params.method = paymentMethodFilter;
+          }
+          if (hasDateFilter) {
+            if (dateRange?.from) {
+              params.fromDate = format(dateRange.from, "yyyy-MM-dd");
+            }
+            if (dateRange?.to) {
+              params.toDate = format(dateRange.to, "yyyy-MM-dd");
+            }
+          }
           response = await getPOSOrdersWithFilters(params);
         } else {
           response = await getPOSOrders(params);
@@ -118,9 +128,24 @@ const AdminOrders: React.FC = () => {
       } else if (orderSource === 'WEBSITE') {
         // For WEBSITE orders, use WEBSITE-specific APIs
         if (hasFilters) {
-          params.status = status && status !== "ALL" ? status : undefined;
-          params.paymentStatus = paymentStatusFilter !== "ALL" ? paymentStatusFilter : undefined;
-          params.method = paymentMethodFilter !== "ALL" ? paymentMethodFilter : undefined;
+          // Add all filters to params
+          if (hasStatusFilter) {
+            params.status = status;
+          }
+          if (hasPaymentStatusFilter) {
+            params.paymentStatus = paymentStatusFilter;
+          }
+          if (hasPaymentMethodFilter) {
+            params.method = paymentMethodFilter;
+          }
+          if (hasDateFilter) {
+            if (dateRange?.from) {
+              params.fromDate = format(dateRange.from, "yyyy-MM-dd");
+            }
+            if (dateRange?.to) {
+              params.toDate = format(dateRange.to, "yyyy-MM-dd");
+            }
+          }
           response = await getWebsiteOrdersWithFilters(params);
         } else {
           response = await getWebsiteOrders(params);
@@ -128,9 +153,25 @@ const AdminOrders: React.FC = () => {
       } else {
         // For ALL orders, use general Customer Order API
         if (hasFilters) {
-          params.status = status && status !== "ALL" ? status : undefined;
-          params.paymentStatus = paymentStatusFilter !== "ALL" ? paymentStatusFilter : undefined;
-          params.method = paymentMethodFilter !== "ALL" ? paymentMethodFilter : undefined;
+          // Add all filters to params
+          if (hasStatusFilter) {
+            params.status = status;
+          }
+          if (hasPaymentStatusFilter) {
+            params.paymentStatus = paymentStatusFilter;
+          }
+          if (hasPaymentMethodFilter) {
+            params.method = paymentMethodFilter;
+          }
+          // Note: source is not needed for ALL orders as backend handles it
+          if (hasDateFilter) {
+            if (dateRange?.from) {
+              params.fromDate = format(dateRange.from, "yyyy-MM-dd");
+            }
+            if (dateRange?.to) {
+              params.toDate = format(dateRange.to, "yyyy-MM-dd");
+            }
+          }
           response = await getAdminCustomerOrdersWithFilters(params);
         } else {
           response = await getAdminCustomerOrders(params);

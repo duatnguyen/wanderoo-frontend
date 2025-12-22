@@ -108,13 +108,25 @@ const OrderCard: React.FC<OrderCardProps> = ({
 
         {/* Order Footer with Total and View Details Button */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-4 border-t border-gray-200">
-          <div>
-            <span className="text-[14px] font-medium text-gray-700">
-              Tổng thanh toán:{" "}
-            </span>
-            <span className="text-[14px] font-bold text-red-600">
-              {formatCurrency(order.totalPayment)}
-            </span>
+          <div className="flex flex-col gap-1">
+            {order.shippingFee !== undefined && order.shippingFee > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] text-gray-600">
+                  Phí vận chuyển:{" "}
+                </span>
+                <span className="text-[14px] font-medium text-gray-700">
+                  {formatCurrency(order.shippingFee)}
+                </span>
+              </div>
+            )}
+            <div>
+              <span className="text-[14px] font-medium text-gray-700">
+                Tổng thanh toán:{" "}
+              </span>
+              <span className="text-[14px] font-bold text-red-600">
+                {formatCurrency(order.totalPayment)}
+              </span>
+            </div>
           </div>
           <button
             onClick={(e) => {
