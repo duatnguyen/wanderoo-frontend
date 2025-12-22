@@ -143,10 +143,21 @@ const LegacyVoucherSelectionModal: React.FC<LegacyVoucherSelectionModalProps> = 
         }
     }, [isOpen, isAuthenticated]);
 
-    // Convert legacy voucher ID to voucher code
-    const selectedVoucherCode = selectedVoucherId ?
-        // Try to extract code from legacy voucher ID format
-        sections.flatMap(s => s.vouchers).find(v => v.id === selectedVoucherId)?.code || null
+    // Convert legacy voucher ID to voucher code (prefill selection when reopening)
+    const selectedVoucherCode = selectedVoucherId
+        ? (() => {
+            // If legacy format "voucher-CODE", strip prefix
+            if (selectedVoucherId.startsWith("voucher-")) {
+                return selectedVoucherId.replace("voucher-", "");
+            }
+            // Try find in provided sections
+            const fromSection = sections
+                .flatMap((s) => s.vouchers)
+                .find((v) => v.id === selectedVoucherId)?.code;
+            if (fromSection) return fromSection;
+            // Fallback: treat selectedVoucherId itself as the code
+            return selectedVoucherId;
+        })()
         : null;
 
     // Convert voucher code back to legacy voucher ID for onApply callback

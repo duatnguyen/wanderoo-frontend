@@ -46,7 +46,6 @@ const CartPage: React.FC = () => {
     originalPrice?: number;
     rating: number;
     discountPercent?: number;
-    discountValue?: string;
   }[]>([]);
 
   // Map HomepageProductResponse -> RecommendedProduct (similar to landing page logic)
@@ -84,11 +83,15 @@ const CartPage: React.FC = () => {
       originalPrice = hasDiscount ? baseOriginal : undefined;
     }
 
-    // Giữ discountPercent từ API (nếu có) cho mục đích sắp xếp/backward-compat
-    const discountPercent =
-      typeof item.discountPercent === "number"
-        ? Math.round(item.discountPercent)
-        : undefined;
+    let discountPercent: number | undefined;
+    if (item.discountValue) {
+      const match = item.discountValue.match(/(\d+(?:\.\d+)?)/);
+      if (match) {
+        discountPercent = Math.round(Number(match[1]));
+      }
+    } else if (typeof item.discountPercent === "number") {
+      discountPercent = Math.round(item.discountPercent);
+    }
 
     const imageUrl = item.image ? getImageUrl(item.image) || item.image : "";
 
@@ -100,8 +103,6 @@ const CartPage: React.FC = () => {
       originalPrice,
       rating: item.rating ?? 0,
       discountPercent,
-      // Truyền discountValue dạng string để ProductCard format và hiển thị đúng
-      discountValue: item.discountValue ?? undefined,
     };
   };
 
@@ -253,13 +254,34 @@ const CartPage: React.FC = () => {
     }
 
     try {
+      // Optimistic UI update: cập nhật ngay số lượng để cảm giác bấm nhanh hơn
+      setCartData((prev) =>
+        prev.map((c) => {
+          if (c.id !== cartItem.cartId) return c;
+
+          const unitPrice = c.discountedPrice || c.productPrice;
+          const updatedTotal = unitPrice * newQuantity;
+
+          return {
+            ...c,
+            quantity: newQuantity,
+            totalPrice: updatedTotal,
+          };
+        })
+      );
+
+      // Gửi request cập nhật lên backend
       await updateCartItem(cartItem.cartId, newQuantity);
-      // Refresh cart data
-      const response = await getCart({ page, size });
-      setCartData(response.carts || []);
     } catch (err: any) {
       console.error("Error updating cart item:", err);
       setError(err?.response?.data?.message || "Không thể cập nhật số lượng");
+      // Nếu lỗi, reload lại giỏ để khôi phục trạng thái đúng
+      try {
+        const response = await getCart({ page, size });
+        setCartData(response.carts || []);
+      } catch (refreshError) {
+        console.error("Error refreshing cart after failed quantity update:", refreshError);
+      }
     }
   };
 
@@ -389,6 +411,31 @@ const CartPage: React.FC = () => {
         return;
       }
 
+      // Optimistic UI update: cập nhật ngay thông tin biến thể trên giao diện
+      setCartData((prev) =>
+        prev.map((c) => {
+          if (c.id !== cartId) return c;
+
+          const unitPrice =
+            selectedVariant.discountedPrice || selectedVariant.originalPrice;
+          // Nếu tồn kho của biến thể mới thấp hơn số lượng hiện tại thì tạm thời giữ nguyên,
+          // backend vẫn sẽ xử lý điều chỉnh số lượng và chúng ta sẽ refetch ở dưới.
+          const updatedTotal = unitPrice * c.quantity;
+
+          return {
+            ...c,
+            productDetailId: selectedVariant.productDetailId,
+            imageUrl: selectedVariant.imageUrl,
+            attributes: selectedVariant.attributes,
+            originalPrice: selectedVariant.originalPrice,
+            discountedPrice: selectedVariant.discountedPrice,
+            productPrice: unitPrice,
+            websiteSoldQuantity: selectedVariant.websiteSoldQuantity,
+            totalPrice: updatedTotal,
+          };
+        })
+      );
+
       // Update cart item with new productDetailId
       // Backend will handle quantity adjustment if needed
       await updateCartItemProductDetail(cartId, newProductDetailId);
@@ -427,55 +474,55 @@ const CartPage: React.FC = () => {
         return !isOutOfStock && !isQuantityExceedsStock;
       });
 
-      const selectedCartIds = selectedAvailableItems
-        .map((item) => item.cartId)
-        .filter((id): id is number => id !== undefined);
+    const selectedCartIds = selectedAvailableItems
+      .map((item) => item.cartId)
+      .filter((id): id is number => id !== undefined);
 
-      if (selectedCartIds.length === 0) {
-        // If no available items selected, check if there are any available items at all
-        const hasAvailableItems = cartItemsDisplay.some((item) => {
+    if (selectedCartIds.length === 0) {
+      // If no available items selected, check if there are any available items at all
+      const hasAvailableItems = cartItemsDisplay.some((item) => {
+        const isOutOfStock = item.websiteSoldQuantity === 0;
+        const isQuantityExceedsStock = (item.websiteSoldQuantity || 0) < item.quantity;
+        return !isOutOfStock && !isQuantityExceedsStock;
+      });
+
+      if (!hasAvailableItems) {
+        setError("Không có sản phẩm nào có thể thanh toán. Vui lòng kiểm tra lại giỏ hàng hoặc đổi biến thể cho các sản phẩm hết hàng.");
+        setIsCheckingOut(false);
+        return;
+      }
+
+      // If no items selected, navigate to checkout with all available items
+      // Only include items that are not out of stock and quantity doesn't exceed stock
+      const allAvailableCartIds = cartItemsDisplay
+        .filter((item) => {
           const isOutOfStock = item.websiteSoldQuantity === 0;
           const isQuantityExceedsStock = (item.websiteSoldQuantity || 0) < item.quantity;
           return !isOutOfStock && !isQuantityExceedsStock;
-        });
+        })
+        .map((item) => item.cartId)
+        .filter((id): id is number => id !== undefined);
 
-        if (!hasAvailableItems) {
-          setError("Không có sản phẩm nào có thể thanh toán. Vui lòng kiểm tra lại giỏ hàng hoặc đổi biến thể cho các sản phẩm hết hàng.");
-          setIsCheckingOut(false);
-          return;
-        }
-
-        // If no items selected, navigate to checkout with all available items
-        // Only include items that are not out of stock and quantity doesn't exceed stock
-        const allAvailableCartIds = cartItemsDisplay
-          .filter((item) => {
-            const isOutOfStock = item.websiteSoldQuantity === 0;
-            const isQuantityExceedsStock = (item.websiteSoldQuantity || 0) < item.quantity;
-            return !isOutOfStock && !isQuantityExceedsStock;
-          })
-          .map((item) => item.cartId)
-          .filter((id): id is number => id !== undefined);
-
-        if (allAvailableCartIds.length === 0) {
-          setError("Không có sản phẩm nào có thể thanh toán. Vui lòng kiểm tra lại giỏ hàng.");
-          setIsCheckingOut(false);
-          return;
-        }
-
-        try {
-          const selectedItemsData = await getSelectedCartItems({
-            getAll: allAvailableCartIds
-          });
-          navigate("/shop/checkout", {
-            state: { selectedCartItems: selectedItemsData }
-          });
-        } catch (err: any) {
-          console.error("Error getting selected items:", err);
-          setError(err?.response?.data?.message || "Không thể tải thông tin sản phẩm đã chọn");
-          setIsCheckingOut(false);
-        }
+      if (allAvailableCartIds.length === 0) {
+        setError("Không có sản phẩm nào có thể thanh toán. Vui lòng kiểm tra lại giỏ hàng.");
+        setIsCheckingOut(false);
         return;
       }
+
+      try {
+        const selectedItemsData = await getSelectedCartItems({
+          getAll: allAvailableCartIds
+        });
+        navigate("/shop/checkout", {
+          state: { selectedCartItems: selectedItemsData }
+        });
+      } catch (err: any) {
+        console.error("Error getting selected items:", err);
+        setError(err?.response?.data?.message || "Không thể tải thông tin sản phẩm đã chọn");
+        setIsCheckingOut(false);
+      }
+      return;
+    }
 
       // Get selected cart items data
       const selectedItemsData = await getSelectedCartItems({

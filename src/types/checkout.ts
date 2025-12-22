@@ -70,8 +70,7 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
   },
   {
     id: "BANKING",
-    title: "Chuyển khoản ngân hàng qua mã QR",
-    description:
-      "Quét mã QR bằng ứng dụng ngân hàng để thanh toán nhanh chóng, an toàn.",
+    title: "Thanh toán online",
+    description: "",
   },
 ];

@@ -61,6 +61,17 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
   // Disable quantity controls if out of stock or quantity exceeds stock
   const isQuantityDisabled = isOutOfStock || isQuantityExceedsStock;
 
+  // Xác định biến thể hiện tại dựa trên productDetailId hoặc id của variant
+  const selectedVariant = item.availableVariants?.find((variant) => {
+    const currentId = Number(item.productId);
+    return (
+      variant.productDetailId === currentId ||
+      variant.id === currentId
+    );
+  });
+
+  const selectedVariantValue = selectedVariant?.productDetailId ?? undefined;
+
   return (
     <div
       className={`grid gap-4 px-5 py-4 items-center transition-colors ${isQuantityDisabled
@@ -104,7 +115,8 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
               </p>
               {item.availableVariants && item.availableVariants.length > 0 && (
                 <Select
-                  value={item.productId}
+                  // Dùng productDetailId của biến thể hiện tại để Select lấy đúng label
+                  value={selectedVariantValue}
                   onChange={(value) => {
                     if (item.cartId && typeof value === 'number') {
                       onVariantChange(item.cartId, value);

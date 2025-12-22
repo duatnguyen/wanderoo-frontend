@@ -4,6 +4,8 @@ import Button from "./Button";
 import { Textarea } from "./Input";
 import { toast } from "sonner";
 import { X } from "lucide-react";
+import { formatCurrencyVND } from "../../features/shop/pages/Checkout/utils/formatCurrency";
+import { getImageUrl } from "../../utils/imageUtils";
 
 interface Product {
   id: string;
@@ -34,6 +36,8 @@ interface ProductReviewModalProps {
   isSubmitting?: boolean;
 }
 
+const MAX_COMMENT_LENGTH = 200;
+
 const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
   isOpen,
   onClose,
@@ -55,6 +59,12 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
       }
     >
   >(new Map());
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [previewImageSrc, setPreviewImageSrc] = useState<string | null>(null);
+  const [previewAlt, setPreviewAlt] = useState<string>("");
+  const [previewRevokeUrl, setPreviewRevokeUrl] = useState<string | null>(null);
+  const [previewVideoSrc, setPreviewVideoSrc] = useState<string | null>(null);
+  const [previewVideoRevokeUrl, setPreviewVideoRevokeUrl] = useState<string | null>(null);
 
   // Load existing review data when modal opens
   React.useEffect(() => {
@@ -91,11 +101,20 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
       newMap.set(productId, { ...current, [field]: value });
       return newMap;
     });
+
+    // Nếu người dùng vừa chọn sao sau khi bị lỗi, xoá thông báo lỗi chung
+    if (field === "rating" && value > 0 && submitError) {
+      setSubmitError(null);
+    }
   };
 
   const handleSubmit = async () => {
     const reviewsArray: ProductReview[] = [];
     let hasError = false;
+    let hasCommentTooLong = false;
+
+    // Reset lỗi cũ trước khi validate
+    setSubmitError(null);
 
     products.forEach((product) => {
       const review = reviews.get(product.id);
@@ -103,6 +122,11 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
         hasError = true;
         return;
       }
+
+       // Validate độ dài comment
+       if (review.comment && review.comment.length > MAX_COMMENT_LENGTH) {
+         hasCommentTooLong = true;
+       }
       reviewsArray.push({
         productId: product.id,
         rating: review.rating,
@@ -114,11 +138,60 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
     });
 
     if (hasError) {
-      alert("Vui lòng đánh giá tất cả sản phẩm");
+      setSubmitError("Vui lòng chọn chất lượng sản phẩm cho tất cả sản phẩm.");
+      return;
+    }
+
+    if (hasCommentTooLong) {
+      setSubmitError("Nhập đánh giá không quá 200 ký tự.");
       return;
     }
 
     await onSubmit(reviewsArray);
+  };
+
+  const openImagePreviewFromUrl = (url: string, alt: string) => {
+    const fullUrl = getImageUrl(url) || url;
+    setPreviewImageSrc(fullUrl);
+    setPreviewAlt(alt);
+    // URL này do backend cung cấp nên không cần revoke
+    setPreviewRevokeUrl(null);
+  };
+
+  const openImagePreviewFromFile = (file: File, alt: string) => {
+    const url = URL.createObjectURL(file);
+    setPreviewImageSrc(url);
+    setPreviewAlt(alt);
+    setPreviewRevokeUrl(url);
+  };
+
+  const closeImagePreview = () => {
+    if (previewRevokeUrl) {
+      URL.revokeObjectURL(previewRevokeUrl);
+    }
+    setPreviewImageSrc(null);
+    setPreviewAlt("");
+    setPreviewRevokeUrl(null);
+  };
+
+  const openVideoPreviewFromUrl = (url: string) => {
+    const fullUrl = getImageUrl(url) || url;
+    setPreviewVideoSrc(fullUrl);
+    setPreviewVideoRevokeUrl(null);
+  };
+
+  const openVideoPreviewFromFile = (file: File) => {
+    const url = URL.createObjectURL(file);
+    setPreviewVideoSrc(url);
+    setPreviewVideoRevokeUrl(url);
+  };
+
+  const closeVideoPreview = () => {
+    if (previewVideoRevokeUrl) {
+      URL.revokeObjectURL(previewVideoRevokeUrl);
+    }
+    setPreviewVideoSrc(null);
+    setPreviewVideoRevokeUrl(null);
   };
 
   const handleClose = () => {
@@ -167,6 +240,12 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
             </svg>
           </button>
         </div>
+
+        {submitError && (
+          <div className="px-6 pt-3 text-[13px] text-red-600 font-medium">
+            {submitError}
+          </div>
+        )}
 
         {/* Products List */}
         <div>
@@ -222,27 +301,13 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                       <div className="flex items-center gap-2">
                         {product.finalPrice && (
                           <span className="text-[14px] font-semibold text-blue-600">
-                            {new Intl.NumberFormat('vi-VN', {
-                              style: 'currency',
-                              currency: 'VND'
-                            }).format(product.finalPrice)}
+                            {formatCurrencyVND(product.finalPrice)}
                           </span>
                         )}
                         {product.discountAmount && product.discountAmount > 0 && (
-                          <>
-                            <span className="text-[12px] text-gray-500 line-through">
-                              {new Intl.NumberFormat('vi-VN', {
-                                style: 'currency',
-                                currency: 'VND'
-                              }).format(product.originalPrice || 0)}
-                            </span>
-                            <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-medium">
-                              -{new Intl.NumberFormat('vi-VN', {
-                                style: 'currency',
-                                currency: 'VND'
-                              }).format(product.discountAmount)}
-                            </span>
-                          </>
+                          <span className="text-[12px] text-gray-500 line-through">
+                            {formatCurrencyVND(product.originalPrice || 0)}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -275,8 +340,19 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                     placeholder="Hãy chia sẻ những điều bạn thích về sản phẩm này với những người mua khác nhé!!!"
                     rows={6}
                     fullWidth
-                    className="!border-[#E04D30] focus:!border-[#E04D30] focus:!ring-[#E04D30]"
+                    className={`focus:!ring-[#E04D30] ${
+                      review.comment &&
+                      review.comment.length > MAX_COMMENT_LENGTH
+                        ? "!border-red-500 focus:!border-red-500"
+                        : "!border-[#E04D30] focus:!border-[#E04D30]"
+                    }`}
                   />
+                  {review.comment &&
+                    review.comment.length > MAX_COMMENT_LENGTH && (
+                      <p className="mt-1 text-[12px] text-red-600">
+                        Nhập đánh giá không quá 200 ký tự
+                      </p>
+                    )}
                 </div>
 
                 {/* Media Upload Section */}
@@ -338,29 +414,85 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
 
                   {/* Media Previews */}
                   <div className="flex flex-wrap gap-2">
-                    {/* Existing Images */}
-                    {review.existingImages.map((url, imgIndex) => (
-                      <div key={`existing-${imgIndex}`} className="relative w-20 h-20 group">
-                        <img
-                          src={url}
-                          alt={`Review ${imgIndex}`}
-                          className="w-full h-full object-cover rounded-lg border border-gray-200"
-                        />
-                        {/* We don't allow deleting existing images yet as API might not support it easily without complex logic */}
-                      </div>
-                    ))}
+                    {/* Existing Images / Videos từ backend */}
+                    {review.existingImages.map((url, imgIndex) => {
+                      const fullUrl = getImageUrl(url) || url;
+                      const isVideo =
+                        typeof url === "string" &&
+                        /\.(mp4|webm|ogg|mov|avi)$/i.test(url);
+
+                      const handleClick = () => {
+                        if (isVideo) {
+                          openVideoPreviewFromUrl(url);
+                        } else {
+                          openImagePreviewFromUrl(url, `Review ${imgIndex + 1}`);
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={`existing-${imgIndex}`}
+                          className="relative w-20 h-20 group cursor-pointer"
+                          onClick={handleClick}
+                        >
+                          {isVideo ? (
+                            <div className="relative w-full h-full flex items-center justify-center bg-black rounded-lg overflow-hidden">
+                              <video
+                                src={fullUrl}
+                                className="w-full h-full object-cover opacity-80 pointer-events-none"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-0 h-0 border-t-4 border-t-transparent border-l-8 border-l-white border-b-4 border-b-transparent ml-1"></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <img
+                              src={fullUrl}
+                              alt={`Review ${imgIndex}`}
+                              className="w-full h-full object-cover rounded-lg border border-gray-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = "none";
+                                (e.target as HTMLImageElement).parentElement!.innerHTML =
+                                  '<span class="text-gray-500 text-xs">IMG</span>';
+                              }}
+                            />
+                          )}
+
+                          {/* Cho phép xoá media cũ khi chỉnh sửa */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const next = [...review.existingImages];
+                              next.splice(imgIndex, 1);
+                              updateReview(product.id, "existingImages", next);
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
 
                     {/* New Images */}
                     {review.images.map((file, fileIndex) => (
-                      <div key={`new-img-${fileIndex}`} className="relative w-20 h-20 group">
+                      <div
+                        key={`new-img-${fileIndex}`}
+                        className="relative w-20 h-20 group"
+                      >
                         <img
                           src={URL.createObjectURL(file)}
                           alt={`New ${fileIndex}`}
-                          className="w-full h-full object-cover rounded-lg border border-gray-200"
+                          className="w-full h-full object-cover rounded-lg border border-gray-200 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openImagePreviewFromFile(file, `New ${fileIndex + 1}`);
+                          }}
                           onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
                         />
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const newImages = [...review.images];
                             newImages.splice(fileIndex, 1);
                             updateReview(product.id, "images", newImages);
@@ -374,16 +506,21 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
 
                     {/* New Videos */}
                     {review.videos.map((file, fileIndex) => (
-                      <div key={`new-vid-${fileIndex}`} className="relative w-20 h-20 group bg-black rounded-lg overflow-hidden">
+                      <div
+                        key={`new-vid-${fileIndex}`}
+                        className="relative w-20 h-20 group bg-black rounded-lg overflow-hidden cursor-pointer"
+                        onClick={() => openVideoPreviewFromFile(file)}
+                      >
                         <video
                           src={URL.createObjectURL(file)}
-                          className="w-full h-full object-cover opacity-80"
+                          className="w-full h-full object-cover opacity-80 pointer-events-none"
                         />
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <div className="w-0 h-0 border-t-4 border-t-transparent border-l-8 border-l-white border-b-4 border-b-transparent ml-1"></div>
                         </div>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             const newVideos = [...review.videos];
                             newVideos.splice(fileIndex, 1);
                             updateReview(product.id, "videos", newVideos);
@@ -396,25 +533,68 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                     ))}
                   </div>
 
-                  <div className="mt-2 text-xs text-gray-600 space-y-1">
-                    <p>
-                      Ảnh đã chọn:{" "}
-                      <span className="font-semibold text-gray-800">
-                        {review.images.length + review.existingImages.length}
-                      </span>
-                    </p>
-                    <p>
-                      Video đã chọn:{" "}
-                      <span className="font-semibold text-gray-800">
-                        {review.videos.length}
-                      </span>
-                    </p>
-                  </div>
                 </div>
               </div>
             );
           })}
         </div>
+
+      {/* Image Preview Modal */}
+      {previewImageSrc && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={closeImagePreview}
+          />
+          <div className="relative z-10 max-w-3xl max-h-[90vh] mx-4 bg-black/80 rounded-lg overflow-hidden flex flex-col">
+            <div className="flex justify-end p-2">
+              <button
+                onClick={closeImagePreview}
+                className="text-white hover:text-gray-200"
+                aria-label="Đóng ảnh xem trước"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-4 pb-4 flex-1 flex items-center justify-center">
+              <img
+                src={previewImageSrc}
+                alt={previewAlt}
+                className="max-h-[80vh] w-auto object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Preview Modal */}
+      {previewVideoSrc && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={closeVideoPreview}
+          />
+          <div className="relative z-10 max-w-3xl max-h-[90vh] mx-4 bg-black rounded-lg overflow-hidden flex flex-col">
+            <div className="flex justify-end p-2">
+              <button
+                onClick={closeVideoPreview}
+                className="text-white hover:text-gray-200"
+                aria-label="Đóng video xem trước"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-4 pb-4 flex-1 flex items-center justify-center">
+              <video
+                src={previewVideoSrc}
+                className="max-h-[80vh] w-auto"
+                controls
+                autoPlay
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
         {/* Footer Buttons */}
         <div className="px-6 py-3 flex justify-end gap-2 sticky bottom-0 bg-white border-t border-gray-100">
