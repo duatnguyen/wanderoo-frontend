@@ -59,6 +59,8 @@ const POSPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const addingProductRef = useRef<string | null>(null);
+  // Lưu đơn giá cố định cho từng item trong đơn nháp để không đổi khi tăng/giảm số lượng
+  const [lockedUnitPrices, setLockedUnitPrices] = useState<Record<string, number>>({});
 
   const loadDraftOrderDetail = useCallback(async (orderId: number) => {
     const detail = await getDraftOrderDetail(orderId);
@@ -188,7 +190,38 @@ const POSPage: React.FC = () => {
     return () => clearTimeout(handler);
   }, [draftOrderId, noteValue, noteSyncedValue]);
 
+  // Đồng bộ lockedUnitPrices từ dữ liệu backend (chỉ thiết lập lần đầu cho mỗi item)
+  useEffect(() => {
+    if (!orderDetail?.items) return;
+
+    setLockedUnitPrices((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      const currentIds = new Set<string>();
+      for (const item of orderDetail.items) {
+        const id = item.id.toString();
+        currentIds.add(id);
+        if (next[id] == null) {
+          next[id] = getUnitPrice(item);
+          changed = true;
+        }
+      }
+
+      // Xóa những id không còn trong đơn
+      Object.keys(next).forEach((id) => {
+        if (!currentIds.has(id)) {
+          delete next[id];
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [orderDetail]);
+
   // Convert order items to products - giữ nguyên thứ tự từ backend, không sort
+  // Đơn giá hiển thị được cố định theo lần đầu item xuất hiện (lockedUnitPrices)
   const products: POSProduct[] = useMemo(() => {
     if (!orderDetail) return [];
     // Giữ nguyên thứ tự items từ backend (theo thời gian thêm vào)
@@ -198,14 +231,15 @@ const POSPage: React.FC = () => {
       // - discountedPrice: giá sau khi đã áp dụng tất cả discount SẢN PHẨM (nếu có),
       //   còn nếu không có product-discount thì discountedPrice == unitPrice.
       const originalPrice = item.unitPrice ?? 0;
-      const discountedPrice = item.discountedPrice ?? originalPrice;
+      const id = item.id.toString();
+      const lockedPrice = lockedUnitPrices[id] ?? getUnitPrice(item);
 
-      // Chỉ coi là "có giảm giá" khi discountedPrice < unitPrice một cách đáng kể
+      // Chỉ coi là "có giảm giá" khi đơn giá cố định < giá gốc một cách đáng kể
       const hasDiscount =
-        discountedPrice != null &&
+        lockedPrice != null &&
         originalPrice != null &&
-        discountedPrice < originalPrice &&
-        Math.abs(discountedPrice - originalPrice) > 0.01;
+        lockedPrice < originalPrice &&
+        Math.abs(lockedPrice - originalPrice) > 0.01;
 
       // Process image URL - convert relative paths to full URLs
       const processedImageUrl = item.imageUrl
@@ -213,18 +247,18 @@ const POSPage: React.FC = () => {
         : undefined;
 
       return {
-        id: item.id.toString(),
+        id,
         name: item.productName,
         image: processedImageUrl,
         variant: item.attributes,
-        // Luôn hiển thị đúng giá sau giảm mà BE đã tính
-        price: discountedPrice ?? originalPrice ?? 0,
+        // Đơn giá hiển thị cố định, không đổi khi tăng/giảm số lượng
+        price: lockedPrice ?? originalPrice ?? 0,
         // Giá gốc chỉ hiển thị gạch ngang khi thực sự có giảm
         originalPrice: hasDiscount ? originalPrice ?? undefined : undefined,
         quantity: item.quantity,
       };
     });
-  }, [orderDetail]);
+  }, [orderDetail, lockedUnitPrices]);
 
   // Tổng tiền hàng & khách phải trả luôn lấy đúng từ BE,
   // đã bao gồm cả productDiscountAmount & orderDiscountAmount theo logic voucher:

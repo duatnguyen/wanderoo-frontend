@@ -3,6 +3,7 @@ import { Pencil, User, FileText, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { POSProduct } from "./POSProductList";
 import { ReturnStatusIcon } from "./icons/ReturnStatusIcon";
+import { getImageUrl } from "@/utils/imageUtils";
 
 export type ReturnOrderDetails = {
   id: string;
@@ -138,19 +139,27 @@ export const ReturnOrderDetailsPanel: React.FC<
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-4 py-3 align-middle">
                           <div className="flex items-center gap-3">
-                            <div className="w-16 h-16 rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100">
+                            {/* Ảnh sản phẩm - đồng bộ với bảng chi tiết đơn hàng (AdminPaymentTable) */}
+                            <div className="border border-[#e5e7eb] relative shrink-0 size-[40px] rounded-[8px] overflow-hidden bg-gray-50 flex items-center justify-center">
                               {item.product.image ? (
                                 <img
-                                  src={item.product.image}
+                                  src={getImageUrl(item.product.image) || item.product.image}
                                   alt={item.product.name}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    target.style.display = "none";
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML =
+                                        '<span class="font-montserrat font-semibold text-[9px] text-gray-400 text-center px-1">No Image</span>';
+                                    }
+                                  }}
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                </div>
+                                <span className="font-montserrat font-semibold text-[9px] text-gray-400 text-center px-1">
+                                  No Image
+                                </span>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -159,14 +168,14 @@ export const ReturnOrderDetailsPanel: React.FC<
                               </p>
                               {(item.product.category ||
                                 item.product.variant) && (
-                                <p className="text-xs text-[#737373] mt-1">
-                                  Phân loại hàng:{" "}
-                                  <span className="text-[#272424]">
-                                    {item.product.variant ||
-                                      item.product.category}
-                                  </span>
-                                </p>
-                              )}
+                                  <p className="text-xs text-[#737373] mt-1">
+                                    Phân loại hàng:{" "}
+                                    <span className="text-[#272424]">
+                                      {item.product.variant ||
+                                        item.product.category}
+                                    </span>
+                                  </p>
+                                )}
                             </div>
                           </div>
                         </td>
@@ -193,20 +202,20 @@ export const ReturnOrderDetailsPanel: React.FC<
                     {returnOrder.receivedProducts.some(
                       (item) => item.reason
                     ) && (
-                      <tr className="border-t border-[#e7e7e7]">
-                        <td colSpan={4} className="px-4 py-3">
-                          {returnOrder.receivedProducts.map((item, index) => (
-                            <div key={index}>
-                              {item.reason && (
-                                <p className="text-sm text-[#e04d30] font-medium">
-                                  Lý do: {item.reason}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </td>
-                      </tr>
-                    )}
+                        <tr className="border-t border-[#e7e7e7]">
+                          <td colSpan={4} className="px-4 py-3">
+                            {returnOrder.receivedProducts.map((item, index) => (
+                              <div key={index}>
+                                {item.reason && (
+                                  <p className="text-sm text-[#e04d30] font-medium">
+                                    Lý do: {item.reason}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </td>
+                        </tr>
+                      )}
                   </tbody>
                 </table>
               </div>

@@ -15,8 +15,8 @@ import {
 import Loading from "../../../../components/common/Loading";
 
 const DEFAULT_RETURN_REASONS: Array<{ value: ReturnReasonEnum; label: string }> = [
-  { value: "PRODUCT_ERROR", label: "Sản phẩm lỗi" },
-  { value: "CUSTOMER_CHANGE_MIND", label: "Khách đổi ý" },
+  { value: "DEFECTIVE", label: "Sản phẩm lỗi" },
+  { value: "OTHER", label: "Khách đổi ý" },
 ];
 
 const CUSTOM_REASON_STORAGE_KEY = "pos-custom-return-reasons";
@@ -79,12 +79,16 @@ const CreateReturnOrder: React.FC = () => {
             image: product.productImage ? (getImageUrl(product.productImage) || product.productImage) : undefined,
             sku: product.productSku,
             variant: product.category,
+            // Đơn giá sau giảm theo sản phẩm (như cột Đơn giá ở màn quản lý đơn hàng)
             price: product.unitPrice || 0,
+            // Giá gốc để hiển thị gạch ngang nếu có khuyến mãi
+            originalPrice: product.originalPrice,
             quantity: product.quantity || 0,
           },
           orderDetailId: product.id,
           returnQuantity: product.quantity || 0,
-          reason: "CUSTOMER_CHANGE_MIND",
+          // Default reason: Khách đổi ý -> map to backend OTHER
+          reason: "OTHER",
         }))
       );
       setSelectedReasonLabel(DEFAULT_RETURN_REASONS[1].label);
@@ -100,17 +104,11 @@ const CreateReturnOrder: React.FC = () => {
     return new Intl.NumberFormat("vi-VN").format(roundedAmount) + "đ";
   };
 
-  const calculateDiscountedPrice = (originalPrice: number): number => {
-    if (!orderDetailData?.paymentSummary) return originalPrice;
-    const { totalProductPrice, totalOrderPrice } = orderDetailData.paymentSummary;
-    if (!totalProductPrice) return originalPrice;
-    const ratio = totalOrderPrice / totalProductPrice;
-    return originalPrice * ratio;
-  };
-
+  // Đơn giá sau khi giảm (nếu có) đã được BE trả trong unitPrice/totalPrice,
+  // thành tiền = đơn giá sau giảm * số lượng được chọn
   const totalAmount = returnProducts.reduce((sum, item) => {
-    const discounted = calculateDiscountedPrice(item.product.price);
-    return sum + discounted * item.returnQuantity;
+    const unitPrice = item.product.price || 0;
+    return sum + unitPrice * item.returnQuantity;
   }, 0);
   const totalRefund = totalAmount;
 
@@ -236,7 +234,7 @@ const CreateReturnOrder: React.FC = () => {
     const returnType: ReturnTypeEnum =
       totalReturnQty >= totalOriginalQty ? "FULL" : "PARTIAL";
 
-    const returnReason = returnProducts[0]?.reason || "CUSTOMER_CHANGE_MIND";
+    const returnReason = returnProducts[0]?.reason || "OTHER";
     const userNote = note.trim();
     const combinedNote = [
       customReasonNote ? `Lý do bổ sung: ${customReasonNote}` : null,
@@ -250,7 +248,8 @@ const CreateReturnOrder: React.FC = () => {
       .map((item) => ({
         orderDetailId: item.orderDetailId,
         returnQuantity: item.returnQuantity,
-        returnPrice: calculateDiscountedPrice(item.product.price),
+        // Đơn giá sau giảm (nếu có) gửi lên BE
+        returnPrice: item.product.price || 0,
       }));
 
     createReturnOrderMutation.mutate({
@@ -359,25 +358,47 @@ const CreateReturnOrder: React.FC = () => {
                     </div>
                     {/* Thông tin + điều chỉnh số lượng + tổng tiền */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[15px] font-medium text-[#272424] mb-1 line-clamp-2">
-                            {item.product.name}
-                          </p>
-                          {item.product.variant && (
-                            <p className="text-xs text-[#737373] mb-1">
-                              Phân loại hàng:{" "}
-                              <span className="text-[#272424]">
-                                {item.product.variant}
-                              </span>
-                            </p>
-                          )}
-                          {item.product.sku && (
-                            <p className="text-sm text-[#272424]">
-                              SKU: {item.product.sku}
-                            </p>
-                          )}
-                        </div>
+                       <div className="flex items-start justify-between gap-3">
+                         <div className="flex-1 min-w-0">
+                           <p className="text-[15px] font-medium text-[#272424] mb-1 line-clamp-2">
+                             {item.product.name}
+                           </p>
+                           {item.product.variant && (
+                             <p className="text-xs text-[#737373] mb-1">
+                               Phân loại hàng:{" "}
+                               <span className="text-[#272424]">
+                                 {item.product.variant}
+                               </span>
+                             </p>
+                           )}
+                           {item.product.sku && (
+                             <p className="text-sm text-[#272424]">
+                               SKU: {item.product.sku}
+                             </p>
+                           )}
+                           {/* Đơn giá hiển thị giống màn quản lý đơn hàng (ảnh 2) */}
+                           <div className="mt-1 flex items-center flex-wrap gap-1 text-xs text-[#737373]">
+                             <span>Đơn giá:</span>
+                             {item.product.originalPrice != null &&
+                             item.product.originalPrice > item.product.price &&
+                             Math.abs(
+                               (item.product.originalPrice || 0) - item.product.price
+                             ) > 0.01 ? (
+                               <>
+                                 <span className="line-through text-[#9ca3af]">
+                                   {formatCurrency(item.product.originalPrice || 0)}
+                                 </span>
+                                 <span className="font-semibold text-[#272424]">
+                                   {formatCurrency(item.product.price)}
+                                 </span>
+                               </>
+                             ) : (
+                               <span className="font-semibold text-[#272424]">
+                                 {formatCurrency(item.product.price)}
+                               </span>
+                             )}
+                           </div>
+                         </div>
                         {/* Điều chỉnh số lượng theo style ảnh 2 */}
                         <div className="flex items-center gap-2.5">
                           <button
@@ -417,12 +438,11 @@ const CreateReturnOrder: React.FC = () => {
                             <Plus className="w-4 h-4" />
                           </button>
                         </div>
-                        {/* Tổng tiền */}
+                        {/* Tổng tiền = đơn giá sau giảm * số lượng */}
                         <div className="text-right min-w-[100px]">
                           <p className="text-sm font-medium text-[#272424]">
                             {formatCurrency(
-                              calculateDiscountedPrice(item.product.price) *
-                                item.returnQuantity
+                              (item.product.price || 0) * item.returnQuantity
                             )}
                           </p>
                         </div>
@@ -528,32 +548,8 @@ const CreateReturnOrder: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Column - Summary and Refund */}
+      {/* Right Column - Refund */}
       <div className="w-[400px] bg-white border-l border-[#e7e7e7] flex-shrink-0 flex flex-col">
-        {/* Summary Section */}
-        <div className="p-6 border-b border-[#e7e7e7]">
-          <h3 className="text-lg font-bold text-[#272424] mb-4">Tóm tắt</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-[#272424]">
-                Tổng tiền hàng
-              </span>
-              <span className="text-sm font-bold text-[#272424]">
-                {formatCurrency(totalAmount)}
-              </span>
-            </div>
-            <div className="h-px bg-[#e7e7e7]" />
-            <div className="flex justify-between items-center mt-3">
-              <span className="text-sm font-medium text-[#272424]">
-                Tổng hoàn trả
-              </span>
-              <span className="text-sm font-bold text-[#272424]">
-                {formatCurrency(totalRefund)}
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Refund Section */}
         <div className="p-6 border-b border-[#e7e7e7] flex-1">
           <h3 className="text-lg font-bold text-[#272424] mb-4">Hoàn tiền</h3>

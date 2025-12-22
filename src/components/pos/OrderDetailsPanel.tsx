@@ -156,7 +156,7 @@ export const OrderDetailsPanel: React.FC<OrderDetailsPanelProps> = ({
                           }}
                         />
                       ) : null}
-                      <div 
+                      <div
                         className="fallback-placeholder w-full h-full flex items-center justify-center p-1.5"
                         style={{ display: product.image ? 'none' : 'flex' }}
                       >

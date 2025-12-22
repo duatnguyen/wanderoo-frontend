@@ -91,7 +91,11 @@ export const getPosOrderDetail = async (
 
 // POS Return Order APIs - types
 export type ReturnTypeEnum = 'FULL' | 'PARTIAL';
-export type ReturnReasonEnum = 'PRODUCT_ERROR' | 'CUSTOMER_CHANGE_MIND';
+// Align with backend enum vn.wanderoo.common.ReturnReasonEnum
+// For POS we currently support:
+// - DEFECTIVE: Sản phẩm lỗi
+// - OTHER: Khách đổi ý / lý do khác
+export type ReturnReasonEnum = 'DEFECTIVE' | 'OTHER';
 export type ReturnStatusEnum = 'PENDING' | 'COMPLETED' | 'CANCELLED';
 
 export interface ReturnProductRequest {

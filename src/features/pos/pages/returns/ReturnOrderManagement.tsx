@@ -13,6 +13,7 @@ import {
   getPosReturnOrderDetail,
 } from "../../../../api/endpoints/posApi";
 import Loading from "../../../../components/common/Loading";
+import { getImageUrl } from "../../../../utils/imageUtils";
 
 const ReturnOrderManagement: React.FC = () => {
   const navigate = useNavigate();
@@ -61,8 +62,8 @@ const ReturnOrderManagement: React.FC = () => {
         console.error("Error fetching return order detail:", error);
         throw new Error(
           error.response?.data?.message ||
-            error.message ||
-            "Không thể tải chi tiết đơn trả hàng"
+          error.message ||
+          "Không thể tải chi tiết đơn trả hàng"
         );
       }
     },
@@ -144,37 +145,63 @@ const ReturnOrderManagement: React.FC = () => {
   // Convert return order detail to component type
   const selectedReturnOrder: ReturnOrderDetails | undefined = returnOrderDetailData
     ? {
-        id: returnOrderDetailData.code || returnOrderDetailData.id.toString(),
-        originalOrderId: returnOrderDetailData.originalOrderCode || "",
-        createdBy: returnOrderDetailData.createdBy || "N/A",
-        createdAt: returnOrderDetailData.createdAt,
-        customer: "---", // Backend doesn't provide customer info in return order
-        note: returnOrderDetailData.notes || "",
-        receivedProducts: returnOrderDetailData.returnProducts.map((product) => {
-          const normalized = normalizeProductInfo(product.productName, product.category);
-          return {
-            product: {
-              id: product.id.toString(),
-              name: normalized.name,
-              image: product.productImage,
-              variant: normalized.variant,
-              price: product.unitPrice || 0,
-              quantity: product.returnQuantity || 0,
-            },
-            reason: getReturnReasonText(returnOrderDetailData.returnReason),
-          };
-        }),
-        isReceived: returnOrderDetailData.status === "COMPLETED" || returnOrderDetailData.status === "PENDING",
-        returnedSummary: {
-          totalAmount: returnOrderDetailData.returnProducts.reduce(
-            (sum, p) => sum + (p.unitPrice * p.returnQuantity || 0),
-            0
-          ),
-          discount: 0, // Backend doesn't provide discount in return order
-          totalReturnValue: returnOrderDetailData.totalReturnAmount || 0,
-        },
-        isReturned: returnOrderDetailData.status === "COMPLETED",
-      }
+      id: returnOrderDetailData.code || returnOrderDetailData.id.toString(),
+      originalOrderId: returnOrderDetailData.originalOrderCode || "",
+      createdBy: returnOrderDetailData.createdBy || "N/A",
+      createdAt: returnOrderDetailData.createdAt,
+      customer: "---", // Backend doesn't provide customer info in return order
+      note: returnOrderDetailData.notes || "",
+      receivedProducts: returnOrderDetailData.returnProducts.map((product) => {
+        // Build variant text từ snapshotVariantAttributes (category) nếu là JSON
+        let variant: string | undefined;
+        if (product.category) {
+          try {
+            const attrs =
+              typeof product.category === "string"
+                ? JSON.parse(product.category)
+                : product.category;
+            if (Array.isArray(attrs)) {
+              variant = attrs
+                .map((attr: any) => {
+                  if (attr?.name && attr?.value) {
+                    return `${attr.name}: ${attr.value}`;
+                  }
+                  return attr?.value || attr?.name || null;
+                })
+                .filter(Boolean)
+                .join(", ");
+            }
+          } catch (e) {
+            console.error("Error parsing return product variant attributes:", e, product.category);
+          }
+        }
+
+        return {
+          product: {
+            id: product.id.toString(),
+            name: product.productName || "Sản phẩm không tên",
+            // Đồng bộ logic hiển thị ảnh với màn POS / chi tiết đơn hàng
+            image: product.productImage
+              ? getImageUrl(product.productImage) || product.productImage
+              : undefined,
+            variant,
+            price: product.unitPrice || 0,
+            quantity: product.returnQuantity || 0,
+          },
+          reason: getReturnReasonText(returnOrderDetailData.returnReason),
+        };
+      }),
+      isReceived: returnOrderDetailData.status === "COMPLETED" || returnOrderDetailData.status === "PENDING",
+      returnedSummary: {
+        totalAmount: returnOrderDetailData.returnProducts.reduce(
+          (sum, p) => sum + (p.unitPrice * p.returnQuantity || 0),
+          0
+        ),
+        discount: 0, // Backend doesn't provide discount in return order
+        totalReturnValue: returnOrderDetailData.totalReturnAmount || 0,
+      },
+      isReturned: returnOrderDetailData.status === "COMPLETED",
+    }
     : undefined;
 
   // Helper functions to convert enums to text
@@ -186,7 +213,7 @@ const ReturnOrderManagement: React.FC = () => {
       }
       return "Đã hoàn trả";
     }
-    
+
     const statusMap: Record<string, string> = {
       PENDING: "Chờ xử lý",
       CANCELLED: "Đã hủy",
@@ -273,7 +300,7 @@ const ReturnOrderManagement: React.FC = () => {
           selectedReturnOrderId={
             selectedReturnOrderId
               ? returnOrdersData?.content.find((o) => o.id === selectedReturnOrderId)?.code ||
-                selectedReturnOrderId.toString()
+              selectedReturnOrderId.toString()
               : undefined
           }
           onReturnOrderSelect={handleReturnOrderSelect}
