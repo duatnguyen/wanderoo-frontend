@@ -1350,14 +1350,11 @@ const AdminSettings: React.FC = () => {
 
               {/* Right section - Action buttons */}
               <div className="flex flex-row gap-4">
-                <button className="bg-white text-gray-700 border border-gray-300 py-2.5 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                  Xem shop của tôi
-                </button>
-                <button
-                  onClick={() => setIsEditingShop(true)}
+                <button 
+                  onClick={() => navigate("/shop")}
                   className="bg-white text-gray-700 border border-gray-300 py-2.5 px-6 rounded-lg font-medium hover:bg-gray-50 transition-colors"
                 >
-                  Chỉnh sửa
+                  Xem shop của tôi
                 </button>
               </div>
             </div>
