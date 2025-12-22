@@ -29,18 +29,18 @@ import type { ReviewResponse, ReviewUpdateRequest } from "@/types/api";
 // Helper function to get full image URL (same as ProductImages and CustomerReviews)
 const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
   if (!imageUrl) return undefined;
-  
+
   // If already a full URL (http/https), return as is
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
     return imageUrl;
   }
-  
+
   // If relative path starting with /, add base URL
   if (imageUrl.startsWith('/')) {
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
     return `${baseUrl}${imageUrl}`;
   }
-  
+
   // If relative path not starting with /, assume it's from uploads
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
   return `${baseUrl}/static/${imageUrl}`;
@@ -115,7 +115,7 @@ const AdminCustomerReviews = () => {
   // Map API ReviewResponse to component Review interface
   const reviews = useMemo(() => {
     if (!reviewsData?.reviews) return [];
-    
+
     return reviewsData.reviews.map((review: ReviewResponse) => ({
       id: review.id.toString(),
       customerName: review.userName || `User ${review.userId}`, // Use userName from API, fallback to User ID
@@ -163,7 +163,7 @@ const AdminCustomerReviews = () => {
   // Filter reviews (client-side filtering for search and multiple ratings)
   const filteredReviews = useMemo(() => {
     if (!reviews) return [];
-    
+
     return reviews.filter((review) => {
       // Rating filter (if multiple selected, filter on frontend)
       if (!selectedRatings.includes("all") && selectedRatings.length > 0) {
@@ -171,7 +171,7 @@ const AdminCustomerReviews = () => {
           return false;
         }
       }
-      
+
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
@@ -183,10 +183,10 @@ const AdminCustomerReviews = () => {
           return false;
         }
       }
-      
+
       // Date range filter (if implemented)
       // TODO: Add date range filtering when dateRange is set
-      
+
       return true;
     });
   }, [reviews, selectedRatings, searchTerm, dateRange]);
@@ -195,11 +195,11 @@ const AdminCustomerReviews = () => {
   // If filtering on frontend (search or date range), use frontend pagination
   // Otherwise, use backend pagination
   const hasFrontendFilters = searchTerm || dateRange || (selectedRatings.length > 1 && !selectedRatings.includes("all"));
-  
+
   const totalPages = hasFrontendFilters
     ? Math.ceil(filteredReviews.length / itemsPerPage)
     : (reviewsData?.totalPages || 1);
-  
+
   const paginatedReviews = hasFrontendFilters
     ? filteredReviews.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
     : filteredReviews;
@@ -246,17 +246,17 @@ const AdminCustomerReviews = () => {
 
   const handleSubmitResponse = (response: string) => {
     if (!selectedReview) return;
-    
+
     // Find original review data
     const originalReview = reviewsData?.reviews?.find(
       (r: ReviewResponse) => r.id.toString() === selectedReview.id
     );
-    
+
     if (!originalReview) {
       toast.error("Không tìm thấy đánh giá");
       return;
     }
-    
+
     updateReviewMutation.mutate({
       reviewId: parseInt(selectedReview.id),
       response: response.trim(),
@@ -423,189 +423,188 @@ const AdminCustomerReviews = () => {
             </div>
           ) : (
             paginatedReviews.map((review) => (
-            <div key={review.id} className="w-full">
-              {/* Customer Header */}
-              <div className="bg-[#f6f6f6] flex items-center overflow-clip px-[12px] py-0 relative rounded-tl-[10px] rounded-tr-[10px] w-full">
-                <div className="flex gap-[8px] items-center px-[12px] py-[4px] relative">
-                  <div className="relative rounded-full w-[28px] h-[28px] bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                    <span className="text-white font-semibold text-xs">
-                      {review.customerName.charAt(0)}
+              <div key={review.id} className="w-full">
+                {/* Customer Header */}
+                <div className="bg-[#f6f6f6] flex items-center overflow-clip px-[12px] py-0 relative rounded-tl-[10px] rounded-tr-[10px] w-full">
+                  <div className="flex gap-[8px] items-center px-[12px] py-[4px] relative">
+                    <div className="relative rounded-full w-[28px] h-[28px] bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                      <span className="text-white font-semibold text-xs">
+                        {review.customerName.charAt(0)}
+                      </span>
+                    </div>
+                    <p className="font-semibold leading-[1.4] opacity-60 relative text-[#272424] text-[14px] whitespace-pre font-['Montserrat']">
+                      {review.customerName}
+                    </p>
+                    <span className="text-[#e04d30] opacity-70 mx-[8px] select-none">
+                      |
                     </span>
                   </div>
-                  <p className="font-semibold leading-[1.4] opacity-60 relative text-[#272424] text-[14px] whitespace-pre font-['Montserrat']">
-                    {review.customerName}
-                  </p>
-                  <span className="text-[#e04d30] opacity-70 mx-[8px] select-none">
-                    |
-                  </span>
-                </div>
 
-                <div className="flex gap-[8px] grow items-center overflow-clip px-[4px] py-[2px] relative">
-                  <p className="font-medium leading-[1.4] relative text-[14px] whitespace-pre font-['Montserrat']">
-                    <span className="text-[#272424]">Mã đơn hàng:</span>{" "}
-                    <span className="text-[#1a71f6]">{review.orderCode || review.orderId}</span>
-                  </p>
-                  {review.createdAt && (
-                    <>
-                      <span className="text-[#e04d30] opacity-70 mx-[8px] select-none">
-                        |
-                      </span>
-                      <p className="font-medium leading-[1.4] relative text-[14px] whitespace-pre font-['Montserrat'] text-gray-500">
-                        {new Date(review.createdAt).toLocaleDateString("vi-VN", {
-                          year: "numeric",
-                          month: "2-digit",
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Review Content */}
-              <div className="border-[0px_1px_1px] border-[#e7e7e7] flex flex-col relative rounded-bl-[10px] rounded-br-[10px] w-full">
-                {/* Main Content Row */}
-                <div className="flex flex-row items-start w-full">
-                  {/* Product Info */}
-                  <div className="flex flex-col gap-[8px] items-start p-[16px] relative w-[300px] min-w-[300px]">
-                    <div className="flex gap-[12px] items-start w-full">
-                      <div className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden rounded">
-                        {review.productImage && review.productImage !== "/placeholder-product.jpg" ? (
-                          <img
-                            src={review.productImage}
-                            alt={review.productName}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-gray-500 text-xs">IMG</span>';
-                            }}
-                          />
-                        ) : (
-                          <span className="text-gray-500 text-xs">IMG</span>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-[8px] items-start relative flex-1 flex-shrink-0 min-w-0">
-                        <div className="font-medium leading-[1.4] relative text-[14px] text-black font-['Montserrat'] w-full">
-                          <p className="mb-0 text-left">
-                            {review.productName}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Divider */}
-                  <div className="w-px bg-[#e7e7e7] self-stretch" />
-
-                  {/* Review Details */}
-                  <div className="flex flex-col gap-[12px] items-start p-[16px] relative flex-1 flex-shrink-0 min-w-0">
-                    {/* Star Rating */}
-                    <div className="flex gap-[2px] items-center relative">
-                      {renderStars(review.rating)}
-                    </div>
-                    {/* Comment */}
-                    <p className="font-medium leading-[1.4] relative text-[14px] text-[#272424] font-['Montserrat'] w-full">
-                      {review.comment}
+                  <div className="flex gap-[8px] grow items-center overflow-clip px-[4px] py-[2px] relative">
+                    <p className="font-medium leading-[1.4] relative text-[14px] whitespace-pre font-['Montserrat']">
+                      <span className="text-[#272424]">Mã đơn hàng:</span>{" "}
+                      <span className="text-[#1a71f6]">{review.orderCode || review.orderId}</span>
                     </p>
-
-                    {/* Review Images */}
-                    {review.reviewImages && review.reviewImages.length > 0 && (
-                      <div className="flex gap-[8px] items-center relative">
-                        {review.reviewImages.map((image, index) => {
-                          const imageUrl = getImageUrl(image);
-                          return (
-                            <div
-                              key={index}
-                              className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center overflow-hidden rounded cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() => {
-                                if (imageUrl) {
-                                  window.open(imageUrl, '_blank');
-                                }
-                              }}
-                            >
-                              {imageUrl ? (
-                                <img
-                                  src={imageUrl}
-                                  alt={`Review image ${index + 1}`}
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-gray-500 text-xs">IMG</span>';
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-gray-500 text-xs">IMG</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                    {review.createdAt && (
+                      <>
+                        <span className="text-[#e04d30] opacity-70 mx-[8px] select-none">
+                          |
+                        </span>
+                        <p className="font-medium leading-[1.4] relative text-[14px] whitespace-pre font-['Montserrat'] text-gray-500">
+                          {new Date(review.createdAt).toLocaleDateString("vi-VN", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </>
                     )}
+                  </div>
+                </div>
 
-                    {/* Shop Reply below images, right section */}
-                    {review.shopReply && (
-                      <div className="mt-2 border border-[#e7e7e7] bg-[#fff5f1] rounded-[8px] p-[10px] w-full">
-                        <div className="flex gap-[8px] items-start">
-                          <div className="w-[8px] h-[8px] bg-[#e04d30] rounded-full flex-shrink-0 mt-[6px]"></div>
-                          <div className="flex flex-col gap-[2px] items-start flex-1 flex-shrink-0 min-w-0">
-                            <div className="flex items-center gap-2 w-full">
-                              <span className="font-semibold text-[14px] text-[#e04d30]">
-                                Phản hồi từ shop
-                              </span>
-                              {review.updatedAt && (
-                                <span className="text-[12px] text-gray-500">
-                                  {new Date(review.updatedAt).toLocaleDateString("vi-VN", {
-                                    year: "numeric",
-                                    month: "2-digit",
-                                    day: "2-digit",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                              )}
-                            </div>
-                            <span className="font-medium text-[14px] text-[#272424]">
-                              {review.shopReply}
-                            </span>
+                {/* Review Content */}
+                <div className="border-[0px_1px_1px] border-[#e7e7e7] flex flex-col relative rounded-bl-[10px] rounded-br-[10px] w-full">
+                  {/* Main Content Row */}
+                  <div className="flex flex-row items-start w-full">
+                    {/* Product Info */}
+                    <div className="flex flex-col gap-[8px] items-start p-[16px] relative w-[300px] min-w-[300px]">
+                      <div className="flex gap-[12px] items-start w-full">
+                        <div className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden rounded">
+                          {review.productImage && review.productImage !== "/placeholder-product.jpg" ? (
+                            <img
+                              src={review.productImage}
+                              alt={review.productName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-gray-500 text-xs">IMG</span>';
+                              }}
+                            />
+                          ) : (
+                            <span className="text-gray-500 text-xs">IMG</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-[8px] items-start relative flex-1 flex-shrink-0 min-w-0">
+                          <div className="font-medium leading-[1.4] relative text-[14px] text-black font-['Montserrat'] w-full">
+                            <p className="mb-0 text-left">
+                              {review.productName}
+                            </p>
                           </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                  {/* Divider */}
-                  <div className="w-px bg-[#e7e7e7] self-stretch" />
+                    </div>
+                    {/* Divider */}
+                    <div className="w-px bg-[#e7e7e7] self-stretch" />
 
-                  {/* Action Buttons */}
-                  <div className="flex flex-col gap-2 items-center justify-center p-[16px] relative w-[160px] min-w-[160px]">
-                    <Button
-                      className={`w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] ${
-                        review.shopReply || updateReviewMutation.isPending
+                    {/* Review Details */}
+                    <div className="flex flex-col gap-[12px] items-start p-[16px] relative flex-1 flex-shrink-0 min-w-0">
+                      {/* Star Rating */}
+                      <div className="flex gap-[2px] items-center relative">
+                        {renderStars(review.rating)}
+                      </div>
+                      {/* Comment */}
+                      <p className="font-medium leading-[1.4] relative text-[14px] text-[#272424] font-['Montserrat'] w-full">
+                        {review.comment}
+                      </p>
+
+                      {/* Review Images */}
+                      {review.reviewImages && review.reviewImages.length > 0 && (
+                        <div className="flex gap-[8px] items-center relative">
+                          {review.reviewImages.map((image, index) => {
+                            const imageUrl = getImageUrl(image);
+                            return (
+                              <div
+                                key={index}
+                                className="border border-[#d1d1d1] relative w-[60px] h-[60px] bg-gray-200 flex items-center justify-center overflow-hidden rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => {
+                                  if (imageUrl) {
+                                    window.open(imageUrl, '_blank');
+                                  }
+                                }}
+                              >
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={`Review image ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).parentElement!.innerHTML = '<span class="text-gray-500 text-xs">IMG</span>';
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-gray-500 text-xs">IMG</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Shop Reply below images, right section */}
+                      {review.shopReply && (
+                        <div className="mt-2 border border-[#e7e7e7] bg-[#fff5f1] rounded-[8px] p-[10px] w-full">
+                          <div className="flex gap-[8px] items-start">
+                            <div className="w-[8px] h-[8px] bg-[#e04d30] rounded-full flex-shrink-0 mt-[6px]"></div>
+                            <div className="flex flex-col gap-[2px] items-start flex-1 flex-shrink-0 min-w-0">
+                              <div className="flex items-center gap-2 w-full">
+                                <span className="font-semibold text-[14px] text-[#e04d30]">
+                                  Phản hồi từ shop
+                                </span>
+                                {review.updatedAt && (
+                                  <span className="text-[12px] text-gray-500">
+                                    {new Date(review.updatedAt).toLocaleDateString("vi-VN", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="font-medium text-[14px] text-[#272424]">
+                                {review.shopReply}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {/* Divider */}
+                    <div className="w-px bg-[#e7e7e7] self-stretch" />
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-2 items-center justify-center p-[16px] relative w-[160px] min-w-[160px]">
+                      <Button
+                        className={`w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] ${review.shopReply || updateReviewMutation.isPending
                           ? "opacity-50 cursor-not-allowed"
                           : ""
-                      }`}
-                      onClick={() => handleReplyClick(review)}
-                      disabled={!!review.shopReply || updateReviewMutation.isPending}
-                    >
-                      {updateReviewMutation.isPending && selectedReview?.id === review.id
-                        ? "Đang lưu..."
-                        : review.shopReply
-                        ? "Đã phản hồi"
-                        : "Trả lời"}
-                    </Button>
-                    <Button
-                      className="w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] bg-red-600 hover:bg-red-700 text-white"
-                      onClick={() => handleDeleteClick(review)}
-                      disabled={updateReviewMutation.isPending || deleteReviewMutation.isPending}
-                    >
-                      {deleteReviewMutation.isPending && selectedReview?.id === review.id
-                        ? "Đang xóa..."
-                        : "Xóa"}
-                    </Button>
+                          }`}
+                        onClick={() => handleReplyClick(review)}
+                        disabled={!!review.shopReply || updateReviewMutation.isPending}
+                      >
+                        {updateReviewMutation.isPending && selectedReview?.id === review.id
+                          ? "Đang lưu..."
+                          : review.shopReply
+                            ? "Đã phản hồi"
+                            : "Trả lời"}
+                      </Button>
+                      <Button
+                        className="w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] bg-red-600 hover:bg-red-700 text-white"
+                        onClick={() => handleDeleteClick(review)}
+                        disabled={updateReviewMutation.isPending || deleteReviewMutation.isPending}
+                      >
+                        {deleteReviewMutation.isPending && selectedReview?.id === review.id
+                          ? "Đang xóa..."
+                          : "Xóa"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
             ))
           )}
         </div>

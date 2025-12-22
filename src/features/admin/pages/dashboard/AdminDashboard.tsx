@@ -175,11 +175,10 @@ const AdminDashboard: React.FC = () => {
               <div className="h-8 bg-gray-200 animate-pulse rounded"></div>
             ) : (
               <p
-                className={`text-[24px] font-bold ${
-                  overview && overview.totalProfit >= 0
+                className={`text-[24px] font-bold ${overview && overview.totalProfit >= 0
                     ? "text-green-600"
                     : "text-red-600"
-                }`}
+                  }`}
               >
                 {overview ? formatCurrencyValue(overview.totalProfit) : "0đ"}
               </p>

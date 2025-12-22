@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Icon from "@/components/icons/Icon";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { BASE_URL } from "@/api/apiClient";
 import { SearchBar } from "@/components/ui/search-bar";
 import CaretDown from "@/components/ui/caret-down";
 import { Pagination } from "@/components/ui/pagination";
@@ -29,6 +30,23 @@ import {
 import { toast } from "sonner";
 import type { CustomerPageResponse } from "@/types";
 import type { CustomerResponse } from "@/types/api";
+
+const getCustomerInitial = (customer: CustomerResponse) => {
+  const source = customer.name || customer.username || "";
+  return source.trim().charAt(0).toUpperCase() || "N";
+};
+
+const getCustomerAvatarUrl = (customer: CustomerResponse) => {
+  const rawUrl =
+    (customer as any).image_url ||
+    (customer as any).imageUrl ||
+    (customer as any).avatar ||
+    "";
+
+  if (!rawUrl) return "";
+  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) return rawUrl;
+  return `${BASE_URL}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`;
+};
 
 const AdminCustomers: React.FC = () => {
   const queryClient = useQueryClient();
@@ -425,14 +443,19 @@ const AdminCustomers: React.FC = () => {
                   </div>
 
                   {/* Customer info col */}
-                  <div className="flex items-center gap-[8px] px-[4px]">
-                    <div className="w-[45px] h-[45px] relative overflow-hidden rounded-lg border-2 border-[#d1d1d1] flex-shrink-0">
-                      <Avatar className="w-full h-full">
-                        {(c as any).image_url ? (
-                          <AvatarImage src={(c as any).image_url} alt={c.name} />
+                  <div className="flex items-center gap-[10px] px-[4px]">
+                    <div className="w-[46px] h-[46px] relative flex-shrink-0">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white to-[#f4f5f7] border border-[#e6e6e6] shadow-[0_1px_2px_rgba(0,0,0,0.06)]" />
+                      <Avatar className="relative w-full h-full rounded-full ring-2 ring-white">
+                        {getCustomerAvatarUrl(c) ? (
+                          <AvatarImage
+                            src={getCustomerAvatarUrl(c)}
+                            alt={c.name}
+                            className="object-cover"
+                          />
                         ) : (
-                          <AvatarFallback className="text-xs">
-                            {c.name?.charAt(0) || "N"}
+                          <AvatarFallback className="w-full h-full rounded-full bg-transparent text-[14px] font-semibold text-[#4b5563] flex items-center justify-center">
+                            {getCustomerInitial(c)}
                           </AvatarFallback>
                         )}
                       </Avatar>

@@ -10,6 +10,7 @@ interface RecommendedProduct {
   originalPrice?: number;
   rating: number;
   discountPercent?: number;
+  discountValue?: string;
 }
 
 interface RecommendedProductsProps {
@@ -52,6 +53,7 @@ const RecommendedProducts: React.FC<RecommendedProductsProps> = ({
               originalPrice={product.originalPrice}
               rating={product.rating}
               discountPercent={product.discountPercent}
+              discountValue={product.discountValue}
               onClick={() => navigate(`/shop/products/${product.id}`)}
             />
           ))}
