@@ -53,6 +53,13 @@ export interface ReturnOrderResponse {
   refundedStatus?: string;
   refundedStatusLabel?: string;
   returnOrderDetails?: ReturnOrderDetailResponse[];
+  userInfo?: any;
+  receiverName?: string;
+  receiverPhone?: string;
+  receiverAddress?: string;
+  forwardShippingStatus?: string;
+  shippingOrderCode?: string;
+  shippingProvider?: string;
 }
 
 export interface ReturnOrderDetailResponse {
@@ -60,17 +67,19 @@ export interface ReturnOrderDetailResponse {
   returnOrderId: number;
   productDetailId: number;
   orderDetailId: number;
-  returnQuantity: number;
-  returnQuantityField?: number;
-  quantityReceived?: number;
+  quantityRequested: number; // Số lượng yêu cầu trả hàng
+  quantityReceived?: number; // Số lượng đã nhận khi xác nhận hoàn tiền
   receivedStatus?: string;
+  receivedStatusLabel?: string; // Mô tả trạng thái nhận hàng bằng tiếng Việt
   refundedStatus?: string;
+  refundedStatusLabel?: string; // Mô tả trạng thái hoàn tiền bằng tiếng Việt
   refundedAmount?: number;
   notes?: string;
   returnPrice?: number;
   totalReturnPrice?: number;
   snapshotProductName?: string;
   snapshotProductPrice?: number;
+  snapshotProductFinalPrice?: number; // Giá sản phẩm sau khi giảm (per unit)
   snapshotProductSku?: string;
   snapshotProductImageUrl?: string;
   snapshotVariantAttributes?: string;

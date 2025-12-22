@@ -161,6 +161,7 @@ const OrderDetailTab: React.FC = () => {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [isReturnSingleProduct, setIsReturnSingleProduct] = useState(false);
   const [selectedReturnProducts, setSelectedReturnProducts] = useState<Set<string>>(new Set());
+  const [returnQuantities, setReturnQuantities] = useState<Map<string, number>>(new Map());
 
   // Cancel order modal states
   const [isCancelReasonModalOpen, setIsCancelReasonModalOpen] = useState(false);
@@ -1389,15 +1390,15 @@ const OrderDetailTab: React.FC = () => {
               <div className="space-y-4">
                 {/* Payment calculation breakdown */}
                 {/* Chỉ hiển thị khi có ít nhất một discount > 0 hoặc có subtotal/shipping > 0 */}
-                {((order.payment.productDiscount && order.payment.productDiscount > 0) ||
-                  (order.payment.orderDiscount && order.payment.orderDiscount > 0) ||
-                  (order.payment.subtotal && order.payment.subtotal > 0) ||
-                  (order.payment.shipping && order.payment.shipping > 0)) && (
+                {((order.payment.productDiscount != null && order.payment.productDiscount > 0) ||
+                  (order.payment.orderDiscount != null && order.payment.orderDiscount > 0) ||
+                  (order.payment.subtotal != null && order.payment.subtotal > 0) ||
+                  (order.payment.shipping != null && order.payment.shipping > 0)) && (
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <div className="text-sm font-semibold text-gray-700 mb-3">Chi tiết tính toán giá</div>
                       <div className="space-y-2 text-sm">
                         {/* Bước 1: Tổng tiền gốc */}
-                        {order.payment.subtotal && order.payment.subtotal > 0 && (
+                        {order.payment.subtotal != null && order.payment.subtotal > 0 && (
                           <div className="flex justify-between">
                             <span className="text-gray-600">1. Tổng tiền hàng (chưa giảm giá):</span>
                             <span className="font-medium">{formatCurrencyVND(order.payment.subtotal)}</span>
@@ -1405,7 +1406,7 @@ const OrderDetailTab: React.FC = () => {
                         )}
 
                         {/* Bước 2: Giảm giá sản phẩm - chỉ hiển thị khi > 0 */}
-                        {order.payment.productDiscount &&
+                        {order.payment.productDiscount != null &&
                           typeof order.payment.productDiscount === 'number' &&
                           order.payment.productDiscount > 0 && (
                             <div className="flex justify-between text-red-600">
@@ -1415,7 +1416,7 @@ const OrderDetailTab: React.FC = () => {
                           )}
 
                         {/* Bước 3: Giảm giá đơn hàng - chỉ hiển thị khi > 0 */}
-                        {order.payment.orderDiscount &&
+                        {order.payment.orderDiscount != null &&
                           typeof order.payment.orderDiscount === 'number' &&
                           order.payment.orderDiscount > 0 && (
                             <div className="flex justify-between text-orange-600">
@@ -1425,9 +1426,9 @@ const OrderDetailTab: React.FC = () => {
                           )}
 
                         {/* Tiền sau giảm giá - chỉ hiển thị khi có discount thực sự */}
-                        {order.payment.subtotal &&
+                        {order.payment.subtotal != null &&
                           order.payment.subtotal > 0 &&
-                          order.payment.totalDiscount &&
+                          order.payment.totalDiscount != null &&
                           typeof order.payment.totalDiscount === 'number' &&
                           order.payment.totalDiscount > 0 && (
                             <div className="flex justify-between text-green-700 bg-green-50 px-2 py-1 rounded">
@@ -1437,7 +1438,7 @@ const OrderDetailTab: React.FC = () => {
                           )}
 
                         {/* Bước 4: Phí ship - chỉ hiển thị khi > 0 */}
-                        {order.payment.shipping &&
+                        {order.payment.shipping != null &&
                           typeof order.payment.shipping === 'number' &&
                           order.payment.shipping > 0 && (
                             <div className="flex justify-between">
@@ -1464,7 +1465,8 @@ const OrderDetailTab: React.FC = () => {
                     {order.payment.hasDiscount &&
                       order.payment.totalDiscount !== null &&
                       order.payment.totalDiscount !== undefined &&
-                      typeof order.payment.totalDiscount === 'number' && (
+                      typeof order.payment.totalDiscount === 'number' &&
+                      order.payment.totalDiscount > 0 && (
                         <div className="text-xs opacity-80 mt-1">
                           Đã bao gồm giảm giá {formatCurrencyVND(order.payment.totalDiscount)}
                         </div>
@@ -1798,6 +1800,7 @@ const OrderDetailTab: React.FC = () => {
                 setReturnImages([]);
                 setIsReturnSingleProduct(false);
                 setSelectedReturnProducts(new Set());
+                setReturnQuantities(new Map());
               }}
             />
 
@@ -1821,6 +1824,7 @@ const OrderDetailTab: React.FC = () => {
                       setReturnImages([]);
                       setIsReturnSingleProduct(false);
                       setSelectedReturnProducts(new Set());
+                      setReturnQuantities(new Map());
                     }}
                     className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
                     aria-label="Đóng"
@@ -1849,6 +1853,7 @@ const OrderDetailTab: React.FC = () => {
                           setIsReturnSingleProduct(e.target.checked);
                           if (!e.target.checked) {
                             setSelectedReturnProducts(new Set());
+                            setReturnQuantities(new Map());
                           }
                         }}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -1876,12 +1881,17 @@ const OrderDetailTab: React.FC = () => {
                               checked={selectedReturnProducts.has(product.id)}
                               onChange={(e) => {
                                 const newSelected = new Set(selectedReturnProducts);
+                                const newQuantities = new Map(returnQuantities);
                                 if (e.target.checked) {
                                   newSelected.add(product.id);
+                                  // Initialize return quantity to product quantity
+                                  newQuantities.set(product.id, product.quantity || 1);
                                 } else {
                                   newSelected.delete(product.id);
+                                  newQuantities.delete(product.id);
                                 }
                                 setSelectedReturnProducts(newSelected);
+                                setReturnQuantities(newQuantities);
                               }}
                               className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
@@ -1910,6 +1920,31 @@ const OrderDetailTab: React.FC = () => {
                               x{product.quantity}
                             </span>
                           </div>
+                          {isReturnSingleProduct && selectedReturnProducts.has(product.id) && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <label className="text-xs text-gray-700 font-medium">
+                                Số lượng trả:
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={product.quantity || 1}
+                                value={returnQuantities.get(product.id) || product.quantity || 1}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value, 10);
+                                  if (!isNaN(value) && value >= 1 && value <= (product.quantity || 1)) {
+                                    const newQuantities = new Map(returnQuantities);
+                                    newQuantities.set(product.id, value);
+                                    setReturnQuantities(newQuantities);
+                                  }
+                                }}
+                                className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                              <span className="text-xs text-gray-500">
+                                / {product.quantity || 1}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2074,12 +2109,24 @@ const OrderDetailTab: React.FC = () => {
                       }
 
                       // Prepare return order details (only selected products if single product return)
-                      const returnOrderDetails = productsToReturn.map((product) => ({
-                        orderDetailId: product.orderDetailId!,
-                        productDetailId: product.productDetailId!,
-                        returnQuantity: product.quantity || 1,
-                        notes: "", // Notes for individual product detail (optional)
-                      }));
+                      const returnOrderDetails = productsToReturn.map((product) => {
+                        // Get return quantity from state if single product return, otherwise use product quantity
+                        const returnQuantity = isReturnSingleProduct
+                          ? (returnQuantities.get(product.id) || product.quantity || 1)
+                          : (product.quantity || 1);
+                        
+                        // Validate return quantity
+                        if (returnQuantity < 1 || returnQuantity > (product.quantity || 1)) {
+                          throw new Error(`Số lượng trả lại không hợp lệ cho sản phẩm ${product.name}`);
+                        }
+
+                        return {
+                          orderDetailId: product.orderDetailId!,
+                          productDetailId: product.productDetailId!,
+                          returnQuantity: returnQuantity,
+                          notes: "", // Notes for individual product detail (optional)
+                        };
+                      });
 
                       // Create return order request
                       const request = {
@@ -2107,6 +2154,7 @@ const OrderDetailTab: React.FC = () => {
                       setReturnImages([]);
                       setIsReturnSingleProduct(false);
                       setSelectedReturnProducts(new Set());
+                      setReturnQuantities(new Map());
 
                       // Refresh order data
                       await queryClient.invalidateQueries({

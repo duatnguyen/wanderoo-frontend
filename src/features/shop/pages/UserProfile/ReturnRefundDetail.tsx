@@ -11,14 +11,35 @@ function formatCurrencyVND(value: number) {
   return `${value.toLocaleString("vi-VN")}đ`;
 }
 
+function formatShippingStatus(status?: string): string {
+  if (!status) return "";
+  const statusMap: Record<string, string> = {
+    PENDING: "Chờ xử lý",
+    PICKING: "Đang lấy hàng",
+    DELIVERING: "Đang giao hàng",
+    DELIVERED: "Đã giao hàng",
+    RETURNING: "Đang trả hàng",
+    RETURNED: "Đã trả hàng",
+    CANCELLED: "Đã hủy",
+  };
+  return statusMap[status.toUpperCase()] || status;
+}
+
 interface ProductType {
   id: string;
   imageUrl: string;
   name: string;
   price: number;
   originalPrice?: number;
+  finalPrice?: number; // Giá sau khi giảm (snapshotProductFinalPrice)
   variant?: string;
   quantity: number;
+  sku?: string;
+  totalReturnPrice?: number;
+  receivedStatus?: string;
+  receivedStatusLabel?: string; // Mô tả trạng thái nhận hàng bằng tiếng Việt
+  refundedStatus?: string;
+  refundedStatusLabel?: string; // Mô tả trạng thái hoàn tiền bằng tiếng Việt
 }
 
 interface ReturnRefundStatus {
@@ -35,6 +56,7 @@ interface ReturnRefundDetailData {
   statusMessage: string;
   products: ProductType[];
   refundAmount: number;
+  totalReturnAmount: number;
   refundedStatus?: string;
   refundedStatusLabel?: string;
   refundMethod?: string;
@@ -44,6 +66,13 @@ interface ReturnRefundDetailData {
   description: string;
   images: string[];
   statusSteps: ReturnRefundStatus[];
+  receiverName?: string;
+  receiverPhone?: string;
+  receiverAddress?: string;
+  forwardShippingStatus?: string;
+  shippingOrderCode?: string;
+  shippingProvider?: string;
+  returnTypeLabel?: string;
 }
 
 const ReturnRefundDetail: React.FC = () => {
@@ -157,10 +186,17 @@ const ReturnRefundDetail: React.FC = () => {
         id: detail.id?.toString() || `${returnOrderData.id}-${index}`,
         imageUrl,
         name: detail.snapshotProductName || "Sản phẩm không tên",
-        price: detail.returnPrice || detail.totalReturnPrice || 0,
+        price: detail.returnPrice || 0,
         originalPrice: detail.snapshotProductPrice,
+        finalPrice: detail.snapshotProductFinalPrice, // Giá sau khi giảm
         variant,
-        quantity: detail.returnQuantity || 1,
+        quantity: detail.quantityRequested || 1,
+        sku: detail.snapshotProductSku,
+        totalReturnPrice: detail.totalReturnPrice,
+        receivedStatus: detail.receivedStatus,
+        receivedStatusLabel: detail.receivedStatusLabel,
+        refundedStatus: detail.refundedStatus,
+        refundedStatusLabel: detail.refundedStatusLabel,
       };
     });
 
@@ -214,7 +250,10 @@ const ReturnRefundDetail: React.FC = () => {
       status: statusLabel,
       statusMessage: statusMessage,
       products: products.length > 0 ? products : [],
-      refundAmount: returnOrderData.totalRefundedAmount || returnOrderData.totalReturnAmount || 0,
+      refundAmount: returnOrderData.totalRefundedAmount != null && returnOrderData.totalRefundedAmount > 0 
+        ? returnOrderData.totalRefundedAmount 
+        : (returnOrderData.totalReturnAmount || 0),
+      totalReturnAmount: returnOrderData.totalReturnAmount || 0,
       refundedStatus: returnOrderData.refundedStatus,
       refundedStatusLabel: returnOrderData.refundedStatusLabel,
       refundMethod: returnOrderData.refundMethod,
@@ -224,6 +263,13 @@ const ReturnRefundDetail: React.FC = () => {
       description: returnOrderData.returnReasonNote || "", // Lấy từ returnReasonNote (return_reason_note)
       images: processedImages,
       statusSteps,
+      receiverName: returnOrderData.receiverName,
+      receiverPhone: returnOrderData.receiverPhone,
+      receiverAddress: returnOrderData.receiverAddress,
+      forwardShippingStatus: returnOrderData.forwardShippingStatus,
+      shippingOrderCode: returnOrderData.shippingOrderCode,
+      shippingProvider: returnOrderData.shippingProvider,
+      returnTypeLabel: returnOrderData.returnTypeLabel,
     };
   }, [returnOrderData]);
 
@@ -462,48 +508,120 @@ const ReturnRefundDetail: React.FC = () => {
           {displayData.products.map((product) => (
             <div
               key={product.id}
-              className="flex flex-col sm:flex-row gap-4 pb-4 last:pb-0"
+              className="flex flex-col sm:flex-row gap-4 pb-4 mb-4 last:pb-0 last:mb-0 border-b border-gray-100 last:border-0"
             >
               <div className="flex-shrink-0">
                 <img
                   src={product.imageUrl || "/images/placeholders/no-image.svg"}
                   alt={product.name}
-                  className="w-[60px] h-[60px] rounded-lg border border-gray-300 object-cover"
+                  className="w-[75px] h-[75px] rounded-lg border border-gray-300 object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
                       "/images/placeholders/no-image.svg";
                   }}
                 />
               </div>
-              <div className="flex-1 flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="flex-1 flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="flex-1">
                     <h3 className="text-[14px] font-medium text-gray-900 mb-2">
                       {product.name}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <span className="text-[14px] font-semibold text-gray-900">
-                        {formatCurrencyVND(product.price)}
-                      </span>
-                      {product.originalPrice && (
-                        <span className="text-[12px] text-gray-500 line-through">
-                          {formatCurrencyVND(product.originalPrice)}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {product.finalPrice != null && product.finalPrice > 0 ? (
+                          <>
+                            <span className="text-[14px] font-semibold text-gray-900">
+                              {formatCurrencyVND(product.finalPrice)}
+                            </span>
+                            {product.originalPrice != null && product.originalPrice > 0 && product.originalPrice > product.finalPrice && (
+                              <span className="text-[12px] text-gray-500 line-through">
+                                {formatCurrencyVND(product.originalPrice)}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {product.price != null && product.price > 0 && (
+                              <span className="text-[14px] font-semibold text-gray-900">
+                                {formatCurrencyVND(product.price)}
+                              </span>
+                            )}
+                            {product.originalPrice != null && product.originalPrice > 0 && product.originalPrice > product.price && (
+                              <span className="text-[12px] text-gray-500 line-through">
+                                {formatCurrencyVND(product.originalPrice)}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
                       {product.variant && (
-                        <span className="inline-block px-3 py-1 rounded-lg bg-gray-100 text-[12px] text-gray-600">
+                        <span className="inline-block px-2 py-1 rounded bg-gray-100 text-[12px] text-gray-600">
                           {product.variant}
                         </span>
                       )}
+                      {product.quantity != null && product.quantity > 0 && (
+                        <span className="text-[12px] text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                          x{product.quantity}
+                        </span>
+                      )}
                     </div>
-                  </div>
-                  <div className="text-[14px] text-gray-700">
-                    Số lượng: {product.quantity}
+                    {product.sku && (
+                      <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                        <span>SKU: {product.sku}</span>
+                      </div>
+                    )}
+                    {product.totalReturnPrice != null && product.totalReturnPrice > 0 && (
+                      <div className="mt-2 text-[13px] text-gray-700">
+                        <span className="font-medium">Tổng tiền trả ({product.quantity} sản phẩm): </span>
+                        <span className="font-semibold text-red-600">
+                          {formatCurrencyVND(product.totalReturnPrice)}
+                        </span>
+                      </div>
+                    )}
+                    {/* Status Information */}
+                    {(product.receivedStatusLabel || product.refundedStatusLabel) && (
+                      <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                        {product.receivedStatusLabel && (
+                          <div className="flex items-center gap-2 text-[12px]">
+                            <span className="text-gray-600">Trạng thái nhận hàng:</span>
+                            <span className="inline-block px-2 py-1 rounded bg-blue-50 text-blue-700 font-medium">
+                              {product.receivedStatusLabel}
+                            </span>
+                          </div>
+                        )}
+                        {product.refundedStatusLabel && (
+                          <div className="flex items-center gap-2 text-[12px]">
+                            <span className="text-gray-600">Trạng thái hoàn tiền:</span>
+                            <span className="inline-block px-2 py-1 rounded bg-green-50 text-green-700 font-medium">
+                              {product.refundedStatusLabel}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           ))}
+          
+          {/* Total Return Amount Summary */}
+          {displayData.totalReturnAmount != null && displayData.totalReturnAmount > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] font-semibold text-gray-900">
+                  Tổng số tiền trả hàng:
+                </span>
+                <span className="text-[16px] font-bold text-red-600">
+                  {formatCurrencyVND(displayData.totalReturnAmount)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Refund Information */}
@@ -512,14 +630,26 @@ const ReturnRefundDetail: React.FC = () => {
             Thông tin hoàn tiền
           </h2>
           <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-[14px] text-gray-700">
-                Số tiền hoàn nhận được
-              </span>
-              <span className="text-[14px] font-semibold text-red-600">
-                {formatCurrencyVND(displayData.refundAmount)}
-              </span>
-            </div>
+            {displayData.totalReturnAmount != null && displayData.totalReturnAmount > 0 && (
+              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+                <span className="text-[14px] text-gray-700">
+                  Tổng số tiền trả hàng
+                </span>
+                <span className="text-[14px] font-semibold text-gray-900">
+                  {formatCurrencyVND(displayData.totalReturnAmount)}
+                </span>
+              </div>
+            )}
+            {displayData.refundAmount != null && displayData.refundAmount > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-gray-700">
+                  Số tiền đã hoàn nhận được
+                </span>
+                <span className="text-[14px] font-semibold text-red-600">
+                  {formatCurrencyVND(displayData.refundAmount)}
+                </span>
+              </div>
+            )}
             {displayData.refundedStatusLabel && (
               <div className="flex justify-between items-center">
                 <span className="text-[14px] text-gray-700">Trạng thái hoàn tiền</span>
@@ -532,8 +662,66 @@ const ReturnRefundDetail: React.FC = () => {
                 <span className="text-[14px] text-gray-900">{displayData.refundMethodLabel}</span>
               </div>
             )}
+            {displayData.returnTypeLabel && (
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-gray-700">Loại yêu cầu</span>
+                <span className="text-[14px] text-gray-900">{displayData.returnTypeLabel}</span>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Receiver and Shipping Information */}
+        {(displayData.receiverName || displayData.receiverPhone || displayData.receiverAddress || 
+          displayData.forwardShippingStatus || displayData.shippingOrderCode || displayData.shippingProvider) && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 text-[14px]">
+            <h2 className="text-[18px] font-bold text-gray-900 mb-4">
+              Thông tin người nhận & vận chuyển
+            </h2>
+            <div className="space-y-3">
+              {displayData.receiverName && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[14px] text-gray-700">Người nhận</span>
+                  <span className="text-[14px] text-gray-900 font-medium">{displayData.receiverName}</span>
+                </div>
+              )}
+              {displayData.receiverPhone && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[14px] text-gray-700">Số điện thoại</span>
+                  <span className="text-[14px] text-gray-900">{displayData.receiverPhone}</span>
+                </div>
+              )}
+              {displayData.receiverAddress && (
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                  <span className="text-[14px] text-gray-700">Địa chỉ nhận hàng</span>
+                  <span className="text-[14px] text-gray-900 text-right sm:text-left sm:flex-1 sm:ml-4">
+                    {displayData.receiverAddress}
+                  </span>
+                </div>
+              )}
+              {displayData.forwardShippingStatus && (
+                <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                  <span className="text-[14px] text-gray-700">Trạng thái vận chuyển</span>
+                  <span className="text-[14px] text-gray-900 font-medium">
+                    {formatShippingStatus(displayData.forwardShippingStatus)}
+                  </span>
+                </div>
+              )}
+              {displayData.shippingProvider && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[14px] text-gray-700">Đơn vị vận chuyển</span>
+                  <span className="text-[14px] text-gray-900">{displayData.shippingProvider}</span>
+                </div>
+              )}
+              {displayData.shippingOrderCode && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[14px] text-gray-700">Mã vận đơn</span>
+                  <span className="text-[14px] text-gray-900 font-medium">{displayData.shippingOrderCode}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Reason and Description */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 text-[14px]">

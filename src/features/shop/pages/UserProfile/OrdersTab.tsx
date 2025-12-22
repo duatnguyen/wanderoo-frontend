@@ -103,6 +103,7 @@ const mapDetailToProduct = (
     discountAmount: detail.snapshotDiscountAmount,
     variant: buildVariantLabel(detail.snapshotVariantAttributes),
     sku: detail.snapshotProductSku,
+    quantity: detail.quantity,
   };
 };
 
@@ -132,6 +133,7 @@ const mapOrderItemsToProducts = (
         price: item.price ?? item.total ?? 0,
         variant: undefined,
         sku: (item as any).sku,
+        quantity: (item as any).quantity,
       };
     });
   }
@@ -217,6 +219,7 @@ const mapReturnOrderToOrder = (returnOrder: ReturnOrderResponse): Order | null =
       originalPrice: detail.snapshotProductPrice,
       variant,
       sku: detail.snapshotProductSku,
+      quantity: detail.quantityRequested,
     };
   });
 

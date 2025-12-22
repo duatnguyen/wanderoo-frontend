@@ -77,6 +77,8 @@ const OrderCard: React.FC<OrderCardProps> = ({
           <span className="font-medium">Đơn hàng: #{order.id}</span>
           <span className="hidden sm:inline">|</span>
           <span>Ngày đặt hàng: {order.orderDate}</span>
+          <span className="hidden sm:inline">|</span>
+          <span>Số lượng: {order.products.length} sản phẩm</span>
           {hasMoreProducts && (
             <>
               <span className="hidden sm:inline">|</span>

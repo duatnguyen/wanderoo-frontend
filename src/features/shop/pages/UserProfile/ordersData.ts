@@ -19,6 +19,7 @@ export type OrderProduct = {
   variant?: string;
   variantColor?: string;
   sku?: string;
+  quantity?: number;
 };
 
 export type Order = {
