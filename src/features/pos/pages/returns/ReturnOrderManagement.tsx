@@ -176,6 +176,9 @@ const ReturnOrderManagement: React.FC = () => {
           }
         }
 
+        const unitPrice = product.unitPrice || 0;
+        const quantity = product.quantityRequested ?? product.originalQuantity ?? 0;
+
         return {
           product: {
             id: product.id.toString(),
@@ -185,19 +188,24 @@ const ReturnOrderManagement: React.FC = () => {
               ? getImageUrl(product.productImage) || product.productImage
               : undefined,
             variant,
-            price: product.unitPrice || 0,
-            quantity: product.returnQuantity || 0,
+            price: unitPrice,
+            quantity,
           },
           reason: getReturnReasonText(returnOrderDetailData.returnReason),
         };
       }),
       isReceived: returnOrderDetailData.status === "COMPLETED" || returnOrderDetailData.status === "PENDING",
       returnedSummary: {
+        // Tổng tiền hàng theo đơn giá * số lượng yêu cầu hoàn
         totalAmount: returnOrderDetailData.returnProducts.reduce(
-          (sum, p) => sum + (p.unitPrice * p.returnQuantity || 0),
+          (sum, p) =>
+            sum +
+            (p.unitPrice || 0) *
+              (p.quantityRequested ?? p.originalQuantity ?? 0),
           0
         ),
-        discount: 0, // Backend doesn't provide discount in return order
+        discount: 0, // Backend chưa trả chi tiết discount cho đơn hoàn POS
+        // Tổng giá trị hoàn trả lấy trực tiếp từ backend
         totalReturnValue: returnOrderDetailData.totalReturnAmount || 0,
       },
       isReturned: returnOrderDetailData.status === "COMPLETED",

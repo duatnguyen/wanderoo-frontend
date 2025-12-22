@@ -136,7 +136,7 @@ export const ReturnOrderDetailsPanel: React.FC<
                   </thead>
                   <tbody className="divide-y divide-[#e7e7e7] bg-white">
                     {returnOrder.receivedProducts.map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
+                      <tr key={index} className="hover:bg-[#fff7f3]">
                         <td className="px-4 py-3 align-middle">
                           <div className="flex items-center gap-3">
                             {/* Ảnh sản phẩm - đồng bộ với bảng chi tiết đơn hàng (AdminPaymentTable) */}
@@ -179,18 +179,21 @@ export const ReturnOrderDetailsPanel: React.FC<
                             </div>
                           </div>
                         </td>
+                        {/* Đơn giá */}
                         <td className="text-center px-4 py-3 align-middle">
-                          <span className="text-sm text-[#272424] font-medium">
+                          <span className="text-[13px] font-semibold text-red-600">
                             {formatCurrency(item.product.price)}
                           </span>
                         </td>
+                        {/* Số lượng */}
                         <td className="text-center px-4 py-3 align-middle">
-                          <span className="text-sm text-[#272424] font-medium">
+                          <span className="text-[13px] text-[#111827] font-medium">
                             {item.product.quantity}
                           </span>
                         </td>
+                        {/* Thành tiền */}
                         <td className="text-right px-4 py-3 align-middle">
-                          <span className="text-sm font-bold text-[#272424]">
+                          <span className="text-[13px] font-semibold text-red-600">
                             {formatCurrency(
                               item.product.price * item.product.quantity
                             )}

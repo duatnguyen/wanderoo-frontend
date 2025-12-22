@@ -145,7 +145,7 @@ export interface ReturnProductDetailResponse {
   productImage?: string;
   category?: string;
   originalQuantity: number;
-  returnQuantity: number;
+  quantityRequested: number;
   unitPrice: number;
   totalReturnPrice: number;
 }
