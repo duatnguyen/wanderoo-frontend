@@ -15,6 +15,7 @@ export type OrderDetails = {
   finalAmount: number;
   amountPaid: number;
   change: number;
+  notes?: string; // Ghi chú đơn hàng
 };
 
 export type OrderDetailsPanelProps = {

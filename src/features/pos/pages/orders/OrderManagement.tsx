@@ -7,6 +7,7 @@ import OrderSearchPanel, {
 import OrderDetailsPanel, {
   type OrderDetails,
 } from "../../../../components/pos/OrderDetailsPanel";
+import { printInvoice } from "../../../../components/pos/InvoicePrintModal";
 import { getPosOrderList, getPosOrderDetail } from "../../../../api/endpoints/posApi";
 import { getImageUrl } from "../../../../utils/imageUtils";
 import Loading from "../../../../components/common/Loading";
@@ -108,6 +109,7 @@ const OrderManagement: React.FC = () => {
       finalAmount: orderDetailData.paymentSummary?.totalOrderPrice || 0,
       amountPaid: orderDetailData.paymentSummary?.cashReceived || 0,
       change: orderDetailData.paymentSummary?.change || 0,
+      notes: orderDetailData.notes,
     }
     : undefined;
 
@@ -129,8 +131,9 @@ const OrderManagement: React.FC = () => {
   };
 
   const handlePrintInvoice = () => {
-    console.log("Print invoice for order:", selectedOrderId);
-    // TODO: Implement print invoice functionality
+    if (selectedOrder) {
+      printInvoice(selectedOrder);
+    }
   };
 
   const handleOrderSelect = (orderId: string) => {

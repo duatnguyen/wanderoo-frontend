@@ -50,9 +50,9 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
 
   const locationState = location.state as
     | {
-        parentCategory?: CategoryParentResponse;
-        childCategory?: CategoryChildResponse;
-      }
+      parentCategory?: CategoryParentResponse;
+      childCategory?: CategoryChildResponse;
+    }
     | undefined;
 
   const parentFromState = locationState?.parentCategory;
@@ -381,32 +381,37 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
       </div>
 
       {/* Subcategory Info Card */}
-      <div className="bg-white border-2 border-[#e7e7e7] rounded-[24px] p-[24px] flex gap-[16px] items-start w-full">
+      <div className="bg-white border-2 border-[#e7e7e7] rounded-[24px] p-[24px] flex gap-[24px] items-start w-full">
         {/* Image Display */}
-        <div
-          className={`bg-[#ffeeea] border-2 border-dashed border-[#e04d30] rounded-[8px] w-[100px] h-[100px] flex flex-col items-center justify-center gap-[8px] flex-shrink-0 ${
-            subcategory?.imageUrl ? "" : "p-[20px]"
-          }`}
-        >
-          {subcategory?.imageUrl ? (
-            <img
-              src={resolveImageUrl(subcategory.imageUrl)}
-              alt={subcategory?.name}
-              className="w-full h-full object-cover rounded-[8px]"
-            />
-          ) : (
-            <>
-              <Icon name="image" size={32} color="#e04d30" />
-              <p className="text-[10px] font-medium text-[#737373] text-center leading-[1.4]">
-                Chưa có hình ảnh
-              </p>
-            </>
-          )}
+        <div className="flex-shrink-0">
+          <div
+            className={`relative rounded-[12px] overflow-hidden flex items-center justify-center transition-all ${subcategory?.imageUrl
+                ? "border-2 border-dashed border-[#e04d30] bg-white w-[140px] h-[140px]"
+                : "bg-[#ffeeea] border-2 border-dashed border-[#e04d30] w-[140px] h-[140px] p-[16px]"
+              }`}
+          >
+            {subcategory?.imageUrl ? (
+              <>
+                <img
+                  src={resolveImageUrl(subcategory.imageUrl)}
+                  alt={subcategory?.name}
+                  className="w-full h-full object-cover"
+                />
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-[8px] w-full h-full">
+                <Icon name="image" size={40} color="#e04d30" />
+                <p className="text-[11px] font-medium text-[#737373] text-center leading-[1.4]">
+                  Chưa có hình ảnh
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Subcategory Details */}
-        <div className="flex flex-col items-start justify-between flex-1">
-          <div className="flex gap-[8px] items-start w-[282px]">
+        <div className="flex flex-col items-start justify-between flex-1 min-h-[140px]">
+          <div className="flex flex-col gap-[12px] items-start w-full">
             <div className="flex gap-[8px] items-center">
               {isEditingName ? (
                 <div className="flex items-center gap-2">
@@ -481,16 +486,16 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
                 </>
               )}
             </div>
+            <p className="font-medium text-[14px] text-[#272424] leading-[1.4]">
+              Sản phẩm: {totalProducts}
+            </p>
           </div>
-          <p className="font-medium text-[14px] text-[#272424] leading-[1.4]">
-            Sản phẩm: {totalProducts}
-          </p>
         </div>
 
       </div>
 
       {/* Products List Section */}
-        <div className="bg-white border-2 border-[#e7e7e7] rounded-[24px] p-[24px] flex flex-col gap-[16px] items-start w-full relative">
+      <div className="bg-white border-2 border-[#e7e7e7] rounded-[24px] p-[24px] flex flex-col gap-[16px] items-start w-full relative">
         <h2 className="font-bold text-[20px] text-[#272424] leading-[normal]">
           Danh sách sản phẩm
         </h2>
@@ -505,7 +510,7 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
           />
         </div>
 
-          {/* Products Table */}
+        {/* Products Table */}
         <div className="bg-white border border-[#e7e7e7] rounded-[16px] w-full overflow-hidden">
           {/* Table Header */}
           <div className="flex items-center w-full">
@@ -542,9 +547,8 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
             </div>
             <div className="bg-[#f6f6f6] border-b border-[#e7e7e7] h-[50px] flex gap-[4px] items-center justify-end px-[24px] py-[15px] flex-1 rounded-tr-[12px]">
               <p
-                className={`font-semibold text-[14px] text-[#272424] leading-[1.4] ${
-                  selectedProducts.length > 0 ? "invisible" : ""
-                }`}
+                className={`font-semibold text-[14px] text-[#272424] leading-[1.4] ${selectedProducts.length > 0 ? "invisible" : ""
+                  }`}
               >
                 Thao tác
               </p>
@@ -609,13 +613,13 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
             isParentLoading ||
             isProductLoading ||
             isProductFetching) && (
-            <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center gap-2 rounded-[12px]">
-              <Loader2 className="w-6 h-6 text-[#e04d30] animate-spin" />
-              <p className="text-sm font-semibold text-[#e04d30]">
-                Đang tải dữ liệu danh mục con...
-              </p>
-            </div>
-          )}
+              <div className="absolute inset-0 bg-white/70 flex flex-col items-center justify-center gap-2 rounded-[12px]">
+                <Loader2 className="w-6 h-6 text-[#e04d30] animate-spin" />
+                <p className="text-sm font-semibold text-[#e04d30]">
+                  Đang tải dữ liệu danh mục con...
+                </p>
+              </div>
+            )}
 
           {(isChildError || isProductError) && (
             <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-2 px-4 text-center rounded-[12px]">
@@ -654,19 +658,17 @@ const AdminProductsSubcategoryDetail: React.FC = () => {
             </div>
             <div className="flex gap-[6px] items-start">
               <div
-                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
-                  currentPage <= 1 ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${currentPage <= 1 ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 onClick={handlePrevPage}
               >
                 <ChevronLeft className="w-[20px] h-[20px] text-[#d1d1d1]" />
               </div>
               <div
-                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${
-                  currentPage >= totalProductPages
+                className={`border border-[#b0b0b0] flex items-center justify-center px-[6px] py-[4px] rounded-[8px] cursor-pointer hover:bg-gray-50 ${currentPage >= totalProductPages
                     ? "opacity-50 cursor-not-allowed"
                     : ""
-                }`}
+                  }`}
                 onClick={handleNextPage}
               >
                 <ChevronRight className="w-[20px] h-[20px] text-[#454545]" />

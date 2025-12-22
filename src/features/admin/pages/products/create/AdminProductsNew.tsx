@@ -46,6 +46,7 @@ import {
   createBrand as createBrandApi,
   deleteBrand as deleteBrandApi,
 } from "@/api/endpoints/attributeApi";
+import { BASE_URL } from "@/api/apiClient";
 import { toast } from "sonner";
 import "@/styles/animations.css";
 
@@ -65,6 +66,17 @@ const formatCurrencyDisplay = (value?: string | number | null): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(numeric) + "đ";
+};
+
+const resolveImageUrl = (url?: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  if (url.startsWith("/")) {
+    return `${BASE_URL}${url}`;
+  }
+  return `${BASE_URL}/${url}`;
 };
 
 const CATEGORY_PAGE_SIZE = 20;
@@ -376,7 +388,7 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                 : "",
             barcode: variant.barcode || "",
             sku: variant.skuDetail || "",
-            image: variant.imageUrl || null,
+            image: resolveImageUrl(variant.imageUrl),
           })) ?? [];
 
         setVersions(mappedVersions);
@@ -455,6 +467,15 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
         return next;
       });
       setEditingInventoryId(null);
+      
+      // Refresh variants data from server to get updated image URLs
+      if (createdProductId) {
+        await fetchProductVariants(
+          createdProductId,
+          variantPagination.page,
+          variantPagination.pageSize
+        );
+      }
     } catch (error) {
       const axiosError = error as AxiosError<{ message?: string }>;
       const message =
@@ -2304,9 +2325,15 @@ const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
                         <div className="w-[44px] h-[44px] rounded-[12px] bg-[#f5f5f5] overflow-hidden flex items-center justify-center">
                           {version.image ? (
                             <img
+                              key={`${version.id}-${version.image}`}
                               src={version.image}
                               alt={version.name}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback nếu ảnh không load được
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
                             />
                           ) : (
                             <Icon name="image" size={20} color="#a1a1aa" />
