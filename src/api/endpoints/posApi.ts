@@ -49,6 +49,7 @@ export interface PosOrderDetailResponse {
   code: string;
   createdAt: string; // ISO date string
   createdBy: string;
+  notes?: string;
   paymentStatus: string; // Enum: PAID, UNPAID, PARTIAL, REFUNDED
   orderStatus: string; // Enum from backend
   method: string; // Enum from backend
