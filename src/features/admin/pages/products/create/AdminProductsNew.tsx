@@ -79,7 +79,7 @@ const resolveImageUrl = (url?: string | null): string | null => {
   return `${BASE_URL}/${url}`;
 };
 
-const CATEGORY_PAGE_SIZE = 20;
+const CATEGORY_PAGE_SIZE = 1000; // Load tất cả categories trong một lần
 const BRAND_PAGE_SIZE = 20;
 const MAX_ATTRIBUTES = 5;
 const VARIANT_PAGE_SIZE = 20;

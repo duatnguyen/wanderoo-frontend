@@ -29,6 +29,7 @@ interface ProductInfoProps {
   quantity: number;
   onQuantityChange: (change: number) => void;
   onAddToCart: () => void;
+  onBuyNow?: () => void;
   selectedAttributeIds?: number[];
   onAttributeSelect?: (attributeIndex: number, valueId: number) => void;
   variantData?: VariantDetailIdResponse | null;
@@ -43,6 +44,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   quantity,
   onQuantityChange,
   onAddToCart,
+  onBuyNow,
   selectedAttributeIds = [],
   onAttributeSelect,
   variantData,
@@ -58,9 +60,37 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     (totalAttributes > 0 && selectedAttributeIds.length === totalAttributes && selectedAttributeIds.every(id => id > 0));
 
   // Determine stock and status from variant or product
-  const stock = variantData?.productDetailQuantity ?? product.stock ?? 0;
-  const isInStock = stock > 0;
-  const statusLabel = isInStock ? "Còn hàng" : "Hết hàng";
+  const hasAttributes = attributes.length > 0;
+  let stock: number;
+  let isInStock: boolean;
+  let statusLabel: string;
+
+  if (hasAttributes) {
+    if (hasSelectedAllAttributes && typeof variantData?.productDetailQuantity === "number") {
+      // Đã chọn đầy đủ biến thể và có dữ liệu tồn kho của biến thể
+      stock = variantData.productDetailQuantity;
+      isInStock = stock > 0;
+      statusLabel = isInStock ? "Còn hàng" : "Hết hàng";
+    } else {
+      // Chưa chọn đủ biến thể hoặc variantData đang tải -> không hiển thị "Hết hàng" gây hiểu nhầm
+      stock = 0;
+      isInStock = true; // không disable nút chỉ vì chưa chọn biến thể
+      statusLabel = "Vui lòng chọn phân loại hàng";
+    }
+  } else {
+    // Sản phẩm không có thuộc tính
+    // Nếu chưa load xong productDetail (lần render đầu), tránh hiển thị "Hết hàng" gây hiểu nhầm
+    if (!productDetail) {
+      stock = product.stock ?? 0;
+      isInStock = true;
+      statusLabel = "Đang cập nhật...";
+    } else {
+      // Đã có dữ liệu đầy đủ -> dùng tồn kho tổng từ productDetail / product
+      stock = product.stock ?? 0;
+      isInStock = stock > 0;
+      statusLabel = isInStock ? "Còn hàng" : "Hết hàng";
+    }
+  }
   // SKU mapping: priority: variantData.productDetailSku > productDetail.barcode
   // If barcode is null, show "Đang cập nhật" instead of fallback
   const skuLabel = variantData?.productDetailSku 
@@ -96,12 +126,20 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     if (!priceRange) return null;
     
     const hasDiscount = discountPriceRange && pd.discountValue;
+
+    // Helper: nếu min == max thì chỉ hiển thị một giá, ngược lại hiển thị dạng "min - max"
+    const formatRange = (range: { min: number; max: number }) => {
+      if (range.min === range.max) {
+        return formatCurrencyVND(range.min);
+      }
+      return `${formatCurrencyVND(range.min)} - ${formatCurrencyVND(range.max)}`;
+    };
     
     return {
       currentPrice: discountPriceRange 
-        ? `${formatCurrencyVND(discountPriceRange.min)} - ${formatCurrencyVND(discountPriceRange.max)}`
-        : `${formatCurrencyVND(priceRange.min)} - ${formatCurrencyVND(priceRange.max)}`,
-      originalPrice: hasDiscount ? `${formatCurrencyVND(priceRange.min)} - ${formatCurrencyVND(priceRange.max)}` : null,
+        ? formatRange(discountPriceRange)
+        : formatRange(priceRange),
+      originalPrice: hasDiscount ? formatRange(priceRange) : null,
       discountDisplayValue: pd.discountValue ? formatDiscountValue(pd.discountValue) : undefined,
       showDiscount: !!hasDiscount,
     };
@@ -466,18 +504,19 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         </button>
         <button
           onClick={() => {
-            if (hasSelectedAllAttributes && isInStock) {
-              console.log("Buy now", variantData);
+            if (hasSelectedAllAttributes && isInStock && onBuyNow) {
+              onBuyNow();
             }
           }}
           disabled={
             (totalAttributes > 0 && !hasSelectedAllAttributes) ||
             !isInStock ||
             isLoadingVariant ||
-            isAddingToCart
+            isAddingToCart ||
+            !onBuyNow
           }
           className={`!h-12 !text-[14px] !font-semibold !px-6 rounded-md transition-colors ${
-            hasSelectedAllAttributes && isInStock && !isLoadingVariant
+            hasSelectedAllAttributes && isInStock && !isLoadingVariant && onBuyNow
               ? "!bg-[#e9502c] !border-[#e9502c] !text-white hover:!bg-[#d34221]"
               : "!bg-gray-200 !border-gray-300 !text-gray-400 cursor-not-allowed"
           }`}
