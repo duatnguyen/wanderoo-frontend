@@ -70,7 +70,6 @@ const AdminCustomerReviews = () => {
     [Dayjs | null, Dayjs | null] | null
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -244,25 +243,6 @@ const AdminCustomerReviews = () => {
     },
   });
 
-  // Update review mutation (for edit)
-  const editReviewMutation = useMutation({
-    mutationFn: (data: { reviewId: number; updateData: ReviewUpdateRequest }) => {
-      return updateReview(data.reviewId, data.updateData);
-    },
-    onSuccess: () => {
-      toast.success("Chỉnh sửa đánh giá thành công");
-      queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
-      setIsEditModalOpen(false);
-      setSelectedReview(null);
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Không thể chỉnh sửa đánh giá";
-      toast.error(errorMessage);
-    },
-  });
 
   const handleSubmitResponse = (response: string) => {
     if (!selectedReview) return;
@@ -312,38 +292,6 @@ const AdminCustomerReviews = () => {
     deleteReviewMutation.mutate(parseInt(selectedReview.id));
   };
 
-  const handleEditClick = (review: Review) => {
-    setSelectedReview(review);
-    setIsEditModalOpen(true);
-  };
-
-  const handleEditSubmit = (updatedData: { rating: number; judging: string; response?: string }) => {
-    if (!selectedReview) return;
-    
-    const originalReview = reviewsData?.reviews?.find(
-      (r: ReviewResponse) => r.id.toString() === selectedReview.id
-    );
-    
-    if (!originalReview) {
-      toast.error("Không tìm thấy đánh giá");
-      return;
-    }
-    
-    const updateData: ReviewUpdateRequest = {
-      userId: originalReview.userId,
-      productDetailId: originalReview.productDetailId,
-      orderHistoryId: originalReview.orderHistoryId,
-      images: originalReview.images,
-      rating: updatedData.rating,
-      judging: updatedData.judging,
-      response: updatedData.response || originalReview.response,
-    };
-    
-    editReviewMutation.mutate({
-      reviewId: parseInt(selectedReview.id),
-      updateData,
-    });
-  };
 
   // Reset pagination when filters change
   const handleRatingChange = (ratings: string[]) => {
@@ -646,18 +594,9 @@ const AdminCustomerReviews = () => {
                         : "Trả lời"}
                     </Button>
                     <Button
-                      className="w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={() => handleEditClick(review)}
-                      disabled={updateReviewMutation.isPending || deleteReviewMutation.isPending || editReviewMutation.isPending}
-                    >
-                      {editReviewMutation.isPending && selectedReview?.id === review.id
-                        ? "Đang lưu..."
-                        : "Chỉnh sửa"}
-                    </Button>
-                    <Button
                       className="w-full px-[12px] h-[32px] text-[14px] font-bold rounded-[10px] bg-red-600 hover:bg-red-700 text-white"
                       onClick={() => handleDeleteClick(review)}
-                      disabled={updateReviewMutation.isPending || deleteReviewMutation.isPending || editReviewMutation.isPending}
+                      disabled={updateReviewMutation.isPending || deleteReviewMutation.isPending}
                     >
                       {deleteReviewMutation.isPending && selectedReview?.id === review.id
                         ? "Đang xóa..."
@@ -690,102 +629,6 @@ const AdminCustomerReviews = () => {
         customerName={selectedReview?.customerName || ""}
         initialResponse={selectedReview?.shopReply || ""}
       />
-
-      {/* Edit Review Modal */}
-      {isEditModalOpen && selectedReview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm"
-            onClick={() => {
-              setIsEditModalOpen(false);
-              setSelectedReview(null);
-            }}
-          />
-          <div className="bg-white relative rounded-[12px] w-[95%] max-w-[650px] shadow-xl">
-            <div className="px-[16px] py-[16px] border-b border-[#d1d1d1]">
-              <h3 className="font-bold text-[#272424] text-[16px]">
-                Chỉnh sửa đánh giá
-              </h3>
-            </div>
-            <div className="px-[16px] pt-[16px] pb-[10px] space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Số sao đánh giá</label>
-                <select
-                  value={selectedReview.rating}
-                  onChange={(e) =>
-                    setSelectedReview({
-                      ...selectedReview,
-                      rating: Number(e.target.value),
-                    })
-                  }
-                  className="w-full border-2 border-gray-300 rounded-[12px] p-2"
-                >
-                  {[5, 4, 3, 2, 1].map((star) => (
-                    <option key={star} value={star}>
-                      {star} sao
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Nội dung đánh giá</label>
-                <textarea
-                  value={selectedReview.comment}
-                  onChange={(e) =>
-                    setSelectedReview({
-                      ...selectedReview,
-                      comment: e.target.value,
-                    })
-                  }
-                  className="w-full border-2 border-gray-300 rounded-[12px] p-2"
-                  rows={4}
-                />
-              </div>
-              {selectedReview.shopReply && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Phản hồi từ shop</label>
-                  <textarea
-                    value={selectedReview.shopReply}
-                    onChange={(e) =>
-                      setSelectedReview({
-                        ...selectedReview,
-                        shopReply: e.target.value,
-                      })
-                    }
-                    className="w-full border-2 border-gray-300 rounded-[12px] p-2"
-                    rows={3}
-                  />
-                </div>
-              )}
-            </div>
-            <div className="flex gap-[10px] items-center justify-end px-[16px] pt-[8px] pb-[12px]">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setIsEditModalOpen(false);
-                  setSelectedReview(null);
-                }}
-                className="text-[14px]"
-              >
-                Huỷ
-              </Button>
-              <Button
-                onClick={() => {
-                  handleEditSubmit({
-                    rating: selectedReview.rating,
-                    judging: selectedReview.comment,
-                    response: selectedReview.shopReply,
-                  });
-                }}
-                className="text-[14px]"
-                disabled={editReviewMutation.isPending}
-              >
-                {editReviewMutation.isPending ? "Đang lưu..." : "Lưu"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>

@@ -17,9 +17,16 @@ import type {
 } from '@/types/api';
 
 // Sale POS APIs
-export const searchProducts = async (keyword?: string): Promise<SaleProductListResponse> => {
+export const searchProducts = async (keyword?: string, limit?: number): Promise<SaleProductListResponse> => {
+  const params: Record<string, string | number> = {};
+  if (keyword) {
+    params.keyword = keyword;
+  }
+  if (limit) {
+    params.limit = limit;
+  }
   const response = await api.get<ApiResponse<SaleProductListResponse>>('/auth/v1/private/sale/search', {
-    params: { keyword }
+    params
   });
   return response.data.data ?? [];
 };

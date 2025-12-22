@@ -58,11 +58,16 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
   const [productResults, setProductResults] = useState<SaleProductResponse[]>([]);
   const [isSearchingProducts, setIsSearchingProducts] = useState(false);
   const [productSearchError, setProductSearchError] = useState<string | null>(null);
+  const [showAllProducts, setShowAllProducts] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const productSearchCacheRef = useRef<Map<string, SaleProductResponse[]>>(new Map());
   const latestSearchIdRef = useRef(0);
+  const preloadOnHoverDoneRef = useRef(false);
   const { productSelectHandler } = usePOSContext();
+  
+  // Giới hạn hiển thị 50 sản phẩm đầu tiên khi không có keyword để render nhanh hơn
+  const MAX_INITIAL_PRODUCTS = 50;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -91,12 +96,51 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     };
   }, []);
 
+  // Preload danh sách sản phẩm ngay khi component mount để tải nhanh hơn
+  useEffect(() => {
+    if (!isSalesPage) return;
+
+    // Kiểm tra cache trước, nếu đã có thì không cần preload
+    const cachedAll = productSearchCacheRef.current.get("__all__");
+    if (cachedAll) return;
+
+    // Preload ngay lập tức trong background (dùng requestIdleCallback nếu có để không block UI)
+    // Chỉ tải 50 sản phẩm đầu tiên để tải nhanh hơn
+    const preloadProducts = async () => {
+      try {
+        const results = await searchProducts(undefined, 50);
+        // Lưu vào cache để sử dụng sau
+        productSearchCacheRef.current.set("__all__", results);
+      } catch (error) {
+        // Silent fail - không hiển thị error khi preload
+        console.debug("Preload products failed:", error);
+      }
+    };
+
+    // Sử dụng requestIdleCallback nếu có để không block UI, nếu không thì chạy ngay
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(() => {
+        void preloadProducts();
+      }, { timeout: 100 });
+    } else {
+      // Fallback: chạy ngay nhưng không block
+      setTimeout(() => {
+        void preloadProducts();
+      }, 0);
+    }
+  }, [isSalesPage]);
+
   // Giữ dropdown mở khi có searchValue hoặc khi input đang focus
   useEffect(() => {
     if (isSalesPage && searchValue && inputRef.current === document.activeElement) {
       setIsDropdownOpen(true);
     }
   }, [isSalesPage, searchValue]);
+
+  // Reset showAllProducts khi keyword thay đổi
+  useEffect(() => {
+    setShowAllProducts(false);
+  }, [searchValue]);
 
   useEffect(() => {
     if (!isSalesPage) {
@@ -106,27 +150,16 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
       return;
     }
 
+    // Chỉ search khi dropdown đang mở
+    if (!isDropdownOpen) {
+      return;
+    }
+
     const keyword = searchValue?.trim() ?? "";
     
-    // Nếu keyword rỗng, clear results ngay lập tức
-    if (!keyword) {
-      setProductResults([]);
-      setProductSearchError(null);
-      setIsSearchingProducts(false);
-      return;
-    }
-
-    // Chỉ search nếu keyword có ít nhất 1 ký tự (có thể tìm theo barcode)
-    // Nếu muốn tối ưu hơn, có thể tăng lên 2-3 ký tự
-    const MIN_KEYWORD_LENGTH = 1;
-    if (keyword.length < MIN_KEYWORD_LENGTH) {
-      setProductResults([]);
-      setProductSearchError(null);
-      setIsSearchingProducts(false);
-      return;
-    }
-
-    const cacheKey = keyword.toLowerCase();
+    // Nếu keyword rỗng và dropdown đang mở, fetch tất cả sản phẩm
+    // Nếu có keyword, search như bình thường
+    const cacheKey = keyword.length > 0 ? keyword.toLowerCase() : "__all__";
 
     // Kiểm tra cache trước
     const cachedResults = productSearchCacheRef.current.get(cacheKey);
@@ -138,7 +171,8 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     }
 
     // Tăng timeout lên 400ms để giảm số lần gọi API khi user gõ nhanh
-    const SEARCH_DEBOUNCE_MS = 400;
+    // Nhưng nếu không có keyword (click vào search), gọi ngay lập tức
+    const SEARCH_DEBOUNCE_MS = keyword.length > 0 ? 400 : 0;
     
     const currentSearchId = ++latestSearchIdRef.current;
     setIsSearchingProducts(true);
@@ -148,15 +182,14 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
       try {
         // Kiểm tra lại keyword sau timeout (có thể đã thay đổi)
         const currentKeyword = searchValue?.trim() ?? "";
-        if (!currentKeyword || currentKeyword.length < MIN_KEYWORD_LENGTH) {
-          if (currentSearchId === latestSearchIdRef.current) {
-            setProductResults([]);
-            setIsSearchingProducts(false);
-          }
-          return;
-        }
 
-        const results = await searchProducts(currentKeyword || undefined);
+        // Gọi API với keyword (có thể rỗng để lấy tất cả sản phẩm)
+        // Nếu không có keyword, chỉ tải 50 sản phẩm đầu tiên để tải nhanh hơn
+        // Nếu có keyword, tải tất cả kết quả tìm kiếm
+        const results = await searchProducts(
+          currentKeyword || undefined,
+          currentKeyword.length === 0 ? 50 : undefined
+        );
 
         // Kiểm tra xem search này có còn hợp lệ không
         if (currentSearchId !== latestSearchIdRef.current) {
@@ -164,7 +197,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
         }
 
         // Lưu vào cache
-        const finalCacheKey = currentKeyword.toLowerCase();
+        const finalCacheKey = currentKeyword.length > 0 ? currentKeyword.toLowerCase() : "__all__";
         productSearchCacheRef.current.set(finalCacheKey, results);
         setProductResults(results);
         setProductSearchError(null);
@@ -184,7 +217,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
     return () => {
       clearTimeout(handler);
     };
-  }, [isSalesPage, searchValue]);
+  }, [isSalesPage, searchValue, isDropdownOpen]);
 
   const formatCurrency = (amount?: number | null) => {
     if (amount == null) {
@@ -202,23 +235,32 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
     const keyword = searchValue?.trim() ?? "";
     const hasKeyword = keyword.length > 0;
+    
+    // Chỉ hiển thị 50 sản phẩm đầu tiên khi không có keyword để render nhanh hơn
+    // Nếu có keyword, hiển thị tất cả kết quả tìm kiếm
+    const displayProducts = hasKeyword || showAllProducts 
+      ? productResults 
+      : productResults.slice(0, MAX_INITIAL_PRODUCTS);
+    const hasMoreProducts = !hasKeyword && productResults.length > MAX_INITIAL_PRODUCTS && !showAllProducts;
 
     return (
       <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-40 overflow-hidden">
         <div className="max-h-80 overflow-y-auto divide-y divide-[#f0f0f0]">
-          {!hasKeyword &&
-            !isSearchingProducts &&
+          {!isSearchingProducts &&
             !productSearchError &&
             productResults.length === 0 && (
               <p className="px-4 py-3 text-sm text-[#6F6F6F]">
-                Nhập tên hoặc mã barcode để tìm sản phẩm
+                {hasKeyword 
+                  ? "Không tìm thấy sản phẩm phù hợp"
+                  : "Nhập tên hoặc mã barcode để tìm sản phẩm"
+                }
               </p>
             )}
 
           {isSearchingProducts && (
             <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#6F6F6F]">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Đang tìm kiếm sản phẩm...
+              {hasKeyword ? "Đang tìm kiếm sản phẩm..." : "Đang tải danh sách sản phẩm..."}
             </div>
           )}
 
@@ -228,16 +270,7 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
 
           {!isSearchingProducts &&
             !productSearchError &&
-            hasKeyword &&
-            productResults.length === 0 && (
-              <p className="px-4 py-3 text-xs text-[#6F6F6F]">
-                Không tìm thấy sản phẩm phù hợp
-              </p>
-            )}
-
-          {!isSearchingProducts &&
-            !productSearchError &&
-            productResults.map((product) => {
+            displayProducts.map((product) => {
               const isOutOfStock = (product.posSoldQuantity ?? 0) <= 0;
               return (
                 <button
@@ -346,6 +379,18 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 </button>
               );
             })}
+          
+          {hasMoreProducts && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowAllProducts(true);
+              }}
+              className="w-full px-4 py-3 text-sm text-[#18345C] font-medium hover:bg-[#f8f9ff] transition-colors border-t border-[#f0f0f0]"
+            >
+              Xem thêm {productResults.length - MAX_INITIAL_PRODUCTS} sản phẩm
+            </button>
+          )}
         </div>
       </div>
     );
@@ -381,6 +426,22 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
             <div
               className="w-[300px] sm:w-[400px] lg:w-[500px] relative"
               ref={searchContainerRef}
+              onMouseEnter={() => {
+                // Preload khi hover vào search box để tải nhanh hơn
+                if (!preloadOnHoverDoneRef.current && isSalesPage) {
+                  const cachedAll = productSearchCacheRef.current.get("__all__");
+                  if (!cachedAll) {
+                    preloadOnHoverDoneRef.current = true;
+                    // Preload ngay lập tức khi hover - không delay, chỉ tải 50 sản phẩm đầu tiên
+                    void searchProducts(undefined, 50).then((results) => {
+                      productSearchCacheRef.current.set("__all__", results);
+                    }).catch((error) => {
+                      console.debug("Preload on hover failed:", error);
+                      preloadOnHoverDoneRef.current = false; // Retry next time
+                    });
+                  }
+                }
+              }}
             >
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
                 <svg
@@ -405,11 +466,25 @@ export const POSHeader: React.FC<POSHeaderProps> = ({
                 onFocus={() => {
                   // Đảm bảo dropdown mở khi focus vào input
                   setIsDropdownOpen(true);
+                  // Kiểm tra cache và hiển thị ngay nếu có
+                  const cachedAll = productSearchCacheRef.current.get("__all__");
+                  if (cachedAll && cachedAll.length > 0) {
+                    setProductResults(cachedAll);
+                    setIsSearchingProducts(false);
+                    setProductSearchError(null);
+                  }
                 }}
                 onClick={(e) => {
                   // Đảm bảo dropdown mở khi click vào input và ngăn event bubble
                   e.stopPropagation();
                   setIsDropdownOpen(true);
+                  // Kiểm tra cache và hiển thị ngay nếu có
+                  const cachedAll = productSearchCacheRef.current.get("__all__");
+                  if (cachedAll && cachedAll.length > 0) {
+                    setProductResults(cachedAll);
+                    setIsSearchingProducts(false);
+                    setProductSearchError(null);
+                  }
                 }}
               />
               {renderProductDropdown()}
