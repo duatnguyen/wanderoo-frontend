@@ -25,6 +25,7 @@ import CaretDown from "@/components/ui/caret-down";
 import { toast } from "sonner";
 import type { CustomerResponse, CustomerUpdateRequest } from "@/types/api";
 import type { AddressResponse, AddressUpdateRequest, AddressCreationRequest, ProvinceResponse, DistrictResponse, WardResponse } from "@/types";
+import { BASE_URL } from "@/api/apiClient";
 
 type CustomerAddressFormState = {
   id: number | null;
@@ -44,6 +45,23 @@ type ContactFormErrors = Partial<Record<CustomerContactField, string>>;
 
 const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const getCustomerInitial = (customer: CustomerResponse) => {
+  const source = customer.name || customer.username || "";
+  return source.trim().charAt(0).toUpperCase() || "N";
+};
+
+const getCustomerAvatarUrl = (customer: CustomerResponse) => {
+  const rawUrl =
+    (customer as any).image_url ||
+    (customer as any).imageUrl ||
+    (customer as any).avatar ||
+    "";
+
+  if (!rawUrl) return "";
+  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) return rawUrl;
+  return `${BASE_URL}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`;
+};
 
 const normalizeAddressPart = (value?: string | null) => {
   if (!value) return "";
@@ -832,18 +850,19 @@ const AdminCustomerDetail = () => {
             {/* Customer Summary Card */}
             <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[20px] h-[120px] flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-[16px] flex-1">
-                <div className="w-[70px] h-[70px] rounded-[12px] border-2 border-dashed border-[#d1d1d1] p-[4px] bg-[#f8f9fa]">
-                  <Avatar className="w-full h-full rounded-[8px]">
-                    {(() => {
-                      const imageUrl = customer.image_url || customer.avatar;
-                      return imageUrl ? (
-                        <AvatarImage src={imageUrl} alt={customer.name} />
-                      ) : (
-                        <AvatarFallback className="bg-[#1a71f6] text-white text-[24px] font-bold">
-                          {customer.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      );
-                    })()}
+                <div className="w-[70px] h-[70px] relative rounded-[14px] p-[4px] bg-gradient-to-br from-white to-[#f7f8fb] border border-[#e6e6e6] shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
+                  <Avatar className="w-full h-full rounded-[12px] ring-2 ring-white shadow-sm">
+                    {getCustomerAvatarUrl(customer) ? (
+                      <AvatarImage
+                        src={getCustomerAvatarUrl(customer)}
+                        alt={customer.name}
+                        className="object-cover"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-[#1a71f6] text-white text-[24px] font-semibold">
+                        {getCustomerInitial(customer)}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                 </div>
                 <div className="flex flex-col gap-[4px]">
