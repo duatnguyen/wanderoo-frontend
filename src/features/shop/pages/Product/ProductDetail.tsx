@@ -356,15 +356,23 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
   };
 
   const handleAddToCart = async () => {
-    // Check if product has attributes but no variant is selected
-    const hasAttributes = productDetail?.attributes && productDetail.attributes.length > 0;
+    // Check if product has attributes
+    const totalAttributes = productDetail?.attributes?.length || 0;
+    const hasAttributes = totalAttributes > 0;
+    
+    // If product has attributes, require variant data to be selected
     if (hasAttributes && !variantData) {
       // Show error message or prevent adding to cart
       return;
     }
     
     // Check stock availability
-    const availableStock = variantData ? variantData.productDetailQuantity : product.stock;
+    // If no attributes, use product.stock directly
+    // If has attributes, use variantData.productDetailQuantity
+    const availableStock = hasAttributes && variantData 
+      ? variantData.productDetailQuantity 
+      : (product.stock ?? 0);
+    
     if (quantity > availableStock) {
       alert(`Chỉ còn ${availableStock} sản phẩm trong kho. Vui lòng giảm số lượng.`);
       return;
@@ -377,17 +385,41 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     
     setIsAddingToCart(true);
     try {
-      // Use variant data if available, otherwise use main product
-      const productToAdd = variantData ? {
+      // Determine productDetailId
+      let productDetailId: number;
+      
+      if (hasAttributes && variantData) {
+        // Product has attributes, use variantData.productDetailId
+        productDetailId = variantData.productDetailId;
+      } else {
+        // Product has no attributes, get productDetailId from variantsStockData
+        // When no attributes, there should be only one productDetail
+        if (variantsStockData && variantsStockData.length > 0) {
+          productDetailId = variantsStockData[0].productDetailId;
+        } else {
+          // Fallback: try to use productDetail.id (might be productId, not productDetailId)
+          // This should not happen in normal flow, but handle it gracefully
+          console.warn('No productDetailId found, using product.id as fallback');
+          productDetailId = Number(product.id);
+        }
+      }
+      
+      // Use variant data if available (product has attributes), otherwise use main product
+      const productToAdd = hasAttributes && variantData ? {
         ...product,
-        id: variantData.productDetailId,
+        id: productDetailId,
         name: product.name, // Keep original product name
         price: parseFloat(variantData.productDetailDiscountPrice || variantData.productDetailPrice || '0'),
         imageUrl: product.imageUrl, // Keep original product image
         stock: variantData.productDetailQuantity || product.stock,
         sku: variantData.productDetailSku || product.sku
-      } : product;
+      } : {
+        ...product,
+        id: productDetailId,
+        stock: product.stock ?? 0
+      };
       
+      console.log('Adding to cart - productDetailId:', productDetailId, 'productToAdd:', productToAdd);
       await addToCart(productToAdd, quantity);
       
       // Optional: Show success toast or notification
@@ -402,15 +434,23 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
   };
 
   const handleBuyNow = async () => {
-    // Check if product has attributes but no variant is selected
-    const hasAttributes = productDetail?.attributes && productDetail.attributes.length > 0;
+    // Check if product has attributes
+    const totalAttributes = productDetail?.attributes?.length || 0;
+    const hasAttributes = totalAttributes > 0;
+    
+    // If product has attributes, require variant data to be selected
     if (hasAttributes && !variantData) {
       // Show error message or prevent buying
       return;
     }
     
     // Check stock availability
-    const availableStock = variantData ? variantData.productDetailQuantity : product.stock;
+    // If no attributes, use product.stock directly
+    // If has attributes, use variantData.productDetailQuantity
+    const availableStock = hasAttributes && variantData 
+      ? variantData.productDetailQuantity 
+      : (product.stock ?? 0);
+    
     if (quantity > availableStock) {
       alert(`Chỉ còn ${availableStock} sản phẩm trong kho. Vui lòng giảm số lượng.`);
       return;
@@ -425,14 +465,17 @@ Phù hợp cho các hoạt động: Camping, trekking, dã ngoại, cắm trại
     try {
       // Get product details
       const productIdNum = product.id ? (typeof product.id === 'string' ? parseInt(product.id, 10) : product.id) : 0;
-      const productDetailId = variantData ? variantData.productDetailId : productIdNum;
-      const productPrice = variantData 
+      // For products without attributes, use productDetail.id if available, otherwise use product.id
+      const productDetailId = hasAttributes && variantData 
+        ? variantData.productDetailId 
+        : (productDetail?.id ? productDetail.id : productIdNum);
+      const productPrice = hasAttributes && variantData
         ? parseFloat(variantData.productDetailDiscountPrice || variantData.productDetailPrice || '0')
         : product.price;
-      const originalPrice = variantData 
+      const originalPrice = hasAttributes && variantData
         ? parseFloat(variantData.productDetailPrice || '0')
         : (product.originalPrice || product.price);
-      const imageUrl = variantData?.imageUrl || product.imageUrl || '';
+      const imageUrl = (hasAttributes && variantData?.imageUrl) || product.imageUrl || '';
       
       // Build attributes array from productDetail based on selectedAttributeIds
       const attributes: VariantAttributeSnapshot[] = [];

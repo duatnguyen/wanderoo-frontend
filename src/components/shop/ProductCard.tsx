@@ -50,7 +50,7 @@ const Star: React.FC<{ filled?: boolean }> = ({ filled }) => (
 const formatDiscountValue = (discountValue: string | null | undefined): string | undefined => {
   if (!discountValue) return undefined;
   const discountStr = discountValue.toString().trim();
-  
+
   // Check if it's a percentage (contains "%")
   if (discountStr.includes("%")) {
     // For percentage, just ensure it starts with "-"
@@ -59,7 +59,7 @@ const formatDiscountValue = (discountValue: string | null | undefined): string |
     }
     return `-${discountStr}`;
   }
-  
+
   // For VND amount (contains "đ" or "Đ")
   if (discountStr.includes("đ") || discountStr.includes("Đ")) {
     // Extract ALL digits (remove all non-digit characters except minus sign)
@@ -77,14 +77,14 @@ const formatDiscountValue = (discountValue: string | null | undefined): string |
       return hasMinus ? `-${formattedNumber}${currencySymbol}` : `-${formattedNumber}${currencySymbol}`;
     }
   }
-  
+
   // If it's just a number without currency, assume it's percentage
   const numberMatch = discountStr.match(/(-?\d+)/);
   if (numberMatch) {
     const hasMinus = discountStr.startsWith("-");
     return hasMinus ? `${discountStr}%` : `-${discountStr}%`;
   }
-  
+
   // Fallback: ensure it starts with "-"
   if (discountStr.startsWith("-")) {
     return discountStr;
@@ -95,18 +95,18 @@ const formatDiscountValue = (discountValue: string | null | undefined): string |
 // Helper function to get full image URL
 const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
   if (!imageUrl) return undefined;
-  
+
   // If already a full URL (http/https), return as is
   if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
     return imageUrl;
   }
-  
+
   // If relative path starting with /, add base URL
   if (imageUrl.startsWith('/')) {
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
     return `${baseUrl}${imageUrl}`;
   }
-  
+
   // If relative path not starting with /, assume it's from uploads
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
   return `${baseUrl}/static/${imageUrl}`;
@@ -129,12 +129,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const stars = Array.from({ length: 5 }, (_, i) => i < Math.round(rating));
 
   const FALLBACK_IMAGE = "/images/placeholders/no-image.svg";
-  const displayImage = imageUrl && imageUrl.trim().length > 0 
-    ? (getImageUrl(imageUrl) || imageUrl) 
+  const displayImage = imageUrl && imageUrl.trim().length > 0
+    ? (getImageUrl(imageUrl) || imageUrl)
     : FALLBACK_IMAGE;
 
   // Format discount value for display (prioritize discountValue from API)
-  const displayDiscount = discountValue 
+  const displayDiscount = discountValue
     ? formatDiscountValue(discountValue)
     : (discountPercent ? `-${discountPercent}%` : undefined);
 
@@ -177,6 +177,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             }}
           />
         </div>
+        {/* Discount badge - Top for both PERCENT and FIXED */}
         {displayDiscount && (
           <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-xs rounded-[4px] px-1.5 py-0.5 flex items-center gap-1">
             <svg
