@@ -79,6 +79,12 @@ interface ReturnRefundDetailData {
   shippingOrderCode?: string;
   shippingProvider?: string;
   returnTypeLabel?: string;
+  // Shop address for return shipping (only when status is RECEIVING)
+  shopFullAddress?: string;
+  shopStreet?: string;
+  shopWardName?: string;
+  shopDistrictName?: string;
+  shopProvinceName?: string;
 }
 
 const ReturnRefundDetail: React.FC = () => {
@@ -220,7 +226,7 @@ const ReturnRefundDetail: React.FC = () => {
     });
 
     // Build status steps based on current status
-    // Backend status flow: UNDER_REVIEW -> APPROVED -> RETURNING -> RECEIVED -> REFUNDED/COMPLETED
+    // Backend status flow: UNDER_REVIEW -> APPROVED -> RECEIVING -> RECEIVED -> REFUNDED/COMPLETED
     // For CANCELLED status, only show reviewing step as completed
     const currentStatus = (returnOrderData.statusKey || returnOrderData.status)?.toUpperCase() || "";
     const isCancelledStatus = currentStatus === "CANCELLED";
@@ -229,13 +235,18 @@ const ReturnRefundDetail: React.FC = () => {
       {
         id: "reviewing",
         label: "Yêu cầu đang được xem xét",
-        completed: ["UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED", "CANCELLED"].includes(currentStatus),
+        completed: ["UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "RECEIVING", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED", "CANCELLED"].includes(currentStatus),
         date: createdDate,
       },
       {
         id: "accepted",
         label: "Chấp nhận yêu cầu",
-        completed: !isCancelledStatus && ["APPROVED", "REJECTED", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
+        completed: !isCancelledStatus && ["APPROVED", "REJECTED", "RECEIVING", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
+      },
+      {
+        id: "waiting-receipt",
+        label: "Đang chờ nhận hàng",
+        completed: !isCancelledStatus && ["RECEIVING", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
       },
       {
         id: "returning",
@@ -290,6 +301,11 @@ const ReturnRefundDetail: React.FC = () => {
       shippingOrderCode: returnOrderData.shippingOrderCode,
       shippingProvider: returnOrderData.shippingProvider,
       returnTypeLabel: returnOrderData.returnTypeLabel,
+      shopFullAddress: returnOrderData.shopFullAddress,
+      shopStreet: returnOrderData.shopStreet,
+      shopWardName: returnOrderData.shopWardName,
+      shopDistrictName: returnOrderData.shopDistrictName,
+      shopProvinceName: returnOrderData.shopProvinceName,
     };
   }, [returnOrderData]);
 
@@ -395,10 +411,15 @@ const ReturnRefundDetail: React.FC = () => {
   const statusTitle =
     activeStatus === "Chấp nhận yêu cầu"
       ? "Yêu cầu đã được chấp nhận"
+      : activeStatus === "Đang chờ nhận hàng" || activeStatus === "Đang chờ nhận hàng"
+      ? "Đang chờ nhận hàng hoàn trả"
       : activeStatus;
   const statusAdditionalNote = (() => {
     if (activeStatus === "Chấp nhận yêu cầu") {
       return "Bạn vui lòng chọn phương thức trả hàng. Nếu không yêu cầu sẽ bị hủy tự động trong 24 giờ.";
+    }
+    if (activeStatus === "Đang chờ nhận hàng" || activeStatus === "Đang chờ nhận hàng") {
+      return "Vui lòng gửi hàng hoàn trả đến địa chỉ shop đã được cung cấp bên dưới.";
     }
     if (activeStatus === "Trả hàng") {
       return "Đơn hàng đang được hoàn trả.";
@@ -807,6 +828,74 @@ const ReturnRefundDetail: React.FC = () => {
                   <span className="text-[14px] text-gray-900 font-medium">{displayData.shippingOrderCode}</span>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Return Shipping Information - Only show when status is RECEIVING */}
+        {(currentStatus?.toUpperCase() === "RECEIVING" || returnOrderData?.status?.toUpperCase() === "RECEIVING") && (
+          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 text-[14px]">
+            <h2 className="text-[18px] font-bold text-gray-900 mb-4">
+              Thông tin lấy hàng hoàn trả
+            </h2>
+            <div className="space-y-3">
+              {/* Địa chỉ lấy hàng */}
+              {displayData.receiverAddress && (
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                  <span className="text-[14px] text-gray-700">Địa chỉ lấy hàng</span>
+                  <span className="text-[14px] text-gray-900 text-right sm:text-left sm:flex-1 sm:ml-4">
+                    {displayData.receiverAddress}
+                    <span className="block text-[12px] text-gray-500 mt-1">
+                      Địa chỉ bạn đã dùng khi đặt đơn
+                    </span>
+                  </span>
+                </div>
+              )}
+
+              {/* Thời gian dự kiến */}
+              {returnOrderData?.createdDate && (() => {
+                // Calculate expected pickup time (5-7 days after order creation)
+                const createdDate = new Date(returnOrderData.createdDate);
+                
+                // Add 6 days (average of 5-7 days)
+                const expectedDate = new Date(createdDate);
+                expectedDate.setDate(expectedDate.getDate() + 6);
+                
+                // Format: 14:00 – 18:00, DD/MM
+                const formattedDate = expectedDate.toLocaleDateString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                });
+                const expectedTime = `14:00 – 18:00, ${formattedDate}`;
+                
+                return (
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                    <span className="text-[14px] text-gray-700">Thời gian dự kiến</span>
+                    <span className="text-[14px] text-gray-900 font-medium text-right sm:text-left sm:flex-1 sm:ml-4">
+                      {expectedTime}
+                      <span className="block text-[12px] text-gray-500 mt-1 font-normal">
+                        (sẽ là 5-7 ngày sau khi tạo đơn)
+                      </span>
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Đơn vị vận chuyển */}
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-gray-700">Đơn vị vận chuyển</span>
+                <span className="text-[14px] text-gray-900 font-medium">
+                  {displayData.shippingProvider || "GHN"}
+                </span>
+              </div>
+
+              {/* Mã vận đơn */}
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-gray-700">Mã vận đơn</span>
+                <span className="text-[14px] text-gray-900 font-medium">
+                  {displayData.shippingOrderCode || "GHN123456789"}
+                </span>
+              </div>
             </div>
           </div>
         )}

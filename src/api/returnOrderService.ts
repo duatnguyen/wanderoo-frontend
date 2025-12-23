@@ -254,6 +254,29 @@ class ReturnOrderService {
     }
   }
 
+  // Mark as receiving (APPROVED → RECEIVING)
+  async markAsReceiving(returnOrderId: string, notes: string, shopFullAddress: string): Promise<void> {
+    try {
+      const payload = {
+        returnOrderId: parseInt(returnOrderId),
+        notes: notes || '',
+        shopFullAddress: shopFullAddress
+      };
+
+      const response = await apiClient.post<ApiResponse<null>>(
+        `${this.baseUrl}/${returnOrderId}/mark-as-receiving`,
+        payload
+      );
+      
+      if (response.data.status !== 200) {
+        throw new Error(response.data.message || 'Failed to mark as receiving');
+      }
+    } catch (error: any) {
+      console.error('Error marking as receiving:', error);
+      throw new Error(error?.response?.data?.message || 'Failed to mark as receiving');
+    }
+  }
+
   // Confirm receipt of returned goods
   async confirmReceipt(returnOrderId: string): Promise<void> {
     try {
@@ -285,6 +308,38 @@ class ReturnOrderService {
     } catch (error: any) {
       console.error('Error processing refund:', error);
       throw new Error(error?.response?.data?.message || 'Failed to process refund');
+    }
+  }
+
+  // Get shop address
+  async getShopAddress(): Promise<{
+    fullAddress: string;
+    street?: string;
+    wardName?: string;
+    districtName?: string;
+    provinceName?: string;
+    wardCode?: string;
+    districtId?: number;
+  }> {
+    try {
+      const response = await apiClient.get<ApiResponse<{
+        fullAddress: string;
+        street?: string;
+        wardName?: string;
+        districtName?: string;
+        provinceName?: string;
+        wardCode?: string;
+        districtId?: number;
+      }>>(`${this.baseUrl}/shop-address`);
+      
+      if (response.data.status === 200 && response.data.data) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch shop address');
+      }
+    } catch (error: any) {
+      console.error('Error fetching shop address:', error);
+      throw new Error(error?.response?.data?.message || 'Failed to fetch shop address');
     }
   }
 

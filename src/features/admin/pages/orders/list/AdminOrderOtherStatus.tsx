@@ -65,7 +65,7 @@ interface OtherStatusNavigationState {
 }
 
 const AdminOrderOtherStatus = () => {
-  document.title = "Trả hàng/Hoàn tiền/Huỷ | Wanderoo";
+  document.title = "Đơn hàng trả hàng/hoàn tiền | Wanderoo";
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -283,12 +283,12 @@ const AdminOrderOtherStatus = () => {
       // Helper function to parse variant attributes from JSON string
       const parseVariantAttributes = (variantAttributesStr?: string): Array<{ groupName: string; value: string; groupLevel: number }> => {
         if (!variantAttributesStr) return [];
-        
+
         try {
-          const attrs = typeof variantAttributesStr === 'string' 
-            ? JSON.parse(variantAttributesStr) 
+          const attrs = typeof variantAttributesStr === 'string'
+            ? JSON.parse(variantAttributesStr)
             : variantAttributesStr;
-          
+
           if (Array.isArray(attrs)) {
             return attrs.map((attr: any, index: number) => ({
               groupName: attr?.name || "Phân loại",
@@ -299,36 +299,36 @@ const AdminOrderOtherStatus = () => {
         } catch (e) {
           console.error("Error parsing variant attributes:", e);
         }
-        
+
         return [];
       };
 
       // Use returnOrderDetails - required field with snapshot data
       const products = order.returnOrderDetails && order.returnOrderDetails.length > 0
         ? order.returnOrderDetails.map((detail) => {
-            const variantAttrs = parseVariantAttributes(detail.snapshotVariantAttributes);
+          const variantAttrs = parseVariantAttributes(detail.snapshotVariantAttributes);
 
-            return {
-              id: detail.id,
-              name: detail.snapshotProductName || "Sản phẩm không tên",
-              price: `${Number(detail.totalReturnPrice || detail.returnPrice || 0).toLocaleString("vi-VN")}₫`,
-              unitPrice: detail.returnPrice || 0,
-              quantity: detail.returnQuantity,
-              image: detail.snapshotProductImageUrl || "",
-              sku: detail.snapshotProductSku || "",
-              variantAttributes: variantAttrs,
-            };
-          })
+          return {
+            id: detail.id,
+            name: detail.snapshotProductName || "Sản phẩm không tên",
+            price: `${Number(detail.totalReturnPrice || detail.returnPrice || 0).toLocaleString("vi-VN")}₫`,
+            unitPrice: detail.returnPrice || 0,
+            quantity: detail.returnQuantity,
+            image: detail.snapshotProductImageUrl || "",
+            sku: detail.snapshotProductSku || "",
+            variantAttributes: variantAttrs,
+          };
+        })
         : [{
-            id: 1,
-            name: "Sản phẩm không tên",
-            price: `${Number(order.totalAmount).toLocaleString("vi-VN")}₫`,
-            unitPrice: order.totalAmount,
-            quantity: 1,
-            image: "",
-            sku: "",
-            variantAttributes: [],
-          }];
+          id: 1,
+          name: "Sản phẩm không tên",
+          price: `${Number(order.totalAmount).toLocaleString("vi-VN")}₫`,
+          unitPrice: order.totalAmount,
+          quantity: 1,
+          image: "",
+          sku: "",
+          variantAttributes: [],
+        }];
 
       const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
 
@@ -409,7 +409,7 @@ const AdminOrderOtherStatus = () => {
     _orderStatus: string,
     _orderSource: string
   ) => {
-    const order = paginatedOrders.find(o => 
+    const order = paginatedOrders.find(o =>
       o.returnOrderCode === orderId
     );
     if (order) {
@@ -420,7 +420,7 @@ const AdminOrderOtherStatus = () => {
   return (
     <PageContainer className="flex flex-col gap-3 w-full max-w-full">
       <div className="flex flex-col gap-0 w-full">
-        <PageHeader title="Trả hàng/Hoàn tiền/Huỷ" />
+        <PageHeader title="Danh sách đơn hàng trả hàng/hoàn tiền" />
 
         <TabMenuWithBadge
           tabs={decoratedPrimaryTabs}
