@@ -52,6 +52,8 @@ export interface ReturnOrderResponse {
   refundMethodLabel?: string;
   refundedStatus?: string;
   refundedStatusLabel?: string;
+  rejectReason?: string; // Raw reject reason enum name
+  rejectReasonLabel?: string; // Mapped reject reason description in Vietnamese
   returnOrderDetails?: ReturnOrderDetailResponse[];
   userInfo?: any;
   receiverName?: string;

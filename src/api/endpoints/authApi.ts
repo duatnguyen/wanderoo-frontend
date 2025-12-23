@@ -24,12 +24,12 @@ export const login = async (
 
 export const register = async (
   userData: UserCreationRequest
-): Promise<ApiResponse<null>> => {
-  const response = await api.post<ApiResponse<null>>(
+): Promise<TokenResponse> => {
+  const response = await api.post<ApiResponse<TokenResponse>>(
     "/auth/v1/public/users/register",
     userData
   );
-  return response.data;
+  return response.data.data;
 };
 
 

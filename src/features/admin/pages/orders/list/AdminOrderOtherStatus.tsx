@@ -27,15 +27,18 @@ import { CalendarIcon, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import type { ChipStatusKey } from "@/components/ui/chip-status";
-import { returnOrderService, type ReturnOrderListItem, type ReturnOrderCategory, type ReturnOrderStatus, type GetReturnOrdersParams } from "@/api/returnOrderService";
+import { returnOrderService, type ReturnOrderListItem, type ReturnOrderStatus, type GetReturnOrdersParams } from "@/api/returnOrderService";
 
 type ReturnStatusFilter = ReturnOrderStatus | "DELIVERED";
+type SourceFilter = "ALL" | "WEBSITE" | "POS";
 
 const primaryTabs: TabItemWithBadge[] = [
   { id: "ALL", label: "Tất cả" },
-  { id: "RETURN", label: "Đơn Trả hàng Hoàn tiền" },
-  { id: "CANCEL", label: "Đơn Hủy" },
-  { id: "FAILED", label: "Đơn Giao hàng không thành công" },
+  { id: "UNDER_REVIEW", label: "Đang chờ xét duyệt" },
+  { id: "RETURNING", label: "Đang trả hàng" },
+  { id: "DELIVERED", label: "Giao thành công" },
+  { id: "COMPLETED", label: "Đã hoàn tiền cho người mua" },
+  { id: "INVALID", label: "Yêu cầu bị huỷ/không hợp lệ" },
 ];
 
 const statusTabs: TabItem[] = [
@@ -47,20 +50,12 @@ const statusTabs: TabItem[] = [
   { id: "INVALID", label: "Yêu cầu bị huỷ/không hợp lệ" },
 ];
 
-const cancelSubTabs: TabItem[] = [
-  { id: "ALL", label: "Tất cả" },
-  { id: "PROCESSING", label: "Đang xử lý" },
-  { id: "PROCESSED", label: "Đã xử lý" },
-];
-
 const PAGE_SIZE = 5;
 
 interface OtherStatusNavigationState {
   pathname?: string;
-  activePrimaryTab?: ReturnOrderCategory | "ALL";
-  activeStatusTab?: "ALL" | ReturnOrderStatus;
-  activeCancelSubTab?: "ALL" | "PROCESSING" | "PROCESSED";
-  activeFailedSubTab?: "ALL";
+  activePrimaryTab?: ReturnStatusFilter | "ALL";
+  activeStatusTab?: "ALL" | ReturnStatusFilter;
   searchTerm?: string;
 }
 
@@ -75,17 +70,52 @@ const AdminOrderOtherStatus = () => {
   const [error, setError] = useState<string | null>(null);
   const [returnOrders, setReturnOrders] = useState<ReturnOrderListItem[]>([]);
   const [totalPages, setTotalPages] = useState(1);
-  const [activePrimaryTab, setActivePrimaryTab] = useState<ReturnOrderCategory | "ALL">("ALL");
+  const [activePrimaryTab, setActivePrimaryTab] = useState<ReturnStatusFilter | "ALL">("ALL");
   const [activeStatusTab, setActiveStatusTab] = useState<"ALL" | ReturnStatusFilter>("ALL");
-  const [activeCancelSubTab, setActiveCancelSubTab] = useState<
-    "ALL" | "PROCESSING" | "PROCESSED"
-  >("ALL");
-  const [activeFailedSubTab, setActiveFailedSubTab] = useState<"ALL">("ALL");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
 
   // Filter states
   const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("ALL");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  const mapStatusKeyToPrimaryTab = (statusKey?: string): ReturnStatusFilter | "ALL" => {
+    if (!statusKey) return "ALL";
+    switch (statusKey.toUpperCase()) {
+      case "PENDING":
+      case "APPROVED":
+        return "UNDER_REVIEW";
+      case "RECEIVING":
+        return "RETURNING";
+      case "RECEIVED":
+        return "DELIVERED";
+      case "COMPLETED":
+      case "REFUNDING":
+        return "COMPLETED";
+      case "REJECTED":
+      case "CANCELLED":
+        return "INVALID";
+      default:
+        return "ALL";
+    }
+  };
+
+  const mapPrimaryTabToBackendStatus = (tab: ReturnStatusFilter | "ALL"): string | undefined => {
+    switch (tab) {
+      case "UNDER_REVIEW":
+        return "PENDING"; // backend will include APPROVED
+      case "RETURNING":
+        return "RECEIVING"; // backend uses RECEIVING status
+      case "DELIVERED":
+        return "RECEIVED";
+      case "COMPLETED":
+        return "COMPLETED"; // backend may include REFUNDING
+      case "INVALID":
+        return "REJECTED"; // backend may include CANCELLED
+      default:
+        return undefined;
+    }
+  };
 
   useEffect(() => {
     const preservedState = (location.state as { returnTo?: OtherStatusNavigationState } | null)
@@ -97,14 +127,6 @@ const AdminOrderOtherStatus = () => {
       if (preservedState.activeStatusTab) {
         setActiveStatusTab(preservedState.activeStatusTab);
       }
-      if (preservedState.activeCancelSubTab) {
-        setActiveCancelSubTab(preservedState.activeCancelSubTab);
-      }
-      if (preservedState.activeFailedSubTab) {
-        if (preservedState.activeFailedSubTab === "ALL") {
-          setActiveFailedSubTab(preservedState.activeFailedSubTab);
-        }
-      }
       if (typeof preservedState.searchTerm === "string") {
         setSearchTerm(preservedState.searchTerm);
       }
@@ -113,19 +135,23 @@ const AdminOrderOtherStatus = () => {
   }, [location.pathname, location.state, navigate]);
 
   const tabCounts = useMemo(() => {
-    return returnOrders.reduce(
-      (acc, order) => {
-        acc.ALL += 1;
-        acc[order.category] += 1;
-        return acc;
-      },
-      {
-        ALL: 0,
-        RETURN: 0,
-        CANCEL: 0,
-        FAILED: 0,
-      } as Record<"ALL" | ReturnOrderCategory, number>
-    );
+    const initialCounts: Record<ReturnStatusFilter | "ALL", number> = {
+      ALL: 0,
+      UNDER_REVIEW: 0,
+      RETURNING: 0,
+      DELIVERED: 0,
+      COMPLETED: 0,
+      INVALID: 0,
+    };
+
+    return returnOrders.reduce((acc, order) => {
+      acc.ALL += 1;
+      const tabKey = mapStatusKeyToPrimaryTab(order.statusKey);
+      if (acc[tabKey] !== undefined) {
+        acc[tabKey] += 1;
+      }
+      return acc;
+    }, initialCounts);
   }, [returnOrders]);
 
   const decoratedPrimaryTabs = useMemo(
@@ -142,36 +168,30 @@ const AdminOrderOtherStatus = () => {
   }, [
     activePrimaryTab,
     activeStatusTab,
-    activeCancelSubTab,
-    activeFailedSubTab,
+    sourceFilter,
     searchTerm,
   ]);
 
   useEffect(() => {
-    if (activePrimaryTab !== "CANCEL") {
-      setActiveCancelSubTab("ALL");
-    }
-    if (activePrimaryTab !== "FAILED") {
-      setActiveFailedSubTab("ALL");
-    }
-    if (activePrimaryTab === "ALL" && activeStatusTab !== "ALL") {
+    if (activePrimaryTab !== "ALL" && activeStatusTab !== "ALL") {
+      // When a primary status tab is selected, rely on it as the filter
       setActiveStatusTab("ALL");
     }
-  }, [activePrimaryTab]);
+  }, [activePrimaryTab, activeStatusTab]);
 
   const paginatedOrders = useMemo(() => {
     return returnOrders;
   }, [returnOrders]);
 
-  // Payment method filter options
-  const paymentMethodOptions = [
-    { value: "ALL", label: "Tất cả phương thức" },
-    { value: "CASH", label: "Tiền mặt" },
-    { value: "BANKING", label: "Chuyển khoản" },
+
+  const sourceOptions: { value: SourceFilter; label: string }[] = [
+    { value: "ALL", label: "Tất cả nguồn" },
+    { value: "WEBSITE", label: "Website" },
+    { value: "POS", label: "POS" },
   ];
 
-  const getPaymentMethodFilterLabel = (value: string) => {
-    return paymentMethodOptions.find((opt) => opt.value === value)?.label || "Tất cả phương thức";
+  const getSourceFilterLabel = (value: SourceFilter) => {
+    return sourceOptions.find((opt) => opt.value === value)?.label || "Tất cả nguồn";
   };
 
   // Fetch return orders from API
@@ -192,16 +212,18 @@ const AdminOrderOtherStatus = () => {
         params.search = searchTerm.trim();
       }
 
-      if (activePrimaryTab !== "ALL") {
-        params.category = activePrimaryTab;
+      const primaryStatus = mapPrimaryTabToBackendStatus(activePrimaryTab);
+      const secondaryStatus =
+        activePrimaryTab === "ALL" ? mapPrimaryTabToBackendStatus(activeStatusTab) : undefined;
+
+      const statusFilter = primaryStatus || secondaryStatus;
+      if (statusFilter) {
+        params.status = statusFilter;
       }
 
-      if (activeStatusTab !== "ALL") {
-        params.status = activeStatusTab;
+      if (sourceFilter !== "ALL") {
+        params.source = sourceFilter;
       }
-
-      // Only show return orders from Website (not POS)
-      params.source = "WEBSITE";
 
       if (paymentMethodFilter !== "ALL") {
         // Map UI filter to backend parameter if needed
@@ -228,7 +250,7 @@ const AdminOrderOtherStatus = () => {
       toast.error("Không thể tải danh sách đơn trả hàng");
       setLoading(false);
     }
-  }, [currentPage, activePrimaryTab, activeStatusTab, activeCancelSubTab, paymentMethodFilter, dateRange, searchTerm]);
+  }, [currentPage, activePrimaryTab, activeStatusTab, paymentMethodFilter, dateRange, searchTerm, sourceFilter]);
 
   // Debounced search effect
   useEffect(() => {
@@ -247,8 +269,6 @@ const AdminOrderOtherStatus = () => {
           pathname: "/admin/orders/otherstatus",
           activePrimaryTab,
           activeStatusTab,
-          activeCancelSubTab,
-          activeFailedSubTab,
           searchTerm,
         },
       },
@@ -425,7 +445,7 @@ const AdminOrderOtherStatus = () => {
         <TabMenuWithBadge
           tabs={decoratedPrimaryTabs}
           activeTab={activePrimaryTab}
-          onTabChange={(tabId) => setActivePrimaryTab(tabId as ReturnOrderCategory | "ALL")}
+          onTabChange={(tabId) => setActivePrimaryTab(tabId as ReturnStatusFilter | "ALL")}
           className="min-w-[700px]"
         />
 
@@ -484,21 +504,21 @@ const AdminOrderOtherStatus = () => {
                   className="flex-1 min-w-0 max-w-[400px]"
                 />
 
-                {/* Payment Method Filter */}
+                {/* Source Filter */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
                       <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
-                        {getPaymentMethodFilterLabel(paymentMethodFilter)}
+                        {getSourceFilterLabel(sourceFilter)}
                       </span>
                       <CaretDown className="text-[#e04d30]" />
                     </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    {paymentMethodOptions.map((option) => (
+                    {sourceOptions.map((option) => (
                       <DropdownMenuItem
                         key={option.value}
-                        onClick={() => setPaymentMethodFilter(option.value)}
+                        onClick={() => setSourceFilter(option.value)}
                       >
                         {option.label}
                       </DropdownMenuItem>
@@ -550,29 +570,6 @@ const AdminOrderOtherStatus = () => {
                 </Popover>
               </div>
 
-              {activePrimaryTab === "CANCEL" ? (
-                <TabMenu
-                  tabs={cancelSubTabs}
-                  activeTab={activeCancelSubTab}
-                  onTabChange={(tabId) => setActiveCancelSubTab(tabId as "ALL" | "PROCESSING" | "PROCESSED")}
-                  variant="underline"
-                  className="overflow-x-auto"
-                />
-              ) : (
-                <TabMenu
-                  tabs={
-                    activePrimaryTab === "ALL" || activePrimaryTab === "FAILED"
-                      ? [{ id: "ALL", label: "Tất cả" }]
-                      : statusTabs
-                  }
-                  activeTab={activeStatusTab}
-                  onTabChange={(tabId) => setActiveStatusTab(tabId as "ALL" | ReturnStatusFilter)}
-                  variant="underline"
-                  className="overflow-x-auto"
-                />
-              )}
-
-              {/* Results summary */}
               {returnOrders.length > 0 && (
                 <div className="text-sm text-gray-600 mb-2">
                   Hiển thị {returnOrders.length} kết quả trên trang {currentPage}/{totalPages}
@@ -584,7 +581,7 @@ const AdminOrderOtherStatus = () => {
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">
                     <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 002-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-600 mb-2">

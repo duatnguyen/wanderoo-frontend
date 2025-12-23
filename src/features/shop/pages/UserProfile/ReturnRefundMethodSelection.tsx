@@ -87,13 +87,8 @@ const ReturnRefundMethodSelection: React.FC = () => {
         date: "11/09/2024 18:26",
       },
       {
-        id: "returning",
-        label: "Trả hàng",
-        completed: false,
-      },
-      {
         id: "checking",
-        label: "Kiểm tra hàng hoàn",
+        label: "Kiểm tra hàng hoàn thành công",
         completed: false,
       },
       {
@@ -252,22 +247,19 @@ const MethodCard: React.FC<MethodCardProps> = ({
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full text-left bg-white rounded-lg border p-4 sm:p-6 transition-colors ${
-        selected
-          ? "border-[#E04D30] shadow-[0_8px_24px_rgba(224,77,48,0.12)]"
-          : "border-gray-200 hover:border-[#E04D30]/60"
-      }`}
+      className={`w-full text-left bg-white rounded-lg border p-4 sm:p-6 transition-colors ${selected
+        ? "border-[#E04D30] shadow-[0_8px_24px_rgba(224,77,48,0.12)]"
+        : "border-gray-200 hover:border-[#E04D30]/60"
+        }`}
     >
       <div className="flex items-start gap-3">
         <div
-          className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-            selected ? "border-[#E04D30]" : "border-gray-300"
-          }`}
+          className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${selected ? "border-[#E04D30]" : "border-gray-300"
+            }`}
         >
           <span
-            className={`block w-2.5 h-2.5 rounded-full transition-colors ${
-              selected ? "bg-[#E04D30]" : "bg-transparent"
-            }`}
+            className={`block w-2.5 h-2.5 rounded-full transition-colors ${selected ? "bg-[#E04D30]" : "bg-transparent"
+              }`}
           />
         </div>
         <div className="flex-1 space-y-2">

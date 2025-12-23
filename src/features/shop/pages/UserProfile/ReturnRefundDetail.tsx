@@ -85,6 +85,8 @@ interface ReturnRefundDetailData {
   shopWardName?: string;
   shopDistrictName?: string;
   shopProvinceName?: string;
+  rejectReason?: string; // Raw reject reason enum name
+  rejectReasonLabel?: string; // Mapped reject reason description in Vietnamese
 }
 
 const ReturnRefundDetail: React.FC = () => {
@@ -116,7 +118,7 @@ const ReturnRefundDetail: React.FC = () => {
       return "Yêu cầu đang được xử lý";
     }
     const normalizedStatus = (statusKey || "").toUpperCase();
-    
+
     // Generate appropriate message based on status
     if (normalizedStatus === "CANCELLED") {
       return "Yêu cầu đã được hủy";
@@ -142,7 +144,7 @@ const ReturnRefundDetail: React.FC = () => {
     if (statusLabel.includes("hoàn thành")) {
       return "Yêu cầu trả hàng đã hoàn thành";
     }
-    
+
     return `Trạng thái: ${statusLabel}`;
   };
 
@@ -228,40 +230,53 @@ const ReturnRefundDetail: React.FC = () => {
     // Build status steps based on current status
     // Backend status flow: UNDER_REVIEW -> APPROVED -> RECEIVING -> RECEIVED -> REFUNDED/COMPLETED
     // For CANCELLED status, only show reviewing step as completed
+    // For REJECTED status, show reviewing step and rejected step
     const currentStatus = (returnOrderData.statusKey || returnOrderData.status)?.toUpperCase() || "";
     const isCancelledStatus = currentStatus === "CANCELLED";
+    const isRejectedStatus = currentStatus === "REJECTED";
 
     const statusSteps: ReturnRefundStatus[] = [
       {
         id: "reviewing",
         label: "Yêu cầu đang được xem xét",
-        completed: ["UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "RECEIVING", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED", "CANCELLED"].includes(currentStatus),
+        completed: ["UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "RECEIVING", "RETURNING", "RECEIVED", "REFUNDING", "REFUNDED", "COMPLETED", "CANCELLED"].includes(currentStatus),
         date: createdDate,
+      },
+      {
+        id: "rejected",
+        label: "Yêu cầu bị từ chối",
+        completed: isRejectedStatus,
+        date: isRejectedStatus ? updatedDate : undefined,
       },
       {
         id: "accepted",
         label: "Chấp nhận yêu cầu",
-        completed: !isCancelledStatus && ["APPROVED", "REJECTED", "RECEIVING", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
+        completed: !isCancelledStatus && !isRejectedStatus && ["APPROVED", "RECEIVING", "RETURNING", "RECEIVED", "REFUNDING", "REFUNDED", "COMPLETED"].includes(currentStatus),
       },
       {
         id: "waiting-receipt",
         label: "Đang chờ nhận hàng",
-        completed: !isCancelledStatus && ["RECEIVING", "RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
+        completed: !isCancelledStatus && !isRejectedStatus && ["RECEIVING", "RETURNING", "RECEIVED", "REFUNDING", "REFUNDED", "COMPLETED"].includes(currentStatus),
       },
       {
-        id: "returning",
-        label: "Trả hàng",
-        completed: !isCancelledStatus && ["RETURNING", "RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
+        id: "received",
+        label: "Đã nhận hàng",
+        completed: !isCancelledStatus && !isRejectedStatus && ["RECEIVED", "REFUNDING", "REFUNDED", "COMPLETED"].includes(currentStatus),
       },
       {
         id: "checking",
-        label: "Kiểm tra hàng hoàn",
-        completed: !isCancelledStatus && ["RECEIVED", "REFUNDED", "COMPLETED"].includes(currentStatus),
+        label: "Kiểm tra hàng hoàn thành công",
+        completed: !isCancelledStatus && !isRejectedStatus && ["RECEIVED", "REFUNDING", "REFUNDED", "COMPLETED"].includes(currentStatus),
+      },
+      {
+        id: "refunding",
+        label: "Đang hoàn tiền",
+        completed: !isCancelledStatus && !isRejectedStatus && ["REFUNDING", "REFUNDED", "COMPLETED"].includes(currentStatus),
       },
       {
         id: "refunded",
         label: "Đã hoàn tiền",
-        completed: !isCancelledStatus && ["REFUNDED", "COMPLETED"].includes(currentStatus),
+        completed: !isCancelledStatus && !isRejectedStatus && ["REFUNDED", "COMPLETED"].includes(currentStatus),
       },
     ];
 
@@ -306,6 +321,8 @@ const ReturnRefundDetail: React.FC = () => {
       shopWardName: returnOrderData.shopWardName,
       shopDistrictName: returnOrderData.shopDistrictName,
       shopProvinceName: returnOrderData.shopProvinceName,
+      rejectReason: returnOrderData.rejectReason,
+      rejectReasonLabel: returnOrderData.rejectReasonLabel,
     };
   }, [returnOrderData]);
 
@@ -343,6 +360,9 @@ const ReturnRefundDetail: React.FC = () => {
       return [];
     }
 
+    const currentStatus = returnOrderData?.statusKey || returnOrderData?.status || "";
+    const isRejectedStatus = currentStatus.toUpperCase() === "REJECTED";
+
     // If cancelled, show only reviewing step as completed + cancelled step
     if (isCancelled) {
       return [
@@ -360,8 +380,14 @@ const ReturnRefundDetail: React.FC = () => {
       ];
     }
 
-    return displayData.statusSteps;
-  }, [displayData?.statusSteps, displayData?.requestDate, isCancelled]);
+    // If rejected, show only reviewing step and rejected step
+    if (isRejectedStatus) {
+      return displayData.statusSteps.filter(step => step.id === "reviewing" || step.id === "rejected");
+    }
+
+    // For other statuses, filter out rejected step
+    return displayData.statusSteps.filter(step => step.id !== "rejected");
+  }, [displayData?.statusSteps, displayData?.requestDate, isCancelled, returnOrderData?.statusKey, returnOrderData?.status]);
 
   // Loading state
   if (isLoading) {
@@ -412,14 +438,14 @@ const ReturnRefundDetail: React.FC = () => {
     activeStatus === "Chấp nhận yêu cầu"
       ? "Yêu cầu đã được chấp nhận"
       : activeStatus === "Đang chờ nhận hàng" || activeStatus === "Đang chờ nhận hàng"
-      ? "Đang chờ nhận hàng hoàn trả"
-      : activeStatus;
+        ? "Đang chờ nhận hàng hoàn trả"
+        : activeStatus;
   const statusAdditionalNote = (() => {
     if (activeStatus === "Chấp nhận yêu cầu") {
       return "Bạn vui lòng chọn phương thức trả hàng. Nếu không yêu cầu sẽ bị hủy tự động trong 24 giờ.";
     }
     if (activeStatus === "Đang chờ nhận hàng" || activeStatus === "Đang chờ nhận hàng") {
-      return "Vui lòng gửi hàng hoàn trả đến địa chỉ shop đã được cung cấp bên dưới.";
+      return "Vui lòng giữ sản phẩm cẩn thận đợi người giao hàng tới lấy.";
     }
     if (activeStatus === "Trả hàng") {
       return "Đơn hàng đang được hoàn trả.";
@@ -435,9 +461,18 @@ const ReturnRefundDetail: React.FC = () => {
   const statusTitleClasses = isCancelled
     ? "text-[18px] font-bold text-[#E04D30]"
     : "text-[18px] font-bold text-gray-900";
-  const canCancelRequest =
-    ["Yêu cầu đang được xem xét", "Chấp nhận yêu cầu"].includes(activeStatus) &&
-    !isCancelled;
+  
+  // Determine if cancel button should be shown based on status
+  // Allow cancel for: PENDING, UNDER_REVIEW, APPROVED, RECEIVING, RETURNING
+  // Don't allow cancel for: RECEIVED, REFUNDING, COMPLETED, REJECTED, CANCELLED
+  const currentStatusUpper = currentStatus.toUpperCase();
+  const canCancelRequest = !isCancelled && 
+    (currentStatusUpper === "PENDING" || 
+     currentStatusUpper === "UNDER_REVIEW" || 
+     currentStatusUpper === "APPROVED" || 
+     currentStatusUpper === "RECEIVING" || 
+     currentStatusUpper === "RETURNING") &&
+    !(activeStatus === "Đã từ chối" || activeStatus === "Từ chối" || activeStatus.includes("từ chối"));
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
@@ -467,7 +502,7 @@ const ReturnRefundDetail: React.FC = () => {
       {/* Content */}
       <div className="px-4 sm:px-6 py-4 sm:py-6 bg-gray-50 space-y-6">
         {/* Status Timeline - same style as order detail */}
-        {!isCancelled && <OrderTimeline steps={stepsToRender} />}
+        {!isCancelled && <OrderTimeline steps={stepsToRender} orderStatus={currentStatus} />}
 
         {/* Current Status Box */}
         <div
@@ -487,6 +522,15 @@ const ReturnRefundDetail: React.FC = () => {
                 <span className="text-[13px] text-gray-500">
                   {statusMessage}
                 </span>
+              )}
+              {/* Show reject reason if order is rejected */}
+              {((activeStatus === "Đã từ chối" || activeStatus === "Từ chối" || activeStatus.includes("từ chối")) && displayData.rejectReasonLabel) && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <span className="text-[12px] font-semibold text-red-700">Lý do từ chối:</span>
+                    <span className="text-[12px] text-red-600 flex-1">{displayData.rejectReasonLabel}</span>
+                  </div>
+                </div>
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:items-center sm:justify-end">
@@ -530,7 +574,7 @@ const ReturnRefundDetail: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate(`/user/profile/orders/${displayData.orderId}`)}
-                className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                className="text-gray-700 hover:text-gray-900 font-medium transition-colors"
               >
                 #{displayData.orderId}
               </button>
@@ -551,7 +595,7 @@ const ReturnRefundDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Product Details */}
+          {/* Product Details */} 
           {displayData.products.map((product) => (
             <div
               key={product.id}
@@ -613,7 +657,7 @@ const ReturnRefundDetail: React.FC = () => {
                         </span>
                       )}
                       {product.quantityReceived != null && product.quantityReceived > 0 && (
-                        <span className="text-[12px] text-blue-600 bg-blue-50 px-2 py-1 rounded font-medium">
+                        <span className="text-[12px] text-gray-700 bg-gray-100 px-2 py-1 rounded font-medium">
                           SL đã nhận: {product.quantityReceived}
                         </span>
                       )}
@@ -630,14 +674,14 @@ const ReturnRefundDetail: React.FC = () => {
                       <div className="mt-2 space-y-1">
                         <div className="text-[13px] text-gray-700">
                           <span className="font-medium">Tổng tiền trả ({product.quantity} sản phẩm): </span>
-                          <span className="font-semibold text-red-600">
+                          <span className="font-semibold text-gray-900">
                             {formatCurrencyVND(product.totalReturnPrice)}
                           </span>
                         </div>
                         {product.refundedAmount != null && product.refundedAmount > 0 && (
                           <div className="text-[13px] text-gray-700">
                             <span className="font-medium">Đã hoàn tiền: </span>
-                            <span className="font-semibold text-green-600">
+                            <span className="font-semibold text-gray-900">
                               {formatCurrencyVND(product.refundedAmount)}
                             </span>
                             {product.totalReturnPrice > product.refundedAmount && (
@@ -655,33 +699,13 @@ const ReturnRefundDetail: React.FC = () => {
                         {product.notes}
                       </div>
                     )}
-                    {/* Status Information */}
-                    {(product.receivedStatusLabel || product.refundedStatusLabel) && (
-                      <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                        {product.receivedStatusLabel && (
-                          <div className="flex items-center gap-2 text-[12px]">
-                            <span className="text-gray-600">Trạng thái nhận hàng:</span>
-                            <span className="inline-block px-2 py-1 rounded bg-blue-50 text-blue-700 font-medium">
-                              {product.receivedStatusLabel}
-                            </span>
-                          </div>
-                        )}
-                        {product.refundedStatusLabel && (
-                          <div className="flex items-center gap-2 text-[12px]">
-                            <span className="text-gray-600">Trạng thái hoàn tiền:</span>
-                            <span className="inline-block px-2 py-1 rounded bg-green-50 text-green-700 font-medium">
-                              {product.refundedStatusLabel}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    
                   </div>
                 </div>
               </div>
             </div>
           ))}
-          
+
           {/* Total Return Amount Summary */}
           {displayData.totalReturnAmount != null && displayData.totalReturnAmount > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
@@ -705,7 +729,7 @@ const ReturnRefundDetail: React.FC = () => {
                 <span className="text-[14px] font-semibold text-gray-900">
                   Tổng số tiền trả hàng:
                 </span>
-                <span className="text-[16px] font-bold text-red-600">
+                <span className="text-[16px] font-bold text-gray-900">
                   {formatCurrencyVND(displayData.totalReturnAmount)}
                 </span>
               </div>
@@ -754,13 +778,12 @@ const ReturnRefundDetail: React.FC = () => {
             {displayData.refundedStatusLabel && (
               <div className="flex justify-between items-center pt-2 border-t border-gray-100">
                 <span className="text-[14px] text-gray-700">Trạng thái hoàn tiền</span>
-                <span className={`text-[14px] font-medium ${
-                  displayData.refundedStatusLabel.includes("Đã hoàn") 
-                    ? "text-green-600" 
-                    : displayData.refundedStatusLabel.includes("Chưa hoàn") || displayData.refundedStatusLabel.includes("không thành công")
+                <span className={`text-[14px] font-medium ${displayData.refundedStatusLabel.includes("Đã hoàn")
+                  ? "text-green-600"
+                  : displayData.refundedStatusLabel.includes("Chưa hoàn") || displayData.refundedStatusLabel.includes("không thành công")
                     ? "text-red-600"
                     : "text-orange-600"
-                }`}>
+                  }`}>
                   {displayData.refundedStatusLabel}
                 </span>
               </div>
@@ -779,58 +802,6 @@ const ReturnRefundDetail: React.FC = () => {
             )}
           </div>
         </div>
-
-        {/* Receiver and Shipping Information */}
-        {(displayData.receiverName || displayData.receiverPhone || displayData.receiverAddress || 
-          displayData.forwardShippingStatus || displayData.shippingOrderCode || displayData.shippingProvider) && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 text-[14px]">
-            <h2 className="text-[18px] font-bold text-gray-900 mb-4">
-              Thông tin người nhận & vận chuyển
-            </h2>
-            <div className="space-y-3">
-              {displayData.receiverName && (
-                <div className="flex justify-between items-center">
-                  <span className="text-[14px] text-gray-700">Người nhận</span>
-                  <span className="text-[14px] text-gray-900 font-medium">{displayData.receiverName}</span>
-                </div>
-              )}
-              {displayData.receiverPhone && (
-                <div className="flex justify-between items-center">
-                  <span className="text-[14px] text-gray-700">Số điện thoại</span>
-                  <span className="text-[14px] text-gray-900">{displayData.receiverPhone}</span>
-                </div>
-              )}
-              {displayData.receiverAddress && (
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
-                  <span className="text-[14px] text-gray-700">Địa chỉ nhận hàng</span>
-                  <span className="text-[14px] text-gray-900 text-right sm:text-left sm:flex-1 sm:ml-4">
-                    {displayData.receiverAddress}
-                  </span>
-                </div>
-              )}
-              {displayData.forwardShippingStatus && (
-                <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                  <span className="text-[14px] text-gray-700">Trạng thái vận chuyển</span>
-                  <span className="text-[14px] text-gray-900 font-medium">
-                    {formatShippingStatus(displayData.forwardShippingStatus)}
-                  </span>
-                </div>
-              )}
-              {displayData.shippingProvider && (
-                <div className="flex justify-between items-center">
-                  <span className="text-[14px] text-gray-700">Đơn vị vận chuyển</span>
-                  <span className="text-[14px] text-gray-900">{displayData.shippingProvider}</span>
-                </div>
-              )}
-              {displayData.shippingOrderCode && (
-                <div className="flex justify-between items-center">
-                  <span className="text-[14px] text-gray-700">Mã vận đơn</span>
-                  <span className="text-[14px] text-gray-900 font-medium">{displayData.shippingOrderCode}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Return Shipping Information - Only show when status is RECEIVING */}
         {(currentStatus?.toUpperCase() === "RECEIVING" || returnOrderData?.status?.toUpperCase() === "RECEIVING") && (
@@ -856,18 +827,18 @@ const ReturnRefundDetail: React.FC = () => {
               {returnOrderData?.createdDate && (() => {
                 // Calculate expected pickup time (5-7 days after order creation)
                 const createdDate = new Date(returnOrderData.createdDate);
-                
+
                 // Add 6 days (average of 5-7 days)
                 const expectedDate = new Date(createdDate);
                 expectedDate.setDate(expectedDate.getDate() + 6);
-                
+
                 // Format: 14:00 – 18:00, DD/MM
                 const formattedDate = expectedDate.toLocaleDateString("vi-VN", {
                   day: "2-digit",
                   month: "2-digit",
                 });
                 const expectedTime = `14:00 – 18:00, ${formattedDate}`;
-                
+
                 return (
                   <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
                     <span className="text-[14px] text-gray-700">Thời gian dự kiến</span>

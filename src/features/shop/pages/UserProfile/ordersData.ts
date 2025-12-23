@@ -536,7 +536,7 @@ export const ordersData: Order[] = [
     id: "WB0303168611",
     orderDate: "14/08/2025",
     status: "return",
-    statusLabel: "Kiểm tra hàng hoàn",
+    statusLabel: "Kiểm tra hàng hoàn thành công",
     products: [
       {
         id: "r10",

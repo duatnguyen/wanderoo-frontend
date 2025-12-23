@@ -19,7 +19,8 @@ type AuthAction =
   | { type: "REGISTER_SUCCESS"; payload: { user: User; token: string; refreshToken: string } }
   | { type: "REGISTER_FAILURE" }
   | { type: "AUTH_CHECK_COMPLETE" }
-  | { type: "PROFILE_UPDATE"; payload: User };
+  | { type: "PROFILE_UPDATE"; payload: User }
+  | { type: "TOKEN_REFRESH"; payload: { token: string; refreshToken: string } };
 
 const initialState: AuthState = {
   user: null,
@@ -44,6 +45,13 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         refreshToken: action.payload.refreshToken,
         isAuthenticated: true,
         isLoading: false,
+      };
+
+    case "TOKEN_REFRESH":
+      return {
+        ...state,
+        token: action.payload.token,
+        refreshToken: action.payload.refreshToken,
       };
 
     case "LOGIN_FAILURE":
@@ -250,7 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Get user info from token
-      const tokenUser = getUserFromToken(response.accessToken);
+      const tokenUser = getUserFromToken(response.accessToken); 
       if (!tokenUser) {
         throw new Error('Could not decode user from token');
       }
@@ -331,36 +339,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw new Error("Received expired access token");
       }
 
-      const tokenUser = getUserFromToken(response.accessToken);
-      if (!tokenUser) {
-        throw new Error("Could not decode user from refreshed token");
-      }
-
-      const refreshedUser: User = {
-        id: parseInt(tokenUser.id) || state.user?.id || 0,
-        username: tokenUser.username,
-        email: state.user?.email || "",
-        name: state.user?.name || "",
-        phone: state.user?.phone || "",
-        role: tokenUser.role as any,
-        status: state.user?.status || "ACTIVE",
-        avatar: state.user?.avatar ?? null,
-        gender: state.user?.gender ?? null,
-        dateOfBirth: state.user?.dateOfBirth ?? null,
-      };
-
       localStorage.setItem("accessToken", response.accessToken);
       localStorage.setItem("refreshToken", response.refreshToken || storedRefreshToken);
       localStorage.removeItem(USER_STORAGE_KEY);
 
       dispatch({
-        type: "LOGIN_SUCCESS",
+        type: "TOKEN_REFRESH",
         payload: {
-          user: refreshedUser,
           token: response.accessToken,
           refreshToken: response.refreshToken || storedRefreshToken,
         },
       });
+
+      // After refreshing token, we should ensure profile is up to date if we have a user
+      if (state.user) {
+        void refreshProfile();
+      }
 
       setupLogoutTimer(response.accessToken);
     } catch (error) {
@@ -388,8 +382,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         dateOfBirth: (profile as any).birthday ?? null,
       };
       dispatch({ type: "PROFILE_UPDATE", payload: normalizedUser });
-      // Update localStorage
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(normalizedUser));
+      // We do not persist user info in localStorage to ensure security and freshness
+      // localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(normalizedUser));
     } catch (error) {
       console.error("Failed to refresh profile", error);
     }
@@ -399,8 +393,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (state.user) {
       const updatedUser = { ...state.user, ...userData };
       dispatch({ type: "PROFILE_UPDATE", payload: updatedUser });
-      // Update localStorage
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+      // We do not persist user info in localStorage
+      // localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
     }
   }, [state.user]);
 

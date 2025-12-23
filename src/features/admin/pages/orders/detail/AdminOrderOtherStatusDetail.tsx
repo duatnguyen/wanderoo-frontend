@@ -1,12 +1,11 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ClipboardCopy, Package, RefreshCw, CheckCircle, XCircle, Clock, Truck, FileText, User, Calendar, AlertTriangle, CreditCard, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, ClipboardCopy, Package, RefreshCw, CheckCircle, XCircle, Clock, Truck, FileText, User, Calendar, AlertTriangle, CreditCard, RotateCcw, ChevronDown, ChevronUp, X } from "lucide-react";
 import { PageContainer, ContentCard } from "@/components/common";
 import { ChipStatus } from "@/components/ui/chip-status";
 import { getImageUrl } from "@/utils/imageUtils";
-import apiClient from "@/api/apiClient";
-import { returnOrderService } from "@/api/returnOrderService";
+import { returnOrderService, type ApiReturnOrderResponse } from "@/api/returnOrderService";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -18,73 +17,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-// API Response interface matching backend ReturnOrderResponseDTO
-interface ApiReturnOrderResponse {
-  id: number;
-  code: string;
-  orderId: number;
-  userId: number;
-  picId?: number;
-  status: string; // Raw status from DB
-  statusKey?: string; // Mapped status key (UNDER_REVIEW, RETURNING, COMPLETED, INVALID)
-  statusLabel?: string; // Mapped status label in Vietnamese
-  returnReason?: string; // Raw return reason enum name
-  returnReasonLabel?: string; // Mapped return reason description in Vietnamese
-  returnReasonNote?: string;
-  notes?: string;
-  returnType?: string; // Raw return type from DB
-  returnTypeLabel?: string; // Mapped return type label in Vietnamese
-  category?: string; // Mapped category (RETURN, CANCEL, FAILED)
-  totalProductAmount?: number;
-  shippingFee?: number;
-  totalRefundedAmount?: number;
-  totalReturnAmount?: number;
-  createdDate?: string;
-  updatedDate?: string;
-  images?: string[];
-  receiverName?: string; // From orders.receiver_name
-  receiverPhone?: string; // From orders.receiver_phone
-  receiverAddress?: string; // From orders.receiver_address
-  forwardShippingStatus?: string; // From orders.shipping_status
-  shippingOrderCode?: string; // From orders.shipping_order_code
-  shippingProvider?: string; // From orders.shipping_provider
-  refundMethod?: string;
-  refundMethodLabel?: string;
-  refundedStatus?: string;
-  refundedStatusLabel?: string;
-  userInfo?: {
-    id: number;
-    name: string;
-    image?: string;
-    username: string;
-    phone?: string;
-  };
-  returnOrderDetails?: Array<{
-    id: number;
-    returnOrderId: number;
-    productDetailId?: number;
-    orderDetailId?: number;
-    quantityRequested: number;
-    quantityReceived?: number;
-    receivedStatus?: string;
-    receivedStatusLabel?: string;
-    refundedStatus?: string;
-    refundedStatusLabel?: string;
-    refundedAmount?: number;
-    notes?: string;
-    returnPrice?: number;
-    totalReturnPrice?: number;
-    snapshotProductName?: string;
-    snapshotProductPrice?: number;
-    snapshotProductFinalPrice?: number;
-    snapshotProductSku?: string;
-    snapshotProductImageUrl?: string;
-    snapshotVariantAttributes?: string;
-    createdDate?: string;
-    updatedDate?: string;
-  }>;
-}
 
 // Define types for ReturnOrder from the list page
 type ReturnOrderCategory = "RETURN" | "CANCEL" | "FAILED";
@@ -193,6 +125,24 @@ const mapReturnTypeToCategory = (returnType?: string): ReturnOrderCategory => {
   return "RETURN";
 };
 
+// Map payment method to Vietnamese label
+const mapPaymentMethodToLabel = (paymentMethod?: string): string => {
+  if (!paymentMethod) return "Chưa xác định";
+  const normalized = paymentMethod.toUpperCase();
+  const paymentMap: Record<string, string> = {
+    "BANKING": "Chuyển khoản ngân hàng",
+    "CASH": "Tiền mặt",
+    "COD": "Thanh toán khi nhận hàng",
+    "CREDIT_CARD": "Thẻ tín dụng",
+    "DEBIT_CARD": "Thẻ ghi nợ",
+    "E_WALLET": "Ví điện tử",
+    "MOMO": "Ví MoMo",
+    "ZALOPAY": "Ví ZaloPay",
+    "VNPAY": "VNPay",
+  };
+  return paymentMap[normalized] || paymentMethod;
+};
+
 
 
 // Map API ReturnOrderResponseDTO to component ReturnOrder format
@@ -285,12 +235,37 @@ const AdminOrderOtherStatusDetail = () => {
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<"approve" | "reject" | "request-info" | "mark-receiving" | null>(null);
+  const [dialogType, setDialogType] = useState<"approve" | "reject" | "request-info" | "mark-receiving" | "mark-refunding" | "complete" | null>(null);
   const [notes, setNotes] = useState("");
   const [shopFullAddress, setShopFullAddress] = useState("");
+  const [deliveryAddresses, setDeliveryAddresses] = useState<{
+    shopAddress?: {
+      fullAddress: string;
+      street?: string;
+      wardName?: string;
+      districtName?: string;
+      provinceName?: string;
+      wardCode?: string;
+      districtId?: number;
+    };
+    customerAddress?: {
+      fullAddress: string;
+      receiverName?: string;
+      receiverPhone?: string;
+      street?: string;
+      wardName?: string;
+      districtName?: string;
+      provinceName?: string;
+      wardCode?: string;
+      districtId?: number;
+    };
+  } | null>(null);
+  const [refundMethod, setRefundMethod] = useState<'CASH' | 'BANKING'>('BANKING');
+  const [rejectReason, setRejectReason] = useState<string>('');
+  const [refundDetails, setRefundDetails] = useState<Array<{ returnOrderDetailId: number; refundNote: string }>>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
-  
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
   // Receipt details dialog state
   const [receiptDetailsDialogOpen, setReceiptDetailsDialogOpen] = useState(false);
   const [receiptDetails, setReceiptDetails] = useState<Record<number, {
@@ -315,14 +290,7 @@ const AdminOrderOtherStatusDetail = () => {
       if (!returnOrderCode) {
         throw new Error("Return order code is required");
       }
-      const response = await apiClient.get<{ status: number; message: string; data: ApiReturnOrderResponse }>(
-        `/auth/v1/private/return-orders/${returnOrderCode}`
-      );
-      if (response.data.status === 200 && response.data.data) {
-        return response.data.data;
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch return order detail');
-      }
+      return await returnOrderService.getReturnOrderDetailRaw(returnOrderCode);
     },
     enabled: !!returnOrderCode,
     staleTime: 60 * 1000, // 1 minute
@@ -360,19 +328,29 @@ const AdminOrderOtherStatusDetail = () => {
   const shouldShowActionButtons = useMemo(() => {
     if (!apiResponse?.id) return false;
     const status = apiResponse.status?.toUpperCase() || '';
-    const statusKey = order?.statusKey || '';
-
-    return statusKey === "UNDER_REVIEW" ||
-      status === "PENDING" ||
-      status === "WAITING_APPROVAL" ||
-      status === "UNDER_REVIEW";
-  }, [apiResponse, order]);
+    // Only show action buttons when status is PENDING
+    return status === "PENDING";
+  }, [apiResponse]);
 
   // Helper to check if mark as receiving button should be shown
   const shouldShowMarkAsReceivingButton = useMemo(() => {
     if (!apiResponse?.id) return false;
     const status = apiResponse.status?.toUpperCase() || '';
     return status === "APPROVED";
+  }, [apiResponse]);
+
+  // Helper to check if mark as refunding button should be shown
+  const shouldShowMarkAsRefundingButton = useMemo(() => {
+    if (!apiResponse?.id) return false;
+    const status = apiResponse.status?.toUpperCase() || '';
+    return status === "RECEIVED";
+  }, [apiResponse]);
+
+  // Helper to check if complete button should be shown
+  const shouldShowCompleteButton = useMemo(() => {
+    if (!apiResponse?.id) return false;
+    const status = apiResponse.status?.toUpperCase() || '';
+    return status === "REFUNDING";
   }, [apiResponse]);
 
   // Process images for display - use direct API URL with authentication
@@ -407,31 +385,12 @@ const AdminOrderOtherStatusDetail = () => {
       await Promise.all(
         processedImages.map(async (imageUrl, index) => {
           try {
-            // Extract path from full URL (apiClient has baseURL, so we need relative path)
-            let imagePath = imageUrl;
-            try {
-              const url = new URL(imageUrl);
-              imagePath = url.pathname; // Get only the path part
-            } catch {
-              // If it's already a relative path, use it as is
-              if (imageUrl.startsWith('/')) {
-                imagePath = imageUrl;
-              } else {
-                imagePath = `/${imageUrl}`;
-              }
-            }
-
-            // Use axios from apiClient which already handles authentication headers
-            const response = await apiClient.get(imagePath, {
-              responseType: 'blob',
-            });
-
-            const blob = response.data;
+            const blob = await returnOrderService.fetchImageBlob(imageUrl);
             const blobUrl = URL.createObjectURL(blob);
             newBlobUrls[index] = blobUrl;
 
             if (process.env.NODE_ENV === 'development') {
-              console.log(`✅ Fetched image ${index + 1} as blob:`, imagePath);
+              console.log(`✅ Fetched image ${index + 1} as blob:`, imageUrl);
             }
           } catch (error) {
             console.error(`Error fetching image ${index + 1}:`, error);
@@ -519,16 +478,18 @@ const AdminOrderOtherStatusDetail = () => {
     }
   };
 
-  // Handle action button clicks
+  // Handle action button clicks with confirmation
   const handleApproveClick = () => {
     setDialogType("approve");
     setNotes("");
+    setRefundMethod('BANKING');
     setDialogOpen(true);
   };
 
   const handleRejectClick = () => {
     setDialogType("reject");
     setNotes("");
+    setRejectReason("");
     setDialogOpen(true);
   };
 
@@ -542,18 +503,31 @@ const AdminOrderOtherStatusDetail = () => {
     setDialogType("mark-receiving");
     setNotes("");
     setShopFullAddress("");
-    
-    // Fetch shop address automatically
+    setDeliveryAddresses(null);
+
+    // Fetch delivery addresses
     try {
-      const shopAddress = await returnOrderService.getShopAddress();
-      if (shopAddress?.fullAddress) {
-        setShopFullAddress(shopAddress.fullAddress);
+      if (returnOrderCode) {
+        const addresses = await returnOrderService.getDeliveryAddresses(returnOrderCode);
+        setDeliveryAddresses(addresses.data || null);
+        // Only set shopFullAddress to the customer's full address (no receiver info)
+        if (addresses.data?.shopAddress?.fullAddress) {
+          setShopFullAddress(addresses.data.shopAddress.fullAddress);
+        }
       }
     } catch (error: any) {
-      console.error("Error fetching shop address:", error);
-      // Don't show error toast, just log it - user can still enter manually
+      console.error("Error fetching delivery addresses:", error);
+      // Fallback to old method if new API fails
+      try {
+        const shopAddress = await returnOrderService.getShopAddress();
+        if (shopAddress?.fullAddress) {
+          setShopFullAddress(shopAddress.fullAddress);
+        }
+      } catch (fallbackError: any) {
+        console.error("Error fetching shop address:", fallbackError);
+      }
     }
-    
+
     setDialogOpen(true);
   };
 
@@ -570,7 +544,7 @@ const AdminOrderOtherStatusDetail = () => {
       condition: 'GOOD' | 'DAMAGED' | '';
       notes: string;
     }> = {};
-    
+
     apiResponse.returnOrderDetails?.forEach((detail) => {
       initialDetails[detail.id] = {
         isReceived: false,
@@ -579,7 +553,7 @@ const AdminOrderOtherStatusDetail = () => {
         notes: ''
       };
     });
-    
+
     setReceiptDetails(initialDetails);
     setReceiptDetailsDialogOpen(true);
   };
@@ -658,32 +632,20 @@ const AdminOrderOtherStatusDetail = () => {
     }));
   };
 
-  const handleProcessRefundClick = async () => {
-    if (!apiResponse?.id) {
-      toast.error("Không tìm thấy ID đơn trả hàng");
-      return;
-    }
 
-    if (!window.confirm("Bạn có chắc chắn muốn xử lý hoàn tiền cho đơn hàng này?")) {
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await returnOrderService.processRefund(apiResponse.id.toString());
-      toast.success("Đã xử lý hoàn tiền thành công");
-      // Refetch data
-      queryClient.invalidateQueries({ queryKey: ["return-order-detail", returnOrderCode] });
-    } catch (error: any) {
-      console.error("Error processing refund:", error);
-      toast.error(error?.message || "Không thể xử lý hoàn tiền. Vui lòng thử lại.");
-    } finally {
-      setIsProcessing(false);
+  // Handle dialog confirm - show confirmation dialog first
+  const handleDialogConfirm = () => {
+    // For approve, reject, request-info - show confirmation dialog
+    if (dialogType === "approve" || dialogType === "reject" || dialogType === "request-info" ||
+      dialogType === "mark-receiving" || dialogType === "mark-refunding" || dialogType === "complete") {
+      setConfirmDialogOpen(true);
+    } else {
+      executeAction();
     }
   };
 
-  // Handle dialog confirm
-  const handleDialogConfirm = async () => {
+  // Execute the actual action
+  const executeAction = async () => {
     if (!apiResponse?.id) {
       toast.error("Không tìm thấy ID đơn trả hàng");
       return;
@@ -691,20 +653,20 @@ const AdminOrderOtherStatusDetail = () => {
 
     if (dialogType === "request-info" && !notes.trim()) {
       toast.error("Vui lòng nhập yêu cầu thông tin");
+      setConfirmDialogOpen(false);
       return;
     }
 
-    // Shop address is optional - backend will auto-retrieve if not provided
-
     setIsProcessing(true);
+    setConfirmDialogOpen(false);
     try {
       switch (dialogType) {
         case "approve":
-          await returnOrderService.approveReturnOrder(apiResponse.id.toString(), notes.trim() || undefined);
+          await returnOrderService.approveReturnOrder(apiResponse.id.toString(), notes.trim() || undefined, refundMethod);
           toast.success("Đã chấp nhận yêu cầu trả hàng thành công");
           break;
         case "reject":
-          await returnOrderService.rejectReturnOrder(apiResponse.id.toString(), notes.trim() || undefined);
+          await returnOrderService.rejectReturnOrder(apiResponse.id.toString(), notes.trim() || undefined, rejectReason || undefined);
           toast.success("Đã từ chối yêu cầu trả hàng");
           break;
         case "request-info":
@@ -713,18 +675,35 @@ const AdminOrderOtherStatusDetail = () => {
           break;
         case "mark-receiving":
           await returnOrderService.markAsReceiving(
-            apiResponse.id.toString(), 
-            notes.trim() || "", 
+            apiResponse.id.toString(),
+            "",
             shopFullAddress.trim() || "" // Optional - backend will auto-retrieve if empty
           );
-          // Show informational dialog after success
-          setInfoDialogOpen(true);
+          toast.success("Đã chuyển trạng thái thành công. Khách hàng sẽ nhận được thông báo về địa chỉ shop để gửi hàng hoàn trả.");
+          break;
+        case "mark-refunding":
+          await returnOrderService.markAsRefunding(
+            apiResponse.id.toString(),
+            {
+              refundMethod: 'BANKING', // Default to BANKING
+              notes: undefined,
+              refundDetails: refundDetails.length > 0 ? refundDetails : undefined
+            }
+          );
+          toast.success("Đã chuyển trạng thái sang 'Đang hoàn tiền' thành công");
+          break;
+        case "complete":
+          await returnOrderService.completeReturnOrder(apiResponse.id.toString());
+          toast.success("Đã hoàn thành đơn hàng thành công");
           break;
       }
 
       setDialogOpen(false);
       setNotes("");
       setShopFullAddress("");
+      setRefundMethod('BANKING');
+      setRejectReason("");
+      setRefundDetails([]);
       setDialogType(null);
 
       // Refetch data
@@ -742,15 +721,14 @@ const AdminOrderOtherStatusDetail = () => {
     switch (dialogType) {
       case "approve":
         return {
-          title: "Chấp nhận yêu cầu trả hàng",
+          title: "Xác nhận đơn trả hàng",
           description: "Bạn có chắc chắn muốn chấp nhận yêu cầu trả hàng này? Khách hàng sẽ nhận được thông báo và hướng dẫn gửi hàng hoàn trả.",
           placeholder: "Ghi chú (tùy chọn)...",
         };
       case "reject":
         return {
           title: "Từ chối yêu cầu trả hàng",
-          description: "Bạn có chắc chắn muốn từ chối yêu cầu trả hàng này? Vui lòng nhập lý do từ chối.",
-          placeholder: "Lý do từ chối (bắt buộc)...",
+          description: "Bạn có chắc chắn muốn từ chối yêu cầu trả hàng này?",
         };
       case "request-info":
         return {
@@ -760,15 +738,65 @@ const AdminOrderOtherStatusDetail = () => {
         };
       case "mark-receiving":
         return {
-          title: "Chuyển trạng thái đang chờ nhận hàng",
-          description: "Chuyển trạng thái đơn trả hàng từ 'Đã xác nhận' sang 'Đang chờ nhận hàng'. Địa chỉ shop sẽ được tự động lấy từ hệ thống. Bạn có thể chỉnh sửa nếu cần.",
-          placeholder: "Ghi chú (tùy chọn)...",
+          title: "Tạo đơn vận chuyển để nhận hàng hoàn trả",
+          description: "Bạn có chắc chắn muốn tạo đơn vận chuyển để nhận hàng hoàn trả cho đơn trả hàng này?",
+        };
+      case "mark-refunding":
+        return {
+          title: "Chuyển sang trạng thái đang hoàn tiền",
+          description: "Chuyển trạng thái đơn trả hàng từ 'Đã nhận hàng' sang 'Đang hoàn tiền'. Hệ thống sẽ tự động tính toán tổng tiền cần hoàn dựa trên các sản phẩm đã nhận.",
+        };
+      case "complete":
+        return {
+          title: "Hoàn thành đơn hàng",
+          description: "Bạn có chắc chắn muốn hoàn thành đơn hàng trả hàng này? Trạng thái sẽ chuyển sang Completed và quy trình trả hàng sẽ kết thúc.",
         };
       default:
         return {
           title: "",
           description: "",
           placeholder: "",
+        };
+    }
+  };
+
+  // Get confirmation dialog content
+  const getConfirmDialogContent = () => {
+    switch (dialogType) {
+      case "approve":
+        return {
+          title: "Xác nhận chấp nhận yêu cầu",
+          description: "Bạn có chắc chắn muốn chấp nhận yêu cầu trả hàng này? Khách hàng sẽ nhận được thông báo và hướng dẫn gửi hàng hoàn trả.",
+        };
+      case "reject":
+        return {
+          title: "Xác nhận từ chối yêu cầu",
+          description: "Bạn có chắc chắn muốn từ chối yêu cầu trả hàng này?",
+        };
+      case "request-info":
+        return {
+          title: "Xác nhận yêu cầu thêm thông tin",
+          description: "Bạn có chắc chắn muốn gửi yêu cầu thêm thông tin đến khách hàng?",
+        };
+      case "mark-receiving":
+        return {
+          title: "Xác nhận chuyển trạng thái",
+          description: "Bạn có chắc chắn muốn chuyển trạng thái đơn trả hàng sang 'Đang chờ nhận hàng'?",
+        };
+      case "mark-refunding":
+        return {
+          title: "Xác nhận chuyển sang hoàn tiền",
+          description: "Bạn có chắc chắn muốn chuyển trạng thái đơn trả hàng sang 'Đang hoàn tiền'?",
+        };
+      case "complete":
+        return {
+          title: "Xác nhận hoàn thành đơn hàng",
+          description: "Bạn có chắc chắn muốn hoàn thành đơn hàng trả hàng này?",
+        };
+      default:
+        return {
+          title: "",
+          description: "",
         };
     }
   };
@@ -813,8 +841,6 @@ const AdminOrderOtherStatusDetail = () => {
       </PageContainer>
     );
   }
-
-  const preferredResolution = order.buyerOptions[0] || "Trả hàng & hoàn tiền";
 
   return (
     <PageContainer>
@@ -1136,18 +1162,7 @@ const AdminOrderOtherStatusDetail = () => {
                   </h3>
 
                   <div className="space-y-1.5">
-                    {/* Condition Note */}
-                    <div className="flex items-center justify-between py-2 px-2 rounded-md transition-colors duration-150 bg-white/60 hover:bg-white border border-transparent hover:border-gray-200">
-                      <div className="flex items-center gap-3">
-                        <AlertTriangle className="h-[16px] w-[16px] text-[#1976d2]" />
-                        <span className="font-montserrat font-medium text-[13px] text-gray-700">
-                          Tình trạng sản phẩm
-                        </span>
-                      </div>
-                      <span className="font-montserrat font-semibold text-sm text-blue-600">
-                        Cần kiểm tra khi nhận hàng
-                      </span>
-                    </div>
+                    
 
                     {/* Return Method */}
                     <div className="flex items-center justify-between py-2 px-2 rounded-md transition-colors duration-150 bg-white/60 hover:bg-white border border-transparent hover:border-gray-200">
@@ -1431,18 +1446,6 @@ const AdminOrderOtherStatusDetail = () => {
                       );
                     })}
                   </div>
-                  {/* Debug info in development */}
-                  {process.env.NODE_ENV === 'development' && apiResponse?.images && (
-                    <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600 space-y-1 max-w-full overflow-auto">
-                      <p><strong>Original paths:</strong> {JSON.stringify(apiResponse.images)}</p>
-                      <p><strong>Processed URLs:</strong></p>
-                      <ul className="list-disc list-inside ml-2 break-all">
-                        {processedImages.map((url, idx) => (
-                          <li key={idx} className="break-all">{url}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -1458,75 +1461,6 @@ const AdminOrderOtherStatusDetail = () => {
                 </p>
                 <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4] break-words">
                   {order.resolutionNote || "Không có thông tin"}
-                </p>
-              </div>
-            </div>
-          </div>
-          {/* Shipping Status Section */}
-          <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0 mb-6">
-            {/* Header */}
-            <div className="flex items-center gap-[8px] w-full">
-              <div className="w-[4px] h-[20px] bg-[#17a2b8] rounded-[2px]"></div>
-              <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
-                Thông tin vận chuyển
-              </h3>
-            </div>
-
-            {/* Forward Shipping */}
-            <div className="flex gap-[14px] items-start w-full">
-              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#d1ecf1] rounded-[8px] shrink-0">
-                <Truck className="h-[20px] w-[20px] text-[#0c5460]" />
-              </div>
-              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
-                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
-                  Trạng thái giao hàng
-                </p>
-                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
-                  {order.forwardShippingStatus || "Chưa có thông tin"}
-                </p>
-                {(order.shippingOrderCode || order.shippingProvider) && (
-                  <p className="font-montserrat font-medium text-[11px] text-[#6c757d] leading-[1.4]">
-                    {order.shippingOrderCode && `Mã vận đơn: ${order.shippingOrderCode}`}
-                    {order.shippingOrderCode && order.shippingProvider && " • "}
-                    {order.shippingProvider && `Đơn vị: ${order.shippingProvider}`}
-                  </p>
-                )}
-                {!order.shippingOrderCode && !order.shippingProvider && (
-                  <p className="font-montserrat font-medium text-[11px] text-[#6c757d] leading-[1.4]">
-                    {order.sourceNote || "Thông tin vận chuyển đang cập nhật"}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Return Shipping */}
-            <div className="flex gap-[14px] items-start w-full">
-              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#fff3cd] rounded-[8px] shrink-0">
-                <RotateCcw className="h-[20px] w-[20px] text-[#856404]" />
-              </div>
-              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
-                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
-                  Trạng thái trả hàng
-                </p>
-                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
-                  {order?.returnShippingStatus && order.returnShippingStatus.trim() !== ""
-                    ? order.returnShippingStatus
-                    : "Chưa có thông tin"}
-                </p>
-              </div>
-            </div>
-
-            {/* Preferred Resolution */}
-            <div className="flex gap-[14px] items-start w-full">
-              <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f8d7da] rounded-[8px] shrink-0">
-                <RefreshCw className="h-[20px] w-[20px] text-[#721c24]" />
-              </div>
-              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
-                <p className="font-montserrat font-semibold text-[14px] text-[#272424] leading-[1.4]">
-                  Phương án cho người mua
-                </p>
-                <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
-                  {preferredResolution}
                 </p>
               </div>
             </div>
@@ -1561,7 +1495,7 @@ const AdminOrderOtherStatusDetail = () => {
                   Phương thức thanh toán gốc
                 </p>
                 <p className="font-montserrat font-medium text-[12px] text-[#737373] leading-[1.4]">
-                  {order.paymentMethod}
+                  {mapPaymentMethodToLabel(order.paymentMethod)}
                 </p>
               </div>
             </div>
@@ -1696,7 +1630,7 @@ const AdminOrderOtherStatusDetail = () => {
               <div className="flex items-center gap-[8px] w-full">
                 <div className="w-[4px] h-[20px] bg-[#17a2b8] rounded-[2px]"></div>
                 <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
-                  Chuyển trạng thái đang chờ nhận hàng
+                  Tạo đơn vận chuyển để nhận hàng hoàn trả
                 </h3>
               </div>
 
@@ -1708,7 +1642,7 @@ const AdminOrderOtherStatusDetail = () => {
                   className="flex items-center gap-2 rounded-[12px] bg-[#17a2b8] hover:bg-[#138496] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
                   <Truck size={18} />
-                  {isProcessing ? "Đang xử lý..." : "Chuyển trạng thái đang chờ nhận hàng"}
+                  {isProcessing ? "Đang xử lý..." : "Tạo đơn vận chuyển"}
                 </button>
               </div>
 
@@ -1720,8 +1654,8 @@ const AdminOrderOtherStatusDetail = () => {
             </div>
           )}
 
-          {/* Show confirm receipt button when status is RECEIVING or RETURNING */}
-          {(order.statusKey === "RETURNING" || (apiResponse?.status && apiResponse.status.toUpperCase() === "RECEIVING")) && (
+          {/* Show confirm receipt button when status is RECEIVING */}
+          {apiResponse?.status && apiResponse.status.toUpperCase() === "RECEIVING" && (
             <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
               {/* Header */}
               <div className="flex items-center gap-[8px] w-full">
@@ -1741,24 +1675,80 @@ const AdminOrderOtherStatusDetail = () => {
                   <Package size={18} />
                   {isProcessing ? "Đang xử lý..." : "Xác nhận đã nhận hàng"}
                 </button>
-
-                {/* Process Refund Button - Only show if status is RECEIVED or after receipt confirmed */}
-                {apiResponse?.status && (apiResponse.status.toUpperCase() === "RECEIVED" || apiResponse.status.toUpperCase() === "REFUNDED") && (
-                  <button
-                    onClick={handleProcessRefundClick}
-                    disabled={isProcessing}
-                    className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
-                  >
-                    <CreditCard size={18} />
-                    {isProcessing ? "Đang xử lý..." : "Xử lý hoàn tiền"}
-                  </button>
-                )}
               </div>
 
               <div className="w-full h-px bg-[#e7e7e7]"></div>
 
               <p className="text-[12px] text-[#737373] leading-[1.4]">
                 <strong>Quy trình:</strong> Xác nhận đã nhận hàng hoàn trả → Kiểm tra tình trạng hàng hóa → Xử lý hoàn tiền cho khách hàng.
+              </p>
+            </div>
+          )}
+
+          {/* Show mark as refunding button when status is RECEIVED */}
+          {shouldShowMarkAsRefundingButton && (
+            <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
+              {/* Header */}
+              <div className="flex items-center gap-[8px] w-full">
+                <div className="w-[4px] h-[20px] bg-[#28a745] rounded-[2px]"></div>
+                <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                  Chuyển sang hoàn tiền
+                </h3>
+              </div>
+
+              <div className="flex flex-wrap gap-3 items-center justify-start w-full">
+                {/* Mark as Refunding Button */}
+                <button
+                  onClick={() => {
+                    setDialogType("mark-refunding");
+                    setDialogOpen(true);
+                  }}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <CreditCard size={18} />
+                  {isProcessing ? "Đang xử lý..." : "Chuyển sang hoàn tiền"}
+                </button>
+              </div>
+
+              <div className="w-full h-px bg-[#e7e7e7]"></div>
+
+              <p className="text-[12px] text-[#737373] leading-[1.4]">
+                <strong>Lưu ý:</strong> Chuyển trạng thái đơn trả hàng từ 'Đã nhận hàng' sang 'Đang hoàn tiền'. Hệ thống sẽ tự động tính toán tổng tiền cần hoàn dựa trên các sản phẩm đã nhận và tình trạng sản phẩm.
+              </p>
+            </div>
+          )}
+
+          {/* Show complete button when status is REFUNDING */}
+          {shouldShowCompleteButton && (
+            <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
+              {/* Header */}
+              <div className="flex items-center gap-[8px] w-full">
+                <div className="w-[4px] h-[20px] bg-[#0f62c0] rounded-[2px]"></div>
+                <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                  Hoàn thành đơn hàng
+                </h3>
+              </div>
+
+              <div className="flex flex-wrap gap-3 items-center justify-start w-full">
+                {/* Complete Button */}
+                <button
+                  onClick={() => {
+                    setDialogType("complete");
+                    setDialogOpen(true);
+                  }}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#0f62c0] hover:bg-[#0056b3] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <CheckCircle size={18} />
+                  {isProcessing ? "Đang xử lý..." : "Hoàn thành đơn hàng"}
+                </button>
+              </div>
+
+              <div className="w-full h-px bg-[#e7e7e7]"></div>
+
+              <p className="text-[12px] text-[#737373] leading-[1.4]">
+                <strong>Lưu ý:</strong> Hành động này sẽ chuyển trạng thái đơn hàng sang "Đã hoàn thành" (Completed). Quá trình trả hàng và hoàn tiền đã được xử lý xong.
               </p>
             </div>
           )}
@@ -1776,32 +1766,135 @@ const AdminOrderOtherStatusDetail = () => {
           </AlertDialogHeader>
 
           <div className="space-y-4 py-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {dialogType === "reject" || dialogType === "request-info" ? "Ghi chú *" : "Ghi chú (tùy chọn)"}
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={getDialogContent().placeholder}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                required={dialogType === "reject" || dialogType === "request-info"}
-              />
-            </div>
-            {dialogType === "mark-receiving" && (
+            {/* Only show notes for approve dialog */}
+            {dialogType === "approve" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Địa chỉ shop đầy đủ (tùy chọn)
-                  <span className="text-xs text-gray-500 ml-2">(Hệ thống sẽ tự động lấy nếu để trống)</span>
+                  Ghi chú (tùy chọn)
                 </label>
                 <textarea
-                  value={shopFullAddress}
-                  onChange={(e) => setShopFullAddress(e.target.value)}
-                  placeholder="Để trống để tự động lấy địa chỉ shop từ hệ thống, hoặc nhập địa chỉ shop đầy đủ (số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố)..."
-                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={getDialogContent().placeholder}
+                  rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
+              </div>
+            )}
+            {/* Show notes for request-info dialog */}
+            {dialogType === "request-info" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Yêu cầu thông tin <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={getDialogContent().placeholder}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  required
+                />
+              </div>
+            )}
+            {/* Show reject reason dropdown for reject dialog */}
+            {dialogType === "reject" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do từ chối <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">-- Chọn lý do từ chối --</option>
+                  <option value="EXCEEDED_RETURN_TIME">Yêu cầu trả hàng đã quá thời gian cho phép</option>
+                  <option value="PRODUCT_USED_OR_DAMAGED">Sản phẩm đã qua sử dụng hoặc bị hư hỏng</option>
+                  <option value="MISSING_ORIGINAL_PACKAGING">Thiếu bao bì, tem niêm phong hoặc phụ kiện đi kèm</option>
+                  <option value="INVALID_RETURN_REASON">Lý do trả hàng không hợp lệ theo chính sách</option>
+                  <option value="QUANTITY_NOT_MATCH">Số lượng trả lại không khớp với đơn hàng</option>
+                  <option value="NON_RETURNABLE_PRODUCT">Sản phẩm không thuộc danh mục được hoàn trả</option>
+                  <option value="EVIDENCE_NOT_CLEAR">Hình ảnh/chứng cứ cung cấp không rõ ràng hoặc không hợp lệ</option>
+                  <option value="PRODUCT_NOT_RECEIVED_BY_WAREHOUSE">Kho chưa nhận được hàng hoàn</option>
+                  <option value="FRAUD_SUSPECTED">Phát hiện dấu hiệu gian lận trong yêu cầu hoàn trả</option>
+                  <option value="OTHER">Lý do khác</option>
+                </select>
+              </div>
+            )}
+            {dialogType === "mark-receiving" && (
+              <div className="space-y-4">
+                {/* Shop Address Display */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Địa chỉ lấy hàng (Khách hàng)
+                  </label>
+                  {deliveryAddresses?.customerAddress ? (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-gray-800 font-medium">{deliveryAddresses.customerAddress.fullAddress}</p>
+                      {deliveryAddresses.customerAddress.receiverName && (
+                        <p className="text-xs text-gray-600 mt-1">Người nhận: {deliveryAddresses.customerAddress.receiverName}</p>
+                      )}
+                      {deliveryAddresses.customerAddress.receiverPhone && (
+                        <p className="text-xs text-gray-600">SĐT: {deliveryAddresses.customerAddress.receiverPhone}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                      <p className="text-sm text-gray-500">Đang tải địa chỉ khách hàng...</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Customer Address Display */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Địa chỉ giao hàng (Shop)
+                  </label>
+                  {deliveryAddresses?.shopAddress ? (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-gray-800 font-medium">{deliveryAddresses.shopAddress.fullAddress}</p>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                      <p className="text-sm text-gray-500">Đang tải địa chỉ shop...</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {dialogType === "approve" && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phương thức hoàn tiền <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="refundMethod-approve"
+                        value="BANKING"
+                        checked={refundMethod === 'BANKING'}
+                        onChange={(e) => setRefundMethod(e.target.value as 'CASH' | 'BANKING')}
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Chuyển khoản</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="refundMethod-approve"
+                        value="CASH"
+                        checked={refundMethod === 'CASH'}
+                        onChange={(e) => setRefundMethod(e.target.value as 'CASH' | 'BANKING')}
+                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Tiền mặt</span>
+                    </label>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -1812,6 +1905,10 @@ const AdminOrderOtherStatusDetail = () => {
                 setDialogOpen(false);
                 setNotes("");
                 setShopFullAddress("");
+                setDeliveryAddresses(null);
+                setRefundMethod('BANKING');
+                setRejectReason("");
+                setRefundDetails([]);
                 setDialogType(null);
               }}
               disabled={isProcessing}
@@ -1822,7 +1919,9 @@ const AdminOrderOtherStatusDetail = () => {
               onClick={handleDialogConfirm}
               disabled={
                 isProcessing ||
-                (dialogType === "request-info" && !notes.trim())
+                (dialogType === "request-info" && !notes.trim()) ||
+                (dialogType === "approve" && !refundMethod) ||
+                (dialogType === "reject" && !rejectReason)
               }
               className={
                 dialogType === "approve"
@@ -1831,7 +1930,45 @@ const AdminOrderOtherStatusDetail = () => {
                     ? "bg-[#dc3545] hover:bg-[#c82333]"
                     : dialogType === "mark-receiving"
                       ? "bg-[#17a2b8] hover:bg-[#138496]"
-                      : "bg-[#ffc107] hover:bg-[#e0a800] text-[#856404]"
+                      : dialogType === "mark-refunding"
+                        ? "bg-[#fd7e14] hover:bg-[#e8690a]"
+                        : "bg-[#ffc107] hover:bg-[#e0a800] text-[#856404]"
+              }
+            >
+              {isProcessing ? "Đang xử lý..." : "Xác nhận"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation Alert Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{getConfirmDialogContent().title}</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              {getConfirmDialogContent().description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)} disabled={isProcessing}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeAction}
+              disabled={isProcessing}
+              className={
+                dialogType === "approve"
+                  ? "bg-[#28a745] hover:bg-[#218838]"
+                  : dialogType === "reject"
+                    ? "bg-[#dc3545] hover:bg-[#c82333]"
+                    : dialogType === "mark-receiving"
+                      ? "bg-[#17a2b8] hover:bg-[#138496]"
+                      : dialogType === "mark-refunding"
+                        ? "bg-[#fd7e14] hover:bg-[#e8690a]"
+                        : dialogType === "complete"
+                          ? "bg-[#0f62c0] hover:bg-[#0056b3]"
+                          : "bg-[#ffc107] hover:bg-[#e0a800] text-[#856404]"
               }
             >
               {isProcessing ? "Đang xử lý..." : "Xác nhận"}
@@ -1841,232 +1978,263 @@ const AdminOrderOtherStatusDetail = () => {
       </AlertDialog>
 
       {/* Informational Alert Dialog */}
-      <AlertDialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Chuyển trạng thái thành công</AlertDialogTitle>
-            <AlertDialogDescription className="text-left">
-              Đơn trả hàng đã được chuyển trạng thái từ "Đã xác nhận" sang "Đang chờ nhận hàng" thành công. 
-              Khách hàng sẽ nhận được thông báo về địa chỉ shop để gửi hàng hoàn trả.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setInfoDialogOpen(false)}>
-              Đã hiểu
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
-      {/* Receipt Details Dialog */}
-      <AlertDialog open={receiptDetailsDialogOpen} onOpenChange={setReceiptDetailsDialogOpen}>
-        <AlertDialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận nhận hàng hoàn trả - Chi tiết</AlertDialogTitle>
-            <AlertDialogDescription className="text-left">
-              Vui lòng chọn các sản phẩm đã nhận được và điền thông tin chi tiết cho từng sản phẩm.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <div className="space-y-4 py-4">
-            {apiResponse?.returnOrderDetails && apiResponse.returnOrderDetails.length > 0 ? (
-              <div className="space-y-4">
-                {apiResponse.returnOrderDetails.map((detail) => {
-                  const receiptDetail = receiptDetails[detail.id] || {
-                    isReceived: false,
-                    quantityReceived: 0,
-                    condition: '' as const,
-                    notes: ''
-                  };
-
-                  // Parse variant attributes
-                  let variant: string | undefined;
-                  if (detail.snapshotVariantAttributes) {
-                    try {
-                      const attrs = typeof detail.snapshotVariantAttributes === 'string'
-                        ? JSON.parse(detail.snapshotVariantAttributes)
-                        : detail.snapshotVariantAttributes;
-                      if (Array.isArray(attrs)) {
-                        variant = attrs.map((attr: any) => {
-                          if (attr?.name && attr?.value) {
-                            return `${attr.name}: ${attr.value}`;
-                          }
-                          return attr?.value || attr?.name || null;
-                        }).filter(Boolean).join(", ");
-                      }
-                    } catch (e) {
-                      console.error("Error parsing variant attributes:", e);
-                    }
-                  }
-
-                  const productImage = detail.snapshotProductImageUrl ? getImageUrl(detail.snapshotProductImageUrl) : undefined;
-
-                  return (
-                    <div
-                      key={detail.id}
-                      className={`border-2 rounded-lg p-4 transition-all ${
-                        receiptDetail.isReceived
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 bg-white'
-                      }`}
-                    >
-                      <div className="flex gap-4">
-                        {/* Product Image */}
-                        <div className="flex-shrink-0">
-                          <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                            {productImage ? (
-                              <img
-                                src={productImage}
-                                alt={detail.snapshotProductName || "Sản phẩm"}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <Package className="w-10 h-10 text-gray-400 m-auto mt-5" />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Product Info and Form */}
-                        <div className="flex-1 space-y-3">
-                          {/* Product Name and Variant */}
-                          <div>
-                            <h4 className="font-semibold text-gray-900">
-                              {detail.snapshotProductName || "Sản phẩm không tên"}
-                            </h4>
-                            {variant && (
-                              <p className="text-sm text-gray-600">Phân loại: {variant}</p>
-                            )}
-                            {detail.snapshotProductSku && (
-                              <p className="text-xs text-gray-500">SKU: {detail.snapshotProductSku}</p>
-                            )}
-                            <p className="text-sm text-gray-700 mt-1">
-                              Số lượng yêu cầu: <span className="font-semibold">{detail.quantityRequested || 0}</span>
-                            </p>
-                          </div>
-
-                          {/* Checkbox: Is Received */}
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={`received-${detail.id}`}
-                              checked={receiptDetail.isReceived}
-                              onChange={(e) => handleReceiptDetailChange(detail.id, 'isReceived', e.target.checked)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <label
-                              htmlFor={`received-${detail.id}`}
-                              className="text-sm font-medium text-gray-700 cursor-pointer"
-                            >
-                              Đã nhận được sản phẩm này
-                            </label>
-                          </div>
-
-                          {/* Form fields (only show if isReceived is true) */}
-                          {receiptDetail.isReceived && (
-                            <div className="space-y-3 pl-6 border-l-2 border-blue-300 bg-blue-50/50 p-3 rounded">
-                              {/* Quantity Received */}
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Số lượng nhận được <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={detail.quantityRequested || 0}
-                                  value={receiptDetail.quantityReceived || ''}
-                                  onChange={(e) => {
-                                    const value = parseInt(e.target.value) || 0;
-                                    handleReceiptDetailChange(detail.id, 'quantityReceived', value);
-                                  }}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  required
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Tối đa: {detail.quantityRequested || 0}
-                                </p>
-                              </div>
-
-                              {/* Condition */}
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Tình trạng sản phẩm <span className="text-red-500">*</span>
-                                </label>
-                                <div className="flex gap-4">
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      name={`condition-${detail.id}`}
-                                      value="GOOD"
-                                      checked={receiptDetail.condition === 'GOOD'}
-                                      onChange={(e) => handleReceiptDetailChange(detail.id, 'condition', e.target.value)}
-                                      className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
-                                      required
-                                    />
-                                    <span className="text-sm text-gray-700">Tốt</span>
-                                  </label>
-                                  <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                      type="radio"
-                                      name={`condition-${detail.id}`}
-                                      value="DAMAGED"
-                                      checked={receiptDetail.condition === 'DAMAGED'}
-                                      onChange={(e) => handleReceiptDetailChange(detail.id, 'condition', e.target.value)}
-                                      className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
-                                      required
-                                    />
-                                    <span className="text-sm text-gray-700">Hỏng</span>
-                                  </label>
-                                </div>
-                              </div>
-
-                              {/* Notes */}
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Ghi chú (tùy chọn)
-                                </label>
-                                <textarea
-                                  value={receiptDetail.notes || ''}
-                                  onChange={(e) => handleReceiptDetailChange(detail.id, 'notes', e.target.value)}
-                                  placeholder="Nhập ghi chú về tình trạng sản phẩm..."
-                                  rows={2}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                Không có sản phẩm nào trong đơn trả hàng
-              </div>
-            )}
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
+      {/* Custom Receipt Details Modal */}
+      {receiptDetailsDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+            onClick={() => {
+              if (!isProcessing) {
                 setReceiptDetailsDialogOpen(false);
                 setReceiptDetails({});
-              }}
-              disabled={isProcessing}
-            >
-              Hủy
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleReceiptDetailsSubmit}
-              disabled={isProcessing}
-              className="bg-[#17a2b8] hover:bg-[#138496]"
-            >
-              {isProcessing ? "Đang xử lý..." : "Xác nhận nhận hàng"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              }
+            }}
+          />
+
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Xác nhận nhận hàng hoàn trả</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Vui lòng kiểm tra và điền thông tin chi tiết về tình trạng sản phẩm đã nhận được
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (!isProcessing) {
+                    setReceiptDetailsDialogOpen(false);
+                    setReceiptDetails({});
+                  }
+                }}
+                disabled={isProcessing}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {apiResponse?.returnOrderDetails && apiResponse.returnOrderDetails.length > 0 ? (
+                <div className="space-y-4">
+                  {apiResponse.returnOrderDetails.map((detail) => {
+                    const receiptDetail = receiptDetails[detail.id] || {
+                      isReceived: false,
+                      quantityReceived: 0,
+                      condition: '' as const,
+                      notes: ''
+                    };
+
+                    // Parse variant attributes
+                    let variant: string | undefined;
+                    if (detail.snapshotVariantAttributes) {
+                      try {
+                        const attrs = typeof detail.snapshotVariantAttributes === 'string'
+                          ? JSON.parse(detail.snapshotVariantAttributes)
+                          : detail.snapshotVariantAttributes;
+                        if (Array.isArray(attrs)) {
+                          variant = attrs.map((attr: any) => {
+                            if (attr?.name && attr?.value) {
+                              return `${attr.name}: ${attr.value}`;
+                            }
+                            return attr?.value || attr?.name || null;
+                          }).filter(Boolean).join(", ");
+                        }
+                      } catch (e) {
+                        console.error("Error parsing variant attributes:", e);
+                      }
+                    }
+
+                    const productImage = detail.snapshotProductImageUrl ? getImageUrl(detail.snapshotProductImageUrl) : undefined;
+
+                    return (
+                      <div
+                        key={detail.id}
+                        className={`border-2 rounded-xl p-4 transition-all shadow-sm ${receiptDetail.isReceived
+                          ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                      >
+                        <div className="flex gap-4">
+                          {/* Product Image */}
+                          <div className="flex-shrink-0">
+                            <div className="w-20 h-20 bg-white rounded-lg overflow-hidden border-2 border-gray-200 shadow-sm">
+                              {productImage ? (
+                                <img
+                                  src={productImage}
+                                  alt={detail.snapshotProductName || "Sản phẩm"}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-10 h-10 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Product Info and Form */}
+                          <div className="flex-1 space-y-3 min-w-0">
+                            {/* Product Name and Info - Compact */}
+                            <div className="flex items-start justify-between gap-3 pb-2 border-b border-gray-200">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-base text-gray-900 mb-1 truncate">
+                                  {detail.snapshotProductName || "Sản phẩm không tên"}
+                                </h4>
+                                <div className="flex flex-wrap gap-2 items-center text-xs text-gray-600">
+                                  {variant && (
+                                    <span className="px-2 py-0.5 bg-gray-100 rounded">
+                                      <span className="font-medium">PL:</span> {variant}
+                                    </span>
+                                  )}
+                                  {detail.snapshotProductSku && (
+                                    <span className="px-2 py-0.5 bg-gray-100 rounded">
+                                      <span className="font-medium">SKU:</span> {detail.snapshotProductSku}
+                                    </span>
+                                  )}
+                                  <span className="px-2 py-0.5 bg-blue-100 rounded text-blue-700 font-semibold">
+                                    SL: {detail.quantityRequested || 0}
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Checkbox: Is Received - Moved to top right */}
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <input
+                                  type="checkbox"
+                                  id={`received-${detail.id}`}
+                                  checked={receiptDetail.isReceived}
+                                  onChange={(e) => handleReceiptDetailChange(detail.id, 'isReceived', e.target.checked)}
+                                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                                />
+                                <label
+                                  htmlFor={`received-${detail.id}`}
+                                  className="text-sm font-semibold text-gray-700 cursor-pointer whitespace-nowrap"
+                                >
+                                  Đã nhận
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Form fields (only show if isReceived is true) */}
+                            {receiptDetail.isReceived && (
+                              <div className="space-y-3 pl-4 border-l-4 border-blue-400 bg-white/80 p-3 rounded-lg">
+                                {/* Quantity and Condition in Grid */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  {/* Quantity Received */}
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                      Số lượng nhận được <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max={detail.quantityRequested || 0}
+                                        value={receiptDetail.quantityReceived || ''}
+                                        onChange={(e) => {
+                                          const value = parseInt(e.target.value) || 0;
+                                          handleReceiptDetailChange(detail.id, 'quantityReceived', value);
+                                        }}
+                                        className="w-20 px-3 py-1.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-sm"
+                                        required
+                                      />
+                                      <span className="text-xs text-gray-500">
+                                        / {detail.quantityRequested || 0}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Condition */}
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                      Tình trạng <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="flex gap-2">
+                                      <label className="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 border-2 border-green-200 rounded-lg bg-green-50 hover:bg-green-100 transition-colors flex-1 justify-center">
+                                        <input
+                                          type="radio"
+                                          name={`condition-${detail.id}`}
+                                          value="GOOD"
+                                          checked={receiptDetail.condition === 'GOOD'}
+                                          onChange={(e) => handleReceiptDetailChange(detail.id, 'condition', e.target.value)}
+                                          className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500 cursor-pointer"
+                                          required
+                                        />
+                                        <span className="text-xs font-semibold text-green-700">Tốt</span>
+                                      </label>
+                                      <label className="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 border-2 border-red-200 rounded-lg bg-red-50 hover:bg-red-100 transition-colors flex-1 justify-center">
+                                        <input
+                                          type="radio"
+                                          name={`condition-${detail.id}`}
+                                          value="DAMAGED"
+                                          checked={receiptDetail.condition === 'DAMAGED'}
+                                          onChange={(e) => handleReceiptDetailChange(detail.id, 'condition', e.target.value)}
+                                          className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500 cursor-pointer"
+                                          required
+                                        />
+                                        <span className="text-xs font-semibold text-red-700">Hỏng</span>
+                                      </label>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Notes - Full width */}
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                    Lý do hoàn / Ghi chú
+                                  </label>
+                                  <textarea
+                                    value={receiptDetail.notes || ''}
+                                    onChange={(e) => handleReceiptDetailChange(detail.id, 'notes', e.target.value)}
+                                    placeholder="Nhập lý do hoàn sản phẩm hoặc ghi chú..."
+                                    rows={2}
+                                    className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  Không có sản phẩm nào trong đơn trả hàng
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  if (!isProcessing) {
+                    setReceiptDetailsDialogOpen(false);
+                    setReceiptDetails({});
+                  }
+                }}
+                disabled={isProcessing}
+                className="px-6 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleReceiptDetailsSubmit}
+                disabled={isProcessing}
+                className="px-6 py-2.5 rounded-lg bg-[#17a2b8] hover:bg-[#138496] text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? "Đang xử lý..." : "Xác nhận nhận hàng"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 };

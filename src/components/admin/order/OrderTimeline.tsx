@@ -39,6 +39,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({
         };
       case "RETURNED":
       case "REFUND":
+      case "REFUNDING":
       case "REFUNDED":
       case "COMPLETED":
         return {
@@ -66,7 +67,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({
   };
 
   const colorScheme = getTimelineColorScheme();
-  
+
   return (
     <div
       className={`bg-white rounded-lg border border-gray-200 p-4 sm:p-6 w-full ${className}`}
@@ -113,7 +114,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({
                 <div
                   className={`text-xs sm:text-sm font-medium leading-snug break-words max-w-full ${step.completed ? colorScheme.completedText : "text-gray-500"
                     }`}
-                  style={{ 
+                  style={{
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
                     hyphens: 'auto'

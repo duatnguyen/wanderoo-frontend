@@ -324,7 +324,7 @@ export const adminNavSections: AdminNavSection[] = [
             activeMatch: "/admin/orders/website",
           },
           {
-            label: "Trả hàng/Hoàn tiền/Hủy",
+            label: "Trả hàng/Hoàn tiền",
             path: "/admin/orders/otherstatus",
             icon: icons.orders,
             activeMatch: "/admin/orders/otherstatus",
