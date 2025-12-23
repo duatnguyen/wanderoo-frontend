@@ -33,6 +33,7 @@ type CartItemDisplay = {
   websiteSoldQuantity?: number; // For stock status
   availableVariants?: ProductDetailVariant[]; // Available variants
   cartId?: number; // For variant change
+  discountValue?: string | null; // Discount value for badge display
 };
 
 interface CartItemRowProps {
@@ -60,6 +61,53 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
 
   // Disable quantity controls if out of stock or quantity exceeds stock
   const isQuantityDisabled = isOutOfStock || isQuantityExceedsStock;
+
+  // Format discount value for display
+  const formatDiscountValue = (discountValue: string | null | undefined): string | undefined => {
+    if (!discountValue) return undefined;
+    const discountStr = discountValue.toString().trim();
+
+    // Check if it's a percentage (contains "%")
+    if (discountStr.includes("%")) {
+      // For percentage, just ensure it starts with "-"
+      if (discountStr.startsWith("-")) {
+        return discountStr;
+      }
+      return `-${discountStr}`;
+    }
+
+    // For VND amount (contains "đ" or "Đ")
+    if (discountStr.includes("đ") || discountStr.includes("Đ")) {
+      // Extract ALL digits (remove all non-digit characters except minus sign)
+      const cleaned = discountStr.replace(/[^\d-]/g, "");
+      const numberMatch = cleaned.match(/(-?\d+)/);
+      if (numberMatch) {
+        const numberStr = numberMatch[1];
+        const number = Math.abs(parseInt(numberStr, 10)); // Get absolute value
+        // Format number with thousand separator (.)
+        const formattedNumber = number.toLocaleString("vi-VN");
+        // Get the currency symbol (đ or Đ) - preserve original case
+        const currencySymbol = discountStr.includes("Đ") ? "Đ" : "đ";
+        return `-${formattedNumber}${currencySymbol}`;
+      }
+    }
+
+    // If it's just a number without currency, assume it's percentage
+    const numberMatch = discountStr.match(/(-?\d+)/);
+    if (numberMatch) {
+      const hasMinus = discountStr.startsWith("-");
+      return hasMinus ? `${discountStr}%` : `-${discountStr}%`;
+    }
+
+    // Fallback: ensure it starts with "-"
+    if (discountStr.startsWith("-")) {
+      return discountStr;
+    }
+    return `-${discountStr}`;
+  };
+
+  // Format discount value for display
+  const displayDiscount = item.discountValue ? formatDiscountValue(item.discountValue) : undefined;
 
   // Xác định biến thể hiện tại dựa trên productDetailId hoặc id của variant
   const selectedVariant = item.availableVariants?.find((variant) => {
@@ -91,7 +139,7 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
             disabled={isCheckboxDisabled}
           />
         </div>
-        <div className="w-16 h-16 rounded border border-gray-200 bg-gray-50 flex-shrink-0 overflow-hidden">
+        <div className="w-16 h-16 rounded border border-gray-200 bg-gray-50 flex-shrink-0 overflow-hidden relative">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
@@ -101,6 +149,21 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs font-medium">
               No Image
+            </div>
+          )}
+          {/* Discount badge - Top for both PERCENT and FIXED */}
+          {displayDiscount && (
+            <div className="absolute right-0 top-0 bg-[#ffe8a3] text-red-600 font-semibold text-[10px] rounded-bl-[4px] px-1 py-0.5 flex items-center gap-0.5 z-10">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="text-red-600"
+              >
+                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor" />
+              </svg>
+              {displayDiscount}
             </div>
           )}
         </div>
