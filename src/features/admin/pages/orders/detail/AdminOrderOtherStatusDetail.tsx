@@ -300,9 +300,11 @@ const AdminOrderOtherStatusDetail = () => {
 
   // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<"approve" | "reject" | "request-info" | null>(null);
+  const [dialogType, setDialogType] = useState<"approve" | "reject" | "request-info" | "mark-receiving" | null>(null);
   const [notes, setNotes] = useState("");
+  const [shopFullAddress, setShopFullAddress] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
 
   // Get returnOrderCode from URL params (orderId is actually returnOrderCode)
   const returnOrderCode = params.orderId;
@@ -371,6 +373,13 @@ const AdminOrderOtherStatusDetail = () => {
       status === "WAITING_APPROVAL" ||
       status === "UNDER_REVIEW";
   }, [apiResponse, order]);
+
+  // Helper to check if mark as receiving button should be shown
+  const shouldShowMarkAsReceivingButton = useMemo(() => {
+    if (!apiResponse?.id) return false;
+    const status = apiResponse.status?.toUpperCase() || '';
+    return status === "APPROVED";
+  }, [apiResponse]);
 
   // Process images for display - use direct API URL with authentication
   const processedImages = useMemo(() => {
@@ -535,6 +544,25 @@ const AdminOrderOtherStatusDetail = () => {
     setDialogOpen(true);
   };
 
+  const handleMarkAsReceivingClick = async () => {
+    setDialogType("mark-receiving");
+    setNotes("");
+    setShopFullAddress("");
+    
+    // Fetch shop address automatically
+    try {
+      const shopAddress = await returnOrderService.getShopAddress();
+      if (shopAddress?.fullAddress) {
+        setShopFullAddress(shopAddress.fullAddress);
+      }
+    } catch (error: any) {
+      console.error("Error fetching shop address:", error);
+      // Don't show error toast, just log it - user can still enter manually
+    }
+    
+    setDialogOpen(true);
+  };
+
   const handleConfirmReceiptClick = async () => {
     if (!apiResponse?.id) {
       toast.error("Không tìm thấy ID đơn trả hàng");
@@ -595,6 +623,8 @@ const AdminOrderOtherStatusDetail = () => {
       return;
     }
 
+    // Shop address is optional - backend will auto-retrieve if not provided
+
     setIsProcessing(true);
     try {
       switch (dialogType) {
@@ -610,10 +640,20 @@ const AdminOrderOtherStatusDetail = () => {
           await returnOrderService.requestMoreInformation(apiResponse.id.toString(), notes.trim());
           toast.success("Đã gửi yêu cầu bổ sung thông tin đến khách hàng");
           break;
+        case "mark-receiving":
+          await returnOrderService.markAsReceiving(
+            apiResponse.id.toString(), 
+            notes.trim() || "", 
+            shopFullAddress.trim() || "" // Optional - backend will auto-retrieve if empty
+          );
+          // Show informational dialog after success
+          setInfoDialogOpen(true);
+          break;
       }
 
       setDialogOpen(false);
       setNotes("");
+      setShopFullAddress("");
       setDialogType(null);
 
       // Refetch data
@@ -646,6 +686,12 @@ const AdminOrderOtherStatusDetail = () => {
           title: "Yêu cầu thêm thông tin",
           description: "Nhập yêu cầu thông tin bạn muốn khách hàng cung cấp thêm.",
           placeholder: "Yêu cầu thông tin (bắt buộc)...",
+        };
+      case "mark-receiving":
+        return {
+          title: "Chuyển trạng thái đang chờ nhận hàng",
+          description: "Chuyển trạng thái đơn trả hàng từ 'Đã xác nhận' sang 'Đang chờ nhận hàng'. Địa chỉ shop sẽ được tự động lấy từ hệ thống. Bạn có thể chỉnh sửa nếu cần.",
+          placeholder: "Ghi chú (tùy chọn)...",
         };
       default:
         return {
@@ -1572,6 +1618,37 @@ const AdminOrderOtherStatusDetail = () => {
             </div>
           )}
 
+          {/* Mark as Receiving Button Section */}
+          {shouldShowMarkAsReceivingButton && (
+            <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
+              {/* Header */}
+              <div className="flex items-center gap-[8px] w-full">
+                <div className="w-[4px] h-[20px] bg-[#17a2b8] rounded-[2px]"></div>
+                <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                  Chuyển trạng thái đang chờ nhận hàng
+                </h3>
+              </div>
+
+              <div className="flex flex-wrap gap-3 items-center justify-start w-full">
+                {/* Mark as Receiving Button */}
+                <button
+                  onClick={handleMarkAsReceivingClick}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2 rounded-[12px] bg-[#17a2b8] hover:bg-[#138496] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  <Truck size={18} />
+                  {isProcessing ? "Đang xử lý..." : "Chuyển trạng thái đang chờ nhận hàng"}
+                </button>
+              </div>
+
+              <div className="w-full h-px bg-[#e7e7e7]"></div>
+
+              <p className="text-[12px] text-[#737373] leading-[1.4]">
+                <strong>Chú ý:</strong> Chuyển trạng thái đơn trả hàng từ 'Đã xác nhận' sang 'Đang chờ nhận hàng'. Vui lòng nhập địa chỉ shop đầy đủ để khách hàng có thể gửi hàng hoàn trả.
+              </p>
+            </div>
+          )}
+
           {order.statusKey === "RETURNING" && (
             <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
               {/* Header */}
@@ -1638,6 +1715,21 @@ const AdminOrderOtherStatusDetail = () => {
                 required={dialogType === "reject" || dialogType === "request-info"}
               />
             </div>
+            {dialogType === "mark-receiving" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Địa chỉ shop đầy đủ (tùy chọn)
+                  <span className="text-xs text-gray-500 ml-2">(Hệ thống sẽ tự động lấy nếu để trống)</span>
+                </label>
+                <textarea
+                  value={shopFullAddress}
+                  onChange={(e) => setShopFullAddress(e.target.value)}
+                  placeholder="Để trống để tự động lấy địa chỉ shop từ hệ thống, hoặc nhập địa chỉ shop đầy đủ (số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố)..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+              </div>
+            )}
           </div>
 
           <AlertDialogFooter>
@@ -1645,6 +1737,7 @@ const AdminOrderOtherStatusDetail = () => {
               onClick={() => {
                 setDialogOpen(false);
                 setNotes("");
+                setShopFullAddress("");
                 setDialogType(null);
               }}
               disabled={isProcessing}
@@ -1653,16 +1746,39 @@ const AdminOrderOtherStatusDetail = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDialogConfirm}
-              disabled={isProcessing || (dialogType === "request-info" && !notes.trim())}
+              disabled={
+                isProcessing ||
+                (dialogType === "request-info" && !notes.trim())
+              }
               className={
                 dialogType === "approve"
                   ? "bg-[#28a745] hover:bg-[#218838]"
                   : dialogType === "reject"
                     ? "bg-[#dc3545] hover:bg-[#c82333]"
-                    : "bg-[#ffc107] hover:bg-[#e0a800] text-[#856404]"
+                    : dialogType === "mark-receiving"
+                      ? "bg-[#17a2b8] hover:bg-[#138496]"
+                      : "bg-[#ffc107] hover:bg-[#e0a800] text-[#856404]"
               }
             >
               {isProcessing ? "Đang xử lý..." : "Xác nhận"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Informational Alert Dialog */}
+      <AlertDialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Chuyển trạng thái thành công</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              Đơn trả hàng đã được chuyển trạng thái từ "Đã xác nhận" sang "Đang chờ nhận hàng" thành công. 
+              Khách hàng sẽ nhận được thông báo về địa chỉ shop để gửi hàng hoàn trả.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setInfoDialogOpen(false)}>
+              Đã hiểu
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

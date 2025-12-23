@@ -60,6 +60,12 @@ export interface ReturnOrderResponse {
   forwardShippingStatus?: string;
   shippingOrderCode?: string;
   shippingProvider?: string;
+  // Shop address for return shipping (only when status is RECEIVING)
+  shopFullAddress?: string;
+  shopStreet?: string;
+  shopWardName?: string;
+  shopDistrictName?: string;
+  shopProvinceName?: string;
 }
 
 export interface ReturnOrderDetailResponse {
