@@ -184,6 +184,7 @@ export interface ProductInvoiceResponse {
   totalQuantity?: number | null;
   importPrice?: number | null;
   sellingPrice?: number | null;
+  skuDetail?: string | null;
   attribute?: VariantAttributeSnapshot[] | null;
 }
 

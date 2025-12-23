@@ -26,6 +26,8 @@ import type {
 interface Product {
   id: number;
   name: string;
+  nameDetail?: string | null;
+  skuDetail?: string | null;
   quantity: number;
   price: number;
   image?: string | null;
@@ -210,6 +212,15 @@ const AdminWarehouseCreateImport = () => {
     },
   });
 
+  // Calculate selectable products count (exclude zero stock in export mode)
+  const selectableProductsCount = useMemo(() => {
+    if (!isExportMode) return productModalList.length;
+    return productModalList.filter((product: ProductInvoiceResponse) => {
+      const availableStock = product.totalQuantity ?? 0;
+      return availableStock > 0;
+    }).length;
+  }, [productModalList, isExportMode]);
+
   const selectedOnPageCount = useMemo(
     () =>
       productModalList.reduce<number>(
@@ -221,10 +232,10 @@ const AdminWarehouseCreateImport = () => {
   );
 
   const isSelectAllChecked =
-    productModalList.length > 0 &&
-    selectedOnPageCount === productModalList.length;
+    selectableProductsCount > 0 &&
+    selectedOnPageCount === selectableProductsCount;
   const isSelectAllIndeterminate =
-    selectedOnPageCount > 0 && selectedOnPageCount < productModalList.length;
+    selectedOnPageCount > 0 && selectedOnPageCount < selectableProductsCount;
   const selectAllState = isSelectAllChecked
     ? true
     : isSelectAllIndeterminate
@@ -236,7 +247,15 @@ const AdminWarehouseCreateImport = () => {
       const updated = { ...prev };
       if (checked) {
         productModalList.forEach((product: ProductInvoiceResponse) => {
-          updated[product.id] = product;
+          // In export mode, only select products with stock > 0
+          if (isExportMode) {
+            const availableStock = product.totalQuantity ?? 0;
+            if (availableStock > 0) {
+              updated[product.id] = product;
+            }
+          } else {
+            updated[product.id] = product;
+          }
         });
       } else {
         productModalList.forEach((product: ProductInvoiceResponse) => {
@@ -308,6 +327,21 @@ const AdminWarehouseCreateImport = () => {
       return null;
     }
 
+    // Validate export quantity doesn't exceed available stock
+    if (isExportMode) {
+      const exceededProduct = products.find((product: Product) => {
+        if (product.availableStock == null || product.availableStock === undefined) return false;
+        return product.quantity > product.availableStock;
+      });
+
+      if (exceededProduct && exceededProduct.availableStock != null) {
+        toast.error(
+          `Số lượng xuất (${exceededProduct.quantity.toLocaleString("vi-VN")}) của sản phẩm "${exceededProduct.name}" vượt quá tồn kho hiện có (${exceededProduct.availableStock.toLocaleString("vi-VN")}). Vui lòng kiểm tra lại.`
+        );
+        return null;
+      }
+    }
+
     return {
       providerId: selectedSupplier.id,
       note: note.trim(),
@@ -331,6 +365,15 @@ const AdminWarehouseCreateImport = () => {
   };
 
   const toggleProductSelection = (product: ProductInvoiceResponse) => {
+    // In export mode, prevent selecting products with zero stock
+    if (isExportMode) {
+      const availableStock = product.totalQuantity ?? 0;
+      if (availableStock <= 0) {
+        toast.error("Không thể chọn sản phẩm có tồn kho bằng 0 trong phiếu xuất hàng");
+        return;
+      }
+    }
+
     setSelectedProducts((prev) => {
       const updated = { ...prev };
       if (updated[product.id]) {
@@ -352,14 +395,21 @@ const AdminWarehouseCreateImport = () => {
 
     const newProducts = selectedList
       .filter((product: ProductInvoiceResponse) => !products.some((p) => p.id === product.id))
-      .map((product: ProductInvoiceResponse) => ({
-        id: product.id,
-        name: product.productName,
-        quantity: 1,
-        price: product.importPrice ?? 0,
-        image: product.imageUrl ? (getImageUrl(product.imageUrl) || product.imageUrl) : null,
-        availableStock: product.totalQuantity ?? 0,
-      }));
+      .map((product: ProductInvoiceResponse) => {
+        // Extract nameDetail from attribute using buildAttributeText
+        const nameDetail = buildAttributeText(product.attribute) || null;
+
+        return {
+          id: product.id,
+          name: product.productName,
+          nameDetail: nameDetail,
+          skuDetail: product.skuDetail ?? null,
+          quantity: 1,
+          price: product.importPrice ?? 0,
+          image: product.imageUrl ? (getImageUrl(product.imageUrl) || product.imageUrl) : null,
+          availableStock: product.totalQuantity ?? 0,
+        };
+      });
 
     if (newProducts.length === 0) {
       toast.info("Tất cả sản phẩm đã có trong danh sách");
@@ -373,11 +423,25 @@ const AdminWarehouseCreateImport = () => {
 
   const handleUpdateQuantity = (productId: number, quantity: number) => {
     setProducts((prev) =>
-      prev.map((product: Product) =>
-        product.id === productId
-          ? { ...product, quantity: Math.max(1, quantity) }
-          : product
-      )
+      prev.map((product: Product) => {
+        if (product.id === productId) {
+          // Validate quantity >= 1
+          let validQuantity = Math.max(1, quantity);
+
+          // If export mode, validate quantity doesn't exceed available stock
+          if (isExportMode && product.availableStock != null) {
+            if (validQuantity > product.availableStock) {
+              toast.error(
+                `Số lượng xuất không được vượt quá tồn kho (${product.availableStock.toLocaleString("vi-VN")}) của sản phẩm "${product.name}". Đã tự động điều chỉnh về ${product.availableStock.toLocaleString("vi-VN")}.`
+              );
+              validQuantity = product.availableStock; // Auto-adjust to max available
+            }
+          }
+
+          return { ...product, quantity: validQuantity };
+        }
+        return product;
+      })
     );
   };
 
@@ -514,16 +578,28 @@ const AdminWarehouseCreateImport = () => {
                                 }}
                               />
                             ) : null}
-                            <div 
+                            <div
                               className="fallback-placeholder w-full h-full flex items-center justify-center"
                               style={{ display: product.image ? 'none' : 'flex' }}
                             >
                               <Package className="w-5 h-5 text-gray-400" />
                             </div>
                           </div>
-                          <span className="font-['Montserrat'] font-normal text-[14px] text-[#272424] truncate min-w-0">
-                            {product.name}
-                          </span>
+                          <div className="flex flex-col gap-1 min-w-0 flex-1">
+                            <span className="font-['Montserrat'] font-normal text-[14px] text-[#272424] truncate min-w-0">
+                              {product.name}
+                            </span>
+                            {product.nameDetail && (
+                              <span className="font-['Montserrat'] text-[12px] text-[#737373] truncate min-w-0">
+                                {product.nameDetail}
+                              </span>
+                            )}
+                            {product.skuDetail && (
+                              <span className="font-['Montserrat'] text-[12px] text-[#6b7280] font-medium truncate min-w-0">
+                                Mã: {product.skuDetail}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Quantity */}
@@ -539,6 +615,7 @@ const AdminWarehouseCreateImport = () => {
                             }
                             className="w-20 text-center border border-[#d1d1d1] rounded px-2 py-1 text-[12px] font-['Montserrat'] focus:border-[#e04d30] focus:outline-none"
                             min="1"
+                            max={isExportMode && product.availableStock != null ? product.availableStock : undefined}
                           />
                         </div>
 
@@ -883,11 +960,18 @@ const AdminWarehouseCreateImport = () => {
                     const attributeText = buildAttributeText(product.attribute);
                     const isChecked = Boolean(selectedProducts[product.id]);
                     const availableStock = product.totalQuantity ?? 0;
+                    // In export mode, disable products with zero stock
+                    const isDisabled = isExportMode && availableStock <= 0;
 
                     return (
                       <div
                         key={product.id}
-                        className={`border-b border-[#e7e7e7] flex items-center w-full px-6 py-4 hover:bg-[#fafafa] transition-colors ${isChecked ? 'bg-[#fef3f2]' : 'bg-white'}`}
+                        className={`border-b border-[#e7e7e7] flex items-center w-full px-6 py-4 transition-colors ${isDisabled
+                          ? 'bg-gray-50 opacity-60 cursor-not-allowed'
+                          : isChecked
+                            ? 'bg-[#fef3f2] hover:bg-[#fef3f2]'
+                            : 'bg-white hover:bg-[#fafafa]'
+                          }`}
                       >
                         <div className="flex gap-4 items-start w-[60%]">
                           <Checkbox
@@ -895,6 +979,7 @@ const AdminWarehouseCreateImport = () => {
                             onCheckedChange={() =>
                               toggleProductSelection(product)
                             }
+                            disabled={isDisabled}
                             aria-label={`Chọn ${product.productName}`}
                             className="mt-1"
                           />
@@ -919,7 +1004,7 @@ const AdminWarehouseCreateImport = () => {
                                 }}
                               />
                             ) : null}
-                            <div 
+                            <div
                               className="fallback-placeholder w-full h-full flex items-center justify-center"
                               style={{ display: product.imageUrl ? 'none' : 'flex' }}
                             >
@@ -939,7 +1024,7 @@ const AdminWarehouseCreateImport = () => {
                               </p>
                             )}
                             <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[12px] text-[#6b7280]">
-                              <span className="font-medium">Mã: <span className="font-normal">#{product.id}</span></span>
+                              <span className="font-medium">Mã: <span className="font-normal">{product.skuDetail || `#${product.id}`}</span></span>
                               <span className="font-medium">Giá nhập: <span className="font-normal">{formatPriceDisplay(product.importPrice)}</span></span>
                               <span className="font-medium">Giá bán: <span className="font-normal">{formatPriceDisplay(product.sellingPrice)}</span></span>
                             </div>
