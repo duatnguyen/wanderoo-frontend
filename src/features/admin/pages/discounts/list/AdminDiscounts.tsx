@@ -9,7 +9,6 @@ import { VoucherCreationSection } from "@/components/admin/voucher/VoucherCreati
 import {
   CreditCardPercentIcon,
   ReceiptDiscountIcon,
-  TicketDiscountIcon,
 } from "@/components/icons/discount";
 
 import {
@@ -65,20 +64,11 @@ const voucherTypes = {
       description: "Voucher áp dụng cho những sản phẩm áp dụng tại shop",
     },
   ],
-  targetCustomer: [
-    {
-      icon: <TicketDiscountIcon size={24} color="#292D32" />,
-      title: "Voucher khách hàng mới",
-      description:
-        "Voucher nhằm áp dụng cho khách hàng mới và khách hàng tiềm năng",
-    },
-  ],
 };
 
 const voucherRouteMap: Record<string, string> = {
   "Voucher toàn shop": "/admin/discounts/new/shop-wide",
   "Voucher sản phẩm": "/admin/discounts/new/product",
-  "Voucher khách hàng mới": "/admin/discounts/new/new-customer",
 };
 
 const tabToStateMap: Record<string, DiscountStateValue | undefined> = {
@@ -107,7 +97,6 @@ const formatCurrency = (value?: number | null) => {
 
 const mapDiscountTypeLabel = (discount: AdminDiscountResponse) => {
   if (discount.applyTo === "PRODUCT") return "Voucher sản phẩm";
-  if (discount.contextAllowed === "SIGNUP") return "Voucher khách hàng mới";
   return "Voucher toàn shop";
 };
 

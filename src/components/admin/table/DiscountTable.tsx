@@ -114,15 +114,9 @@ export const DiscountTable: React.FC<DiscountTableProps> = ({
       className: "text-center justify-center hidden md:flex",
       render: (_, voucher: Voucher) => (
         <div className="text-center w-full flex items-center justify-center">
-          {voucher.type === "Voucher khách hàng mới" ? (
-            <p className="font-medium text-xs sm:text-[13px] text-[#272424] leading-[1.4]">
-              Voucher khách<br className="hidden lg:block" />hàng mới
-            </p>
-          ) : (
-            <p className="font-medium text-xs sm:text-[13px] text-[#272424] leading-[1.4]">
-              {voucher.type}
-            </p>
-          )}
+          <p className="font-medium text-xs sm:text-[13px] text-[#272424] leading-[1.4]">
+            {voucher.type}
+          </p>
         </div>
       ),
     },

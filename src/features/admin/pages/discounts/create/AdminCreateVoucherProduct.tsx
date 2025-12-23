@@ -132,13 +132,14 @@ const AdminCreateVoucherProduct: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmedProducts, setConfirmedProducts] = useState<VoucherProduct[]>([]);
   const [appliedProductsPage, setAppliedProductsPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [formData, setFormData] = useState<VoucherFormData>(createDefaultFormData);
   const [products, setProducts] = useState<AdminProductResponse[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 10;
+  const productModalItemsPerPage = 10; // Items per page for product selection modal
   const topElementRef = useRef<HTMLDivElement>(null);
   const [variantLoadingMap, setVariantLoadingMap] = useState<Record<string, boolean>>({});
   const [productVariantsMap, setProductVariantsMap] = useState<Record<string, Array<{ id: number; nameDetail?: string; sellingPrice?: number | string }>>>({});
@@ -279,14 +280,14 @@ const AdminCreateVoucherProduct: React.FC = () => {
       const params = {
         keyword: debouncedSearch || undefined,
         page: Math.max(currentPage - 1, 0),
-        size: itemsPerPage,
+        size: productModalItemsPerPage,
       };
       const response = await getAllProductsPrivate(params);
       setProducts(response?.productResponseList ?? []);
       setTotalPages(
         response?.totalPages ??
         response?.totalPage ??
-        Math.max(1, Math.ceil((response?.totalProducts ?? 1) / itemsPerPage))
+        Math.max(1, Math.ceil((response?.totalProducts ?? 1) / productModalItemsPerPage))
       );
     } catch (error) {
       console.error("Không thể tải danh sách sản phẩm", error);
@@ -295,7 +296,7 @@ const AdminCreateVoucherProduct: React.FC = () => {
     } finally {
       setIsLoadingProducts(false);
     }
-  }, [isProductModalOpen, debouncedSearch, currentPage, itemsPerPage]);
+  }, [isProductModalOpen, debouncedSearch, currentPage, productModalItemsPerPage]);
 
   useEffect(() => {
     fetchProducts();
@@ -329,14 +330,83 @@ const AdminCreateVoucherProduct: React.FC = () => {
   // Memoize paginated products để tránh tính toán lại
   const paginatedProducts = useMemo(() => {
     return confirmedProducts.slice(
-      (appliedProductsPage - 1) * 5,
-      appliedProductsPage * 5
+      (appliedProductsPage - 1) * itemsPerPage,
+      appliedProductsPage * itemsPerPage
     );
-  }, [confirmedProducts, appliedProductsPage]);
+  }, [confirmedProducts, appliedProductsPage, itemsPerPage]);
+
+  // Calculate pagination info for confirmed products
+  const confirmedProductsTotalPages = Math.ceil(confirmedProducts.length / itemsPerPage);
+  const startIndex = (appliedProductsPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(appliedProductsPage * itemsPerPage, confirmedProducts.length);
+
+  // Smart pagination: Generate page numbers to display for confirmed products
+  const getConfirmedProductsPageNumbers = useMemo(() => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 7; // Maximum number of page buttons to show
+
+    if (confirmedProductsTotalPages <= maxVisiblePages) {
+      // Show all pages if total is small
+      for (let i = 1; i <= confirmedProductsTotalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Smart pagination with ellipsis
+      const currentPage = appliedProductsPage;
+
+      // Always show first page
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push("...");
+      }
+
+      // Show pages around current page
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(confirmedProductsTotalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        if (i !== 1 && i !== confirmedProductsTotalPages) {
+          pages.push(i);
+        }
+      }
+
+      if (currentPage < confirmedProductsTotalPages - 2) {
+        pages.push("...");
+      }
+
+      // Always show last page
+      if (confirmedProductsTotalPages > 1) {
+        pages.push(confirmedProductsTotalPages);
+      }
+    }
+
+    return pages;
+  }, [confirmedProductsTotalPages, appliedProductsPage]);
+
+  // Reset pagination when products change
+  useEffect(() => {
+    const newTotalPages = Math.ceil(confirmedProducts.length / itemsPerPage);
+    if (appliedProductsPage > newTotalPages && newTotalPages > 0) {
+      setAppliedProductsPage(newTotalPages);
+    } else if (newTotalPages === 0 && confirmedProducts.length === 0) {
+      setAppliedProductsPage(1);
+    }
+  }, [confirmedProducts.length, itemsPerPage, appliedProductsPage]);
 
   // Memoize handler để xóa sản phẩm
   const handleRemoveProduct = useCallback((productId: string) => {
-    setConfirmedProducts((prev) => prev.filter((p) => p.id !== productId));
+    setConfirmedProducts((prev) => {
+      const newProducts = prev.filter((p) => p.id !== productId);
+      // Reset to page 1 if current page becomes empty
+      const newTotalPages = Math.ceil(newProducts.length / itemsPerPage);
+      if (appliedProductsPage > newTotalPages && newTotalPages > 0) {
+        setTimeout(() => setAppliedProductsPage(newTotalPages), 0);
+      } else if (newTotalPages === 0) {
+        setTimeout(() => setAppliedProductsPage(1), 0);
+      }
+      return newProducts;
+    });
   }, []);
 
   // Map product to display format
@@ -1524,53 +1594,121 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     </div>
 
                     {/* Pagination */}
-                    {confirmedProducts.length > 5 && (
-                      <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
-                          Hiển thị {((appliedProductsPage - 1) * 5) + 1}-{Math.min(appliedProductsPage * 5, confirmedProducts.length)} / {confirmedProducts.length}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setAppliedProductsPage((p) => Math.max(1, p - 1))}
-                            disabled={appliedProductsPage === 1}
-                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            aria-label="Trang trước"
-                          >
-                            <Icon name="arrow-left" size={14} color="currentColor" />
-                          </button>
-                          <div className="flex items-center gap-1">
-                            {Array.from(
-                              { length: Math.ceil(confirmedProducts.length / 5) },
-                              (_, i) => i + 1
-                            ).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => setAppliedProductsPage(page)}
-                                className={`w-8 h-8 flex items-center justify-center text-xs font-medium rounded-md transition-all ${appliedProductsPage === page
-                                  ? "bg-[#e04d30] text-white shadow-sm"
-                                  : "text-gray-600 hover:bg-gray-200"
-                                  }`}
-                                aria-label={`Trang ${page}`}
-                                aria-current={appliedProductsPage === page ? "page" : undefined}
+                    {confirmedProducts.length > itemsPerPage && (
+                      <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                          {/* Left: Items per page selector and info */}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
+                              Hiển thị {startIndex}-{endIndex} / {confirmedProducts.length}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500">Hiển thị:</span>
+                              <select
+                                value={itemsPerPage}
+                                onChange={(e) => {
+                                  const newItemsPerPage = Number(e.target.value);
+                                  setItemsPerPage(newItemsPerPage);
+                                  // Reset to page 1 when changing items per page
+                                  setAppliedProductsPage(1);
+                                }}
+                                className="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#e04d30] focus:border-transparent"
                               >
-                                {page}
-                              </button>
-                            ))}
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                              </select>
+                            </div>
                           </div>
-                          <button
-                            onClick={() =>
-                              setAppliedProductsPage((p) =>
-                                Math.min(Math.ceil(confirmedProducts.length / 5), p + 1)
-                              )
-                            }
-                            disabled={
-                              appliedProductsPage >= Math.ceil(confirmedProducts.length / 5)
-                            }
-                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            aria-label="Trang sau"
-                          >
-                            <Icon name="arrow-left" size={14} color="currentColor" className="rotate-180" />
-                          </button>
+
+                          {/* Right: Pagination controls */}
+                          <div className="flex items-center gap-1">
+                            {/* First page button */}
+                            <button
+                              type="button"
+                              onClick={() => setAppliedProductsPage(1)}
+                              disabled={appliedProductsPage === 1}
+                              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              aria-label="Trang đầu"
+                              title="Trang đầu"
+                            >
+                              <Icon name="arrow-left" size={14} color="currentColor" className="rotate-180 opacity-50" />
+                              <Icon name="arrow-left" size={14} color="currentColor" className="rotate-180 -ml-2" />
+                            </button>
+
+                            {/* Previous page button */}
+                            <button
+                              type="button"
+                              onClick={() => setAppliedProductsPage((p) => Math.max(1, p - 1))}
+                              disabled={appliedProductsPage === 1}
+                              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              aria-label="Trang trước"
+                              title="Trang trước"
+                            >
+                              <Icon name="arrow-left" size={14} color="currentColor" />
+                            </button>
+
+                            {/* Page numbers */}
+                            <div className="flex items-center gap-1">
+                              {getConfirmedProductsPageNumbers.map((page, index) => {
+                                if (page === "...") {
+                                  return (
+                                    <span
+                                      key={`ellipsis-${index}`}
+                                      className="px-2 text-gray-400 text-xs"
+                                    >
+                                      ...
+                                    </span>
+                                  );
+                                }
+
+                                const pageNum = page as number;
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    type="button"
+                                    onClick={() => setAppliedProductsPage(pageNum)}
+                                    className={`min-w-[32px] h-8 flex items-center justify-center text-xs font-medium rounded-md transition-all ${appliedProductsPage === pageNum
+                                      ? "bg-[#e04d30] text-white shadow-sm font-semibold"
+                                      : "text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+                                      }`}
+                                    aria-label={`Trang ${pageNum}`}
+                                    aria-current={appliedProductsPage === pageNum ? "page" : undefined}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Next page button */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAppliedProductsPage((p) => Math.min(confirmedProductsTotalPages, p + 1))
+                              }
+                              disabled={appliedProductsPage >= confirmedProductsTotalPages}
+                              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              aria-label="Trang sau"
+                              title="Trang sau"
+                            >
+                              <Icon name="arrow-left" size={14} color="currentColor" className="rotate-180" />
+                            </button>
+
+                            {/* Last page button */}
+                            <button
+                              type="button"
+                              onClick={() => setAppliedProductsPage(confirmedProductsTotalPages)}
+                              disabled={appliedProductsPage >= confirmedProductsTotalPages}
+                              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              aria-label="Trang cuối"
+                              title="Trang cuối"
+                            >
+                              <Icon name="arrow-left" size={14} color="currentColor" className="opacity-50" />
+                              <Icon name="arrow-left" size={14} color="currentColor" className="-ml-2 rotate-180" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
