@@ -144,7 +144,7 @@ const mapStatusToStatusKey = (status?: string): ReturnOrderStatus => {
   if (normalized === "PENDING" || normalized === "WAITING_APPROVAL" || normalized === "UNDER_REVIEW") {
     return "UNDER_REVIEW";
   }
-  if (normalized === "APPROVED" || normalized === "IN_TRANSIT" || normalized === "RETURNING") {
+  if (normalized === "APPROVED" || normalized === "IN_TRANSIT" || normalized === "RETURNING" || normalized === "RECEIVING") {
     return "RETURNING";
   }
   if (normalized === "COMPLETED" || normalized === "REFUNDED") {
@@ -193,21 +193,6 @@ const mapReturnTypeToCategory = (returnType?: string): ReturnOrderCategory => {
   return "RETURN";
 };
 
-// Map refund status
-const mapRefundStatus = (status?: string): RefundStatus => {
-  if (!status) return "WAITING";
-  const normalized = status.toUpperCase();
-  if (normalized === "PENDING" || normalized === "WAITING_APPROVAL" || normalized === "APPROVED" || normalized === "IN_TRANSIT" || normalized === "RETURNING") {
-    return "WAITING";
-  }
-  if (normalized === "PARTIALLY_REFUNDED") {
-    return "PARTIAL";
-  }
-  if (normalized === "COMPLETED" || normalized === "REFUNDED") {
-    return "DONE";
-  }
-  return "WAITING";
-};
 
 
 // Map API ReturnOrderResponseDTO to component ReturnOrder format
@@ -305,6 +290,15 @@ const AdminOrderOtherStatusDetail = () => {
   const [shopFullAddress, setShopFullAddress] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+  
+  // Receipt details dialog state
+  const [receiptDetailsDialogOpen, setReceiptDetailsDialogOpen] = useState(false);
+  const [receiptDetails, setReceiptDetails] = useState<Record<number, {
+    isReceived: boolean;
+    quantityReceived: number;
+    condition: 'GOOD' | 'DAMAGED' | '';
+    notes: string;
+  }>>({});
 
   // Get returnOrderCode from URL params (orderId is actually returnOrderCode)
   const returnOrderCode = params.orderId;
@@ -563,28 +557,105 @@ const AdminOrderOtherStatusDetail = () => {
     setDialogOpen(true);
   };
 
-  const handleConfirmReceiptClick = async () => {
+  const handleConfirmReceiptClick = () => {
     if (!apiResponse?.id) {
       toast.error("Không tìm thấy ID đơn trả hàng");
       return;
     }
 
-    if (!window.confirm("Bạn có chắc chắn muốn xác nhận đã nhận hàng hoàn trả?")) {
+    // Initialize receipt details for all products
+    const initialDetails: Record<number, {
+      isReceived: boolean;
+      quantityReceived: number;
+      condition: 'GOOD' | 'DAMAGED' | '';
+      notes: string;
+    }> = {};
+    
+    apiResponse.returnOrderDetails?.forEach((detail) => {
+      initialDetails[detail.id] = {
+        isReceived: false,
+        quantityReceived: 0,
+        condition: '',
+        notes: ''
+      };
+    });
+    
+    setReceiptDetails(initialDetails);
+    setReceiptDetailsDialogOpen(true);
+  };
+
+  const handleReceiptDetailsSubmit = async () => {
+    if (!apiResponse?.id) {
+      toast.error("Không tìm thấy ID đơn trả hàng");
       return;
+    }
+
+    // Validate: at least one item must be received
+    const receivedItems = Object.entries(receiptDetails)
+      .filter(([_, detail]) => detail.isReceived)
+      .map(([detailId, detail]) => ({
+        returnOrderDetailId: parseInt(detailId),
+        quantityReceived: detail.quantityReceived,
+        condition: detail.condition as 'GOOD' | 'DAMAGED',
+        notes: detail.notes || undefined
+      }));
+
+    if (receivedItems.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm đã nhận được");
+      return;
+    }
+
+    // Validate each received item
+    for (const item of receivedItems) {
+      const detail = apiResponse.returnOrderDetails?.find(d => d.id === item.returnOrderDetailId);
+      if (!detail) continue;
+
+      if (item.quantityReceived <= 0) {
+        toast.error(`Số lượng nhận được phải lớn hơn 0 cho sản phẩm: ${detail.snapshotProductName || 'N/A'}`);
+        return;
+      }
+
+      if (item.quantityReceived > (detail.quantityRequested || 0)) {
+        toast.error(`Số lượng nhận được không được vượt quá số lượng yêu cầu (${detail.quantityRequested || 0}) cho sản phẩm: ${detail.snapshotProductName || 'N/A'}`);
+        return;
+      }
+
+      if (!item.condition || (item.condition !== 'GOOD' && item.condition !== 'DAMAGED')) {
+        toast.error(`Vui lòng chọn tình trạng sản phẩm cho: ${detail.snapshotProductName || 'N/A'}`);
+        return;
+      }
     }
 
     setIsProcessing(true);
     try {
-      await returnOrderService.confirmReceipt(apiResponse.id.toString());
-      toast.success("Đã xác nhận nhận hàng hoàn trả thành công");
+      await returnOrderService.confirmReceiptWithDetails(apiResponse.id.toString(), receivedItems);
+      toast.success("Đã xác nhận nhận hàng hoàn trả với chi tiết thành công");
+      setReceiptDetailsDialogOpen(false);
+      setReceiptDetails({});
       // Refetch data
       queryClient.invalidateQueries({ queryKey: ["return-order-detail", returnOrderCode] });
     } catch (error: any) {
-      console.error("Error confirming receipt:", error);
+      console.error("Error confirming receipt with details:", error);
       toast.error(error?.message || "Không thể xác nhận nhận hàng. Vui lòng thử lại.");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleReceiptDetailChange = (detailId: number, field: string, value: any) => {
+    setReceiptDetails(prev => ({
+      ...prev,
+      [detailId]: {
+        ...prev[detailId],
+        [field]: value,
+        // Reset quantity and condition when unchecking
+        ...(field === 'isReceived' && !value ? {
+          quantityReceived: 0,
+          condition: '' as const,
+          notes: ''
+        } : {})
+      }
+    }));
   };
 
   const handleProcessRefundClick = async () => {
@@ -1649,7 +1720,8 @@ const AdminOrderOtherStatusDetail = () => {
             </div>
           )}
 
-          {order.statusKey === "RETURNING" && (
+          {/* Show confirm receipt button when status is RECEIVING or RETURNING */}
+          {(order.statusKey === "RETURNING" || (apiResponse?.status && apiResponse.status.toUpperCase() === "RECEIVING")) && (
             <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] rounded-[8px] w-full overflow-hidden min-w-0">
               {/* Header */}
               <div className="flex items-center gap-[8px] w-full">
@@ -1670,15 +1742,17 @@ const AdminOrderOtherStatusDetail = () => {
                   {isProcessing ? "Đang xử lý..." : "Xác nhận đã nhận hàng"}
                 </button>
 
-                {/* Process Refund Button */}
-                <button
-                  onClick={handleProcessRefundClick}
-                  disabled={isProcessing}
-                  className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
-                >
-                  <CreditCard size={18} />
-                  {isProcessing ? "Đang xử lý..." : "Xử lý hoàn tiền"}
-                </button>
+                {/* Process Refund Button - Only show if status is RECEIVED or after receipt confirmed */}
+                {apiResponse?.status && (apiResponse.status.toUpperCase() === "RECEIVED" || apiResponse.status.toUpperCase() === "REFUNDED") && (
+                  <button
+                    onClick={handleProcessRefundClick}
+                    disabled={isProcessing}
+                    className="flex items-center gap-2 rounded-[12px] bg-[#28a745] hover:bg-[#218838] disabled:bg-gray-400 disabled:cursor-not-allowed px-6 py-3 text-[14px] font-semibold text-white transition-colors duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <CreditCard size={18} />
+                    {isProcessing ? "Đang xử lý..." : "Xử lý hoàn tiền"}
+                  </button>
+                )}
               </div>
 
               <div className="w-full h-px bg-[#e7e7e7]"></div>
@@ -1779,6 +1853,216 @@ const AdminOrderOtherStatusDetail = () => {
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setInfoDialogOpen(false)}>
               Đã hiểu
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Receipt Details Dialog */}
+      <AlertDialog open={receiptDetailsDialogOpen} onOpenChange={setReceiptDetailsDialogOpen}>
+        <AlertDialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận nhận hàng hoàn trả - Chi tiết</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              Vui lòng chọn các sản phẩm đã nhận được và điền thông tin chi tiết cho từng sản phẩm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-4 py-4">
+            {apiResponse?.returnOrderDetails && apiResponse.returnOrderDetails.length > 0 ? (
+              <div className="space-y-4">
+                {apiResponse.returnOrderDetails.map((detail) => {
+                  const receiptDetail = receiptDetails[detail.id] || {
+                    isReceived: false,
+                    quantityReceived: 0,
+                    condition: '' as const,
+                    notes: ''
+                  };
+
+                  // Parse variant attributes
+                  let variant: string | undefined;
+                  if (detail.snapshotVariantAttributes) {
+                    try {
+                      const attrs = typeof detail.snapshotVariantAttributes === 'string'
+                        ? JSON.parse(detail.snapshotVariantAttributes)
+                        : detail.snapshotVariantAttributes;
+                      if (Array.isArray(attrs)) {
+                        variant = attrs.map((attr: any) => {
+                          if (attr?.name && attr?.value) {
+                            return `${attr.name}: ${attr.value}`;
+                          }
+                          return attr?.value || attr?.name || null;
+                        }).filter(Boolean).join(", ");
+                      }
+                    } catch (e) {
+                      console.error("Error parsing variant attributes:", e);
+                    }
+                  }
+
+                  const productImage = detail.snapshotProductImageUrl ? getImageUrl(detail.snapshotProductImageUrl) : undefined;
+
+                  return (
+                    <div
+                      key={detail.id}
+                      className={`border-2 rounded-lg p-4 transition-all ${
+                        receiptDetail.isReceived
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex gap-4">
+                        {/* Product Image */}
+                        <div className="flex-shrink-0">
+                          <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                            {productImage ? (
+                              <img
+                                src={productImage}
+                                alt={detail.snapshotProductName || "Sản phẩm"}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Package className="w-10 h-10 text-gray-400 m-auto mt-5" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Product Info and Form */}
+                        <div className="flex-1 space-y-3">
+                          {/* Product Name and Variant */}
+                          <div>
+                            <h4 className="font-semibold text-gray-900">
+                              {detail.snapshotProductName || "Sản phẩm không tên"}
+                            </h4>
+                            {variant && (
+                              <p className="text-sm text-gray-600">Phân loại: {variant}</p>
+                            )}
+                            {detail.snapshotProductSku && (
+                              <p className="text-xs text-gray-500">SKU: {detail.snapshotProductSku}</p>
+                            )}
+                            <p className="text-sm text-gray-700 mt-1">
+                              Số lượng yêu cầu: <span className="font-semibold">{detail.quantityRequested || 0}</span>
+                            </p>
+                          </div>
+
+                          {/* Checkbox: Is Received */}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`received-${detail.id}`}
+                              checked={receiptDetail.isReceived}
+                              onChange={(e) => handleReceiptDetailChange(detail.id, 'isReceived', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <label
+                              htmlFor={`received-${detail.id}`}
+                              className="text-sm font-medium text-gray-700 cursor-pointer"
+                            >
+                              Đã nhận được sản phẩm này
+                            </label>
+                          </div>
+
+                          {/* Form fields (only show if isReceived is true) */}
+                          {receiptDetail.isReceived && (
+                            <div className="space-y-3 pl-6 border-l-2 border-blue-300 bg-blue-50/50 p-3 rounded">
+                              {/* Quantity Received */}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Số lượng nhận được <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={detail.quantityRequested || 0}
+                                  value={receiptDetail.quantityReceived || ''}
+                                  onChange={(e) => {
+                                    const value = parseInt(e.target.value) || 0;
+                                    handleReceiptDetailChange(detail.id, 'quantityReceived', value);
+                                  }}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  required
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Tối đa: {detail.quantityRequested || 0}
+                                </p>
+                              </div>
+
+                              {/* Condition */}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Tình trạng sản phẩm <span className="text-red-500">*</span>
+                                </label>
+                                <div className="flex gap-4">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`condition-${detail.id}`}
+                                      value="GOOD"
+                                      checked={receiptDetail.condition === 'GOOD'}
+                                      onChange={(e) => handleReceiptDetailChange(detail.id, 'condition', e.target.value)}
+                                      className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
+                                      required
+                                    />
+                                    <span className="text-sm text-gray-700">Tốt</span>
+                                  </label>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`condition-${detail.id}`}
+                                      value="DAMAGED"
+                                      checked={receiptDetail.condition === 'DAMAGED'}
+                                      onChange={(e) => handleReceiptDetailChange(detail.id, 'condition', e.target.value)}
+                                      className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                      required
+                                    />
+                                    <span className="text-sm text-gray-700">Hỏng</span>
+                                  </label>
+                                </div>
+                              </div>
+
+                              {/* Notes */}
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  Ghi chú (tùy chọn)
+                                </label>
+                                <textarea
+                                  value={receiptDetail.notes || ''}
+                                  onChange={(e) => handleReceiptDetailChange(detail.id, 'notes', e.target.value)}
+                                  placeholder="Nhập ghi chú về tình trạng sản phẩm..."
+                                  rows={2}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                Không có sản phẩm nào trong đơn trả hàng
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setReceiptDetailsDialogOpen(false);
+                setReceiptDetails({});
+              }}
+              disabled={isProcessing}
+            >
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReceiptDetailsSubmit}
+              disabled={isProcessing}
+              className="bg-[#17a2b8] hover:bg-[#138496]"
+            >
+              {isProcessing ? "Đang xử lý..." : "Xác nhận nhận hàng"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

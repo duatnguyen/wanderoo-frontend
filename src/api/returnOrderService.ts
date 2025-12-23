@@ -293,6 +293,33 @@ class ReturnOrderService {
     }
   }
 
+  // Confirm receipt with details (quantity, condition, notes)
+  async confirmReceiptWithDetails(
+    returnOrderId: string,
+    receiveItems: Array<{
+      returnOrderDetailId: number;
+      quantityReceived: number;
+      condition: 'GOOD' | 'DAMAGED';
+      notes?: string;
+    }>
+  ): Promise<ReturnOrderDetail> {
+    try {
+      const response = await apiClient.post<ApiResponse<ReturnOrderDetail>>(
+        `${this.baseUrl}/${returnOrderId}/confirm-receipt-with-details`,
+        receiveItems
+      );
+      
+      if (response.data.status === 200 && response.data.data) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to confirm receipt with details');
+      }
+    } catch (error: any) {
+      console.error('Error confirming receipt with details:', error);
+      throw new Error(error?.response?.data?.message || 'Failed to confirm receipt with details');
+    }
+  }
+
   // Process refund
   async processRefund(returnOrderId: string): Promise<ReturnOrderDetail> {
     try {
