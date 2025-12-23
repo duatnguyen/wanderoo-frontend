@@ -4,24 +4,40 @@ import { useQuery } from "@tanstack/react-query";
 import { getPublicReviewsByProduct } from "../../../api/endpoints/reviewApi";
 import type { ReviewResponse } from "../../../types";
 
-// Helper function to get full image URL (same as ProductImages)
-const getImageUrl = (imageUrl: string | null | undefined): string | undefined => {
-  if (!imageUrl) return undefined;
-  
+// Helper function to get full media URL (same as ProductImages)
+const getMediaUrl = (url: string | null | undefined): string | undefined => {
+  if (!url) return undefined;
+
   // If already a full URL (http/https), return as is
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    return imageUrl;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
   }
-  
+
   // If relative path starting with /, add base URL
-  if (imageUrl.startsWith('/')) {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-    return `${baseUrl}${imageUrl}`;
-  }
-  
-  // If relative path not starting with /, assume it's from uploads
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-  return `${baseUrl}/static/${imageUrl}`;
+  if (url.startsWith('/')) {
+    return `${baseUrl}${url}`;
+  }
+
+  // If relative path not starting with /, assume it's from uploads
+  return `${baseUrl}/static/${url}`;
+};
+
+// Detect if a media url is video based on common extensions
+const isVideoUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return [
+    ".mp4",
+    ".mov",
+    ".avi",
+    ".mkv",
+    ".webm",
+    ".flv",
+    ".wmv",
+    ".m4v",
+    ".3gp",
+  ].some((ext) => lower.includes(ext));
 };
 
 const Star: React.FC<{ filled?: boolean }> = ({ filled }) => (
@@ -130,11 +146,10 @@ const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId }) => {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setActiveFilter("all")}
-                  className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors ${
-                    activeFilter === "all"
-                      ? "bg-gray-900 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors ${activeFilter === "all"
+                    ? "bg-gray-900 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                 >
                   Tất cả ({stats.total})
                 </button>
@@ -142,11 +157,10 @@ const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId }) => {
                   <button
                     key={star}
                     onClick={() => setActiveFilter(star.toString() as any)}
-                    className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors ${
-                      activeFilter === star.toString()
-                        ? "bg-gray-900 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors ${activeFilter === star.toString()
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
                   >
                     {star} sao ({stats.counts[star]})
                   </button>
@@ -181,7 +195,7 @@ const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId }) => {
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-full border border-gray-300 bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-600">
-                      {review.userName 
+                      {review.userName
                         ? review.userName.charAt(0).toUpperCase()
                         : `U${review.userId}`}
                     </div>
@@ -202,47 +216,84 @@ const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId }) => {
                       <p className="text-[14px] text-gray-700 mb-3">
                         {review.judging || review.comment || "Không có nội dung bình luận."}
                       </p>
-                      {review.images && review.images.length > 0 && (
-                        <div className="flex gap-2 flex-wrap mb-3">
-                          {review.images.map((img, idx) => {
-                            const imageUrl = getImageUrl(img);
-                            return (
-                              <div
-                                key={idx}
-                                className="w-20 h-20 rounded-lg border border-gray-300 overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => {
-                                  if (imageUrl) {
-                                    window.open(imageUrl, '_blank');
-                                  }
-                                }}
-                              >
-                                {imageUrl ? (
-                                  <img
-                                    src={imageUrl}
-                                    alt={`Hình ảnh đánh giá ${idx + 1}`}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.style.display = "none";
-                                      const parent = target.parentElement;
-                                      if (parent && !parent.querySelector(".image-placeholder")) {
-                                        const placeholder = document.createElement("span");
-                                        placeholder.className = "image-placeholder text-xs text-gray-400";
-                                        placeholder.textContent = "IMG";
-                                        parent.appendChild(placeholder);
-                                      }
-                                    }}
-                                  />
-                                ) : (
-                                  <span className="text-xs text-gray-400">
-                                    IMG
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {(() => {
+                        // Gộp media: ảnh và video (video có thể nằm trong images hoặc videos)
+                        const mediaItems = [
+                          ...(review.images || []).map((m) => ({ url: m, isVideo: isVideoUrl(m) })),
+                          ...(review.videos || []).map((v) => ({ url: v, isVideo: true })),
+                        ];
+
+                        if (mediaItems.length === 0) return null;
+
+                        return (
+                          <div className="flex gap-2 flex-wrap mb-3">
+                            {mediaItems.map((item, idx) => {
+                              const mediaUrl = getMediaUrl(item.url);
+                              const hasMedia = Boolean(mediaUrl);
+                              const isVideo = item.isVideo;
+
+                              return (
+                                <div
+                                  key={idx}
+                                  className={`w-16 h-16 rounded-lg border border-gray-300 overflow-hidden relative flex items-center justify-center transition-all ${isVideo
+                                    ? hasMedia
+                                      ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 cursor-pointer hover:shadow-lg"
+                                      : "bg-gray-100"
+                                    : "bg-gray-100 cursor-pointer hover:opacity-80"
+                                    }`}
+                                  onClick={() => {
+                                    if (hasMedia && mediaUrl) {
+                                      window.open(mediaUrl, "_blank");
+                                    }
+                                  }}
+                                >
+                                  {isVideo ? (
+                                    <div className="flex flex-col items-center justify-center gap-1 text-[11px] font-semibold">
+                                      <div
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center ${hasMedia ? "bg-black/40 text-white" : "bg-gray-200 text-gray-500"
+                                          }`}
+                                      >
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          fill="currentColor"
+                                          viewBox="0 0 24 24"
+                                          className="w-4 h-4"
+                                        >
+                                          <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                      </div>
+                                      <span className={hasMedia ? "text-gray-100" : "text-gray-500"}>VIDEO</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      {hasMedia ? (
+                                        <img
+                                          src={mediaUrl}
+                                          alt={`Hình ảnh đánh giá ${idx + 1}`}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent && !parent.querySelector(".image-placeholder")) {
+                                              const placeholder = document.createElement("span");
+                                              placeholder.className = "image-placeholder text-[10px] text-gray-400";
+                                              placeholder.textContent = "IMG";
+                                              parent.appendChild(placeholder);
+                                            }
+                                          }}
+                                        />
+                                      ) : (
+                                        <span className="text-[10px] text-gray-400">IMG</span>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                       {/* Admin Response */}
                       {review.response && (
                         <div className="mt-3 border-l-4 border-[#e04d30] bg-[#fff5f1] rounded-r-lg p-3">

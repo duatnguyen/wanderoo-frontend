@@ -232,8 +232,10 @@ export interface ReviewResponse {
   orderHistoryId?: number;
   orderCode?: string; // Order code
   images?: string[];
+  videos?: string[]; // Optional review videos
   rating: number;
   judging?: string;
+  comment?: string; // optional comment alias
   response?: string;
   createdAt: string;
   updatedAt: string;
