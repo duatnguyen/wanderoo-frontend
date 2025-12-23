@@ -21,6 +21,7 @@ interface VariantStockInfo {
   attributeIds: number[];
   quantity: number;
   imageUrl?: string | null;
+  skuDetail?: string | null;
 }
 
 interface ProductInfoProps {
@@ -91,11 +92,32 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       statusLabel = isInStock ? "Còn hàng" : "Hết hàng";
     }
   }
-  // SKU mapping: priority: variantData.productDetailSku > productDetail.barcode
-  // If barcode is null, show "Đang cập nhật" instead of fallback
-  const skuLabel = variantData?.productDetailSku 
-    || productDetail?.barcode 
-    || "Đang cập nhật";
+  // SKU mapping logic:
+  // Case 1: Product has attributes:
+  //   - Before selecting all attributes: show product SKU (product.sku or productDetail.barcode)
+  //   - After selecting all attributes: show skuDetail from variantData (productDetail SKU)
+  // Case 2: Product has no attributes -> show skuDetail from variantsStock[0] (productDetail SKU)
+  let skuLabel: string;
+  if (hasAttributes) {
+    // Product has attributes
+    if (hasSelectedAllAttributes && variantData?.productDetailSku) {
+      // After selecting all attributes: show skuDetail from variantData
+      skuLabel = variantData.productDetailSku;
+    } else {
+      // Before selecting all attributes: show product SKU
+      const productSku = extendedProduct.sku;
+      const detailBarcode = productDetail?.barcode;
+      skuLabel = productSku || detailBarcode || "Đang cập nhật";
+    }
+  } else {
+    // Product has no attributes: show skuDetail from variantsStock[0] (productDetail SKU)
+    // When no attributes, there's only one productDetail, get skuDetail from variantsStock
+    if (variantsStock && variantsStock.length > 0 && variantsStock[0].skuDetail) {
+      skuLabel = variantsStock[0].skuDetail;
+    } else {
+      skuLabel = "Đang cập nhật";
+    }
+  }
 
   // Helper function to parse price from string (may contain "đ" or just number)
   const parsePriceFromString = (priceStr: string | null | undefined): number => {

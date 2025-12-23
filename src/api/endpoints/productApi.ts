@@ -72,6 +72,7 @@ export interface VariantStockInfoResponse {
   attributeIds: number[];
   quantity: number;
   imageUrl?: string | null;
+  skuDetail?: string | null;
 }
 
 export const getProductVariantsStock = async (productId: number): Promise<VariantStockInfoResponse[]> => {
