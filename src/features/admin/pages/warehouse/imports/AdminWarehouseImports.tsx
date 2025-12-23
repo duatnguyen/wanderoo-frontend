@@ -301,7 +301,7 @@ const AdminWarehouseImports = () => {
         <TableFilters
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
-          searchPlaceholder="Tìm kiếm theo mã phiếu, nhà cung cấp..."
+          searchPlaceholder="Tìm kiếm theo mã phiếu..."
           actions={
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
