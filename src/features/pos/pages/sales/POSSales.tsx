@@ -260,10 +260,28 @@ const POSPage: React.FC = () => {
     });
   }, [orderDetail, lockedUnitPrices]);
 
-  // Tổng tiền hàng & khách phải trả luôn lấy đúng từ BE,
-  // đã bao gồm cả productDiscountAmount & orderDiscountAmount theo logic voucher:
-  const totalAmount = orderDetail?.totalProductPrice ?? 0;
-  const finalAmount = orderDetail?.totalOrderPrice ?? totalAmount;
+  // Tính lại tổng tiền từ item hiển thị để tránh lệch so với BE (khi giá/đơn nháp cũ)
+  const totalAmount = useMemo(() => {
+    if (!orderDetail) return 0;
+    return orderDetail.items.reduce((sum, item) => {
+      const id = item.id?.toString() ?? "";
+      const lockedPrice = lockedUnitPrices[id] ?? getUnitPrice(item);
+      return sum + lockedPrice * item.quantity;
+    }, 0);
+  }, [orderDetail, lockedUnitPrices]);
+
+  // Giảm giá chỉ áp dụng khi còn sản phẩm trong giỏ
+  const orderDiscount = useMemo(() => {
+    const hasItems = (orderDetail?.items?.length ?? 0) > 0;
+    if (!hasItems) return 0;
+    return orderDetail?.orderDiscountAmount ?? 0;
+  }, [orderDetail?.items?.length, orderDetail?.orderDiscountAmount]);
+
+  // Khách phải trả = tổng tiền hàng - giảm giá đơn (không âm)
+  const finalAmount = useMemo(() => {
+    const amount = totalAmount - orderDiscount;
+    return amount > 0 ? amount : 0;
+  }, [orderDiscount, totalAmount]);
   const employee = orderDetail?.employeeName ?? "Vũ Hữu Quân";
 
   const handleQuantityChange = useCallback(
@@ -892,7 +910,7 @@ const POSPage: React.FC = () => {
           <POSOrderSummary
             totalAmount={totalAmount}
             finalAmount={finalAmount}
-            orderDiscountAmount={orderDetail?.orderDiscountAmount ?? 0}
+            orderDiscountAmount={orderDiscount}
             productCount={orderDetail?.items?.length ?? 0}
             onCheckout={handleCheckout}
             assignedCustomer={{
