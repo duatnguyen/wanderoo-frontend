@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { DatePicker, Radio } from "antd";
+import dayjs from "dayjs";
 import FormInput from "@/components/ui/form-input";
 import { ArrowLeft } from "lucide-react";
 import RoleDropdown from "@/components/ui/role-dropdown";
@@ -386,16 +388,17 @@ const AdminStaffNew: React.FC = () => {
                 <label className="font-semibold text-[#272424] text-[14px]">
                   Ngày sinh
                 </label>
-                <FormInput
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) =>
-                    handleInputChange("dateOfBirth", e.target.value)
+                <DatePicker
+                  value={formData.dateOfBirth ? dayjs(formData.dateOfBirth) : null}
+                  onChange={(date) =>
+                    handleInputChange(
+                      "dateOfBirth",
+                      date ? date.format("YYYY-MM-DD") : ""
+                    )
                   }
-                  className={`text-[14px] font-medium ${
-                    formData.dateOfBirth ? "text-[#272424]" : "text-[#737373]"
-                  } big-native-picker`}
-                  containerClassName="h-[36px] px-[12px] py-0"
+                  format="DD/MM/YYYY"
+                  placeholder="Chọn ngày sinh"
+                  className="h-[36px] w-full"
                 />
                 {formErrors.dateOfBirth && (
                   <p className="text-sm text-red-500">
@@ -429,37 +432,19 @@ const AdminStaffNew: React.FC = () => {
                 <label className="font-semibold text-[#272424] text-[14px]">
                   Giới tính
                 </label>
-                <div className="flex gap-[16px] items-center h-[36px]">
-                  <label className="flex items-center gap-[8px] cursor-pointer">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="female"
-                      checked={formData.gender === "female"}
-                      onChange={(e) =>
-                        handleInputChange("gender", e.target.value)
-                      }
-                      className="w-[24px] h-[24px]"
-                    />
-                    <span className="font-bold text-[#272424] text-[14px] leading-[1.5]">
+                <div className="h-[36px] flex items-center">
+                  <Radio.Group
+                    onChange={(e) => handleInputChange("gender", e.target.value)}
+                    value={formData.gender}
+                    className="flex gap-[16px]"
+                  >
+                    <Radio value="female" className="font-bold text-[#272424] text-[14px]">
                       Nữ
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-[8px] cursor-pointer">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="male"
-                      checked={formData.gender === "male"}
-                      onChange={(e) =>
-                        handleInputChange("gender", e.target.value)
-                      }
-                      className="w-[24px] h-[24px]"
-                    />
-                    <span className="font-bold text-[#272424] text-[14px] leading-[1.5]">
+                    </Radio>
+                    <Radio value="male" className="font-bold text-[#272424] text-[14px]">
                       Nam
-                    </span>
-                  </label>
+                    </Radio>
+                  </Radio.Group>
                 </div>
               </div>
 

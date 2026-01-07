@@ -3,8 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useMemo, useState } from "react";
+import { DatePicker, Radio } from "antd";
+import dayjs from "dayjs";
 import FormInput from "@/components/ui/form-input";
-import CustomRadio from "@/components/ui/custom-radio";
+
 import { createCustomer, createCustomerAddress } from "@/api/endpoints/userApi";
 import {
   DropdownMenu,
@@ -667,52 +669,40 @@ const AdminAddCustomer = () => {
 
           {/* Birthdate and Gender */}
           <div className="grid grid-cols-2 gap-[16px]">
-            <div className="flex flex-col gap-[8px]">
-              <label className="font-semibold text-[#272424] text-[14px]">
-                Ngày sinh
-              </label>
-              <div className="bg-white border border-[#d1d1d1] flex items-center h-[36px] px-[12px] py-0 rounded-[12px] w-full relative">
-                <input
-                  type="date"
-                  value={formData.birthdate}
-                  onChange={(e) => handleFieldChange("birthdate", e.target.value)}
-                  placeholder="20 / 10 / 1997"
-                  className={`hide-native-picker border-0 outline-none bg-transparent text-[14px] font-semibold placeholder:text-[#888888] ${formData.birthdate ? "text-[#272424]" : "text-[#888888]"} flex-1 w-full`}
+              <div className="flex flex-col gap-[8px]">
+                <label className="font-semibold text-[#272424] text-[14px]">
+                  Ngày sinh
+                </label>
+                <DatePicker
+                  value={formData.birthdate ? dayjs(formData.birthdate) : null}
+                  onChange={(date) => handleFieldChange("birthdate", date ? date.format("YYYY-MM-DD") : "")}
+                  format="DD/MM/YYYY"
+                  placeholder="20/10/1997"
+                  className="w-full h-[36px] border border-[#d1d1d1] rounded-[12px]"
                 />
-                <svg
-                  className="w-5 h-5 text-[#272424] opacity-40 absolute right-3 pointer-events-none"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+                {formErrors.birthdate && (
+                  <p className="text-sm text-red-500">{formErrors.birthdate}</p>
+                )}
               </div>
-              {formErrors.birthdate && (
-                <p className="text-sm text-red-500">{formErrors.birthdate}</p>
-              )}
-            </div>
             <div className="flex flex-col gap-[4px]">
               <label className="font-semibold text-[#272424] text-[14px]">
                 Giới tính
               </label>
-              <div className="flex gap-[16px] items-center h-[36px]">
-                <CustomRadio
-                  label="Nữ"
-                  checked={formData.gender === "Nữ"}
-                  onChange={() => setFormData({ ...formData, gender: "Nữ" })}
-                />
-                <CustomRadio
-                  label="Nam"
-                  checked={formData.gender === "Nam"}
-                  onChange={() => setFormData({ ...formData, gender: "Nam" })}
-                />
+              <div className="h-[36px] flex items-center">
+                <Radio.Group
+                  value={formData.gender}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gender: e.target.value })
+                  }
+                  className="flex gap-[16px]"
+                >
+                  <Radio value="Nữ" className="font-medium text-[#272424] text-[14px]">
+                    Nữ
+                  </Radio>
+                  <Radio value="Nam" className="font-medium text-[#272424] text-[14px]">
+                    Nam
+                  </Radio>
+                </Radio.Group>
               </div>
             </div>
           </div>

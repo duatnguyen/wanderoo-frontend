@@ -4,7 +4,8 @@ import { ArrowLeft, CheckCircle2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipStatus } from "@/components/ui/chip-status";
 import { FormInput } from "@/components/ui/form-input";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePicker } from "antd";
+import dayjs from "dayjs";
 import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
 import {
   TabMenuWithBadge,
@@ -460,14 +461,18 @@ const AdminWarehouseDetailReturnImport: React.FC = () => {
                 </div>
 
                 {/* Refund Date */}
-                <DatePicker
-                  type="date"
-                  value={refundDate}
-                  onChange={(e) => setRefundDate(e.target.value)}
-                  placeholder="//"
-                  label="Ngày ghi nhận"
-                  containerClassName="gap-2"
-                />
+                <div className="flex flex-col gap-2">
+                  <label className="font-semibold text-[14px] text-[#272424]">
+                    Ngày ghi nhận
+                  </label>
+                  <DatePicker
+                    value={refundDate ? dayjs(refundDate) : null}
+                    onChange={(date) => setRefundDate(date ? date.format("YYYY-MM-DD") : "")}
+                    placeholder="DD/MM/YYYY"
+                    format="DD/MM/YYYY"
+                    className="w-full h-[40px]"
+                  />
+                </div>
 
                 {/* Reference Code */}
                 <div className="flex flex-col gap-2">

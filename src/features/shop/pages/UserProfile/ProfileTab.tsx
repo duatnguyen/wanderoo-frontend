@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, User, Mail, Phone, UserCircle, Edit2, Check, X, Venus, Mars, Camera, Upload } from "lucide-react";
+import { Radio } from "antd";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
-import CustomRadio from "../../../../components/ui/custom-radio";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { Calendar } from "../../../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../../components/ui/popover";
@@ -557,20 +557,18 @@ const ProfileTab: React.FC = () => {
                                 {isEditingGender ? (
                                     <div className="space-y-3">
                                         <div className="space-y-2">
-                                            <CustomRadio
-                                                name="gender"
-                                                value="MALE"
-                                                checked={pendingGender === "MALE"}
+                                            <Radio.Group
                                                 onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
-                                                label="Nam"
-                                            />
-                                            <CustomRadio
-                                                name="gender"
-                                                value="FEMALE"
-                                                checked={pendingGender === "FEMALE"}
-                                                onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
-                                                label="Nữ"
-                                            />
+                                                value={pendingGender}
+                                                className="flex flex-col space-y-2"
+                                            >
+                                                <Radio value="MALE" className="font-medium text-sm">
+                                                    Nam
+                                                </Radio>
+                                                <Radio value="FEMALE" className="font-medium text-sm">
+                                                    Nữ
+                                                </Radio>
+                                            </Radio.Group>
                                         </div>
                                         <div className="flex flex-col sm:flex-row gap-2 pt-2">
                                             <Button

@@ -4,6 +4,11 @@ import { RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfigProvider } from "antd";
 import { Toaster } from "sonner";
+import viVN from "antd/locale/vi_VN";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+
+dayjs.locale("vi");
 
 import { router } from "./app/router"; // createBrowserRouter(...)
 import { AuthProvider } from "./context/AuthContext";
@@ -25,6 +30,7 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <ConfigProvider
+      locale={viVN}
       theme={{
         token: {
           colorPrimary: "#ea5b0c",

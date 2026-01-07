@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Radio } from "antd";
 import { FormInput } from "@/components/ui/form-input";
 import {
   DropdownMenu,
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreditCardPercentIcon } from "@/components/icons/discount";
 import Icon from "@/components/icons/Icon";
-import CustomRadio from "@/components/ui/custom-radio";
+
 import type { VoucherEditData } from "@/types/voucher";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -677,24 +678,20 @@ const AdminCreateVoucherNewCustomer: React.FC = () => {
                   </label>
                   <div className="flex-1 flex flex-col gap-[12px] flex-shrink-0">
                     <div className="flex flex-row gap-[12px]">
-                      <CustomRadio
-                        name="maxDiscountLimit"
-                        value="limited"
-                        checked={formData.maxDiscountLimit === "limited"}
+                      <Radio.Group
                         onChange={(e) =>
                           handleInputChange("maxDiscountLimit", e.target.value)
                         }
-                        label="Giới hạn"
-                      />
-                      <CustomRadio
-                        name="maxDiscountLimit"
-                        value="unlimited"
-                        checked={formData.maxDiscountLimit === "unlimited"}
-                        onChange={(e) =>
-                          handleInputChange("maxDiscountLimit", e.target.value)
-                        }
-                        label="Không giới hạn"
-                      />
+                        value={formData.maxDiscountLimit}
+                        className="flex gap-[12px]"
+                      >
+                        <Radio value="limited" className="font-semibold text-[14px]">
+                          Giới hạn
+                        </Radio>
+                        <Radio value="unlimited" className="font-semibold text-[14px]">
+                          Không giới hạn
+                        </Radio>
+                      </Radio.Group>
                     </div>
                     {formData.maxDiscountLimit === "limited" && (
                       <div>

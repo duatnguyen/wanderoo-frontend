@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
+import { Radio } from "antd";
 import { Button } from "@/components/ui/button";
 import { FormInput } from "@/components/ui/form-input";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -11,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Icon from "@/components/icons/Icon";
-import CustomRadio from "@/components/ui/custom-radio";
+
 import type { VoucherEditData, VoucherProduct } from "@/types/voucher";
 import { getAllProductsPrivate, getVariantDetailPrivate, getProductVariantsPrivate } from "@/api/endpoints/productApi";
 import type { AdminProductResponse } from "@/types";
@@ -1356,24 +1357,20 @@ const AdminCreateVoucherProduct: React.FC = () => {
                     </label>
                     <div className="w-full flex flex-col gap-[8px] sm:gap-[12px]">
                       <div className="flex flex-row gap-[8px] sm:gap-[12px] flex-wrap">
-                        <CustomRadio
-                          name="maxDiscountLimit"
-                          value="limited"
-                          checked={formData.maxDiscountLimit === "limited"}
+                        <Radio.Group
                           onChange={(e) =>
                             handleInputChange("maxDiscountLimit", e.target.value)
                           }
-                          label="Giới hạn"
-                        />
-                        <CustomRadio
-                          name="maxDiscountLimit"
-                          value="unlimited"
-                          checked={formData.maxDiscountLimit === "unlimited"}
-                          onChange={(e) =>
-                            handleInputChange("maxDiscountLimit", e.target.value)
-                          }
-                          label="Không giới hạn"
-                        />
+                          value={formData.maxDiscountLimit}
+                          className="flex gap-[8px] sm:gap-[12px] flex-wrap"
+                        >
+                          <Radio value="limited" className="font-semibold text-[14px]">
+                            Giới hạn
+                          </Radio>
+                          <Radio value="unlimited" className="font-semibold text-[14px]">
+                            Không giới hạn
+                          </Radio>
+                        </Radio.Group>
                       </div>
                       {formData.maxDiscountLimit === "limited" && (
                         <div className="w-full">
@@ -1473,33 +1470,23 @@ const AdminCreateVoucherProduct: React.FC = () => {
                   Thiết lập hiển thị
                 </label>
                 <div className="flex-1 flex flex-col gap-[20px] flex-shrink-0">
-                  <CustomRadio
-                    name="displaySetting"
-                    value="pos"
-                    checked={formData.displaySetting === "pos"}
+                  <Radio.Group
                     onChange={(e) =>
                       handleInputChange("displaySetting", e.target.value)
                     }
-                    label="POS"
-                  />
-                  <CustomRadio
-                    name="displaySetting"
-                    value="website"
-                    checked={formData.displaySetting === "website"}
-                    onChange={(e) =>
-                      handleInputChange("displaySetting", e.target.value)
-                    }
-                    label="Website"
-                  />
-                  <CustomRadio
-                    name="displaySetting"
-                    value="pos-website"
-                    checked={formData.displaySetting === "pos-website"}
-                    onChange={(e) =>
-                      handleInputChange("displaySetting", e.target.value)
-                    }
-                    label="POS + Website"
-                  />
+                    value={formData.displaySetting}
+                    className="flex flex-col gap-[20px]"
+                  >
+                    <Radio value="pos" className="font-semibold text-[14px]">
+                      POS
+                    </Radio>
+                    <Radio value="website" className="font-semibold text-[14px]">
+                      Website
+                    </Radio>
+                    <Radio value="pos-website" className="font-semibold text-[14px]">
+                      POS + Website
+                    </Radio>
+                  </Radio.Group>
                 </div>
               </div>
 

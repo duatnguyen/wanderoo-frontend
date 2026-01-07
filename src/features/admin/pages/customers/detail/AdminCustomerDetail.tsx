@@ -7,7 +7,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { ChipStatus } from "@/components/ui/chip-status";
 import { useState, useEffect, useMemo } from "react";
 import FormInput from "@/components/ui/form-input";
-import CustomRadio from "@/components/ui/custom-radio";
+import { DatePicker, Radio } from "antd";
+import dayjs from "dayjs";
+
 import {
   PageContainer,
   ContentCard,
@@ -1253,13 +1255,22 @@ const AdminCustomerDetail = () => {
                   <label className="font-medium text-[#272424] text-[14px]">
                     Ngày sinh
                   </label>
-                  <FormInput
-                    type="date"
-                    value={formData.birthdate}
-                    onChange={(e) =>
-                      handleContactFieldChange("birthdate", e.target.value)
+                  <DatePicker
+                    value={formData.birthdate ? dayjs(formData.birthdate) : null}
+                    onChange={(date) =>
+                      handleContactFieldChange("birthdate", date ? date.format("YYYY-MM-DD") : "")
                     }
+                    format="DD/MM/YYYY"
                     placeholder="dd/mm/yyyy"
+                    className="w-full h-[40px] border border-[#d1d1d1] rounded-[8px]" // FormInput used default or derived styles?
+                    // Previous code: <FormInput type="date" ... />
+                    // FormInput default height is usually 40px or determined dynamically.
+                    // The other inputs in the form (grid) use FormInput.
+                    // I should try to match style. FormInput typically has h-[36px] or similar.
+                    // Let's check other inputs there.
+                    // <FormInput ... /> just uses value/onChange.
+                    // I will use h-[40px] to be safe or h-[36px] depending on context. The container says gap-[12px].
+                    // Let's use generic sizing or fit-parent. DatePicker is block by default? No, inline-block. w-full is good.
                   />
                   {formErrors.birthdate && (
                     <p className="text-sm text-red-500">
@@ -1271,21 +1282,21 @@ const AdminCustomerDetail = () => {
                   <label className="font-medium text-[#272424] text-[14px]">
                     Giới tính
                   </label>
-                  <div className="flex gap-[16px] items-center h-[40px]">
-                    <CustomRadio
-                      label="Nữ"
-                      checked={formData.gender === "Nữ"}
-                      onChange={() =>
-                        setFormData({ ...formData, gender: "Nữ" })
+                  <div className="h-[40px] flex items-center">
+                    <Radio.Group
+                      value={formData.gender}
+                      onChange={(e) =>
+                        setFormData({ ...formData, gender: e.target.value })
                       }
-                    />
-                    <CustomRadio
-                      label="Nam"
-                      checked={formData.gender === "Nam"}
-                      onChange={() =>
-                        setFormData({ ...formData, gender: "Nam" })
-                      }
-                    />
+                      className="flex gap-[16px]"
+                    >
+                      <Radio value="Nữ" className="font-medium text-[#272424] text-[14px]">
+                        Nữ
+                      </Radio>
+                      <Radio value="Nam" className="font-medium text-[#272424] text-[14px]">
+                        Nam
+                      </Radio>
+                    </Radio.Group>
                   </div>
                 </div>
               </div>

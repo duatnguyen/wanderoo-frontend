@@ -1,7 +1,14 @@
 import React, { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
-import { Search, Package } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { SearchBar } from "@/components/ui/search-bar";
+import { Package, ChevronDown } from "lucide-react";
 
 export type InventoryProduct = {
   id: string;
@@ -89,32 +96,47 @@ export const InventoryProductTable: React.FC<InventoryProductTableProps> = ({
           </div>
         </div>
 
+
         {/* Search and Sort Controls */}
         <div className="flex items-center gap-4">
           {/* Search Input */}
-          <div className="flex-1 relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#737373]" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm sản phẩm..."
-              value={searchValue}
-              onChange={(e) => onSearchChange?.(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-[#e7e7e7] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#e04d30] focus:border-transparent text-sm"
-            />
-          </div>
+          <SearchBar
+            placeholder="Tìm kiếm sản phẩm..."
+            value={searchValue}
+            onChange={(e) => onSearchChange?.(e.target.value)}
+            className="flex-1 max-w-md h-[40px]"
+          />
 
           {/* Sort Dropdown */}
-          <SimpleDropdown
-            value={currentSortValue}
-            onValueChange={(value) => {
-              onSortChange?.(
-                sortMap[value as keyof typeof sortMap] || "default"
-              );
-            }}
-            options={sortOptions}
-            placeholder="Sắp xếp theo"
-            className="min-w-[160px] max-w-[200px]"
-          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="secondary"
+                className="w-[180px] justify-between h-[40px]"
+              >
+                {currentSortValue}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[180px]">
+              {sortOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option}
+                  onSelect={() => {
+                    onSortChange?.(
+                      sortMap[option as keyof typeof sortMap] || "default"
+                    );
+                  }}
+                  className={cn(
+                    "cursor-pointer",
+                    currentSortValue === option && "text-[#e04d30] font-medium"
+                  )}
+                >
+                  {option}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

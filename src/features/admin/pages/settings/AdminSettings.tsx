@@ -1,5 +1,7 @@
 // src/pages/admin/AdminSettings.tsx
 import React, { useEffect, useState } from "react";
+import { DatePicker } from "antd";
+import dayjs from "dayjs";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -792,14 +794,17 @@ const AdminSettings: React.FC = () => {
                     {editingBirthday ? (
                       <>
                         <div className="flex items-center gap-2">
-                          <input
-                            type="date"
-                            value={birthdayValue}
-                            onChange={(e) => {
-                              setBirthdayValue(e.target.value);
+                          <DatePicker
+                            value={birthdayValue ? dayjs(birthdayValue) : null}
+                            onChange={(date) => {
+                              setBirthdayValue(date ? date.format("YYYY-MM-DD") : "");
                               if (birthdayError) setBirthdayError(null);
                             }}
-                            className={getInlineInputClass(Boolean(birthdayError))}
+                            format="DD/MM/YYYY"
+                            placeholder="DD/MM/YYYY"
+                            status={birthdayError ? "error" : undefined}
+                            className={`flex-1 h-[42px] ${!birthdayError ? "border-[#E04D30] border-2" : ""}`}
+                            style={{ borderRadius: "8px" }}
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleUpdateBirthday();

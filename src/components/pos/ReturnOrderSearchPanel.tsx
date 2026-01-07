@@ -2,7 +2,8 @@ import React from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SearchBar } from "@/components/ui/search-bar";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePicker } from "antd";
+import dayjs from "dayjs";
 import { Button } from "@/components/ui/button";
 import { POSPagination } from "./POSPagination";
 
@@ -73,17 +74,19 @@ export const ReturnOrderSearchPanel: React.FC<ReturnOrderSearchPanelProps> = ({
       <div className="p-4 border-b border-[#e7e7e7]">
         <div className="flex items-center gap-2">
           <DatePicker
-            type="date"
-            value={startDate}
-            onChange={(e) => onStartDateChange(e.target.value)}
-            containerClassName="flex-1"
+            value={startDate ? dayjs(startDate) : null}
+            onChange={(date) => onStartDateChange(date ? date.format("YYYY-MM-DD") : "")}
+            className="flex-1 w-full"
+            format="DD/MM/YYYY"
+            placeholder="DD/MM/YYYY"
           />
           <span className="text-[#272424] font-medium px-2">-</span>
           <DatePicker
-            type="date"
-            value={endDate}
-            onChange={(e) => onEndDateChange(e.target.value)}
-            containerClassName="flex-1"
+            value={endDate ? dayjs(endDate) : null}
+            onChange={(date) => onEndDateChange(date ? date.format("YYYY-MM-DD") : "")}
+            className="flex-1 w-full"
+            format="DD/MM/YYYY"
+            placeholder="DD/MM/YYYY"
           />
         </div>
       </div>

@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SearchBar } from "@/components/ui/search-bar";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePicker } from "antd";
+import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { getPosOrderList } from "@/api/endpoints/posApi";
 import Loading from "@/components/common/Loading";
@@ -145,17 +146,19 @@ export const SelectOrderModal: React.FC<SelectOrderModalProps> = ({
           {/* Date Range */}
           <div className="flex items-center gap-2">
             <DatePicker
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              containerClassName="flex-1 min-w-[160px]"
+              value={startDate ? dayjs(startDate) : null}
+              onChange={(date) => setStartDate(date ? date.format("YYYY-MM-DD") : "")}
+              className="flex-1 min-w-[160px]"
+              format="DD/MM/YYYY"
+              placeholder="DD/MM/YYYY"
             />
             <span className="text-[#272424] font-medium px-2">-</span>
             <DatePicker
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              containerClassName="flex-1 min-w-[160px]"
+              value={endDate ? dayjs(endDate) : null}
+              onChange={(date) => setEndDate(date ? date.format("YYYY-MM-DD") : "")}
+              className="flex-1 min-w-[160px]"
+              format="DD/MM/YYYY"
+              placeholder="DD/MM/YYYY"
             />
           </div>
         </div>

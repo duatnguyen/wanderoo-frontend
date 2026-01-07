@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Radio } from "antd";
 import { FormInput } from "@/components/ui/form-input";
 import {
   DropdownMenu,
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreditCardPercentIcon } from "@/components/icons/discount";
 import Icon from "@/components/icons/Icon";
-import CustomRadio from "@/components/ui/custom-radio";
+
 import { toast } from "sonner";
 
 // Date formatting utilities
@@ -437,24 +438,20 @@ const AdminCreateVoucher: React.FC = () => {
                   </label>
                   <div className="flex-1 flex flex-col gap-[12px] min-w-0">
                     <div className="flex flex-row gap-[12px]">
-                      <CustomRadio
-                        name="maxDiscountLimit"
-                        value="limited"
-                        checked={formData.maxDiscountLimit === "limited"}
+                      <Radio.Group
                         onChange={(e) =>
                           handleInputChange("maxDiscountLimit", e.target.value)
                         }
-                        label="Giới hạn"
-                      />
-                      <CustomRadio
-                        name="maxDiscountLimit"
-                        value="unlimited"
-                        checked={formData.maxDiscountLimit === "unlimited"}
-                        onChange={(e) =>
-                          handleInputChange("maxDiscountLimit", e.target.value)
-                        }
-                        label="Không giới hạn"
-                      />
+                        value={formData.maxDiscountLimit}
+                        className="flex gap-[12px]"
+                      >
+                        <Radio value="limited" className="font-semibold text-[14px]">
+                          Giới hạn
+                        </Radio>
+                        <Radio value="unlimited" className="font-semibold text-[14px]">
+                          Không giới hạn
+                        </Radio>
+                      </Radio.Group>
                     </div>
                     {formData.maxDiscountLimit === "limited" && (
                       <div>
@@ -553,33 +550,23 @@ const AdminCreateVoucher: React.FC = () => {
                   Thiết lập hiển thị
                 </label>
                 <div className="flex-1 flex flex-col gap-[20px]">
-                  <CustomRadio
-                    name="displaySetting"
-                    value="pos"
-                    checked={formData.displaySetting === "pos"}
+                  <Radio.Group
                     onChange={(e) =>
                       handleInputChange("displaySetting", e.target.value)
                     }
-                    label="POS"
-                  />
-                  <CustomRadio
-                    name="displaySetting"
-                    value="website"
-                    checked={formData.displaySetting === "website"}
-                    onChange={(e) =>
-                      handleInputChange("displaySetting", e.target.value)
-                    }
-                    label="Website"
-                  />
-                  <CustomRadio
-                    name="displaySetting"
-                    value="pos-website"
-                    checked={formData.displaySetting === "pos-website"}
-                    onChange={(e) =>
-                      handleInputChange("displaySetting", e.target.value)
-                    }
-                    label="POS + Website"
-                  />
+                    value={formData.displaySetting}
+                    className="flex flex-col gap-[20px]"
+                  >
+                    <Radio value="pos" className="font-semibold text-[14px]">
+                      POS
+                    </Radio>
+                    <Radio value="website" className="font-semibold text-[14px]">
+                      Website
+                    </Radio>
+                    <Radio value="pos-website" className="font-semibold text-[14px]">
+                      POS + Website
+                    </Radio>
+                  </Radio.Group>
                 </div>
               </div>
 

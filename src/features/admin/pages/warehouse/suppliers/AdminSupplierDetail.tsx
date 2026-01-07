@@ -1,4 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
+import { DatePicker } from "antd";
+import dayjs from "dayjs";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -235,13 +237,13 @@ const AdminSupplierDetail = () => {
                 </div>
                 <div className="flex gap-[16px] items-center">
                   {/* Date Range Input 1 */}
-                  <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center w-[160px]">
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className={`flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold w-full ${startDate ? "text-[#272424]" : "text-[#737373]"}`}
-                      placeholder="/"
+                  <div className="w-[160px]">
+                    <DatePicker
+                       value={startDate ? dayjs(startDate) : null}
+                       onChange={(date) => setStartDate(date ? date.format("YYYY-MM-DD") : "")}
+                       format="DD/MM/YYYY"
+                       placeholder="Từ ngày"
+                       className="w-full h-[40px] border-2 border-[#e04d30] rounded-[12px]"
                     />
                   </div>
 
@@ -249,13 +251,13 @@ const AdminSupplierDetail = () => {
                   <div className="text-[#737373]">−</div>
 
                   {/* Date Range Input 2 */}
-                  <div className="bg-white border-2 border-[#e04d30] rounded-[12px] px-[16px] py-[10px] flex items-center w-[160px]">
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className={`flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold w-full ${endDate ? "text-[#272424]" : "text-[#737373]"}`}
-                      placeholder="/"
+                  <div className="w-[160px]">
+                    <DatePicker
+                       value={endDate ? dayjs(endDate) : null}
+                       onChange={(date) => setEndDate(date ? date.format("YYYY-MM-DD") : "")}
+                       format="DD/MM/YYYY"
+                       placeholder="Đến ngày"
+                       className="w-full h-[40px] border-2 border-[#e04d30] rounded-[12px]"
                     />
                   </div>
                 </div>

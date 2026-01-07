@@ -4,7 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Calendar, Pencil } from "lucide-react";
 import FormInput from "@/components/ui/form-input";
-import CustomRadio from "@/components/ui/custom-radio";
+import { DatePicker, Radio } from "antd";
+import dayjs from "dayjs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -656,20 +657,18 @@ const AdminStaffDetail: React.FC = () => {
                   Giới tính
                 </label>
                 <div className="flex gap-[10px] items-center w-[209px]">
-                  <CustomRadio
-                    name="gender"
-                    value="female"
-                    checked={(staff.gender?.toLowerCase() || "") === "female"}
-                    readOnly
-                    label="Nữ"
-                  />
-                  <CustomRadio
-                    name="gender"
-                    value="male"
-                    checked={(staff.gender?.toLowerCase() || "") === "male"}
-                    readOnly
-                    label="Nam"
-                  />
+                  <Radio.Group
+                    value={staff.gender?.toLowerCase()}
+                    disabled
+                    className="flex gap-[10px]"
+                  >
+                    <Radio value="female" className="font-semibold text-[14px]">
+                      Nữ
+                    </Radio>
+                    <Radio value="male" className="font-semibold text-[14px]">
+                      Nam
+                    </Radio>
+                  </Radio.Group>
                 </div>
               </div>
             </div>
@@ -831,14 +830,14 @@ const AdminStaffDetail: React.FC = () => {
                     <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       Ngày sinh
                     </label>
-                    <FormInput
-                      type="date"
-                      value={editFormData.dateOfBirth}
-                      onChange={(e) =>
-                        handleInputChange("dateOfBirth", e.target.value)
+                    <DatePicker
+                      value={editFormData.dateOfBirth ? dayjs(editFormData.dateOfBirth) : null}
+                      onChange={(date) =>
+                        handleInputChange("dateOfBirth", date ? date.format("YYYY-MM-DD") : "")
                       }
-                      className="text-[14px] font-medium text-[#737373]"
-                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                      format="DD/MM/YYYY"
+                      placeholder="DD/MM/YYYY"
+                      className="w-full h-[36px] border border-[#d1d1d1] rounded-[12px]"
                     />
                     {formErrors.dateOfBirth && (
                       <p className="text-sm text-red-500">{formErrors.dateOfBirth}</p>
@@ -850,21 +849,19 @@ const AdminStaffDetail: React.FC = () => {
                     <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
                       Giới tính
                     </label>
-                    <div className="flex gap-[10px] items-center w-[209px]">
-                      <CustomRadio
-                        name="gender"
-                        value="female"
-                        checked={editFormData.gender === "female"}
-                        onChange={() => handleInputChange("gender", "female")}
-                        label="Nữ"
-                      />
-                      <CustomRadio
-                        name="gender"
-                        value="male"
-                        checked={editFormData.gender === "male"}
-                        onChange={() => handleInputChange("gender", "male")}
-                        label="Nam"
-                      />
+                    <div className="flex gap-[10px] items-center w-[209px] h-[36px]">
+                      <Radio.Group
+                        value={editFormData.gender}
+                        onChange={(e) => handleInputChange("gender", e.target.value)}
+                        className="flex gap-[10px]"
+                      >
+                        <Radio value="female" className="font-semibold text-[14px]">
+                          Nữ
+                        </Radio>
+                        <Radio value="male" className="font-semibold text-[14px]">
+                          Nam
+                        </Radio>
+                      </Radio.Group>
                     </div>
                   </div>
                 </div>
