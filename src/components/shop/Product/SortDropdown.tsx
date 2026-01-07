@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export type SortOption = {
   value: string;
@@ -50,13 +51,13 @@ const SortDropdown: React.FC<SortDropdownProps> = ({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
-        type="button"
+      <Button
+        variant="outline"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between gap-2 rounded-2xl border-2 px-4 py-2 text-sm font-medium transition-all ${
+        className={`flex items-center justify-between gap-2 rounded-2xl border-2 px-4 py-2 text-sm font-medium transition-all h-auto bg-transparent ${
           isOpen
-            ? "border-[#f97316] bg-white shadow-sm"
-            : "border-gray-200 bg-white hover:border-gray-300"
+            ? "border-[#f97316] bg-white shadow-sm hover:bg-white text-[#454545]"
+            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-white text-[#454545]"
         }`}
       >
         <span className="text-[#454545]">{selectedOption.label}</span>
@@ -73,27 +74,27 @@ const SortDropdown: React.FC<SortDropdownProps> = ({
             d="M19 9l-7 7-7-7"
           />
         </svg>
-      </button>
+      </Button>
 
       {isOpen && (
         <div className="absolute right-0 z-50 mt-2 w-full min-w-[180px] rounded-xl border border-gray-200 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
           <div className="py-1">
             {options.map((option) => (
-              <button
+              <Button
                 key={option.value}
-                type="button"
+                variant="ghost"
                 onClick={() => {
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                className={`w-full px-4 py-2.5 text-left text-sm transition-colors first:rounded-t-xl last:rounded-b-xl ${
+                className={`w-full px-4 py-2.5 text-left text-sm transition-colors first:rounded-t-xl last:rounded-b-xl justify-start h-auto font-normal rounded-none ${
                   option.value === value
-                    ? "bg-blue-500 text-white font-medium"
+                    ? "bg-blue-500 text-white font-medium hover:bg-blue-600 hover:text-white"
                     : "text-[#454545] hover:bg-gray-50"
                 }`}
               >
                 {option.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

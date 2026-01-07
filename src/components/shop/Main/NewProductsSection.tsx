@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../ProductCard";
+import { Button } from "@/components/ui/button";
 import type { Product } from "../../../features/shop/data/productsData";
 
 interface NewProductsSectionProps {
@@ -38,12 +39,15 @@ const NewProductsSection: React.FC<NewProductsSectionProps> = ({
                 <h2 className="text-2xl font-bold text-gray-900">Sản phẩm mới</h2>
               </div>
             </div>
-            <Link
-              to="/shop/products/all"
-              className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
+            <Button
+              variant="link"
+              asChild
+              className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors whitespace-nowrap p-0 h-auto"
             >
-              Xem tất cả &gt;&gt;
-            </Link>
+              <Link to="/shop/products/all">
+                Xem tất cả &gt;&gt;
+              </Link>
+            </Button>
           </div>
           <div className="text-center py-8 text-gray-500">Đang tải sản phẩm...</div>
         </div>
@@ -60,12 +64,15 @@ const NewProductsSection: React.FC<NewProductsSectionProps> = ({
               <h2 className="text-2xl font-bold text-gray-900">Sản phẩm mới</h2>
             </div>
           </div>
-          <Link
-            to="/shop/products/all"
-            className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
+          <Button
+            variant="link"
+            asChild
+            className="text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors whitespace-nowrap p-0 h-auto"
           >
-            Xem tất cả &gt;&gt;
-          </Link>
+            <Link to="/shop/products/all">
+              Xem tất cả &gt;&gt;
+            </Link>
+          </Button>
         </div>
 
         <div className="grid grid-cols-6 gap-4">

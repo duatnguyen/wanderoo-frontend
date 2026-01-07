@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Menu } from "lucide-react";
 import ProfileSidebar from "../components/shop/ProfileSidebar";
+import { Button } from "@/components/ui/button";
 
 const ProfileLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -11,13 +12,14 @@ const ProfileLayout: React.FC = () => {
       <div className="w-full px-4 h-full flex flex-col max-w-305 mx-auto">
         {/* Mobile Menu Button */}
         <div className="lg:hidden py-4">
-          <button
+          <Button
+            variant="outline"
             onClick={() => setIsSidebarOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors h-auto"
           >
             <Menu size={24} />
             <span className="font-medium">Menu</span>
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-col lg:flex-row py-4 sm:py-6 lg:py-8 w-full items-start flex-1 min-h-0">

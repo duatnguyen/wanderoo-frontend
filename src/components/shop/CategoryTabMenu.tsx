@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type FC } from "react";
+import { Button } from "@/components/ui/button";
 
 export type SubCategory = {
   id: string;
@@ -55,10 +56,11 @@ const CategoryTabMenu: FC<CategoryTabMenuProps> = ({
           Array.isArray(cat.subcategories) && cat.subcategories.length > 0;
         return (
           <div key={cat.id} className={clsx("relative flex-1")}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               className={clsx(
-                "flex flex-col items-center gap-2 px-2 py-2 text-[14px] font-medium bg-transparent focus:z-10 transition-opacity hover:opacity-80 w-full",
+                "flex flex-col items-center gap-2 px-2 py-2 text-[14px] font-medium bg-transparent focus:z-10 transition-opacity hover:opacity-80 w-full h-auto rounded-none hover:bg-transparent",
                 cat.disabled && "opacity-50 cursor-not-allowed"
               )}
               disabled={cat.disabled}
@@ -79,15 +81,16 @@ const CategoryTabMenu: FC<CategoryTabMenuProps> = ({
                 ) : null}
               </div>
               <span className="text-[#454545] text-center">{cat.label}</span>
-            </button>
+            </Button>
             {hasSub && openIdx === idx && (
               <div className="absolute left-0 mt-2 w-auto min-w-[150px] bg-white border border-gray-200 rounded-[6px] shadow-xl z-30">
                 <ul className="py-1">
                   {cat.subcategories?.map((sub) => (
                     <li key={sub.id}>
-                      <button
+                      <Button
+                        variant="ghost"
                         className={clsx(
-                          "block w-full px-4 py-2 text-left text-[15px] font-medium rounded-[6px] transition",
+                          "block w-full px-4 py-2 text-left text-[15px] font-medium rounded-[6px] transition h-auto justify-start font-normal",
                           subValue === sub.id
                             ? "bg-[#f7f7f7] text-[#18345c]"
                             : "text-[#454545] hover:bg-gray-100",
@@ -97,7 +100,7 @@ const CategoryTabMenu: FC<CategoryTabMenuProps> = ({
                         onClick={() => onSubChange?.(sub.id, cat.id)}
                       >
                         {sub.label}
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>

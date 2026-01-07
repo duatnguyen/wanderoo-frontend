@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { POSSidebarItemId } from "../components/pos/POSSidebar";
+import { Button } from "@/components/ui/button";
 
 const POSLayoutContent: React.FC = () => {
   const location = useLocation();
@@ -138,9 +139,11 @@ const POSLayoutContent: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Mobile Sidebar Toggle */}
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed top-[64px] sm:top-[80px] left-2 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200"
+          className="lg:hidden fixed top-[64px] sm:top-[80px] left-2 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200 h-auto w-auto hover:bg-gray-100/50"
           aria-label="Toggle sidebar"
         >
           {sidebarOpen ? (
@@ -148,7 +151,7 @@ const POSLayoutContent: React.FC = () => {
           ) : (
             <Menu className="w-5 h-5 text-[#454545]" />
           )}
-        </button>
+        </Button>
 
         {/* Sidebar */}
         <div

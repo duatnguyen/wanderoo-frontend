@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 function FacebookIcon() {
   return (
@@ -133,27 +134,45 @@ const Footer: React.FC = () => {
             Kết Nối Với Chúng Tôi
           </h3>
           <div className="flex items-center gap-4">
-            <a
-              href="#"
-              aria-label="Facebook"
-              className="p-2 rounded-md hover:bg-white/10"
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="p-2 rounded-md hover:bg-white/10 w-auto h-auto text-white hover:text-white"
             >
-              <FacebookIcon />
-            </a>
-            <a
-              href="#"
-              aria-label="Email"
-              className="p-2 rounded-md hover:bg-white/10"
+              <a
+                href="#"
+                aria-label="Facebook"
+              >
+                <FacebookIcon />
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="p-2 rounded-md hover:bg-white/10 w-auto h-auto text-white hover:text-white"
             >
-              <MailIcon />
-            </a>
-            <a
-              href="#"
-              aria-label="Phone"
-              className="p-2 rounded-md hover:bg-white/10"
+              <a
+                href="#"
+                aria-label="Email"
+              >
+                <MailIcon />
+              </a>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="p-2 rounded-md hover:bg-white/10 w-auto h-auto text-white hover:text-white"
             >
-              <PhoneIcon />
-            </a>
+              <a
+                href="#"
+                aria-label="Phone"
+              >
+                <PhoneIcon />
+              </a>
+            </Button>
           </div>
         </div>
       </div>

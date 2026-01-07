@@ -5,6 +5,7 @@ import type { ResetPasswordRequest } from "../../types/auth";
 import bannerSrc from "../../assets/images/banner/banner_auth.png";
 import logo from "../../assets/icons/ShopLogo.png";
 import { MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ResetPassword: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -116,13 +117,14 @@ const ResetPassword: React.FC = () => {
                             alt="Wanderoo Logo"
                             className="w-100 h-100 object-contain mx-auto"
                         />
-                        <button
+                        <Button
                             type="button"
+                            variant="outline"
                             onClick={() => navigate("/shop")}
-                            className="mx-auto inline-flex items-center justify-center rounded-full border border-white/70 px-6 py-2 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-white/15"
+                            className="mx-auto rounded-full border border-white/70 px-6 py-2 text-sm font-semibold uppercase tracking-wider text-white transition bg-transparent hover:bg-white/15 hover:text-white border-white/70"
                         >
                             Mua sắm ngay
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </aside>
@@ -131,10 +133,11 @@ const ResetPassword: React.FC = () => {
                 <div className="w-full max-w-[460px] flex flex-col gap-8">
                     <header className="flex flex-col gap-4">
                         <div className="flex items-center justify-between">
-                            <button
+                            <Button
                                 type="button"
+                                variant="ghost"
                                 onClick={() => navigate("/login")}
-                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors p-0 hover:bg-transparent"
                             >
                                 <svg
                                     width="16"
@@ -147,7 +150,7 @@ const ResetPassword: React.FC = () => {
                                     <path d="M19 12H5M12 19l-7-7 7-7" />
                                 </svg>
                                 Quay lại đăng nhập
-                            </button>
+                            </Button>
                         </div>
                         <h1 className="text-3xl lg:text-4xl font-semibold text-gray-800 text-center">
                             Đặt lại mật khẩu
@@ -188,9 +191,11 @@ const ResetPassword: React.FC = () => {
                                     className="h-12 w-full rounded-xl border border-gray-300 px-4 text-sm text-gray-800 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15"
                                     placeholder="Nhập mật khẩu mới"
                                 />
-                                <button
+                                <Button
                                     type="button"
-                                    className="absolute right-4 text-gray-400 hover:text-gray-800 transition-colors"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-4 text-gray-400 hover:text-gray-800 transition-colors hover:bg-transparent"
                                     onClick={() => setShowPassword((prev) => !prev)}
                                     aria-label={showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
                                 >
@@ -216,7 +221,7 @@ const ResetPassword: React.FC = () => {
                                             </>
                                         )}
                                     </svg>
-                                </button>
+                                </Button>
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
                                 Mật khẩu phải có tối thiểu 6 ký tự, chứa ít nhất 1 chữ cái và 1 số
@@ -238,9 +243,11 @@ const ResetPassword: React.FC = () => {
                                     className="h-12 w-full rounded-xl border border-gray-300 px-4 text-sm text-gray-800 outline-none transition-all focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15"
                                     placeholder="Nhập lại mật khẩu mới"
                                 />
-                                <button
+                                <Button
                                     type="button"
-                                    className="absolute right-4 text-gray-400 hover:text-gray-800 transition-colors"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-4 text-gray-400 hover:text-gray-800 transition-colors hover:bg-transparent"
                                     onClick={() => setShowConfirmPassword((prev) => !prev)}
                                     aria-label={showConfirmPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
                                 >
@@ -266,28 +273,29 @@ const ResetPassword: React.FC = () => {
                                             </>
                                         )}
                                     </svg>
-                                </button>
+                                </Button>
                             </div>
                         </div>
 
-                        <button
+                        <Button
                             type="submit"
                             disabled={isLoading}
-                            className="h-12 w-full rounded-xl border-none bg-orange-500 text-white font-semibold tracking-wider uppercase hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                            className="h-12 w-full rounded-xl bg-orange-500 text-white font-semibold tracking-wider uppercase hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                         >
                             {isLoading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
-                        </button>
+                        </Button>
                     </form>
 
                     <p className="text-center text-sm text-gray-600">
                         Nhớ mật khẩu?{" "}
-                        <button
+                        <Button
                             type="button"
+                            variant="link"
                             onClick={() => navigate("/login")}
-                            className="font-semibold text-orange-500 hover:text-orange-600 transition-colors"
+                            className="font-semibold text-orange-500 hover:text-orange-600 transition-colors p-0 h-auto"
                         >
                             Đăng nhập ngay
-                        </button>
+                        </Button>
                     </p>
                 </div>
             </main>

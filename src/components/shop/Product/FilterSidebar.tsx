@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "@/components/ui/button";
 import FilterPanel, { type FilterState } from "./FilterPanel";
 import type { BrandResponse } from "../../../types";
 
@@ -25,17 +26,17 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
           <h3 className="text-xl font-bold text-[#0b1f3a]">Bộ lọc</h3>
-          <button
-            type="button"
-            className="text-sm font-medium text-[#1c3b6c] hover:text-[#f97316] hover:underline transition-colors"
+          <Button
+            variant="link"
+            className="text-sm font-medium text-[#1c3b6c] hover:text-[#f97316] hover:underline transition-colors p-0 h-auto"
             onClick={onReset}
           >
             Đặt lại
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(100vh-200px)] px-6 py-6">
+        <div className="overflow-y-auto max-h-[calc(100vh-200px)] px-6 py-6 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent hover:scrollbar-thumb-gray-300">
           <FilterPanel
             filters={filters}
             brands={brands}
@@ -47,13 +48,12 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
 
         {/* Footer */}
         <div className="border-t border-gray-200 bg-white px-6 py-4">
-          <button
-            type="button"
-            className="w-full rounded-2xl bg-[#f97316] py-3 text-sm font-semibold text-white hover:bg-[#ea580c] transition-colors shadow-md"
+          <Button
+            className="w-full rounded-2xl bg-[#f97316] py-3 text-sm font-semibold text-white hover:bg-[#ea580c] transition-colors shadow-md h-auto"
             onClick={onReset}
           >
             Xóa bộ lọc
-          </button>
+          </Button>
         </div>
       </div>
     </aside>

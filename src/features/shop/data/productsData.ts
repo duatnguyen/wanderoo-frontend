@@ -22,6 +22,7 @@ export interface Product {
   images?: string[];
   category?: string;
   variantOptions?: { label: string; value: string }[];
+  discountValue?: string;
 }
 
 // Mock data for development

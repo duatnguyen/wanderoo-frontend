@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { VoucherHistoryResponse } from "../../../types";
+import { Button } from "@/components/ui/button";
 
 interface EnhancedVoucherSelectionModalProps {
     isOpen: boolean;
@@ -148,13 +149,15 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                     <h3 className="text-[18px] font-semibold text-gray-900">
                         Chọn mã giảm giá
                     </h3>
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        className="text-gray-400 hover:text-gray-600 transition-colors h-auto w-auto p-1"
                         aria-label="Đóng"
                     >
                         ✕
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="h-[400px] overflow-y-auto px-5 pb-6 pt-4">
@@ -277,10 +280,10 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                     </div>
                                     {personalVouchers.length > 3 && (
                                         <div className="flex justify-center pt-1">
-                                            <button
-                                                type="button"
+                                            <Button
+                                                variant="ghost"
                                                 onClick={() => setShowAllPersonal(!showAllPersonal)}
-                                                className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
+                                                className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors h-auto bg-transparent hover:bg-transparent"
                                             >
                                                 <span>
                                                     {showAllPersonal ? "Thu gọn" : `Xem thêm ${personalVouchers.length - 3} voucher`}
@@ -291,7 +294,7 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                                 >
                                                     ▼
                                                 </span>
-                                            </button>
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
@@ -400,10 +403,10 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                     </div>
                                     {publicVouchers.length > 3 && (
                                         <div className="flex justify-center pt-1">
-                                            <button
-                                                type="button"
+                                            <Button
+                                                variant="ghost"
                                                 onClick={() => setShowAllPublic(!showAllPublic)}
-                                                className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors"
+                                                className="flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors h-auto bg-transparent hover:bg-transparent"
                                             >
                                                 <span>
                                                     {showAllPublic ? "Thu gọn" : `Xem thêm ${publicVouchers.length - 3} voucher`}
@@ -414,7 +417,7 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                                                 >
                                                     ▼
                                                 </span>
-                                            </button>
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
@@ -470,18 +473,19 @@ const EnhancedVoucherSelectionModal: React.FC<EnhancedVoucherSelectionModalProps
                             )}
                         </div>
                         <div className="flex items-center gap-3">
-                            <button
+                            <Button
+                                variant="outline"
                                 onClick={onClose}
-                                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors"
+                                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:border-gray-400 hover:text-gray-900 transition-colors h-auto bg-transparent hover:bg-transparent"
                             >
                                 Hủy
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleApply}
-                                className="px-5 py-2 rounded-lg bg-[#E04D30] text-white font-semibold hover:bg-[#c53b1d] transition-colors"
+                                className="px-5 py-2 rounded-lg bg-[#E04D30] text-white font-semibold hover:bg-[#c53b1d] transition-colors h-auto border-none"
                             >
                                 Áp dụng
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

@@ -13,11 +13,14 @@ import { getCartItemCount } from "../../api/endpoints/cartApi";
 import type { ProductSearchResponse } from "../../types";
 import { getImageUrl } from "../../utils/imageUtils";
 
+import { Button } from "@/components/ui/button";
+
 function Logo({ onClick }: { onClick: () => void }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
-      className="flex items-center hover:opacity-80 transition-opacity  overflow-hidden cursor-pointer"
+      className="flex items-center hover:opacity-80 transition-opacity  overflow-hidden cursor-pointer p-0 h-auto hover:bg-transparent"
       aria-label="Về trang chủ"
       type="button"
     >
@@ -26,7 +29,7 @@ function Logo({ onClick }: { onClick: () => void }) {
         alt="Wanderoo Logo"
         className="h-20 w-auto max-h-[80px] object-contain"
       />
-    </button>
+    </Button>
   );
 }
 
@@ -312,8 +315,9 @@ const Header: React.FC<HeaderProps> = ({
             ref={categoryButtonRef}
             className="relative flex h-[48px] flex-shrink-0 items-center gap-3 px-4 md:ml-6"
           >
-            <button
-              className="flex items-center gap-2 cursor-pointer"
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 cursor-pointer p-0 h-auto text-white hover:text-white/80 hover:bg-transparent"
               aria-label="Mở menu danh mục"
               onClick={() => {
                 setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
@@ -325,7 +329,7 @@ const Header: React.FC<HeaderProps> = ({
               <span className="text-white font-semibold text-[16px] select-none">
                 Danh mục
               </span>
-            </button>
+            </Button>
             <CategoryDropdown
               isOpen={isCategoryDropdownOpen}
               onClose={() => setIsCategoryDropdownOpen(false)}
@@ -357,23 +361,25 @@ const Header: React.FC<HeaderProps> = ({
                 className="flex-1 bg-transparent text-sm text-[#1f2937] placeholder:text-gray-400 focus:outline-none"
               />
               {searchValue && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={handleClearSearch}
-                  className="mr-2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  className="mr-2 p-1 hover:bg-gray-100 rounded-full transition-colors h-auto w-auto"
                   type="button"
                   aria-label="Xóa tìm kiếm"
                 >
                   <X className="w-4 h-4 text-gray-400" />
-                </button>
+                </Button>
               )}
               <div className="h-4 w-px bg-gray-200" />
-              <button
+              <Button
                 onClick={handleSearch}
-                className="ml-3 rounded-xl bg-[#f97316] px-3 py-1 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:bg-[#ea580c]"
+                className="ml-3 rounded-xl bg-[#f97316] px-3 py-1 text-xs font-semibold text-white shadow-[0_8px_16px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:bg-[#ea580c] h-auto"
                 type="button"
               >
                 Tìm kiếm
-              </button>
+              </Button>
             </div>
 
             {/* Search Results Dropdown */}
@@ -389,10 +395,11 @@ const Header: React.FC<HeaderProps> = ({
                       const imageUrl = getImageUrl(product.imageUrl);
                       
                       return (
-                        <button
+                        <Button
                           key={product.id}
+                          variant="ghost"
                           onClick={() => handleProductClick(product.id)}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-100 last:border-b-0 h-auto rounded-none font-normal"
                           type="button"
                         >
                           <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
@@ -417,7 +424,7 @@ const Header: React.FC<HeaderProps> = ({
                             </p>
                             <p className="text-xs text-gray-500">SKU: {product.sku}</p>
                           </div>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -431,7 +438,9 @@ const Header: React.FC<HeaderProps> = ({
           </div>
           <div className="flex items-center gap-3 pl-5">
             {/* Cart Button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => navigate("/shop/cart")}
               className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors"
               aria-label="Giỏ hàng"
@@ -443,15 +452,16 @@ const Header: React.FC<HeaderProps> = ({
                   {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
-            </button>
+            </Button>
 
             {/* User Actions */}
             {isAuthenticated ? (
               <>
                 {/* Profile Avatar Button */}
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => navigate("/user/profile/")}
-                  className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity group h-auto p-0 hover:bg-transparent"
                   aria-label="Xem hồ sơ"
                   type="button"
                 >
@@ -466,10 +476,12 @@ const Header: React.FC<HeaderProps> = ({
                       </span>
                     )}
                   </div>
-                </button>
+                </Button>
                 
                 {/* Logout Button */}
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => {
                     logout();
                     navigate("/login");
@@ -479,11 +491,13 @@ const Header: React.FC<HeaderProps> = ({
                   type="button"
                 >
                   <LogOut size={18} />
-                </button>
+                </Button>
               </>
             ) : (
               /* Login Icon Button */
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => navigate("/login")}
                 className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors"
                 aria-label="Đăng nhập"
@@ -491,7 +505,7 @@ const Header: React.FC<HeaderProps> = ({
                 title="Đăng nhập"
               >
                 <User className="w-6 h-6 text-white" />
-              </button>
+              </Button>
             )}
           </div>
         </div>

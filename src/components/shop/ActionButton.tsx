@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export type ActionOption = {
   id: string;
@@ -49,8 +50,10 @@ const ActionButton: React.FC<ActionButtonProps> = ({
 
   return (
     <div className="relative">
-      <button
+      <Button
         type="button"
+        variant={variant === "primary" ? "default" : variant}
+        size={size === "md" ? "default" : size}
         onClick={handleToggle}
         className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       >
@@ -68,7 +71,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
         >
           <path d="M6 9l6 6 6-6" />
         </svg>
-      </button>
+      </Button>
 
       {/* Dropdown Menu */}
       {isOpen && options.length > 0 && (
@@ -82,13 +85,14 @@ const ActionButton: React.FC<ActionButtonProps> = ({
           {/* Menu */}
           <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
             {options.map((option) => (
-              <button
+              <Button
                 key={option.id}
+                variant="ghost"
                 onClick={() => handleOptionClick(option.onClick)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                className="w-full justify-start px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap h-auto rounded-none font-normal"
               >
                 {option.label}
-              </button>
+              </Button>
             ))}
           </div>
         </>

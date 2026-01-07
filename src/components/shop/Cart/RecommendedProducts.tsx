@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../ProductCard";
+import { Button } from "@/components/ui/button";
 
 interface RecommendedProduct {
   id: number;
@@ -33,13 +34,15 @@ const RecommendedProducts: React.FC<RecommendedProductsProps> = ({
               </h2>
             </div>
           </div>
-          <button
-            type="button"
-            className="text-blue-600 text-[16px] font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
+
+          <Button
+            variant="link"
+            size="sm"
+            className="text-blue-600 text-[16px] font-medium hover:text-blue-700 transition-colors whitespace-nowrap h-auto p-0 hover:no-underline"
             onClick={() => navigate("/shop/products/all")}
           >
             Xem tất cả &gt;&gt;
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

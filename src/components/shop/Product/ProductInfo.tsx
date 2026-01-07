@@ -1,5 +1,6 @@
 import React from "react";
 import { formatCurrencyVND } from "../../../features/shop/pages/Product/utils/formatCurrency";
+import { Button } from "@/components/ui/button";
 import type { Product } from "../../../features/shop/data/productsData";
 import type { ProductDetailsResponse, VariantDetailIdResponse } from "../../../types";
 
@@ -365,15 +366,16 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
                   const isValueLeadsToOutOfStock = isValueOutOfStock(value.id);
                   
                   return (
-                    <button
+                    <Button
                       key={value.id}
                       type="button"
+                      variant="ghost" 
                       onClick={() => onAttributeSelect?.(attrIndex, value.id)}
                       disabled={isLoadingVariant || isValueLeadsToOutOfStock}
-                      className={`px-4 py-2 rounded-md border-2 text-[14px] transition-colors bg-white relative ${
+                      className={`px-4 py-2 rounded-md border-2 text-[14px] transition-colors bg-white relative h-auto ${
                         isSelected
-                          ? "border-[#e9502c] text-[#e9502c] font-bold"
-                          : "border-[#d9d9d9] text-[#4d4d4d] hover:border-[#d9d9d9]"
+                          ? "border-[#e9502c] text-[#e9502c] font-bold hover:bg-white hover:text-[#e9502c]"
+                          : "border-[#d9d9d9] text-[#4d4d4d] hover:border-[#d9d9d9] hover:bg-white"
                       } ${isLoadingVariant ? "opacity-50 cursor-wait" : ""} ${
                         isOutOfStock || isValueLeadsToOutOfStock ? "opacity-60 cursor-not-allowed" : ""
                       }`}
@@ -385,7 +387,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
                           Hết
                         </span>
                       )}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -427,23 +429,25 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       <div className="flex flex-wrap items-center gap-4">
         <span className="text-[14px] font-medium text-[#3a3a3a]">Số lượng:</span>
         <div className="flex items-center border border-[#d9d9d9] rounded-md overflow-hidden bg-white">
-          <button
+        <Button
+            variant="ghost"
             onClick={() => onQuantityChange(-1)}
-            className="w-10 h-10 flex items-center justify-center text-2xl font-semibold text-[#4d4d4d] hover:bg-[#f5f5f5] transition-colors disabled:text-[#c4c4c4]"
+            className="w-10 h-10 flex items-center justify-center text-2xl font-semibold text-[#4d4d4d] hover:bg-[#f5f5f5] transition-colors disabled:text-[#c4c4c4] rounded-none p-0"
             disabled={quantity <= 1}
           >
             <span>-</span>
-          </button>
+          </Button>
           <span className="w-10 text-center text-[14px] font-semibold text-[#333333]">
             {quantity}
           </span>
-          <button
+          <Button
+            variant="ghost"
             onClick={() => onQuantityChange(1)}
-            className="w-10 h-10 flex items-center justify-center text-2xl font-semibold text-[#4d4d4d] hover:bg-[#f5f5f5] transition-colors disabled:text-[#c4c4c4]"
+            className="w-10 h-10 flex items-center justify-center text-2xl font-semibold text-[#4d4d4d] hover:bg-[#f5f5f5] transition-colors disabled:text-[#c4c4c4] rounded-none p-0"
             disabled={quantity >= stock}
           >
             <span>+</span>
-          </button>
+          </Button>
         </div>
         <span className="text-[14px] text-[#808080]">
           {totalAttributes === 0
@@ -483,7 +487,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       )}
 
       <div className="flex flex-wrap gap-3 pt-2">
-        <button
+        <Button
           onClick={onAddToCart}
           disabled={
             (totalAttributes > 0 && !hasSelectedAllAttributes) ||
@@ -523,8 +527,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
               <span>Thêm Vào Giỏ Hàng</span>
             </>
           )}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => {
             if (hasSelectedAllAttributes && isInStock && onBuyNow) {
               onBuyNow();
@@ -544,7 +548,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           }`}
         >
           Mua Ngay
-        </button>
+        </Button>
       </div>
     </div>
   );

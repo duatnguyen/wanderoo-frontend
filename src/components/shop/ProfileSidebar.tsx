@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronRight, X, Camera, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   PersonIcon,
   DocumentIcon,
@@ -376,13 +377,14 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                 <div className="text-base font-semibold text-gray-900 mb-1">
                   {userData.fullName}
                 </div>
-                <button
+                <Button
+                  variant="link"
                   onClick={() => navigate("/user/profile/basicinformation")}
-                  className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors text-sm"
+                  className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors text-sm p-0 h-auto font-normal hover:no-underline"
                 >
                   <EditPencilIcon />
                   <span>Sửa hồ sơ</span>
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -397,10 +399,11 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
               return (
                 <div key={item.id}>
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
+                      variant={isActive ? "ghost" : "ghost"}
                       onClick={() => handleMenuItemClick(item)}
-                      className={`flex-1 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${isActive
-                        ? "text-[#E04D30]"
+                      className={`flex-1 flex items-center justify-start gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap h-auto ${isActive
+                        ? "text-[#E04D30] bg-transparent hover:bg-transparent"
                         : "text-gray-700 hover:bg-gray-100"
                         }`}
                     >
@@ -408,11 +411,13 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                         <span className="flex-shrink-0">{item.icon}</span>
                       )}
                       <span>{item.label}</span>
-                    </button>
+                    </Button>
                     {hasChildren && item.id !== "account" && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => handleToggleDropdown(item.id, e)}
-                        className={`p-2 rounded-lg transition-colors ${isActive
+                        className={`p-2 rounded-lg transition-colors h-auto w-auto ${isActive
                           ? "text-[#E04D30] hover:bg-gray-100"
                           : "text-gray-600 hover:bg-gray-100"
                           }`}
@@ -423,7 +428,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                         ) : (
                           <ChevronRight size={16} />
                         )}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -433,16 +438,17 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                       {item.children!.map((child) => {
                         const childIsActive = isChildActive(child.path);
                         return (
-                          <button
+                          <Button
                             key={child.id}
+                            variant="ghost"
                             onClick={() => handleChildClick(child.path)}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${childIsActive
-                              ? "text-[#E04D30]"
+                            className={`w-full flex items-center justify-start gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap h-auto ${childIsActive
+                              ? "text-[#E04D30] bg-transparent hover:bg-transparent"
                               : "text-gray-600 hover:bg-gray-100"
                               }`}
                           >
                             <span>{child.label}</span>
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -474,13 +480,15 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                 <h2 className="text-lg font-semibold text-gray-900">
                   Cập nhật ảnh đại diện
                 </h2>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={handleCloseModal}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100 h-auto w-auto"
                   aria-label="Đóng"
                 >
                   <X className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -584,17 +592,18 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
 
             {/* Footer */}
             <div className="px-5 py-4 border-t border-gray-200 flex items-center justify-end gap-2">
-              <button
+              <Button
+                variant="outline"
                 onClick={handleCloseModal}
                 disabled={isUploading}
-                className="px-4 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors h-auto"
               >
                 Hủy
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleUploadAvatar}
                 disabled={!selectedFile || isUploading}
-                className="px-4 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 h-auto"
               >
                 {isUploading ? (
                   <>
@@ -626,7 +635,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ onClose }) => {
                     Tải lên
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

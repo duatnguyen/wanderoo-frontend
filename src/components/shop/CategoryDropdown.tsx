@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface CategoryItem {
   id: string;
@@ -64,54 +65,57 @@ const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
             {mainCategories.map((category, index) => {
               const isHovered = hoveredCategoryId === category.id;
               return (
-                <li key={category.id}>
-                  <button
-                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${
-                      isHovered
-                        ? "bg-gray-50 text-[#18345c] font-medium"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                    onMouseEnter={() => {
-                      setHoveredCategoryId(category.id);
-                      onCategoryHover?.(category.id);
-                    }}
-                    onClick={() => {
-                      onCategoryClick?.(category.id);
-                      onClose();
-                    }}
-                  >
-                    <span>{category.label}</span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </button>
-                  {index < mainCategories.length - 1 && (
-                    <div className="mx-4 border-t border-gray-200" />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
 
-        {/* Right Column - Subcategories (Narrower) */}
-        {hoveredCategoryId && (
-          <div className="w-[220px] bg-gray-50">
-            {displayedSubcategories.length > 0 ? (
-              <ul className="py-2">
-                {displayedSubcategories.map((subcategory, index) => (
-                  <li key={subcategory.id}>
-                    <button
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 hover:bg-white hover:text-[#18345c] transition-colors"
-                      onClick={() => {
-                        onCategoryClick?.(
-                          subcategory.id,
-                          hoveredCategoryId || undefined
-                        );
-                        onClose();
-                      }}
-                    >
-                      <span>{subcategory.label}</span>
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
-                    </button>
+                    <li key={category.id}>
+                      <Button
+                        variant="ghost"
+                        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors h-auto font-normal rounded-none ${
+                          isHovered
+                            ? "bg-gray-50 text-[#18345c] font-medium"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                        onMouseEnter={() => {
+                          setHoveredCategoryId(category.id);
+                          onCategoryHover?.(category.id);
+                        }}
+                        onClick={() => {
+                          onCategoryClick?.(category.id);
+                          onClose();
+                        }}
+                      >
+                        <span>{category.label}</span>
+                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                      </Button>
+                      {index < mainCategories.length - 1 && (
+                        <div className="mx-4 border-t border-gray-200" />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+    
+            {/* Right Column - Subcategories (Narrower) */}
+            {hoveredCategoryId && (
+              <div className="w-[220px] bg-gray-50">
+                {displayedSubcategories.length > 0 ? (
+                  <ul className="py-2">
+                    {displayedSubcategories.map((subcategory, index) => (
+                      <li key={subcategory.id}>
+                        <Button
+                          variant="ghost"
+                          className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 hover:bg-white hover:text-[#18345c] transition-colors h-auto font-normal rounded-none"
+                          onClick={() => {
+                            onCategoryClick?.(
+                              subcategory.id,
+                              hoveredCategoryId || undefined
+                            );
+                            onClose();
+                          }}
+                        >
+                          <span>{subcategory.label}</span>
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                        </Button>
                     {index < displayedSubcategories.length - 1 && (
                       <div className="mx-4 border-t border-gray-200" />
                     )}

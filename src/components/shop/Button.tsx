@@ -1,6 +1,6 @@
-import { forwardRef } from "react";
-import { Button as AntdButton } from "antd";
-import type { ButtonProps as AntdButtonProps } from "antd/es/button";
+import React, { forwardRef } from "react";
+import { Button as UiButton } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export type ButtonVariant =
   | "primary"
@@ -12,71 +12,14 @@ export type ButtonVariant =
 export type ButtonSize = "sm" | "md" | "lg";
 export type ButtonShape = "rounded" | "pill";
 
-export type ButtonProps = Omit<
-  React.ButtonHTMLAttributes<HTMLButtonElement>,
-  "type" | "size"
-> & {
+// Infer props from UiButton
+type UiButtonProps = React.ComponentProps<typeof UiButton>;
+
+export type ButtonProps = Omit<UiButtonProps, "variant" | "size"> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
   shape?: ButtonShape;
   loading?: boolean;
-};
-
-// Map custom variants to antd button types
-const getAntdButtonType = (variant: ButtonVariant): AntdButtonProps["type"] => {
-  switch (variant) {
-    case "primary":
-      return "primary";
-    case "secondary":
-      return "default";
-    case "outline":
-      return "default";
-    case "ghost":
-      return "text";
-    case "link":
-      return "link";
-    case "icon":
-      return "default";
-    default:
-      return "primary";
-  }
-};
-
-// Map custom sizes to antd sizes
-const getAntdSize = (size: ButtonSize): AntdButtonProps["size"] => {
-  switch (size) {
-    case "sm":
-      return "small";
-    case "md":
-      return "middle";
-    case "lg":
-      return "large";
-    default:
-      return "middle";
-  }
-};
-
-// Get custom className based on variant
-const getCustomClassName = (
-  variant: ButtonVariant,
-  shape: ButtonShape
-): string => {
-  const baseClasses = shape === "pill" ? "!rounded-full" : "!rounded-[5px]";
-
-  switch (variant) {
-    case "secondary":
-      return `${baseClasses} !bg-[#18345c] !border-[#18345c] !text-white hover:!brightness-110`;
-    case "outline":
-      return `${baseClasses} !bg-[#f7f7f7] !border-[#454545] !text-[#454545] hover:!bg-white`;
-    case "ghost":
-      return `${baseClasses} !bg-transparent !border-transparent !text-[#454545] hover:!bg-gray-100`;
-    case "link":
-      return `${baseClasses} !bg-transparent !border-0 !text-[#1076ec] hover:!underline !p-0 !h-auto`;
-    case "icon":
-      return `${baseClasses} !bg-transparent !border-[#454545] !text-[#454545] hover:!bg-white !p-0 !w-10 !h-10`;
-    default:
-      return baseClasses;
-  }
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -86,34 +29,77 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       size = "md",
       shape = "rounded",
-      disabled,
       loading = false,
       children,
-      style,
+      disabled,
       ...props
     },
     ref
   ) => {
-    const antdType = getAntdButtonType(variant);
-    const antdSize = getAntdSize(size);
-    const customClassName = getCustomClassName(variant, shape);
+    // Map shop variant to ui variant
+    const getUiVariant = (v: ButtonVariant): UiButtonProps["variant"] => {
+      switch (v) {
+        case "primary": return "default";
+        case "secondary": return "secondary";
+        case "outline": return "outline";
+        case "ghost": return "ghost";
+        case "link": return "link";
+        case "icon": return "ghost"; // Icon variant maps to ghost in UI button usually, or just default with icon size
+        default: return "default";
+      }
+    };
 
-    // Extract props that might conflict with AntdButton
-    const { color: _color, ...restProps } = props;
+    // Map shop size to ui size
+    const getUiSize = (s: ButtonSize): UiButtonProps["size"] => {
+      switch (s) {
+        case "sm": return "sm";
+        case "md": return "default";
+        case "lg": return "lg";
+        default: return "default";
+      }
+    };
 
+    const uiVariant = getUiVariant(variant);
+    
+    // Special handling for 'icon' variant which affects size in standard button usually, 
+    // but here it acts as a variant. In UI button, size='icon' is a thing.
+    // If variant is 'icon', let's use size='icon' if size is 'md' (default), 
+    // or keep 'sm'/'lg' if specified but 'icon' usually implies square.
+    // However, existing usage of variant='icon' might expect specific styling.
+    // Old implementation: !bg-transparent !border-[#454545] !text-[#454545] hover:!bg-white !p-0 !w-10 !h-10
+    
+    let uiSize = getUiSize(size);
+    if (variant === "icon") {
+        uiSize = "icon";
+    }
+
+    const shapeClass = shape === "pill" ? "rounded-full" : "rounded-md";
+    
+    // Icon variant custom styles to match old behavior if needed, or rely on UI button
+    // Old icon: border-[#454545] text-[#454545] bg-transparent. 
+    // UI ghost: hover:bg-accent hover:text-accent-foreground.
+    // We might need to override if strictly emulating. 
+    // But let's try to stick to standard UI button styles for consistency, ONLY adding shape.
+    
     return (
-      <AntdButton
+      <UiButton
         ref={ref}
-        type={antdType}
-        size={antdSize}
-        loading={loading}
-        disabled={disabled}
-        className={`${customClassName} ${className || ""}`}
-        style={style}
-        {...restProps}
+        variant={uiVariant}
+        size={uiSize}
+        disabled={disabled || loading}
+        className={cn(
+          shapeClass,
+          variant === "icon" && "border border-input", // Optional: Add border to icon if it used to have it
+          loading && "opacity-70 cursor-wait",
+          className
+        )}
+        {...props}
       >
+        {loading && (
+          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        )}
         {children}
-      </AntdButton>
+      </UiButton>
     );
   }
 );

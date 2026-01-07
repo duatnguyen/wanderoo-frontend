@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 // Define Product type inline since it's only used for the optional product prop
 export interface Product {
@@ -153,70 +154,76 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   return (
-    <div
-      className={`cursor-pointer border border-[#454545]/60 rounded-[8px] overflow-hidden bg-white hover:shadow-md transition-shadow ${className}`}
-      role="button"
-      tabIndex={0}
+    <Button
+      variant="ghost"
+      asChild
+      className={`h-auto w-full p-0 block text-left font-normal hover:bg-transparent ${className}`}
       onClick={handleClick}
-      onKeyDown={(e) => e.key === "Enter" && handleClick()}
     >
-      <div className="relative">
-        <div className="w-full h-[180px] border border-gray-300 bg-gray-100 overflow-hidden">
-          <img
-            src={displayImage}
-            alt={name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              const target = e.currentTarget as HTMLImageElement;
-              if (target.dataset.fallbackApplied === "true") {
-                return;
-              }
-              target.dataset.fallbackApplied = "true";
-              target.src = FALLBACK_IMAGE;
-            }}
-          />
-        </div>
-        {/* Discount badge - Top for both PERCENT and FIXED */}
-        {displayDiscount && (
-          <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-xs rounded-[4px] px-1.5 py-0.5 flex items-center gap-1">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-red-600"
-            >
-              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor" />
-            </svg>
-            {displayDiscount}
+      <div
+        className="cursor-pointer border border-[#454545]/60 rounded-[8px] overflow-hidden bg-white hover:shadow-md transition-shadow h-full flex flex-col"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && handleClick()}
+      >
+        <div className="relative">
+          <div className="w-full h-[180px] border border-gray-300 bg-gray-100 overflow-hidden">
+            <img
+              src={displayImage}
+              alt={name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                if (target.dataset.fallbackApplied === "true") {
+                  return;
+                }
+                target.dataset.fallbackApplied = "true";
+                target.src = FALLBACK_IMAGE;
+              }}
+            />
           </div>
-        )}
-      </div>
-      <div className="px-3 py-2 border-t border-[#454545]/40">
-        <h3 className="text-[#454545] text-[13px] font-semibold leading-snug line-clamp-2 min-h-[34px]">
-          {name}
-        </h3>
-        <div
-          className="flex items-center gap-0.5 mt-1"
-          aria-label={`Rating ${rating} out of 5`}
-        >
-          {stars.map((filled, idx) => (
-            <Star key={idx} filled={filled} />
-          ))}
-        </div>
-        <div className="mt-1 flex flex-col gap-0.5">
-          <span className="text-sm font-semibold text-[#454545]">
-            {formatCurrencyVND(price)}
-          </span>
-          {originalPrice && originalPrice > price && (
-            <span className="text-[11px] text-[#777777] line-through">
-              {formatCurrencyVND(originalPrice)}
-            </span>
+          {/* Discount badge - Top for both PERCENT and FIXED */}
+          {displayDiscount && (
+            <div className="absolute right-2 top-2 bg-[#ffe8a3] text-red-600 font-semibold text-xs rounded-[4px] px-1.5 py-0.5 flex items-center gap-1">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="text-red-600"
+              >
+                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor" />
+              </svg>
+              {displayDiscount}
+            </div>
           )}
         </div>
+        <div className="px-3 py-2 border-t border-[#454545]/40 flex-1 flex flex-col">
+          <h3 className="text-[#454545] text-[13px] font-semibold leading-snug line-clamp-2 min-h-[34px]">
+            {name}
+          </h3>
+          <div
+            className="flex items-center gap-0.5 mt-1"
+            aria-label={`Rating ${rating} out of 5`}
+          >
+            {stars.map((filled, idx) => (
+              <Star key={idx} filled={filled} />
+            ))}
+          </div>
+          <div className="mt-auto flex flex-col gap-0.5 pt-1">
+            <span className="text-sm font-semibold text-[#454545]">
+              {formatCurrencyVND(price)}
+            </span>
+            {originalPrice && originalPrice > price && (
+              <span className="text-[11px] text-[#777777] line-through">
+                {formatCurrencyVND(originalPrice)}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </Button>
   );
 };
 

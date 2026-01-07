@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../ProductCard";
+import { Button } from "@/components/ui/button";
 import type { Product } from "../../../features/shop/data/productsData";
 
 interface RelatedProductsProps {
@@ -21,16 +22,13 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({ products }) => {
               </h2>
             </div>
           </div>
-          <a
-            href="#"
-            className="text-blue-600 text-[16px] font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/shop");
-            }}
+          <Button
+            variant="link"
+            className="text-blue-600 text-[16px] font-medium hover:text-blue-700 transition-colors whitespace-nowrap p-0 h-auto"
+            onClick={() => navigate("/shop")}
           >
             Xem tất cả &gt;&gt;
-          </a>
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

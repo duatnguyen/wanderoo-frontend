@@ -5,6 +5,7 @@ import {
   type HomepageBannerResponse,
 } from "../../../api/endpoints/homepageApi";
 import mainBanner from "../../../assets/images/banner/main-page-banner.png";
+import { Button } from "@/components/ui/button";
 
 const BannerSection: React.FC = () => {
   const { data: banners, isLoading } = useQuery({
@@ -77,10 +78,12 @@ const BannerSection: React.FC = () => {
           {heroBanners.length > 1 && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
               {heroBanners.map((banner, index) => (
-                <button
+                <Button
                   key={banner.id}
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setCurrentHeroIndex(index)}
-                  className={`w-3 h-3 rounded-full transition-all ${
+                  className={`w-3 h-3 rounded-full transition-all p-0 ${
                     index === currentHeroIndex ? "bg-white" : "bg-white/50"
                   }`}
                   aria-label={`Banner ${index + 1}`}

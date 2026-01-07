@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import type { Product } from "../../../features/shop/data/productsData";
+import { Button } from "@/components/ui/button";
 
 interface ProductImagesProps {
   product: Product;
@@ -128,11 +129,11 @@ const ProductImages: React.FC<ProductImagesProps> = ({
       </div>
       <div className="flex gap-[5px] overflow-x-auto">
         {imagesToRender.map((image, index) => (
-          <button
+          <Button
             key={index}
             onClick={() => onImageSelect(index)}
-            type="button"
-            className={`w-[90px] h-[90px] rounded-lg border-2 transition-all bg-transparent flex-none ${
+            variant="ghost"
+            className={`w-[90px] h-[90px] rounded-lg border-2 transition-all bg-transparent flex-none p-0 ${
               selectedImageIndex === index
                 ? "border-[#18345c]"
                 : "border-gray-300 hover:border-gray-400"
@@ -145,7 +146,7 @@ const ProductImages: React.FC<ProductImagesProps> = ({
               loading="lazy"
               onError={handleImageError}
             />
-          </button>
+          </Button>
         ))}
       </div>
     </div>

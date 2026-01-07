@@ -5,6 +5,7 @@ import type { ForgotPasswordRequest } from "../../types/auth";
 import bannerSrc from "../../assets/images/banner/banner_auth.png";
 import logo from "../../assets/icons/ShopLogo.png";
 import { MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ForgotPassword: React.FC = () => {
     const [email, setEmail] = useState("");
@@ -90,13 +91,14 @@ const ForgotPassword: React.FC = () => {
                             alt="Wanderoo Logo"
                             className="w-100 h-100 object-contain mx-auto"
                         />
-                        <button
+                        <Button
                             type="button"
+                            variant="outline"
                             onClick={() => navigate("/shop")}
-                            className="mx-auto inline-flex items-center justify-center rounded-full border border-white/70 px-6 py-2 text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-white/15"
+                            className="mx-auto rounded-full border border-white/70 px-6 py-2 text-sm font-semibold uppercase tracking-wider text-white transition bg-transparent hover:bg-white/15 hover:text-white border-white/70"
                         >
                             Mua sắm ngay
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </aside>
@@ -105,10 +107,11 @@ const ForgotPassword: React.FC = () => {
                 <div className="w-full max-w-[460px] flex flex-col gap-8">
                     <header className="flex flex-col gap-4">
                         <div className="flex items-center justify-between">
-                            <button
+                            <Button
                                 type="button"
+                                variant="ghost"
                                 onClick={() => navigate("/login")}
-                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors p-0 hover:bg-transparent"
                             >
                                 <svg
                                     width="16"
@@ -121,7 +124,7 @@ const ForgotPassword: React.FC = () => {
                                     <path d="M19 12H5M12 19l-7-7 7-7" />
                                 </svg>
                                 Quay lại đăng nhập
-                            </button>
+                            </Button>
                         </div>
                         <h1 className="text-3xl lg:text-4xl font-semibold text-gray-800 text-center">
                             Quên mật khẩu
@@ -163,13 +166,13 @@ const ForgotPassword: React.FC = () => {
                             />
                         </div>
 
-                        <button
+                        <Button
                             type="submit"
                             disabled={isLoading}
-                            className="h-12 w-full rounded-xl border-none bg-orange-500 text-white font-semibold tracking-wider uppercase hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                            className="h-12 w-full rounded-xl bg-orange-500 text-white font-semibold tracking-wider uppercase hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                         >
                             {isLoading ? "Đang gửi..." : "Gửi link đặt lại mật khẩu"}
-                        </button>
+                        </Button>
                     </form>
 
                     <p className="text-center text-sm text-gray-600">

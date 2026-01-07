@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ProductCard from "../ProductCard";
+import { Button } from "@/components/ui/button";
 import type { Product } from "../../../features/shop/data/productsData";
 
 interface FlashSaleSectionProps {
@@ -80,8 +81,10 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
 
             {/* Previous button */}
             {showPrevButton && (
-              <button
-                className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10 p-0 h-10 w-10"
                 aria-label="Previous"
                 onClick={handlePrev}
               >
@@ -100,13 +103,15 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
                     strokeLinejoin="round"
                   />
                 </svg>
-              </button>
+              </Button>
             )}
 
             {/* Next button */}
             {showNextButton && (
-              <button
-                className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10 p-0 h-10 w-10"
                 aria-label="Next"
                 onClick={handleNext}
               >
@@ -125,7 +130,7 @@ const FlashSaleSection: React.FC<FlashSaleSectionProps> = ({ products }) => {
                     strokeLinejoin="round"
                   />
                 </svg>
-              </button>
+              </Button>
             )}
           </div>
         </div>

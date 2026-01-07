@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import StarRating from "./StarRating";
-import Button from "./Button";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "./Input";
 import { toast } from "sonner";
 import { X } from "lucide-react";
@@ -219,9 +219,11 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
           <h2 className="text-[20px] font-bold text-gray-900">
             Đánh giá sản phẩm
           </h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors h-auto w-auto p-1"
             aria-label="Đóng"
           >
             <svg
@@ -238,7 +240,7 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {submitError && (
@@ -358,8 +360,9 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                 {/* Media Upload Section */}
                 <div className="py-1 pb-4">
                   <div className="flex gap-3 mb-3">
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
@@ -380,12 +383,13 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                         };
                         input.click();
                       }}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium whitespace-nowrap"
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium whitespace-nowrap h-auto border-none"
                     >
                       Thêm hình ảnh
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="secondary"
                       onClick={() => {
                         const input = document.createElement("input");
                         input.type = "file";
@@ -406,10 +410,10 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                         };
                         input.click();
                       }}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium whitespace-nowrap"
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium whitespace-nowrap h-auto border-none"
                     >
                       Thêm video
-                    </button>
+                    </Button>
                   </div>
 
                   {/* Media Previews */}
@@ -459,17 +463,19 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                           )}
 
                           {/* Cho phép xoá media cũ khi chỉnh sửa */}
-                          <button
+                          <Button
+                            variant="destructive"
+                            size="icon"
                             onClick={(e) => {
                               e.stopPropagation();
                               const next = [...review.existingImages];
                               next.splice(imgIndex, 1);
                               updateReview(product.id, "existingImages", next);
                             }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 hover:bg-red-600"
                           >
                             <X size={14} />
-                          </button>
+                          </Button>
                         </div>
                       );
                     })}
@@ -490,17 +496,19 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                           }}
                           onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
                         />
-                        <button
+                        <Button
+                          variant="destructive"
+                          size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             const newImages = [...review.images];
                             newImages.splice(fileIndex, 1);
                             updateReview(product.id, "images", newImages);
                           }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 hover:bg-red-600"
                         >
                           <X size={14} />
-                        </button>
+                        </Button>
                       </div>
                     ))}
 
@@ -518,17 +526,19 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <div className="w-0 h-0 border-t-4 border-t-transparent border-l-8 border-l-white border-b-4 border-b-transparent ml-1"></div>
                         </div>
-                        <button
+                        <Button
+                          variant="destructive"
+                          size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             const newVideos = [...review.videos];
                             newVideos.splice(fileIndex, 1);
                             updateReview(product.id, "videos", newVideos);
                           }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 h-5 w-5 hover:bg-red-600"
                         >
                           <X size={14} />
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -548,13 +558,15 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
           />
           <div className="relative z-10 max-w-3xl max-h-[90vh] mx-4 bg-black/80 rounded-lg overflow-hidden flex flex-col">
             <div className="flex justify-end p-2">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={closeImagePreview}
-                className="text-white hover:text-gray-200"
+                className="text-white hover:text-gray-200 h-auto w-auto p-1 hover:bg-white/10"
                 aria-label="Đóng ảnh xem trước"
               >
                 <X size={20} />
-              </button>
+              </Button>
             </div>
             <div className="px-4 pb-4 flex-1 flex items-center justify-center">
               <img
@@ -576,13 +588,15 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
           />
           <div className="relative z-10 max-w-3xl max-h-[90vh] mx-4 bg-black rounded-lg overflow-hidden flex flex-col">
             <div className="flex justify-end p-2">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={closeVideoPreview}
-                className="text-white hover:text-gray-200"
+                className="text-white hover:text-gray-200 h-auto w-auto p-1 hover:bg-white/10"
                 aria-label="Đóng video xem trước"
               >
                 <X size={20} />
-              </button>
+              </Button>
             </div>
             <div className="px-4 pb-4 flex-1 flex items-center justify-center">
               <video
@@ -600,7 +614,6 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
         <div className="px-6 py-3 flex justify-end gap-2 sticky bottom-0 bg-white border-t border-gray-100">
           <Button
             variant="outline"
-            size="md"
             onClick={handleClose}
             disabled={isSubmitting}
             className="!bg-white !border-[#E04D30] !text-[#E04D30] hover:!bg-[#E04D30] hover:!text-white disabled:opacity-50 disabled:cursor-not-allowed"
@@ -608,8 +621,6 @@ const ProductReviewModal: React.FC<ProductReviewModalProps> = ({
             Trở lại
           </Button>
           <Button
-            variant="primary"
-            size="md"
             onClick={handleSubmit}
             disabled={isSubmitting}
             className="!bg-[#E04D30] !border-[#E04D30] hover:!bg-[#c93d24] hover:!border-[#c93d24] disabled:opacity-50 disabled:cursor-not-allowed"

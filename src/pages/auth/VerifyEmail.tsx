@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../api/apiClient";
 import type { ApiResponse } from "../../types";
+import { Button } from "@/components/ui/button";
 
 const VerifyEmail: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -82,12 +83,12 @@ const VerifyEmail: React.FC = () => {
                         </div>
                         <h2 className="text-2xl font-semibold text-gray-800 mb-2">Xác thực thất bại</h2>
                         <p className="text-gray-600 mb-4">{message}</p>
-                        <button
+                        <Button
                             onClick={() => navigate("/login")}
                             className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors"
                         >
                             Đi đến trang đăng nhập
-                        </button>
+                        </Button>
                     </>
                 )}
             </div>

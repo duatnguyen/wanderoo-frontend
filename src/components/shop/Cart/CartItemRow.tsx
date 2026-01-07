@@ -1,5 +1,6 @@
 import React from "react";
 import { Select } from "antd";
+import { Button } from "@/components/ui/button";
 import Checkbox from "../Checkbox";
 import { formatCurrencyVND } from "../../../features/shop/pages/Cart/utils/formatCurrency";
 
@@ -250,10 +251,12 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
       {/* Quantity */}
       <div className="flex justify-center">
         <div className="flex items-center gap-1 border border-gray-200 rounded">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => onQuantityChange(-1)}
             disabled={item.quantity <= 1 || isQuantityDisabled}
-            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
+            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 rounded-none h-auto p-0"
             aria-label="Giảm số lượng"
           >
             <svg
@@ -266,17 +269,19 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
             >
               <path d="M5 12h14" />
             </svg>
-          </button>
+          </Button>
           <input
             type="number"
             value={item.quantity}
             readOnly
             className="w-12 h-8 text-center text-sm font-medium border-0 focus:outline-none"
           />
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => onQuantityChange(1)}
             disabled={isQuantityDisabled}
-            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-600"
+            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 rounded-none h-auto p-0"
             aria-label="Tăng số lượng"
           >
             <svg
@@ -289,7 +294,7 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
             >
               <path d="M12 5v14M5 12h14" />
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -302,9 +307,11 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
 
       {/* Remove Button */}
       <div className="flex justify-center">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onRemove}
-          className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
+          className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors h-auto p-0"
           aria-label="Xóa sản phẩm"
         >
           <svg
@@ -318,7 +325,7 @@ const CartItemRow: React.FC<CartItemRowProps> = ({
           >
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
-        </button>
+        </Button>
       </div>
     </div>
   );

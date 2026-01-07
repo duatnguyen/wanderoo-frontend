@@ -4,6 +4,7 @@ import type { Order } from "../../features/shop/pages/UserProfile/ordersData";
 import type { ChipStatusKey } from "../ui/chip-status";
 import { ChipStatus } from "../ui/chip-status";
 import OrderProductItem from "./OrderProductItem";
+import { Button } from "@/components/ui/button";
 
 interface OrderCardProps {
   order: Order;
@@ -128,15 +129,17 @@ const OrderCard: React.FC<OrderCardProps> = ({
               </span>
             </div>
           </div>
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               handleViewDetails();
             }}
-            className="text-blue-600 hover:text-blue-700 font-medium text-[14px] self-start sm:self-auto transition-colors"
+            className="text-blue-600 hover:text-blue-700 font-medium text-[14px] self-start sm:self-auto transition-colors p-0 h-auto hover:no-underline"
           >
             Xem chi tiết &gt;&gt;
-          </button>
+          </Button>
         </div>
       </div>
     </div>

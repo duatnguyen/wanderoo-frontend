@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Select } from "antd";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicReviewsByProduct } from "../../../api/endpoints/reviewApi";
 import type { ReviewResponse } from "../../../types";
@@ -144,26 +145,28 @@ const CustomerReviews: React.FC<CustomerReviewsProps> = ({ productId }) => {
             {/* Filter Buttons */}
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <button
+                <Button
                   onClick={() => setActiveFilter("all")}
-                  className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors ${activeFilter === "all"
-                    ? "bg-gray-900 text-white"
+                  variant="ghost"
+                  className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors h-auto ${activeFilter === "all"
+                    ? "bg-gray-900 text-white hover:bg-gray-800 hover:text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                 >
                   Tất cả ({stats.total})
-                </button>
+                </Button>
                 {[5, 4, 3, 2, 1].map((star) => (
-                  <button
+                  <Button
                     key={star}
                     onClick={() => setActiveFilter(star.toString() as any)}
-                    className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors ${activeFilter === star.toString()
-                      ? "bg-gray-900 text-white"
+                    variant="ghost"
+                    className={`px-4 py-2 rounded-lg text-[14px] font-medium transition-colors h-auto ${activeFilter === star.toString()
+                      ? "bg-gray-900 text-white hover:bg-gray-800 hover:text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       }`}
                   >
                     {star} sao ({stats.counts[star]})
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

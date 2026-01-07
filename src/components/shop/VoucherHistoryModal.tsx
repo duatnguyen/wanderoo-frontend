@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-// import Button from "./Button";
+import { Button } from "@/components/ui/button";
 
 function formatCurrencyVND(value: number) {
   try {
@@ -134,9 +134,11 @@ const VoucherHistoryModal: React.FC<VoucherHistoryModalProps> = ({
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               Lịch sử voucher
             </h2>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors h-auto w-auto p-1"
               aria-label="Close"
             >
               <svg
@@ -151,31 +153,33 @@ const VoucherHistoryModal: React.FC<VoucherHistoryModalProps> = ({
               >
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
-            </button>
+            </Button>
           </div>
 
           {/* Tabs */}
           <div className="flex gap-4 mt-4">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setActiveTab("expired")}
-              className={`px-4 py-2 font-medium transition-colors ${
+              className={`px-4 py-2 font-medium transition-colors rounded-none h-auto bg-transparent hover:bg-transparent ${
                 activeTab === "expired"
                   ? "text-red-600 border-b-2 border-red-600"
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Hết Hiệu Lực
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => setActiveTab("used")}
-              className={`px-4 py-2 font-medium transition-colors ${
+              className={`px-4 py-2 font-medium transition-colors rounded-none h-auto bg-transparent hover:bg-transparent ${
                 activeTab === "used"
                   ? "text-red-600 border-b-2 border-red-600"
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Đã sử dụng
-            </button>
+            </Button>
           </div>
         </div>
 

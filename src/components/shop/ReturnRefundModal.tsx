@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "./Button";
+import { Button } from "@/components/ui/button";
 
 interface ProductType {
   id: string;
@@ -90,15 +90,17 @@ const ReturnRefundModal: React.FC<ReturnRefundModalProps> = ({
           {/* Options */}
           <div className="space-y-4 mb-6">
             {/* Option 1: Received with issue */}
-            <button
+            {/* Option 1: Received with issue */}
+            <Button
+              variant="outline"
               onClick={() => setSelectedOption("received-with-issue")}
-              className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+              className={`w-full text-left p-4 rounded-lg border-2 transition-all h-auto justify-start items-start whitespace-normal ${
                 selectedOption === "received-with-issue"
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 bg-gray-50 hover:border-gray-300"
+                  ? "border-blue-500 bg-blue-50 hover:bg-blue-50"
+                  : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 w-full">
                 <div
                   className={`flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
                     selectedOption === "received-with-issue"
@@ -110,8 +112,8 @@ const ReturnRefundModal: React.FC<ReturnRefundModalProps> = ({
                     <div className="w-2.5 h-2.5 rounded-full bg-white" />
                   )}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm sm:text-base font-medium text-gray-900 mb-2">
+                <div className="flex-1 text-left">
+                  <p className="text-sm sm:text-base font-medium text-gray-900 mb-2 whitespace-normal">
                     Tôi đã nhận hàng nhưng hàng có vấn đề (bể vỡ, sai mẫu, hàng
                     lỗi, khác mô tả...) - Miễn ship hoàn về
                   </p>
@@ -119,25 +121,26 @@ const ReturnRefundModal: React.FC<ReturnRefundModalProps> = ({
                     <p className="text-xs sm:text-sm text-red-600 font-medium">
                       Lưu ý:
                     </p>
-                    <p className="text-xs sm:text-sm text-red-600">
+                    <p className="text-xs sm:text-sm text-red-600 whitespace-normal">
                       Trường hợp yêu cầu trả hàng hoàn tiền của bạn được chấp
                       nhận, voucher có thể không được hoàn lại
                     </p>
                   </div>
                 </div>
               </div>
-            </button>
+            </Button>
 
             {/* Option 2: Not received */}
-            <button
+            <Button
+              variant="outline"
               onClick={() => setSelectedOption("not-received")}
-              className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+              className={`w-full text-left p-4 rounded-lg border-2 transition-all h-auto justify-start items-start whitespace-normal ${
                 selectedOption === "not-received"
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 bg-gray-50 hover:border-gray-300"
+                  ? "border-blue-500 bg-blue-50 hover:bg-blue-50"
+                  : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 w-full">
                 <div
                   className={`flex-shrink-0 w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center ${
                     selectedOption === "not-received"
@@ -149,37 +152,34 @@ const ReturnRefundModal: React.FC<ReturnRefundModalProps> = ({
                     <div className="w-2.5 h-2.5 rounded-full bg-white" />
                   )}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm sm:text-base font-medium text-gray-900 mb-2">
+                <div className="flex-1 text-left">
+                  <p className="text-sm sm:text-base font-medium text-gray-900 mb-2 whitespace-normal">
                     Tôi chưa nhận hàng/thùng hàng rỗng
                   </p>
                   <div className="mt-2">
                     <p className="text-xs sm:text-sm text-red-600 font-medium">
                       Lưu ý:
                     </p>
-                    <p className="text-xs sm:text-sm text-red-600">
+                    <p className="text-xs sm:text-sm text-red-600 whitespace-normal">
                       Trường hợp yêu cầu trả hàng hoàn tiền của bạn được chấp
                       nhận, voucher có thể không được hoàn lại
                     </p>
                   </div>
                 </div>
               </div>
-            </button>
+            </Button>
           </div>
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 justify-end">
             <Button
               variant="outline"
-              size="md"
               onClick={handleClose}
               className="w-full sm:w-auto"
             >
               Hủy
             </Button>
             <Button
-              variant="primary"
-              size="md"
               onClick={handleSubmit}
               disabled={!selectedOption}
               className="w-full sm:w-auto"
