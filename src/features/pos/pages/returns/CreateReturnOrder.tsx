@@ -1,0 +1,598 @@
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Minus, Plus, Package } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { SimpleDropdown } from "@/components/ui/SimpleDropdown";
+import { getImageUrl } from "../../../../utils/imageUtils";
+import type { POSProduct } from "../../../../components/pos/POSProductList";
+import {
+  getPosOrderDetail,
+  createPosReturnOrder,
+  type ReturnTypeEnum,
+  type ReturnReasonEnum,
+} from "../../../../api/endpoints/posApi";
+import Loading from "../../../../components/common/Loading";
+
+const DEFAULT_RETURN_REASONS: Array<{ value: ReturnReasonEnum; label: string }> = [
+  { value: "DEFECTIVE", label: "Sản phẩm lỗi" },
+  { value: "OTHER", label: "Khách đổi ý" },
+];
+
+const CUSTOM_REASON_STORAGE_KEY = "pos-custom-return-reasons";
+
+const CreateReturnOrder: React.FC = () => {
+  const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const {
+    data: orderDetailData,
+    isLoading: isLoadingOrder,
+    error: orderError,
+  } = useQuery({
+    queryKey: ["posOrderDetail", orderId],
+    queryFn: async () => {
+      if (!orderId) throw new Error("Order ID is required");
+      return await getPosOrderDetail(Number(orderId));
+    },
+    enabled: !!orderId,
+  });
+
+  const [returnProducts, setReturnProducts] = useState<
+    Array<{
+      product: POSProduct;
+      orderDetailId: number;
+      returnQuantity: number;
+      reason: ReturnReasonEnum;
+    }>
+  >([]);
+
+  const [note, setNote] = useState("");
+  const [refundMethod, setRefundMethod] = useState("Chuyển khoản");
+  const [refundAmount, setRefundAmount] = useState(0);
+  const [customReasons, setCustomReasons] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = window.localStorage.getItem(CUSTOM_REASON_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isAddingReason, setIsAddingReason] = useState(false);
+  const [newReasonInput, setNewReasonInput] = useState("");
+  const [customReasonError, setCustomReasonError] = useState("");
+  const [selectedReasonLabel, setSelectedReasonLabel] = useState(
+    DEFAULT_RETURN_REASONS[1].label
+  );
+  const [customReasonNote, setCustomReasonNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (orderDetailData?.products) {
+      setReturnProducts(
+        orderDetailData.products.map((product) => ({
+          product: {
+            id: product.id.toString(),
+            name: product.productName,
+            image: product.productImage ? (getImageUrl(product.productImage) || product.productImage) : undefined,
+            sku: product.productSku,
+            variant: product.category,
+            // Đơn giá sau giảm theo sản phẩm (như cột Đơn giá ở màn quản lý đơn hàng)
+            price: product.unitPrice || 0,
+            // Giá gốc để hiển thị gạch ngang nếu có khuyến mãi
+            originalPrice: product.originalPrice,
+            quantity: product.quantity || 0,
+          },
+          orderDetailId: product.id,
+          returnQuantity: product.quantity || 0,
+          // Default reason: Khách đổi ý -> map to backend OTHER
+          reason: "OTHER",
+        }))
+      );
+      setSelectedReasonLabel(DEFAULT_RETURN_REASONS[1].label);
+      setCustomReasonNote(null);
+    }
+  }, [orderDetailData]);
+
+  const refundMethods = ["Chuyển khoản", "Tiền mặt"];
+
+  const formatCurrency = (amount: number) => {
+    // Làm tròn về đơn vị đồng để tránh hiển thị số lẻ như 10.784.004,615đ
+    const roundedAmount = Number.isFinite(amount) ? Math.round(amount) : 0;
+    return new Intl.NumberFormat("vi-VN").format(roundedAmount) + "đ";
+  };
+
+  // Đơn giá sau khi giảm (nếu có) đã được BE trả trong unitPrice/totalPrice,
+  // thành tiền = đơn giá sau giảm * số lượng được chọn
+  const totalAmount = returnProducts.reduce((sum, item) => {
+    const unitPrice = item.product.price || 0;
+    return sum + unitPrice * item.returnQuantity;
+  }, 0);
+  const totalRefund = totalAmount;
+
+  useEffect(() => {
+    setRefundAmount(totalRefund);
+  }, [totalRefund]);
+
+  const handleQuantityChange = (
+    productId: string,
+    newQuantity: number,
+    maxQuantity: number
+  ) => {
+    setReturnProducts((prev) =>
+    prev.map((item) =>
+      item.product.id === productId
+        ? {
+            ...item,
+            returnQuantity: Math.max(0, Math.min(newQuantity, maxQuantity)),
+          }
+        : item
+    ));
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      CUSTOM_REASON_STORAGE_KEY,
+      JSON.stringify(customReasons)
+    );
+  }, [customReasons]);
+
+  const handleReasonSelection = (reasonLabel: string) => {
+    const reasonValue =
+      DEFAULT_RETURN_REASONS.find((r) => r.label === reasonLabel)?.value ||
+      "CUSTOMER_CHANGE_MIND";
+    const isCustomReason = !DEFAULT_RETURN_REASONS.some(
+      (reason) => reason.label === reasonLabel
+    );
+    setSelectedReasonLabel(reasonLabel);
+    setCustomReasonNote(isCustomReason ? reasonLabel : null);
+    setReturnProducts((prev) =>
+      prev.map((item) => ({
+        ...item,
+        reason: reasonValue,
+      }))
+    );
+  };
+
+  const handleAddCustomReason = () => {
+    const trimmed = newReasonInput.trim();
+    if (!trimmed) {
+      setCustomReasonError("Vui lòng nhập lý do");
+      return;
+    }
+    const normalized = trimmed.toLowerCase();
+    const allLabels = [
+      ...DEFAULT_RETURN_REASONS.map((reason) => reason.label.toLowerCase()),
+      ...customReasons.map((reason) => reason.toLowerCase()),
+    ];
+    if (allLabels.includes(normalized)) {
+      setCustomReasonError("Lý do đã tồn tại");
+      return;
+    }
+    setCustomReasons((prev) => [...prev, trimmed]);
+    setNewReasonInput("");
+    setIsAddingReason(false);
+    setCustomReasonError("");
+    handleReasonSelection(trimmed);
+  };
+
+  const dropdownReasonOptions = [
+    ...DEFAULT_RETURN_REASONS.map((reason) => reason.label),
+    ...customReasons,
+  ];
+
+  const createReturnOrderMutation = useMutation({
+    mutationFn: async (data: {
+      orderId: number;
+      returnType: ReturnTypeEnum;
+      returnReason: ReturnReasonEnum;
+      notes?: string;
+      returnProducts: Array<{
+        orderDetailId: number;
+        returnQuantity: number;
+        returnPrice: number;
+      }>;
+    }) => createPosReturnOrder(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["posReturnOrders"] });
+      await queryClient.refetchQueries({ queryKey: ["posReturnOrders"] });
+      navigate("/pos/returns");
+    },
+    onError: (error: any) => {
+      console.error("Error creating return order:", error);
+      alert(
+        error.response?.data?.message ||
+          error.message ||
+          "Không thể tạo đơn trả hàng"
+      );
+    },
+  });
+
+  const handleCreateReturn = () => {
+    if (!orderId) {
+      alert("Không tìm thấy mã đơn");
+      return;
+    }
+
+    const hasItem = returnProducts.some((item) => item.returnQuantity > 0);
+    if (!hasItem) {
+      alert("Vui lòng chọn ít nhất một sản phẩm để trả");
+      return;
+    }
+
+    const totalOriginalQty = returnProducts.reduce(
+      (sum, item) => sum + item.product.quantity,
+      0
+    );
+    const totalReturnQty = returnProducts.reduce(
+      (sum, item) => sum + item.returnQuantity,
+      0
+    );
+    const returnType: ReturnTypeEnum =
+      totalReturnQty >= totalOriginalQty ? "FULL" : "PARTIAL";
+
+    const returnReason = returnProducts[0]?.reason || "OTHER";
+    const userNote = note.trim();
+    const combinedNote = [
+      customReasonNote ? `Lý do bổ sung: ${customReasonNote}` : null,
+      userNote ? userNote : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const payloadProducts = returnProducts
+      .filter((item) => item.returnQuantity > 0)
+      .map((item) => ({
+        orderDetailId: item.orderDetailId,
+        returnQuantity: item.returnQuantity,
+        // Đơn giá sau giảm (nếu có) gửi lên BE
+        returnPrice: item.product.price || 0,
+      }));
+
+    createReturnOrderMutation.mutate({
+      orderId: Number(orderId),
+      returnType,
+      returnReason,
+      notes: combinedNote || undefined,
+      returnProducts: payloadProducts,
+    });
+  };
+
+  if (isLoadingOrder) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+
+  if (orderError) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Lỗi khi tải thông tin đơn hàng</p>
+          <button
+            onClick={() => navigate("/pos/returns")}
+            className="px-4 py-2 bg-[#e04d30] text-white rounded hover:bg-[#d04327]"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!orderDetailData) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">Không tìm thấy đơn hàng</p>
+          <button
+            onClick={() => navigate("/pos/returns")}
+            className="px-4 py-2 bg-[#e04d30] text-white rounded hover:bg-[#d04327]"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex overflow-hidden bg-gray-50">
+      {/* Left Column - Product Selection */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Card 1: Chọn sản phẩm trả hàng + Lý do (theo ảnh 2) */}
+          <div className="bg-white border border-[#e7e7e7] rounded-lg shadow-sm">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b border-[#e7e7e7]">
+              <h2 className="text-lg font-semibold text-[#272424]">
+                Chọn sản phẩm trả hàng
+              </h2>
+            </div>
+            {/* Body: Product list (một item demo như ảnh) */}
+            <div className="px-4 pt-3 pb-4 space-y-4">
+              {orderDetailData.code && (
+                <p className="text-lg font-semibold text-[#272424]">
+                  #{orderDetailData.code}
+                </p>
+              )}
+              {returnProducts.map((item) => (
+                <div
+                  key={item.product.id}
+                  className="rounded-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Hình ảnh */}
+                    <div className="w-[64px] h-[64px] rounded-lg border border-[#e7e7e7] flex-shrink-0 overflow-hidden bg-gray-100 relative">
+                      {item.product.image ? (
+                        <img
+                          src={item.product.image}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (target.dataset.fallbackApplied === "true") {
+                              return;
+                            }
+                            target.dataset.fallbackApplied = "true";
+                            target.style.display = "none";
+                            const fallback = target.parentElement?.querySelector('.fallback-placeholder') as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = "flex";
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className="fallback-placeholder w-full h-full flex items-center justify-center"
+                        style={{ display: item.product.image ? 'none' : 'flex' }}
+                      >
+                        <Package className="w-7 h-7 text-gray-400" />
+                      </div>
+                    </div>
+                    {/* Thông tin + điều chỉnh số lượng + tổng tiền */}
+                    <div className="flex-1 min-w-0">
+                       <div className="flex items-start justify-between gap-3">
+                         <div className="flex-1 min-w-0">
+                           <p className="text-[15px] font-medium text-[#272424] mb-1 line-clamp-2">
+                             {item.product.name}
+                           </p>
+                           {item.product.variant && (
+                             <p className="text-xs text-[#737373] mb-1">
+                               Phân loại hàng:{" "}
+                               <span className="text-[#272424]">
+                                 {item.product.variant}
+                               </span>
+                             </p>
+                           )}
+                           {item.product.sku && (
+                             <p className="text-sm text-[#272424]">
+                               SKU: {item.product.sku}
+                             </p>
+                           )}
+                           {/* Đơn giá hiển thị giống màn quản lý đơn hàng (ảnh 2) */}
+                           <div className="mt-1 flex items-center flex-wrap gap-1 text-xs text-[#737373]">
+                             <span>Đơn giá:</span>
+                             {item.product.originalPrice != null &&
+                             item.product.originalPrice > item.product.price &&
+                             Math.abs(
+                               (item.product.originalPrice || 0) - item.product.price
+                             ) > 0.01 ? (
+                               <>
+                                 <span className="line-through text-[#9ca3af]">
+                                   {formatCurrency(item.product.originalPrice || 0)}
+                                 </span>
+                                 <span className="font-semibold text-[#272424]">
+                                   {formatCurrency(item.product.price)}
+                                 </span>
+                               </>
+                             ) : (
+                               <span className="font-semibold text-[#272424]">
+                                 {formatCurrency(item.product.price)}
+                               </span>
+                             )}
+                           </div>
+                         </div>
+                        {/* Điều chỉnh số lượng theo style ảnh 2 */}
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.product.id,
+                                item.returnQuantity - 1,
+                                item.product.quantity
+                              )
+                            }
+                            disabled={item.returnQuantity <= 0}
+                            className={cn(
+                              "w-7 h-7 flex items-center justify-center rounded-full border border-[#e7e7e7] text-[#272424] hover:bg-gray-100 transition-colors",
+                              item.returnQuantity <= 0 && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <div className="text-sm text-[#272424] font-medium min-w-[52px] text-center border-b border-[#cfcfcf]">
+                            {item.returnQuantity}/{item.product.quantity}
+                          </div>
+                          <button
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.product.id,
+                                item.returnQuantity + 1,
+                                item.product.quantity
+                              )
+                            }
+                            disabled={item.returnQuantity >= item.product.quantity}
+                            className={cn(
+                              "w-7 h-7 flex items-center justify-center rounded-full border border-[#e7e7e7] text-[#272424] hover:bg-gray-100 transition-colors",
+                              item.returnQuantity >= item.product.quantity &&
+                                "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {/* Tổng tiền = đơn giá sau giảm * số lượng */}
+                        <div className="text-right min-w-[100px]">
+                          <p className="text-sm font-medium text-[#272424]">
+                            {formatCurrency(
+                              (item.product.price || 0) * item.returnQuantity
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {returnProducts.length > 0 && (
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <p className="text-[15px] font-semibold text-[#272424] m-0">
+                      Lý do chọn trả hàng
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingReason((prev) => !prev);
+                        setCustomReasonError("");
+                      }}
+                      className="text-xs font-semibold text-[#e04d30] border border-[#e04d30] rounded-full px-3 py-1 hover:bg-[#e04d30] hover:text-white transition-colors"
+                    >
+                      {isAddingReason ? "Đóng" : "+ Thêm lý do"}
+                    </button>
+                  </div>
+                  <div className="bg-[#f5f5f5] rounded-md">
+                    <div className="p-2.5">
+                      <SimpleDropdown
+                        value={selectedReasonLabel || ""}
+                        onValueChange={handleReasonSelection}
+                        options={dropdownReasonOptions}
+                        placeholder="Chọn lý do"
+                      />
+                    </div>
+                  </div>
+                  {isAddingReason && (
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={newReasonInput}
+                        onChange={(e) => {
+                          setNewReasonInput(e.target.value);
+                          if (customReasonError) setCustomReasonError("");
+                        }}
+                        placeholder="Nhập lý do mới..."
+                        className="flex-1 border border-[#e7e7e7] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[#e04d30]"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleAddCustomReason}
+                          className="px-4 py-2 bg-[#e04d30] text-white text-sm font-medium rounded-md hover:bg-[#d04327]"
+                        >
+                          Lưu
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingReason(false);
+                            setNewReasonInput("");
+                            setCustomReasonError("");
+                          }}
+                          className="px-4 py-2 border border-[#e7e7e7] text-sm font-medium rounded-md text-[#272424] hover:bg-gray-100"
+                        >
+                          Hủy
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {customReasonError && (
+                    <p className="text-xs text-red-500 mt-2">{customReasonError}</p>
+                  )}
+                  {customReasonNote && !customReasonError && (
+                    <p className="text-xs text-[#737373] mt-2">
+                      Lý do mới sẽ được lưu lại và ghi kèm vào ghi chú khi tạo đơn.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Card 2: Ghi chú (theo ảnh 2) */}
+          <div className="bg-white border border-[#e7e7e7] rounded-lg shadow-sm">
+            <div className="px-6 pt-4 pb-2">
+              <h3 className="text-xl font-bold text-[#272424]">Ghi chú</h3>
+            </div>
+            <div className="px-6 pt-1 pb-3">
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Nhập ghi chú..."
+                className="w-full min-h-[120px] p-3 border border-[#e7e7e7] rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:border-[#e04d30] resize-none"
+              />
+              <div className="mt-2 flex items-center gap-2 text-xs text-[#737373]">
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#f0f0f0] text-[11px] font-semibold text-[#737373]">
+                  !
+                </div>
+                <p className="m-0">
+                  Chỉ có bạn và nhân viên trong cửa hàng có thể nhìn thấy lý do này
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column - Refund */}
+      <div className="w-[400px] bg-white border-l border-[#e7e7e7] flex-shrink-0 flex flex-col">
+        {/* Refund Section */}
+        <div className="p-6 border-b border-[#e7e7e7] flex-1">
+          <h3 className="text-lg font-bold text-[#272424] mb-4">Hoàn tiền</h3>
+          <div className="space-y-4">
+            <div>
+              <div className="bg-gray-50 border-2 border-[#e04d30] rounded-lg px-4 py-3">
+                <SimpleDropdown
+                  value={refundMethod}
+                  onValueChange={setRefundMethod}
+                  options={refundMethods}
+                  placeholder="Chọn phương thức"
+                  className="[&>div:first-child]:border-0 [&>div:first-child]:bg-transparent [&>div:first-child]:px-0 [&>div:first-child]:h-auto [&>div:first-child]:rounded-none"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#272424] mb-2">
+                Số tiền
+              </label>
+              <div className="bg-gray-50 border-2 border-[#e04d30] rounded-lg p-4 flex items-center justify-end gap-2">
+                <span className="bg-transparent text-sm font-semibold text-[#272424]">
+                  {formatCurrency(refundAmount)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Create Button */}
+        <div className="p-6 border-t border-[#e7e7e7]">
+          <button
+            onClick={handleCreateReturn}
+            disabled={createReturnOrderMutation.isPending}
+            className="w-full bg-[#e04d30] text-white px-4 py-3 rounded-lg font-medium hover:bg-[#d0442a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {createReturnOrderMutation.isPending
+              ? "Đang tạo..."
+              : "Tạo đơn hoàn trả"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CreateReturnOrder;

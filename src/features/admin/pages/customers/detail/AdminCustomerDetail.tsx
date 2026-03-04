@@ -1,0 +1,1546 @@
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ArrowLeft } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
+import { ChipStatus } from "@/components/ui/chip-status";
+import { useState, useEffect, useMemo } from "react";
+import FormInput from "@/components/ui/form-input";
+import { DatePicker, Radio } from "antd";
+import dayjs from "dayjs";
+
+import {
+  PageContainer,
+  ContentCard,
+} from "@/components/common";
+import { getCustomerById, updateCustomer, getCustomerAddresses, updateCustomerAddress, createCustomerAddress } from "@/api/endpoints/userApi";
+import { getProvinces, getDistrictsByPath, getWardsByPath } from "@/api/endpoints/shippingApi";
+import { getAdminCustomerOrders } from "@/api/endpoints/orderApi";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import CaretDown from "@/components/ui/caret-down";
+import { toast } from "sonner";
+import type { CustomerResponse, CustomerUpdateRequest } from "@/types/api";
+import type { AddressResponse, AddressUpdateRequest, AddressCreationRequest, ProvinceResponse, DistrictResponse, WardResponse } from "@/types";
+import { BASE_URL } from "@/api/apiClient";
+
+type CustomerAddressFormState = {
+  id: number | null;
+  name: string;
+  phone: string;
+  province: string;
+  provinceId: number | null;
+  district: string;
+  districtId: number | null;
+  ward: string;
+  wardCode: string;
+  location: string;
+};
+
+type CustomerContactField = "name" | "phone" | "birthdate" | "email";
+type ContactFormErrors = Partial<Record<CustomerContactField, string>>;
+
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const getCustomerInitial = (customer: CustomerResponse) => {
+  const source = customer.name || customer.username || "";
+  return source.trim().charAt(0).toUpperCase() || "N";
+};
+
+const getCustomerAvatarUrl = (customer: CustomerResponse) => {
+  const rawUrl =
+    (customer as any).image_url ||
+    (customer as any).imageUrl ||
+    (customer as any).avatar ||
+    "";
+
+  if (!rawUrl) return "";
+  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) return rawUrl;
+  return `${BASE_URL}${rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`}`;
+};
+
+const normalizeAddressPart = (value?: string | null) => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const lower = trimmed.toLowerCase();
+  if (lower === "null" || lower === "undefined") return "";
+  return trimmed;
+};
+
+const formatAddressText = (address?: AddressResponse | null) => {
+  if (!address) return "Chưa có địa chỉ";
+
+  const parts = [
+    normalizeAddressPart(address.location),
+    normalizeAddressPart(address.ward),
+    normalizeAddressPart(address.district),
+    normalizeAddressPart(address.province),
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(", ") : "Chưa có địa chỉ";
+};
+
+const AdminCustomerDetail = () => {
+  const { customerId } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    birthdate: "",
+    gender: "Nữ",
+    email: "",
+  });
+  const [formErrors, setFormErrors] = useState<ContactFormErrors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [addressData, setAddressData] = useState<CustomerAddressFormState>({
+    id: null,
+    name: "",
+    phone: "",
+    province: "",
+    provinceId: null,
+    district: "",
+    districtId: null,
+    ward: "",
+    wardCode: "",
+    location: "",
+  });
+  const [defaultAddress, setDefaultAddress] = useState<AddressResponse | null>(null);
+  const formattedDefaultAddress = useMemo(
+    () => formatAddressText(defaultAddress),
+    [defaultAddress]
+  );
+
+  const setFieldError = (field: CustomerContactField, error?: string) => {
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (error) {
+        next[field] = error;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  const validateField = (field: CustomerContactField, value: string) => {
+    let error: string | undefined;
+    const trimmedValue = value.trim();
+
+    switch (field) {
+      case "name":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập họ tên.";
+        } else if (trimmedValue.length < 3) {
+          error = "Họ tên phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const digits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (digits.length < 10 || digits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (!trimmedValue) {
+          error = undefined;
+        } else if (!EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
+        }
+        break;
+      case "birthdate":
+        if (trimmedValue) {
+          const inputDate = new Date(trimmedValue);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (Number.isNaN(inputDate.getTime())) {
+            error = "Ngày sinh không hợp lệ.";
+          } else if (inputDate > today) {
+            error = "Ngày sinh không được lớn hơn hiện tại.";
+          }
+        }
+        break;
+      default:
+        break;
+    }
+
+    setFieldError(field, error);
+    return error;
+  };
+
+  const handleContactFieldChange = (
+    field: CustomerContactField,
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    setApiError(null);
+    validateField(field, value);
+  };
+
+  const validateContactForm = () => {
+    let isValid = true;
+    (["name", "phone", "email", "birthdate"] as CustomerContactField[]).forEach(
+      (field) => {
+        const error = validateField(field, formData[field]);
+        if (error) {
+          isValid = false;
+        }
+      }
+    );
+    return isValid;
+  };
+
+  const shouldHideLocationName = (name: string) => {
+    const normalized = name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return normalized.includes("test") || normalized === "ha noi 02";
+  };
+
+  const {
+    data: provincesData,
+    isLoading: isLoadingProvinces,
+    isError: isProvinceError,
+  } = useQuery({
+    queryKey: ["shipping-provinces"],
+    queryFn: getProvinces,
+  });
+
+  const provinces = useMemo(() => {
+    if (!provincesData) return [];
+    return provincesData
+      .filter((province) => !shouldHideLocationName(province.provinceName))
+      .sort((a, b) =>
+        a.provinceName.localeCompare(b.provinceName, "vi", { sensitivity: "base" })
+      );
+  }, [provincesData]);
+
+  const {
+    data: districtsData,
+    isLoading: isLoadingDistricts,
+    isError: isDistrictError,
+  } = useQuery({
+    queryKey: ["shipping-districts", addressData.provinceId],
+    queryFn: async () => {
+      if (!addressData.provinceId) return [];
+      return getDistrictsByPath(addressData.provinceId);
+    },
+    enabled: Boolean(addressData.provinceId),
+  });
+
+  const districts = useMemo(() => {
+    if (!districtsData) return [];
+    return districtsData
+      .filter((district) => !shouldHideLocationName(district.districtName))
+      .sort((a, b) =>
+        a.districtName.localeCompare(b.districtName, "vi", { sensitivity: "base" })
+      );
+  }, [districtsData]);
+
+  const {
+    data: wardsData,
+    isLoading: isLoadingWards,
+    isError: isWardError,
+  } = useQuery({
+    queryKey: ["shipping-wards", addressData.districtId],
+    queryFn: async () => {
+      if (!addressData.districtId) return [];
+      return getWardsByPath(addressData.districtId);
+    },
+    enabled: Boolean(addressData.districtId),
+  });
+
+  const wards = useMemo(() => {
+    if (!wardsData) return [];
+    return wardsData
+      .filter((ward) => !shouldHideLocationName(ward.wardName))
+      .sort((a, b) =>
+        a.wardName.localeCompare(b.wardName, "vi", { sensitivity: "base" })
+      );
+  }, [wardsData]);
+
+  useEffect(() => {
+    if (
+      provinces.length > 0 &&
+      addressData.province &&
+      !addressData.provinceId
+    ) {
+      const matchedProvince = provinces.find(
+        (province) => province.provinceName === addressData.province
+      );
+      if (matchedProvince) {
+        setAddressData((prev) => ({
+          ...prev,
+          provinceId: matchedProvince.provinceId,
+        }));
+      }
+    }
+  }, [provinces, addressData.province, addressData.provinceId]);
+
+  useEffect(() => {
+    if (
+      districts.length > 0 &&
+      addressData.district &&
+      !addressData.districtId
+    ) {
+      const matchedDistrict = districts.find(
+        (district) => district.districtName === addressData.district
+      );
+      if (matchedDistrict) {
+        setAddressData((prev) => ({
+          ...prev,
+          districtId: matchedDistrict.districtId,
+        }));
+      }
+    }
+  }, [districts, addressData.district, addressData.districtId]);
+
+  useEffect(() => {
+    if (wards.length > 0 && addressData.ward && !addressData.wardCode) {
+      const matchedWard = wards.find(
+        (ward) => ward.wardName === addressData.ward
+      );
+      if (matchedWard) {
+        setAddressData((prev) => ({
+          ...prev,
+          wardCode: matchedWard.wardCode,
+        }));
+      }
+    }
+  }, [wards, addressData.ward, addressData.wardCode]);
+
+  const handleProvinceSelect = (province: ProvinceResponse) => {
+    setAddressData((prev) => ({
+      ...prev,
+      province: province.provinceName,
+      provinceId: province.provinceId,
+      district: "",
+      districtId: null,
+      ward: "",
+      wardCode: "",
+    }));
+  };
+
+  const handleDistrictSelect = (district: DistrictResponse) => {
+    setAddressData((prev) => ({
+      ...prev,
+      district: district.districtName,
+      districtId: district.districtId,
+      ward: "",
+      wardCode: "",
+    }));
+  };
+
+  const handleWardSelect = (ward: WardResponse) => {
+    setAddressData((prev) => ({
+      ...prev,
+      ward: ward.wardName,
+      wardCode: ward.wardCode,
+    }));
+  };
+
+  const provinceLabel = useMemo(() => {
+    if (isLoadingProvinces) return "Đang tải tỉnh/thành";
+    if (isProvinceError) return "Không thể tải tỉnh/thành";
+    return addressData.province || "Chọn tỉnh/thành phố";
+  }, [addressData.province, isLoadingProvinces, isProvinceError]);
+
+  const districtLabel = useMemo(() => {
+    if (!addressData.provinceId) return "Chọn tỉnh trước";
+    if (isLoadingDistricts) return "Đang tải quận/huyện";
+    if (isDistrictError) return "Không thể tải quận/huyện";
+    return addressData.district || "Chọn quận/huyện";
+  }, [
+    addressData.district,
+    addressData.provinceId,
+    isLoadingDistricts,
+    isDistrictError,
+  ]);
+
+  const wardLabel = useMemo(() => {
+    if (!addressData.districtId) return "Chọn quận/huyện trước";
+    if (isLoadingWards) return "Đang tải phường/xã";
+    if (isWardError) return "Không thể tải phường/xã";
+    return addressData.ward || "Chọn phường/xã";
+  }, [addressData.ward, addressData.districtId, isLoadingWards, isWardError]);
+
+  const renderMenuContent = <T extends { [key: string]: any }>(
+    list: T[] | null | undefined,
+    onSelect: (item: T) => void,
+    labelKey: keyof T
+  ) => {
+    if (!list || !Array.isArray(list) || list.length === 0) {
+      return (
+        <div className="px-3 py-2 text-[13px] text-[#888888]">
+          Không có dữ liệu
+        </div>
+      );
+    }
+
+    return list.map((item) => (
+      <DropdownMenuItem
+        key={String(item[labelKey])}
+        onClick={() => onSelect(item)}
+        className="text-[14px]"
+      >
+        {item[labelKey]}
+      </DropdownMenuItem>
+    ));
+  };
+
+  // Fetch customer data from API
+  const {
+    data: customer,
+    isLoading,
+    isError,
+    refetch: refetchCustomer,
+  } = useQuery<CustomerResponse>({
+    queryKey: ["admin-customer-detail", customerId],
+    queryFn: () => getCustomerById(Number(customerId)),
+    enabled: !!customerId,
+  });
+
+  // Fetch customer addresses
+  const {
+    data: addressesData,
+    refetch: refetchAddresses,
+    isLoading: isLoadingAddresses,
+    isError: isErrorAddresses,
+  } = useQuery({
+    queryKey: ["admin-customer-addresses", customerId],
+    queryFn: () => getCustomerAddresses(Number(customerId)),
+    enabled: !!customerId,
+  });
+
+  // Fetch customer orders (recent orders)
+  const {
+    data: ordersData,
+    isLoading: isLoadingOrders,
+  } = useQuery({
+    queryKey: ["admin-customer-orders", customerId],
+    queryFn: () => getAdminCustomerOrders({
+      page: 0,
+      size: 10, // Lấy 10 đơn hàng gần đây nhất
+    }),
+    enabled: !!customerId,
+  });
+
+  // Update customer mutation
+  const updateCustomerMutation = useMutation({
+    mutationFn: (data: CustomerUpdateRequest) => {
+      console.log("updateCustomerMutation called with:", data);
+      return updateCustomer(data.id, data as any);
+    },
+    onSuccess: async () => {
+      setFormErrors({});
+      setApiError(null);
+      toast.success("Cập nhật thông tin khách hàng thành công");
+      await refetchCustomer();
+      queryClient.invalidateQueries({ queryKey: ["admin-customers"] });
+      setIsEditModalOpen(false);
+    },
+    onError: (error: any) => {
+      console.error("updateCustomerMutation error:", error);
+      console.error("Error response:", error?.response);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể cập nhật thông tin khách hàng";
+      const lowerMessage = errorMessage.toLowerCase();
+
+      const fieldErrorTranslations: Array<{
+        field: CustomerContactField;
+        keywords: string[];
+        translatedMessage: string;
+      }> = [
+          {
+            field: "phone",
+            keywords: [
+              "phone number must contain only digits",
+              "phone number must be between 10 and 13 digits",
+            ],
+            translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
+          },
+          {
+            field: "phone",
+            keywords: ["phone number already exists", "duplicate entry", "constraint `phone`"],
+            translatedMessage: "Số điện thoại đã tồn tại.",
+          },
+          {
+            field: "email",
+            keywords: ["email already exists"],
+            translatedMessage: "Email đã tồn tại.",
+          },
+          {
+            field: "name",
+            keywords: ["name must not contain special characters"],
+            translatedMessage: "Họ tên không được chứa ký tự đặc biệt.",
+          },
+          {
+            field: "birthdate",
+            keywords: ["birthday must be in the past"],
+            translatedMessage: "Ngày sinh không được lớn hơn hiện tại.",
+          },
+        ];
+
+      const matchedFieldError = fieldErrorTranslations.find(({ keywords }) =>
+        keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+      );
+
+      if (matchedFieldError) {
+        setFieldError(matchedFieldError.field, matchedFieldError.translatedMessage);
+        toast.error(matchedFieldError.translatedMessage);
+      } else {
+        setApiError(errorMessage);
+        toast.error(errorMessage);
+      }
+    },
+  });
+
+  // Update address mutation
+  const updateAddressMutation = useMutation({
+    mutationFn: (data: AddressUpdateRequest) => {
+      console.log("updateAddressMutation called with:", data);
+      return updateCustomerAddress(Number(customerId), data);
+    },
+    onSuccess: async () => {
+      toast.success("Cập nhật địa chỉ giao hàng thành công");
+      await refetchAddresses();
+      setIsAddressModalOpen(false);
+    },
+    onError: (error: any) => {
+      console.error("updateAddressMutation error:", error);
+      console.error("Error response:", error?.response);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể cập nhật địa chỉ giao hàng";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Create address mutation
+  const createAddressMutation = useMutation({
+    mutationFn: (data: AddressCreationRequest) => createCustomerAddress(Number(customerId), data),
+    onSuccess: async () => {
+      toast.success("Tạo địa chỉ giao hàng thành công");
+      await refetchAddresses();
+      setIsAddressModalOpen(false);
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể tạo địa chỉ giao hàng";
+      toast.error(errorMessage);
+    },
+  });
+
+  // Initialize form data when customer data is loaded
+  useEffect(() => {
+    if (customer) {
+      setFormData({
+        name: customer.name || "",
+        phone: customer.phone || "",
+        birthdate: customer.birthday
+          ? new Date(customer.birthday).toISOString().split("T")[0]
+          : "",
+        gender: customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ",
+        email: customer.email || "",
+      });
+      setFormErrors({});
+      setApiError(null);
+    }
+  }, [customer]);
+
+  // Initialize default address when addresses are loaded
+  useEffect(() => {
+    console.log("addressesData:", addressesData);
+    if (addressesData?.addresses && addressesData.addresses.length > 0) {
+      // Find default address or use first address
+      const defaultAddr =
+        addressesData.addresses.find(
+          (addr) =>
+            addr.isDefault === true ||
+            addr.isDefault === "true" ||
+            addr.isDefault === "Địa chỉ mặc định"
+        ) || addressesData.addresses[0];
+      console.log("defaultAddr:", defaultAddr);
+      setDefaultAddress(defaultAddr as any);
+    } else {
+      setDefaultAddress(null);
+    }
+  }, [addressesData]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center py-8">
+          <p className="text-[#272424] text-[16px]">Đang tải thông tin khách hàng...</p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  // Error state
+  if (isError || !customer) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center py-8">
+          <p className="text-[#272424] text-[16px]">
+            {isError ? "Không thể tải thông tin khách hàng" : "Không tìm thấy khách hàng"}
+          </p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const resetFormData = () => {
+    if (customer) {
+      setFormData({
+        name: customer.name || "",
+        phone: customer.phone || "",
+        birthdate: customer.birthday
+          ? new Date(customer.birthday).toISOString().split("T")[0]
+          : "",
+        gender: customer.gender?.toLowerCase() === "male" ? "Nam" : "Nữ",
+        email: customer.email || "",
+      });
+      setFormErrors({});
+      setApiError(null);
+    }
+  };
+
+  const handleEditClick = () => {
+    resetFormData(); // Reset form to original values when opening modal
+    setIsEditModalOpen(true);
+  };
+
+  const handleCancelEdit = () => {
+    resetFormData(); // Reset form to original values when canceling
+    setIsEditModalOpen(false);
+  };
+
+  const handleSave = () => {
+    if (!customer) return;
+
+    console.log("handleSave called with formData:", formData);
+
+    setApiError(null);
+    if (!validateContactForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin.");
+      return;
+    }
+
+    const emailValue = formData.email.trim();
+
+    const updateData: CustomerUpdateRequest = {
+      id: customer.id,
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      email: emailValue || undefined,
+      username: customer.username, // Keep existing username
+      password: undefined,
+      gender: formData.gender === "Nam" ? "MALE" : "FEMALE", // Convert to backend format
+      birthday: formData.birthdate ? new Date(formData.birthdate).toISOString() : (customer.birthday ? new Date(customer.birthday).toISOString() : undefined),
+      // Note: delivery address is managed separately via Address entity
+    };
+
+    console.log("Updating customer with data:", updateData);
+    updateCustomerMutation.mutate(updateData);
+  };
+
+  const resetAddressData = () => {
+    if (defaultAddress) {
+      // Reset to existing address
+      const provinceName = normalizeAddressPart(defaultAddress.province);
+      const districtName = normalizeAddressPart(defaultAddress.district);
+      const wardName = normalizeAddressPart(defaultAddress.ward);
+      const street = normalizeAddressPart(defaultAddress.location);
+      setAddressData({
+        id: defaultAddress.id,
+        name: defaultAddress.name || customer.name,
+        phone: defaultAddress.phone || customer.phone,
+        province: provinceName,
+        provinceId: null,
+        district: districtName,
+        ward: wardName,
+        location: street,
+        wardCode: defaultAddress.wardCode || "",
+        districtId: defaultAddress.districtId || null,
+      });
+    } else {
+      // Reset to new address form
+      setAddressData({
+        id: null,
+        name: customer.name,
+        phone: customer.phone,
+        province: "",
+        provinceId: null,
+        district: "",
+        ward: "",
+        location: "",
+        wardCode: "",
+        districtId: null,
+      });
+    }
+  };
+
+  const handleAddressEditClick = () => {
+    resetAddressData(); // Reset address data to original values when opening modal
+    setIsAddressModalOpen(true);
+  };
+
+  const handleCancelAddressEdit = () => {
+    resetAddressData(); // Reset address data to original values when canceling
+    setIsAddressModalOpen(false);
+  };
+
+  const handleAddressSave = () => {
+    if (!customerId) return;
+
+    console.log("handleAddressSave called with addressData:", addressData);
+
+    // Validation
+    const trimmedName = addressData.name.trim();
+    if (!trimmedName) {
+      toast.error("Vui lòng nhập tên người nhận");
+      return;
+    }
+    if (trimmedName.length < 3) {
+      toast.error("Tên người nhận phải có ít nhất 3 ký tự");
+      return;
+    }
+    if (!NAME_REGEX.test(trimmedName)) {
+      toast.error("Tên người nhận không được chứa ký tự đặc biệt");
+      return;
+    }
+
+    const rawPhone = addressData.phone.trim();
+    if (!rawPhone) {
+      toast.error("Vui lòng nhập số điện thoại");
+      return;
+    }
+    const phoneDigits = rawPhone.replace(/\D/g, "");
+    if (!/^\d+$/.test(rawPhone)) {
+      toast.error("Số điện thoại chỉ được chứa chữ số.");
+      return;
+    }
+    if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+      toast.error("Số điện thoại phải có từ 10 đến 13 chữ số.");
+      return;
+    }
+    if (!addressData.province.trim()) {
+      toast.error("Vui lòng chọn tỉnh/thành phố");
+      return;
+    }
+    if (!addressData.district.trim()) {
+      toast.error("Vui lòng chọn quận/huyện");
+      return;
+    }
+    if (!addressData.ward.trim()) {
+      toast.error("Vui lòng chọn phường/xã");
+      return;
+    }
+    if (!addressData.location.trim()) {
+      toast.error("Vui lòng nhập địa chỉ chi tiết");
+      return;
+    }
+    if (!addressData.provinceId) {
+      toast.error("Vui lòng chọn tỉnh/thành hợp lệ");
+      return;
+    }
+    if (!addressData.districtId) {
+      toast.error("Vui lòng chọn quận/huyện hợp lệ");
+      return;
+    }
+    if (!addressData.wardCode.trim()) {
+      toast.error("Vui lòng chọn phường/xã hợp lệ");
+      return;
+    }
+
+    const finalWardCode = addressData.wardCode.trim();
+    const finalDistrictId = addressData.districtId;
+
+    const street = addressData.location.trim();
+    // Normalize phone to digits only (max 13) to match backend schema for receiver_phone
+    const normalizedPhone = addressData.phone
+      .trim()
+      .replace(/\D/g, "")
+      .slice(0, 13);
+    const wardName = addressData.ward.trim();
+    const districtName = addressData.district.trim();
+    const provinceName = addressData.province.trim();
+    const payloadCommon = {
+      name: addressData.name.trim(),
+      phone: normalizedPhone,
+      street,
+      wardCode: finalWardCode,
+      wardName,
+      districtId: finalDistrictId,
+      districtName,
+      provinceName,
+      fullAddress: [street, wardName, districtName, provinceName]
+        .filter(Boolean)
+        .join(", "),
+    };
+
+    if (addressData.id) {
+      // Update existing address
+      const updateData: AddressUpdateRequest = {
+        id: addressData.id,
+        ...payloadCommon,
+      };
+      console.log("Updating address with data:", updateData);
+      updateAddressMutation.mutate(updateData);
+    } else {
+      // Create new address
+      const createData: AddressCreationRequest = {
+        ...payloadCommon,
+      };
+      console.log("Creating address with data:", createData);
+      createAddressMutation.mutate(createData);
+    }
+  };
+
+  return (
+    <PageContainer>
+      <div className="flex items-center justify-between w-full mb-4">
+        <div className="flex gap-[8px] items-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-[24px] h-[24px] flex items-center justify-center cursor-pointer"
+          >
+            <ArrowLeft className="w-[18px] h-[18px] text-[#737373]" />
+          </button>
+          <div className="flex gap-[4px] items-center">
+            <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
+              Thông tin khách hàng
+            </h1>
+          </div>
+        </div>
+      </div>
+
+      <ContentCard>
+        <div className="flex gap-[15px] w-full">
+          {/* Left Column */}
+          <div className="flex flex-col gap-[8px] flex-[2]">
+            {/* Customer Summary Card */}
+            <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[20px] h-[120px] flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-[16px] flex-1">
+                <div className="w-[70px] h-[70px] relative rounded-[14px] p-[4px] bg-gradient-to-br from-white to-[#f7f8fb] border border-[#e6e6e6] shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
+                  <Avatar className="w-full h-full rounded-[12px] ring-2 ring-white shadow-sm">
+                    {getCustomerAvatarUrl(customer) ? (
+                      <AvatarImage
+                        src={getCustomerAvatarUrl(customer)}
+                        alt={customer.name}
+                        className="object-cover"
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-[#1a71f6] text-white text-[24px] font-semibold">
+                        {getCustomerInitial(customer)}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                </div>
+                <div className="flex flex-col gap-[4px]">
+                  <h3 className="font-bold text-[#272424] text-[20px] leading-[1.3]">
+                    {customer.name}
+                  </h3>
+                  <div className="flex items-center gap-[8px]">
+                    <span className="font-medium text-[#737373] text-[14px] leading-[1.4]">
+                      Mã KH:
+                    </span>
+                    <span className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4]">
+                      {customer.id}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-[4px]">
+                    <div className={`w-[6px] h-[6px] rounded-full ${customer.status?.toUpperCase() === "ACTIVE" ? "bg-[#28a745]" : "bg-[#dc3545]"}`}></div>
+                    <span className={`font-medium text-[12px] leading-[1.4] ${customer.status?.toUpperCase() === "ACTIVE" ? "text-[#28a745]" : "text-[#dc3545]"}`}>
+                      {customer.status?.toUpperCase() === "ACTIVE" ? "Hoạt động" : "Ngừng hoạt động"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-[32px] items-center">
+                <div className="flex flex-col items-center gap-[4px]">
+                  <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                    Tổng chi tiêu
+                  </p>
+                  <p className="font-bold text-[#272424] text-[24px] leading-normal">
+                    {customer.totalOrderAmount 
+                      ? new Intl.NumberFormat('vi-VN').format(Number(customer.totalOrderAmount)) + "đ"
+                      : "0đ"}
+                  </p>
+                </div>
+                <div className="w-[1px] h-[40px] bg-[#d1d1d1]"></div>
+                <div className="flex flex-col items-center gap-[4px]">
+                  <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                    Đơn hàng
+                  </p>
+                  <p className="font-bold text-[#272424] text-[24px] leading-normal">
+                    {customer.totalOrders || "0"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Orders */}
+            <div className="bg-white border border-[#d1d1d1] rounded-[8px] flex flex-col h-[400px]">
+              {/* Header - Fixed */}
+              <div className="flex items-center justify-between border-b border-[#d1d1d1] px-[16px] pt-[16px] pb-[8px] flex-shrink-0">
+                <p className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Đơn hàng gần đây
+                </p>
+                <p className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4] cursor-pointer">
+                  Xem tất cả
+                </p>
+              </div>
+
+              {/* Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="flex flex-col py-[8px]">
+                  {isLoadingOrders ? (
+                    <div className="px-[16px] py-[8px] text-[#737373] text-[14px]">
+                      Đang tải đơn hàng...
+                    </div>
+                  ) : !ordersData?.orders || ordersData.orders.length === 0 ? (
+                    <div className="px-[16px] py-[8px] text-[#737373] text-[14px]">
+                      Khách hàng chưa có đơn hàng nào
+                    </div>
+                  ) : (
+                    ordersData.orders.map((order: any, index: number) => {
+                      // Format date
+                      const orderDate = order.createdAt
+                        ? new Date(order.createdAt).toLocaleDateString("vi-VN", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
+                        : "";
+
+                      // Map payment status
+                      const getPaymentStatusLabel = (status?: string) => {
+                        if (!status) return "Chưa thanh toán";
+                        const statusLower = status.toLowerCase();
+                        if (statusLower.includes("đã thanh toán") || statusLower.includes("paid")) {
+                          return "Đã thanh toán";
+                        }
+                        if (statusLower.includes("hoàn tiền")) {
+                          return "Đã hoàn tiền";
+                        }
+                        if (statusLower.includes("chờ") || statusLower.includes("pending")) {
+                          return "Chờ thanh toán";
+                        }
+                        return status;
+                      };
+
+                      // Map order status
+                      const getOrderStatusLabel = (status?: string) => {
+                        if (!status) return "Đang xử lý";
+                        const statusLower = status.toLowerCase();
+                        if (statusLower.includes("hoàn thành") || statusLower.includes("completed")) {
+                          return "Đã hoàn thành";
+                        }
+                        if (statusLower.includes("đã giao") || statusLower.includes("delivered")) {
+                          return "Đã giao";
+                        }
+                        if (statusLower.includes("đang giao") || statusLower.includes("shipping")) {
+                          return "Đang giao";
+                        }
+                        if (statusLower.includes("hủy") || statusLower.includes("cancelled")) {
+                          return "Đã hủy";
+                        }
+                        return status;
+                      };
+
+                      // Map status to ChipStatus props
+                      const getPaymentStatusChip = (status?: string) => {
+                        if (!status) return "processing";
+                        const statusLower = status.toLowerCase();
+                        if (statusLower.includes("đã thanh toán") || statusLower.includes("paid")) {
+                          return "paid";
+                        }
+                        if (statusLower.includes("hoàn tiền")) {
+                          return "pending";
+                        }
+                        return "processing";
+                      };
+
+                      const getOrderStatusChip = (status?: string) => {
+                        if (!status) return "processing";
+                        const statusLower = status.toLowerCase();
+                        if (statusLower.includes("hoàn thành") || statusLower.includes("completed") || statusLower.includes("đã giao")) {
+                          return "completed";
+                        }
+                        if (statusLower.includes("hủy") || statusLower.includes("cancelled")) {
+                          return "cancelled";
+                        }
+                        return "processing";
+                      };
+
+                      return (
+                        <div
+                          key={order.id}
+                          className={`flex items-center justify-between px-[16px] py-[8px] ${index < ordersData.orders.length - 1
+                            ? "border-b border-[#d1d1d1]"
+                            : ""
+                            }`}
+                        >
+                          <div className="flex flex-col gap-[4px]">
+                            <p className="font-semibold text-[#1a71f6] text-[12px] leading-[1.5] cursor-pointer hover:underline">
+                              {order.code || `#${order.id}`}
+                            </p>
+                            <p className="font-normal text-[#737373] text-[12px] leading-[1.4]">
+                              {order.source ? `Nguồn: ${order.source} • ` : ""}
+                              {orderDate}
+                            </p>
+                          </div>
+                          <div className="flex gap-[15px]">
+                            <ChipStatus
+                              status={getPaymentStatusChip(order.paymentStatus)}
+                              labelOverride={getPaymentStatusLabel(order.paymentStatus)}
+                              size="small"
+                            />
+                            <ChipStatus
+                              status={getOrderStatusChip(order.status)}
+                              labelOverride={getOrderStatusLabel(order.status)}
+                              size="small"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+            {/* Pagination - Fixed at bottom */}
+            <Pagination
+              current={currentPage}
+              total={1}
+              onChange={setCurrentPage}
+            />
+          </div>
+
+
+          {/* Right Column */}
+          <div className="flex flex-col gap-[8px] flex-[1]">
+            {/* Contact Info */}
+            <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[16px] flex flex-col gap-[12px] h-[180px]">
+              <div className="flex items-center justify-between border-b border-[#d1d1d1] pb-[8px]">
+                <p className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
+                  Thông tin liên hệ
+                </p>
+                <button
+                  onClick={handleEditClick}
+                  className="flex items-center gap-[4px] px-[8px] py-[4px] rounded-[6px] hover:bg-[#f5f5f5] transition-colors"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M2 14L10 6M10 6H4M10 6V12"
+                      stroke="#1a71f6"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4]">
+                    Chỉnh sửa
+                  </span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-[16px]">
+                <div className="flex flex-col gap-[4px]">
+                  <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                    Họ và tên
+                  </p>
+                  <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
+                    {customer.name}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-[4px]">
+                  <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                    Số điện thoại
+                  </p>
+                  <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
+                    {customer.phone}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-[4px]">
+                  <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                    Giới tính
+                  </p>
+                  <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
+                    {customer.gender ? (customer.gender.toLowerCase() === "male" ? "Nam" : "Nữ") : "---"}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-[4px]">
+                  <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                    Địa chỉ email
+                  </p>
+                  <p className="font-semibold text-[#272424] text-[15px] leading-[1.4] break-all">
+                    {customer.email || "---"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Address Book */}
+            <div className="bg-white border border-[#d1d1d1] rounded-[8px] p-[16px] flex flex-col gap-[12px] h-[200px]">
+              <div className="flex items-center justify-between border-b border-[#d1d1d1] pb-[8px]">
+                <p className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
+                  Địa chỉ giao hàng
+                </p>
+                <button
+                  onClick={handleAddressEditClick}
+                  className="flex items-center gap-[4px] px-[8px] py-[4px] rounded-[6px] hover:bg-[#f5f5f5] transition-colors"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M2 14L10 6M10 6H4M10 6V12"
+                      stroke="#1a71f6"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span className="font-semibold text-[#1a71f6] text-[14px] leading-[1.4]">
+                    Chỉnh sửa
+                  </span>
+                </button>
+              </div>
+
+              {isLoadingAddresses ? (
+                <div className="flex items-center justify-center py-4">
+                  <p className="text-[#737373] text-[14px]">Đang tải địa chỉ...</p>
+                </div>
+              ) : isErrorAddresses ? (
+                <div className="flex items-center justify-center py-4">
+                  <p className="text-[#dc3545] text-[14px]">Không thể tải địa chỉ</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-[16px]">
+                    <div className="flex flex-col gap-[4px]">
+                      <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                        Người nhận
+                      </p>
+                      <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
+                        {defaultAddress?.name || customer.name}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-[4px]">
+                      <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                        Số điện thoại
+                      </p>
+                      <p className="font-semibold text-[#272424] text-[15px] leading-[1.4]">
+                        {defaultAddress?.phone || customer.phone}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-[4px]">
+                    <p className="font-medium text-[#737373] text-[12px] leading-[1.4] uppercase tracking-wide">
+                      Địa chỉ chi tiết
+                    </p>
+                    <p className="font-semibold text-[#272424] text-[15px] leading-[1.5] break-words">
+                      {formattedDefaultAddress}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </ContentCard>
+
+      {/* Edit Customer Modal */}
+      {isEditModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn"
+          style={{
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(8px)",
+          }}
+          onClick={handleCancelEdit}
+        >
+          <div
+            className="bg-white rounded-[8px] p-[24px] w-[520px] shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <h2 className="text-[20px] font-bold text-[#272424] mb-[16px]">
+              Cập nhật thông tin liên hệ
+            </h2>
+
+            {/* Form */}
+            <div className="flex flex-col gap-[12px]">
+              {/* Name and Phone */}
+              <div className="grid grid-cols-2 gap-[12px]">
+                <div className="flex flex-col gap-[6px]">
+                  <label className="font-medium text-[#272424] text-[14px]">
+                    Họ và tên
+                  </label>
+                  <FormInput
+                    value={formData.name}
+                    onChange={(e) =>
+                      handleContactFieldChange("name", e.target.value)
+                    }
+                    placeholder="Nhập họ và tên"
+                  />
+                  {formErrors.name && (
+                    <p className="text-sm text-red-500">{formErrors.name}</p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-[6px]">
+                  <label className="font-medium text-[#272424] text-[14px]">
+                    Số điện thoại
+                  </label>
+                  <FormInput
+                    value={formData.phone}
+                    onChange={(e) =>
+                      handleContactFieldChange("phone", e.target.value)
+                    }
+                    placeholder="Nhập số điện thoại"
+                  />
+                  {formErrors.phone && (
+                    <p className="text-sm text-red-500">{formErrors.phone}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Birthdate and Gender */}
+              <div className="grid grid-cols-2 gap-[12px]">
+                <div className="flex flex-col gap-[6px]">
+                  <label className="font-medium text-[#272424] text-[14px]">
+                    Ngày sinh
+                  </label>
+                  <DatePicker
+                    value={formData.birthdate ? dayjs(formData.birthdate) : null}
+                    onChange={(date) =>
+                      handleContactFieldChange("birthdate", date ? date.format("YYYY-MM-DD") : "")
+                    }
+                    format="DD/MM/YYYY"
+                    placeholder="dd/mm/yyyy"
+                    className="w-full h-[40px] border border-[#d1d1d1] rounded-[8px]" // FormInput used default or derived styles?
+                    // Previous code: <FormInput type="date" ... />
+                    // FormInput default height is usually 40px or determined dynamically.
+                    // The other inputs in the form (grid) use FormInput.
+                    // I should try to match style. FormInput typically has h-[36px] or similar.
+                    // Let's check other inputs there.
+                    // <FormInput ... /> just uses value/onChange.
+                    // I will use h-[40px] to be safe or h-[36px] depending on context. The container says gap-[12px].
+                    // Let's use generic sizing or fit-parent. DatePicker is block by default? No, inline-block. w-full is good.
+                  />
+                  {formErrors.birthdate && (
+                    <p className="text-sm text-red-500">
+                      {formErrors.birthdate}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-[6px]">
+                  <label className="font-medium text-[#272424] text-[14px]">
+                    Giới tính
+                  </label>
+                  <div className="h-[40px] flex items-center">
+                    <Radio.Group
+                      value={formData.gender}
+                      onChange={(e) =>
+                        setFormData({ ...formData, gender: e.target.value })
+                      }
+                      className="flex gap-[16px]"
+                    >
+                      <Radio value="Nữ" className="font-medium text-[#272424] text-[14px]">
+                        Nữ
+                      </Radio>
+                      <Radio value="Nam" className="font-medium text-[#272424] text-[14px]">
+                        Nam
+                      </Radio>
+                    </Radio.Group>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-[6px]">
+                <label className="font-medium text-[#272424] text-[14px]">
+                  Địa chỉ email
+                </label>
+                <FormInput
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    handleContactFieldChange("email", e.target.value)
+                  }
+                  placeholder="email@example.com"
+                />
+                {formErrors.email && (
+                  <p className="text-sm text-red-500">{formErrors.email}</p>
+                )}
+              </div>
+
+              {apiError && (
+                <div className="w-full rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {apiError}
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="flex gap-[12px] justify-end mt-[4px]">
+                <Button
+                  variant="secondary"
+                  onClick={handleCancelEdit}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleSave}
+                  disabled={updateCustomerMutation.isPending}
+                >
+                  {updateCustomerMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Address Modal */}
+      {isAddressModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn"
+          style={{
+            backgroundColor: "rgba(255, 255, 255, 0.7)",
+            backdropFilter: "blur(8px)",
+          }}
+          onClick={handleCancelAddressEdit}
+        >
+          <div
+            className="bg-white rounded-[8px] p-[24px] w-[520px] shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <h2 className="text-[20px] font-bold text-[#272424] mb-[16px]">
+              Cập nhật địa chỉ giao hàng
+            </h2>
+
+            {/* Form */}
+            <div className="flex flex-col gap-[12px]">
+              {/* Name and Phone */}
+              <div className="grid grid-cols-2 gap-[12px]">
+                <div className="flex flex-col gap-[6px]">
+                  <label className="font-medium text-[#272424] text-[14px]">
+                    Họ và tên
+                  </label>
+                  <FormInput
+                    value={addressData.name}
+                    onChange={(e) =>
+                      setAddressData({ ...addressData, name: e.target.value })
+                    }
+                    placeholder="Nhập tên người nhận"
+                  />
+                </div>
+                <div className="flex flex-col gap-[6px]">
+                  <label className="font-medium text-[#272424] text-[14px]">
+                    Số điện thoại
+                  </label>
+                  <FormInput
+                    value={addressData.phone}
+                    onChange={(e) =>
+                      setAddressData({
+                        ...addressData,
+                        phone: e.target.value,
+                      })
+                    }
+                    placeholder="Nhập số điện thoại người nhận"
+                  />
+                </div>
+              </div>
+
+              {/* Province */}
+              <div className="flex flex-col gap-[6px]">
+                <label className="font-medium text-[#272424] text-[14px]">
+                  Tỉnh/Thành phố <span className="text-[#e04d30]">*</span>
+                </label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className={`bg-white border ${isProvinceError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                        } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] cursor-pointer`}
+                    >
+                      <span
+                        className={`text-[14px] ${addressData.province ? "text-[#272424]" : "text-[#888888]"
+                          }`}
+                      >
+                        {provinceLabel}
+                      </span>
+                      <CaretDown className="w-4 h-4 text-[#1a1a1a]" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-[240px] overflow-auto min-w-[280px]">
+                    {isLoadingProvinces ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">Đang tải...</div>
+                    ) : (
+                      renderMenuContent(provinces, handleProvinceSelect, "provinceName")
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* District */}
+              <div className="flex flex-col gap-[6px]">
+                <label className="font-medium text-[#272424] text-[14px]">
+                  Quận/Huyện <span className="text-[#e04d30]">*</span>
+                </label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className={`bg-white border ${isDistrictError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                        } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${!addressData.provinceId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                        }`}
+                    >
+                      <span
+                        className={`text-[14px] ${addressData.district ? "text-[#272424]" : "text-[#888888]"
+                          }`}
+                      >
+                        {districtLabel}
+                      </span>
+                      <CaretDown className="w-4 h-4 text-[#1a1a1a]" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-[240px] overflow-auto min-w-[280px]">
+                    {!addressData.provinceId ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">
+                        Vui lòng chọn tỉnh/thành trước
+                      </div>
+                    ) : isLoadingDistricts ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">
+                        Đang tải...
+                      </div>
+                    ) : (
+                      renderMenuContent(districts, handleDistrictSelect, "districtName")
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Ward */}
+              <div className="flex flex-col gap-[6px]">
+                <label className="font-medium text-[#272424] text-[14px]">
+                  Phường/Xã <span className="text-[#e04d30]">*</span>
+                </label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className={`bg-white border ${isWardError ? "border-[#ff4d4f]" : "border-[#d1d1d1]"
+                        } flex items-center justify-between h-[44px] px-[12px] rounded-[8px] ${!addressData.districtId ? "opacity-60 cursor-not-allowed pointer-events-none" : "cursor-pointer"
+                        }`}
+                    >
+                      <span
+                        className={`text-[14px] ${addressData.ward ? "text-[#272424]" : "text-[#888888]"
+                          }`}
+                      >
+                        {wardLabel}
+                      </span>
+                      <CaretDown className="w-4 h-4 text-[#1a1a1a]" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="max-h-[240px] overflow-auto min-w-[280px]">
+                    {!addressData.districtId ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">
+                        Vui lòng chọn quận/huyện trước
+                      </div>
+                    ) : isLoadingWards ? (
+                      <div className="px-3 py-2 text-[13px] text-[#888888]">
+                        Đang tải...
+                      </div>
+                    ) : (
+                      renderMenuContent(wards, handleWardSelect, "wardName")
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Detail Address */}
+              <div className="flex flex-col gap-[6px]">
+                <label className="font-medium text-[#272424] text-[14px]">
+                  Địa chỉ chi tiết <span className="text-[#e04d30]">*</span>
+                </label>
+                <FormInput
+                  value={addressData.location}
+                  onChange={(e) =>
+                    setAddressData({
+                      ...addressData,
+                      location: e.target.value,
+                    })
+                  }
+                  placeholder="Nhập số nhà, tên đường..."
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-[12px] justify-end mt-[4px]">
+                <Button
+                  variant="secondary"
+                  onClick={handleCancelAddressEdit}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleAddressSave}
+                  disabled={updateAddressMutation.isPending || createAddressMutation.isPending}
+                >
+                  {updateAddressMutation.isPending || createAddressMutation.isPending ? "Đang lưu..." : "Lưu địa chỉ"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </PageContainer>
+  );
+};
+
+export default AdminCustomerDetail;

@@ -1,0 +1,619 @@
+import React, { useState } from "react";
+import { MapPin, Truck, Package } from "lucide-react";
+import type { CustomerOrderResponse } from "@/types/orders";
+import { formatTimelineDate, formatOrderDate } from "@/utils/dateUtils";
+
+interface WebsiteOrderInfoProps {
+  orderData: CustomerOrderResponse;
+  onCreateShipping?: () => void;
+  onEditShippingStatus?: () => void;
+}
+
+const WebsiteOrderInfo: React.FC<WebsiteOrderInfoProps> = ({ orderData, onCreateShipping, onEditShippingStatus }) => {
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(false);
+
+  const handleToggleTimeline = () => {
+    setIsTimelineExpanded(!isTimelineExpanded);
+  };
+
+  // Map shipping status to Vietnamese (GHN status list, supports snake_case / UPPERCASE)
+  const mapShippingStatusToLabel = (status: string | null | undefined): string => {
+    if (!status) return "Chưa có thông tin";
+
+    const normalizedStatus = status.toLowerCase();
+    const statusMap: Record<string, string> = {
+      // GHN official statuses
+      ready_to_pick: "Đơn hàng vừa được tạo, chờ lấy hàng",
+      picking: "Shipper đang đến lấy hàng",
+      cancel: "Đơn vận chuyển đã bị hủy",
+      money_collect_picking: "Shipper đang tương tác với người gửi",
+      picked: "Shipper đã lấy hàng",
+      storing: "Hàng đang ở kho phân loại GHN",
+      transporting: "Hàng đang luân chuyển",
+      sorting: "Hàng đang được phân loại tại kho",
+      delivering: "Shipper đang giao hàng cho khách",
+      money_collect_delivering: "Shipper đang tương tác với người nhận",
+      delivered: "Hàng đã giao thành công cho khách",
+      delivery_fail: "Giao hàng không thành công",
+      waiting_to_return: "Chờ giao lại / chờ chuyển hoàn",
+      return: "Chờ chuyển hoàn về cho người bán",
+      return_transporting: "Hàng hoàn đang luân chuyển",
+      return_sorting: "Hàng hoàn đang phân loại tại kho",
+      returning: "Shipper đang hoàn hàng cho người bán",
+      return_fail: "Chuyển hoàn thất bại",
+      returned: "Hàng đã được hoàn lại cho người bán",
+      exception: "Đơn hàng gặp ngoại lệ, cần xử lý thêm",
+      damage: "Hàng hóa bị hư hỏng",
+      lost: "Hàng hóa bị thất lạc",
+
+      // Internal/extra statuses (nếu GHN/BE trả về)
+      created: "Đơn vận chuyển mới tạo",
+    };
+
+    return statusMap[normalizedStatus] || status;
+  };
+
+  // Get timeline steps from shippingDetail.log (only log entries, no header)
+  const getTimelineSteps = () => {
+    if (!orderData || !orderData.shippingDetail) return [];
+
+    const rawLog = orderData.shippingDetail.log || [];
+    if (!Array.isArray(rawLog) || rawLog.length === 0) return [];
+
+    // Sort log by updated_date (oldest first) to show chronological order
+    const sortedLog = [...rawLog].sort((a: any, b: any) => {
+      const dateA = a.updated_date ? new Date(a.updated_date).getTime() : 0;
+      const dateB = b.updated_date ? new Date(b.updated_date).getTime() : 0;
+      return dateA - dateB;
+    });
+
+    // Map log entries to timeline steps
+    return sortedLog.map((logEntry: any, index: number) => ({
+      id: index + 1,
+      status: mapShippingStatusToLabel(logEntry.status),
+      date: logEntry.updated_date ? formatTimelineDate(logEntry.updated_date) : "",
+      isCompleted: true,
+      isCurrent: false,
+    }));
+  };
+
+  // Get timeline text for header (displays shippingStatus)
+  const getTimelineText = () => {
+    // Header displays shippingStatus from orderData
+    const shippingStatus = orderData.shippingStatus;
+
+    // Get the date from updatedAt or the latest log entry
+    const steps = getTimelineSteps();
+    const latestLogDate = steps.length > 0
+      ? steps[steps.length - 1].date
+      : undefined;
+
+    return {
+      status: mapShippingStatusToLabel(shippingStatus),
+      date: latestLogDate || (orderData.updatedAt ? formatTimelineDate(orderData.updatedAt) : ""),
+    };
+  };
+
+  // Map cancel reason enum to Vietnamese (for admin view - full description)
+  const getCancelReasonLabel = (reason?: string | null): string => {
+    if (!reason) return "Chưa có lý do";
+    switch (reason) {
+      case "CUSTOMER_CHANGE_MIND":
+        return "Khách hàng đổi ý";
+      case "CUSTOMER_NOT_WANT":
+        return "Khách hàng không muốn mua nữa";
+      case "CUSTOMER_NOT_RESPONDING":
+        return "Không liên lạc được khách hàng";
+      case "CUSTOMER_REFUSED":
+        return "Khách hàng từ chối nhận hàng";
+      case "CUSTOMER_FOUND_CHEAPER":
+        return "Khách hàng tìm được giá rẻ hơn";
+      case "CUSTOMER_WRONG_ORDER":
+        return "Khách hàng đặt nhầm đơn hàng";
+      case "CUSTOMER_ADDRESS_WRONG":
+        return "Khách hàng nhập sai địa chỉ";
+      case "CUSTOMER_NO_MONEY":
+        return "Khách hàng không đủ tiền";
+      case "CUSTOMER_DELAYED_DELIVERY":
+        return "Khách hàng không hài lòng về thời gian giao hàng";
+      case "CUSTOMER_PRODUCT_NOT_MATCH":
+        return "Sản phẩm không đúng như mô tả";
+      case "CUSTOMER_CANCEL_BEFORE_SHIP":
+        return "Khách hàng hủy trước khi giao hàng";
+      case "OUT_OF_STOCK":
+        return "Hết hàng";
+      case "PRICE_CHANGED":
+        return "Giá sản phẩm thay đổi";
+      case "DELIVERY_ISSUE":
+        return "Vấn đề giao hàng";
+      case "PAYMENT_FAILED":
+        return "Thanh toán thất bại";
+      case "DUPLICATE_ORDER":
+        return "Đơn hàng trùng lặp";
+      case "SYSTEM_ERROR":
+        return "Lỗi hệ thống";
+      case "SHOP_CANNOT_FULFILL":
+        return "Shop không thể thực hiện đơn hàng";
+      case "OTHER":
+        return "Lý do khác";
+      default:
+        return reason;
+    }
+  };
+
+  return (
+    <div className="bg-white border-2 border-[#e7e7e7] box-border flex flex-col gap-[20px] items-start p-[20px] sm:p-[28px] relative rounded-[8px] w-full overflow-hidden min-w-0">
+      {/* Header */}
+      <div className="flex items-center gap-[8px] w-full">
+        <div className="w-[4px] h-[20px] bg-[#e04d30] rounded-[2px]"></div>
+        <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+          Thông tin WEBSITE
+        </h3>
+      </div>
+
+      {/* Customer Order Information Section */}
+      <div className="flex gap-[14px] items-start w-full">
+        <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f0f4ff] rounded-[8px] shrink-0">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
+              stroke="#4f46e5"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M20.5899 22C20.5899 18.13 16.7399 15 11.9999 15C7.25991 15 3.40991 18.13 3.40991 22"
+              stroke="#4f46e5"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
+          <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+            Thông tin khách hàng đặt hàng
+          </p>
+          <div className="flex flex-col gap-[2px]">
+            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+              {orderData.receiverName ||
+                orderData.shippingDetail?.to_name ||
+                orderData.userInfo?.name ||
+                "Chưa có thông tin tên"}
+            </p>
+            <p className="font-montserrat font-medium text-[13px] leading-[1.3] text-[#666666]">
+              📞{" "}
+              {orderData.receiverPhone ||
+                orderData.shippingDetail?.to_phone ||
+                orderData.userInfo?.phone ||
+                "Chưa có thông tin số điện thoại"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Shipping Address Section */}
+      <div className="flex gap-[14px] items-start w-full">
+        <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f0f8ff] rounded-[8px] shrink-0">
+          <MapPin className="h-[20px] w-[20px] text-[#2563eb]" />
+        </div>
+        <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
+          <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+            Địa chỉ nhận hàng
+          </p>
+          <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424] break-words min-w-0">
+            {orderData.receiverAddress ||
+              orderData.shippingDetail?.to_address ||
+              "Chưa có thông tin địa chỉ"}
+          </p>
+        </div>
+      </div>
+
+      {/* Shipping Method Section */}
+      <div className="flex gap-[14px] items-start w-full">
+        <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f0f9ff] rounded-[8px] shrink-0">
+          <Truck className="h-[20px] w-[20px] text-[#0284c7]" />
+        </div>
+        <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
+          <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+            Phương thức vận chuyển
+          </p>
+          {(orderData as any).shippingProvider ? (
+            <>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex flex-col gap-1 flex-1">
+                  <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+                    {(orderData as any).shippingProvider === "WANDEROO" 
+                      ? "WANDEROO (Tự giao hàng)" 
+                      : `${(orderData as any).shippingProvider} (Dịch vụ ${(orderData as any).shippingDetail?.service_type_id || "N/A"})`
+                    }
+                  </p>
+                  {(orderData as any).shippingOrderCode && (
+                    <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+                      Mã vận chuyển: {(orderData as any).shippingOrderCode}
+                    </p>
+                  )}
+                </div>
+                {/* Show edit button for WANDEROO self-shipping orders - only if order is not completed or cancelled */}
+                {(orderData as any).shippingProvider === "WANDEROO" && 
+                 onEditShippingStatus && 
+                 orderData.status !== "COMPLETE" && 
+                 orderData.status !== "CANCELED" && 
+                 orderData.shippingStatus !== "DELIVERED" && 
+                 orderData.shippingStatus !== "CANCEL" && (
+                  <button
+                    onClick={onEditShippingStatus}
+                    className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-montserrat font-medium text-[12px] rounded-[6px] transition-colors flex items-center gap-1.5 ml-3"
+                  >
+                    <svg
+                      className="w-3 h-3"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    Cập nhật trạng thái
+                  </button>
+                )}
+              </div>
+            </>
+          ) : orderData.status === "CONFIRMED" && onCreateShipping ? (
+            <div className="flex flex-col gap-2 w-full">
+              <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+                Chưa có mã vận đơn
+              </p>
+              <button
+                onClick={onCreateShipping}
+                className="px-4 py-2 bg-[#e04d30] hover:bg-[#d63924] text-white font-montserrat font-semibold text-[13px] rounded-[8px] transition-colors flex items-center gap-2 w-fit"
+              >
+                <Truck className="h-4 w-4" />
+                Tạo mã vận đơn
+              </button>
+            </div>
+          ) : (
+            <p className="font-montserrat font-semibold text-[14px] leading-[1.3] text-[#272424]">
+              Chưa có thông tin phương thức vận chuyển
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Order Date Section */}
+      <div className="flex gap-[14px] items-start w-full">
+        <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#f8f9fa] rounded-[8px] shrink-0">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z"
+              stroke="#6b7280"
+              strokeWidth="1.5"
+              strokeMiterlimit="10"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M15.6947 13.7002H15.7037M15.6947 16.7002H15.7037M11.9955 13.7002H12.0045M11.9955 16.7002H12.0045M8.29431 13.7002H8.30329M8.29431 16.7002H8.30329"
+              stroke="#6b7280"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
+          <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+            Ngày đặt hàng
+          </p>
+          <p className="font-montserrat font-semibold text-[13px] leading-[1.3] text-[#272424]">
+            {formatOrderDate(orderData.createdAt)}
+          </p>
+        </div>
+      </div>
+
+      {/* Order Notes Section */}
+      <div className="flex gap-[14px] items-start w-full">
+        <div className="flex items-center justify-center w-[40px] h-[40px] bg-[#fff7ed] rounded-[8px] shrink-0">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M7 8H17M7 12H14M7 16H11"
+              stroke="#ea580c"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M5 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3Z"
+              stroke="#ea580c"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
+          <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-[#737373]">
+            Ghi chú đơn hàng
+          </p>
+          <p className="font-montserrat font-semibold text-[13px] leading-[1.3] text-[#272424] break-words min-w-0">
+            {orderData.notes && orderData.notes.trim().length > 0
+              ? orderData.notes
+              : "Không có ghi chú"}
+          </p>
+        </div>
+      </div>
+
+      {/* Cancel Reason Section - Only show if order is canceled */}
+      {orderData.status === "CANCELED" && orderData.reasonCancel && (
+        <div className="flex gap-[14px] items-start w-full">
+          <div className="flex items-center justify-center w-[40px] h-[40px] bg-red-50 rounded-[8px] shrink-0">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+                stroke="#dc2626"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M15 9L9 15M9 9L15 15"
+                stroke="#dc2626"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-[6px] items-start flex-1 min-w-0">
+            <p className="font-montserrat font-medium text-[12px] leading-[1.3] text-red-600">
+              Lý do hủy đơn hàng
+            </p>
+            <p className="font-montserrat font-semibold text-[13px] leading-[1.3] text-red-900 break-words min-w-0">
+              {getCancelReasonLabel(orderData.reasonCancel)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Timeline - Only show if shipping has been created (based on shipping_provider) */}
+      {(orderData as any).shippingProvider && (
+        <div className="border border-[#e7e7e7] box-border flex flex-col relative rounded-[8px] w-full overflow-hidden min-w-0 bg-white">
+          {/* Timeline Header */}
+          <div className="flex flex-col sm:flex-row items-start justify-between p-[16px] gap-[12px] sm:gap-0">
+            <div className="box-border flex gap-[12px] items-center relative shrink-0 min-w-0 flex-1">
+              {/* Status Icon */}
+              <div className={`flex items-center justify-center w-[40px] h-[40px] rounded-full border shrink-0 ${orderData.shippingStatus === "SHIPPING" || orderData.status === "SHIPPING"
+                ? "bg-blue-50 border-blue-200"
+                : orderData.shippingStatus === "COMPLETE" || orderData.status === "COMPLETE"
+                  ? "bg-green-50 border-green-200"
+                  : orderData.shippingStatus === "PENDING" || orderData.status === "PENDING"
+                    ? "bg-amber-50 border-amber-200"
+                    : orderData.shippingStatus === "CONFIRMED" || orderData.status === "CONFIRMED"
+                      ? "bg-emerald-50 border-emerald-200"
+                      : "bg-red-50 border-red-200"
+                }`}>
+                {orderData.shippingStatus === "SHIPPING" || orderData.status === "SHIPPING" ? (
+                  <Truck className="w-5 h-5 text-blue-600" />
+                ) : orderData.shippingStatus === "COMPLETE" || orderData.status === "COMPLETE" ? (
+                  <Package className="w-5 h-5 text-green-600" />
+                ) : orderData.shippingStatus === "PENDING" || orderData.status === "PENDING" ? (
+                  <svg
+                    className="w-5 h-5 text-amber-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : orderData.shippingStatus === "CONFIRMED" || orderData.status === "CONFIRMED" ? (
+                  <svg
+                    className="w-5 h-5 text-emerald-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5 text-red-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </div>
+
+              {/* Status Text */}
+              <div className="flex flex-col gap-[4px] items-start flex-1 min-w-0">
+                <p className="font-montserrat font-semibold text-[16px] leading-[1.3] text-[#272424]">
+                  {getTimelineText().status}
+                </p>
+                <div className="flex items-center gap-[6px]">
+                  <svg
+                    className="w-3 h-3 text-[#737373]"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <p className="font-montserrat font-medium text-[13px] leading-[1.3] text-[#737373]">
+                    {getTimelineText().date}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleToggleTimeline}
+              className="box-border flex gap-[6px] items-center justify-center px-[12px] py-[8px] relative rounded-[6px] shrink-0 whitespace-nowrap cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200"
+            >
+              <span className="font-montserrat font-medium text-[13px] leading-[normal] text-[#555555]">
+                {isTimelineExpanded ? "Thu gọn" : "Xem chi tiết"}
+              </span>
+              <div
+                className={`relative shrink-0 size-[14px] transition-transform duration-200 ${isTimelineExpanded ? "rotate-180" : ""}`}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M8 10L5 7M8 10L11 7M8 10V4"
+                    stroke="#555555"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </button>
+          </div>
+
+          {/* Expanded Timeline Steps */}
+          {isTimelineExpanded && (
+            <div className="border-t border-[#e7e7e7] p-[16px] bg-white">
+              <div className="flex flex-col gap-[16px]">
+                <div className="flex items-center gap-[8px]">
+                  <div className="w-[3px] h-[16px] bg-[#e04d30] rounded-full"></div>
+                  <h3 className="font-montserrat font-semibold text-[16px] text-[#272424]">
+                    Lịch sử đơn hàng
+                  </h3>
+                </div>
+                <div className="flex flex-col gap-[12px] pl-[6px]">
+                  {getTimelineSteps().length > 0 ? (
+                    getTimelineSteps().map((step, index) => (
+                      <div
+                        key={step.id}
+                        className="flex items-start gap-[12px]"
+                      >
+                        {/* Timeline Icon */}
+                        <div className="flex flex-col items-center gap-[6px] shrink-0">
+                          <div
+                            className={`w-[12px] h-[12px] rounded-full border-2 flex items-center justify-center ${step.isCompleted
+                              ? step.isCurrent
+                                ? "bg-[#04910c] border-[#04910c]"
+                                : "bg-[#28a745] border-[#28a745]"
+                              : step.isCurrent
+                                ? "bg-[#ffc107] border-[#ffc107]"
+                                : "bg-white border-[#d1d1d1]"
+                              }`}
+                          >
+                            {step.isCompleted && (
+                              <svg
+                                width="8"
+                                height="6"
+                                viewBox="0 0 10 8"
+                                fill="none"
+                                className="text-white"
+                              >
+                                <path
+                                  d="M1.5 4L3.5 6L8.5 1.5"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          {index < getTimelineSteps().length - 1 && (
+                            <div
+                              className={`w-[2px] h-[20px] rounded-full ${step.isCompleted
+                                ? "bg-[#28a745]"
+                                : "bg-[#e7e7e7]"
+                                }`}
+                            />
+                          )}
+                        </div>
+
+                        {/* Timeline Content */}
+                        <div className="flex flex-col gap-[4px] min-w-0 flex-1 pb-[4px]">
+                          <p
+                            className={`font-montserrat font-medium text-[14px] leading-[1.4] ${step.isCurrent
+                              ? "text-[#04910c] font-semibold"
+                              : step.isCompleted
+                                ? "text-[#272424]"
+                                : "text-[#888888]"
+                              }`}
+                          >
+                            {step.status}
+                          </p>
+                          {step.date && (
+                            <div className="flex items-center gap-[6px]">
+                              <svg
+                                className="w-3 h-3 text-[#737373]"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <p className="font-montserrat font-medium text-[12px] leading-[1.4] text-[#737373]">
+                                {step.date}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="font-montserrat font-medium text-[13px] text-[#737373] italic pl-[6px]">
+                      Chưa có lịch sử cập nhật
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WebsiteOrderInfo;

@@ -1,0 +1,938 @@
+// src/pages/admin/AdminStaffDetail.tsx
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Calendar, Pencil } from "lucide-react";
+import FormInput from "@/components/ui/form-input";
+import { DatePicker, Radio } from "antd";
+import dayjs from "dayjs";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import CaretDown from "@/components/ui/caret-down";
+import {
+  getEmployeeById,
+  updateEmployee,
+  updateEmployeeAccount,
+  type AllowedRole,
+} from "@/api/endpoints/userApi";
+import type { EmployeeResponse } from "@/types";
+import { toast } from "sonner";
+
+// Map UserType to Vietnamese role labels (restricted to 3 employee roles)
+const ROLE_LABELS: Record<string, string> = {
+  MANAGER: "Quản lý",
+  EMPLOYEE: "Nhân viên",
+  OPERATIONS_MANAGER: "Quản lý vận hành",
+};
+
+// Map Vietnamese role labels to UserType enum (same 3 roles)
+const ROLE_TO_USER_TYPE: Record<string, AllowedRole> = {
+  "Quản lý": "MANAGER",
+  "Nhân viên": "EMPLOYEE",
+  "Quản lý vận hành": "OPERATIONS_MANAGER",
+};
+
+const getRoleLabel = (type?: string | null): string => {
+  if (!type) return "Nhân viên";
+  const normalizedType = type.toUpperCase();
+  return ROLE_LABELS[normalizedType] || type;
+};
+
+type EditFormData = {
+  fullName: string;
+  phone: string;
+  email: string;
+  dateOfBirth: string;
+  password: string;
+  gender: "male" | "female";
+  role: string;
+  username: string;
+};
+
+type FormErrors = Partial<Record<keyof EditFormData, string>>;
+
+const NAME_REGEX = /^[\p{L}\s'.-]+$/u;
+const USERNAME_REGEX = /^[a-zA-Z0-9_]{4,30}$/;
+const PASSWORD_COMPLEXITY_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
+const EMAIL_REGEX =
+  /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
+const getAge = (date: Date) => {
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+const AdminStaffDetail: React.FC = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { staffId } = useParams<{ staffId: string }>();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState<EditFormData>({
+    fullName: "",
+    phone: "",
+    email: "",
+    dateOfBirth: "",
+    password: "",
+    gender: "female" as "male" | "female",
+    role: "",
+    username: "",
+  });
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // Fetch employee data from API
+  const {
+    data: staff,
+    isLoading,
+    isError,
+    refetch: refetchStaff,
+  } = useQuery<EmployeeResponse>({
+    queryKey: ["admin-staff-detail", staffId],
+    queryFn: () => getEmployeeById(Number(staffId)),
+    enabled: !!staffId,
+    staleTime: 0, // Always consider data stale to ensure fresh fetch
+  });
+
+  // Initialize form data when opening edit modal
+  useEffect(() => {
+    if (isEditing && staff) {
+      // Format birthday from Date string to YYYY-MM-DD
+      const birthdayStr = staff.birthday
+        ? new Date(staff.birthday).toISOString().split("T")[0]
+        : "";
+
+      setEditFormData({
+        fullName: staff.name || "",
+        phone: staff.phone || "",
+        email: staff.email || "",
+        dateOfBirth: birthdayStr,
+        password: "", // Don't prefill password
+        gender: (staff.gender?.toLowerCase() as "male" | "female") || "female",
+        role: getRoleLabel(staff.type),
+        username: staff.username || "",
+      });
+      setFormErrors({});
+      setApiError(null);
+    }
+  }, [isEditing, staff]);
+
+  const setFieldError = (field: keyof EditFormData, error?: string) => {
+    setFormErrors((prev) => {
+      const next = { ...prev };
+      if (error) {
+        next[field] = error;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
+
+  const validateField = (field: keyof EditFormData, value: string) => {
+    let error: string | undefined;
+    const trimmedValue = value.trim();
+
+    switch (field) {
+      case "fullName":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập họ tên.";
+        } else if (trimmedValue.length < 3) {
+          error = "Họ tên phải có ít nhất 3 ký tự.";
+        } else if (!NAME_REGEX.test(trimmedValue)) {
+          error = "Họ tên không được chứa ký tự đặc biệt.";
+        }
+        break;
+      case "username":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập tên đăng nhập.";
+        } else if (!USERNAME_REGEX.test(trimmedValue)) {
+          error =
+            "Tên đăng nhập phải từ 4-30 ký tự và chỉ gồm chữ, số, dấu gạch dưới.";
+        }
+        break;
+      case "phone": {
+        if (!trimmedValue) {
+          error = "Vui lòng nhập số điện thoại.";
+          break;
+        }
+        const phoneDigits = trimmedValue.replace(/\D/g, "");
+        if (!/^\d+$/.test(trimmedValue)) {
+          error = "Số điện thoại chỉ được chứa chữ số.";
+        } else if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+          error = "Số điện thoại phải có từ 10 đến 13 chữ số.";
+        }
+        break;
+      }
+      case "email":
+        if (trimmedValue && !EMAIL_REGEX.test(trimmedValue)) {
+          error = "Định dạng email không đúng. Ví dụ: ten@gmail.com";
+        }
+        break;
+      case "password":
+        if (trimmedValue && !PASSWORD_COMPLEXITY_REGEX.test(trimmedValue)) {
+          error =
+            "Mật khẩu phải có tối thiểu 8 ký tự gồm chữ hoa, chữ thường, số và ký tự đặc biệt.";
+        }
+        break;
+      case "dateOfBirth":
+        if (!trimmedValue) {
+          error = "Vui lòng nhập ngày sinh.";
+          break;
+        }
+        {
+          const inputDate = new Date(trimmedValue);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (Number.isNaN(inputDate.getTime())) {
+            error = "Ngày sinh không hợp lệ.";
+          } else if (inputDate > today) {
+            error = "Ngày sinh không được lớn hơn hiện tại.";
+          } else if (getAge(inputDate) < 17) {
+            // > 16 tuổi => tối thiểu 17 tuổi
+            error = "Nhân viên phải trên 16 tuổi.";
+          }
+        }
+        break;
+      case "role":
+        if (!trimmedValue) {
+          error = "Vui lòng chọn vai trò.";
+        }
+        break;
+      default:
+        break;
+    }
+
+    setFieldError(field, error);
+    return error;
+  };
+
+  const validateForm = () => {
+    let isValid = true;
+    const fieldsToValidate: Array<keyof EditFormData> = [
+      "fullName",
+      "phone",
+      "email",
+      "dateOfBirth",
+      "password",
+      "role",
+      "username",
+    ];
+
+    fieldsToValidate.forEach((field) => {
+      const error = validateField(field, editFormData[field]);
+      if (error) {
+        isValid = false;
+      }
+    });
+
+    return isValid;
+  };
+
+  // Update employee mutation
+  const updateMutation = useMutation({
+    mutationFn: async (data: {
+      id: number;
+      name: string;
+      username: string;
+      phone: string;
+      email?: string;
+      password: string;
+      gender: "MALE" | "FEMALE";
+      birthday?: string;
+      userType?: AllowedRole;
+    }) => {
+      console.log("Mutation called with data:", data);
+
+      // Format birthday to ISO string if provided
+      const formattedBirthday = data.birthday
+        ? new Date(data.birthday).toISOString()
+        : undefined;
+
+      const updateData: any = {
+        id: data.id,
+        name: data.name,
+        username: data.username,
+        phone: data.phone,
+        gender: data.gender,
+      };
+
+      // Only include optional fields if they have values
+      if (data.email && data.email.trim()) {
+        updateData.email = data.email;
+      }
+      // Only include password if it's provided and not empty
+      // Backend will encode it, so we must not send empty password
+      if (data.password && data.password.trim()) {
+        updateData.password = data.password;
+      }
+      // Only include birthday if provided
+      if (formattedBirthday) {
+        updateData.birthday = formattedBirthday;
+      }
+
+      console.log("Final updateData:", JSON.stringify(updateData, null, 2));
+      console.log("userType:", data.userType);
+
+      // Always use updateEmployeeAccount if we have userType (for role support)
+      // Otherwise use regular updateEmployee
+      if (data.userType) {
+        console.log(
+          "Calling updateEmployeeAccount with userType:",
+          data.userType
+        );
+        try {
+          const result = await updateEmployeeAccount(updateData, data.userType);
+          console.log("updateEmployeeAccount result:", result);
+          return result;
+        } catch (error) {
+          console.error("updateEmployeeAccount error:", error);
+          throw error;
+        }
+      } else {
+        console.log("Calling updateEmployee (regular) - no userType provided");
+        try {
+          const result = await updateEmployee(data.id, updateData);
+          console.log("updateEmployee result:", result);
+          return result;
+        } catch (error) {
+          console.error("updateEmployee error:", error);
+          throw error;
+        }
+      }
+    },
+    onSuccess: async (response, variables) => {
+      console.log("Update successful, response:", response);
+      console.log("Update variables:", variables);
+
+      toast.success("Cập nhật thông tin nhân viên thành công");
+
+      // Close modal first
+      setIsEditing(false);
+
+      // Small delay to ensure backend has processed the update
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Invalidate queries to mark them as stale
+      queryClient.invalidateQueries({
+        queryKey: ["admin-staff-detail", staffId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-staff"] });
+
+      // Force refetch the current employee data
+      const { data: updatedStaff } = await refetchStaff();
+      console.log("Refetched staff data:", updatedStaff);
+
+      // Also update the query cache directly if we have the updated data
+      if (updatedStaff) {
+        queryClient.setQueryData(["admin-staff-detail", staffId], updatedStaff);
+      }
+    },
+    onError: (error: any) => {
+      console.error("Update employee error:", error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể cập nhật thông tin nhân viên";
+      const lowerMessage = errorMessage.toLowerCase();
+
+      type FieldKey = keyof EditFormData;
+      const fieldErrorTranslations: Array<{
+        field: FieldKey;
+        keywords: string[];
+        translatedMessage: string;
+      }> = [
+        {
+          field: "phone",
+          keywords: [
+            "phone number must contain only digits",
+            "phone number must be between 10 and 13 digits",
+          ],
+          translatedMessage: "Số điện thoại chỉ được chứa 10-13 chữ số.",
+        },
+        {
+          field: "phone",
+          keywords: ["phone number already exists", "duplicate entry", "constraint `phone`"],
+          translatedMessage: "Số điện thoại đã tồn tại.",
+        },
+        {
+          field: "username",
+          keywords: ["username already exists"],
+          translatedMessage: "Tên đăng nhập đã tồn tại.",
+        },
+        {
+          field: "email",
+          keywords: ["email already exists"],
+          translatedMessage: "Email đã tồn tại.",
+        },
+        {
+          field: "dateOfBirth",
+          keywords: ["at least 18 years old", "birthday is required"],
+          translatedMessage: "Ngày sinh phải hợp lệ và từ 18 tuổi trở lên.",
+        },
+      ];
+
+      const matchedFieldError = fieldErrorTranslations.find(({ keywords }) =>
+        keywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()))
+      );
+
+      if (matchedFieldError) {
+        setFieldError(matchedFieldError.field, matchedFieldError.translatedMessage);
+        toast.error(matchedFieldError.translatedMessage);
+      } else {
+        setApiError(errorMessage);
+        toast.error(errorMessage);
+      }
+    },
+  });
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center px-[50px] py-[32px] w-full">
+        <p className="text-[#272424] text-[16px]">
+          Đang tải thông tin nhân viên...
+        </p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError || !staff) {
+    return (
+      <div className="flex flex-col items-center justify-center px-[50px] py-[32px] w-full">
+        <p className="text-[#272424] text-[16px]">
+          {isError
+            ? "Không thể tải thông tin nhân viên"
+            : "Không tìm thấy nhân viên"}
+        </p>
+        <button
+          onClick={() => navigate("/admin/staff")}
+          className="mt-4 text-[#e04d30] underline"
+        >
+          Quay lại danh sách
+        </button>
+      </div>
+    );
+  }
+
+  const formatDateForDisplay = (dateString?: string | null) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "";
+      const day = date.getDate().toString().padStart(2, "0");
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day} / ${month} / ${year}`;
+    } catch {
+      return "";
+    }
+  };
+
+  const handleInputChange = (
+    field: keyof EditFormData,
+    value: string
+  ) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    setApiError(null);
+    validateField(field, value);
+  };
+
+  const handleSave = () => {
+    console.log("handleSave called", { staff, editFormData });
+
+    if (!staff) {
+      console.error("No staff data");
+      return;
+    }
+
+    setApiError(null);
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin.");
+      return;
+    }
+
+    // Convert role from Vietnamese to enum
+    const selectedUserType = editFormData.role
+      ? ROLE_TO_USER_TYPE[editFormData.role]
+      : undefined;
+
+    // Only include password if it's provided (not empty)
+    const passwordToSend = editFormData.password.trim() || undefined;
+
+    const mutationData = {
+      id: staff.id,
+      name: editFormData.fullName.trim(),
+      username: editFormData.username.trim(),
+      phone: editFormData.phone.trim(),
+      email: editFormData.email?.trim() || undefined,
+      password: passwordToSend || "", // Keep empty string for now, will be filtered in mutation
+      gender: editFormData.gender.toUpperCase() as "MALE" | "FEMALE",
+      birthday: editFormData.dateOfBirth || undefined,
+      userType:
+        selectedUserType ||
+        (staff.type?.toUpperCase() as AllowedRole | undefined), // Always include userType if available
+    };
+
+    console.log("Calling mutation with data:", mutationData);
+    updateMutation.mutate(mutationData);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  const roleOptions = Object.values(ROLE_LABELS);
+
+  return (
+    <div className="w-full overflow-x-auto min-h-screen">
+      <div className="flex flex-col gap-[8px] items-start w-full pb-[100vh]">
+        {/* Header */}
+        <div className="flex flex-col gap-[8px] items-start justify-center px-0 pt-[10px] pb-0 w-full">
+          <div className="flex gap-[10px] items-center w-full">
+            <button
+              onClick={() => navigate("/admin/staff")}
+              className="w-5 h-5 flex items-center justify-center cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#737373]" />
+            </button>
+            <h1 className="font-bold text-[#272424] text-[24px] leading-normal">
+              {staff.name || "Nhân viên"}
+            </h1>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-[8px] items-start w-full">
+          {/* Account Information Section */}
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[12px] rounded-[24px] w-full">
+            <div className="flex items-center w-full">
+              <h2 className="font-bold text-[#272424] text-[24px] leading-normal">
+                Thông tin tài khoản
+              </h2>
+            </div>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex gap-[10px] items-start">
+                <div className="w-[60px] h-[60px] relative overflow-hidden rounded-lg border-2 border-dotted border-[#e04d30]">
+                  <Avatar className="w-full h-full">
+                    {staff.image_url ? (
+                      <AvatarImage
+                        src={staff.image_url}
+                        alt={staff.name || ""}
+                      />
+                    ) : (
+                      <AvatarFallback className="text-lg">
+                        {(staff.name || "N").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                </div>
+                <div className="flex gap-[8px] items-center">
+                  <span className="font-semibold text-[16px] text-[#272424] leading-[1.4]">
+                    {staff.name || ""}
+                  </span>
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="flex items-center cursor-pointer"
+                  >
+                    <Pencil className="w-[20px] h-[20px] text-[#1a71f6]" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-[6px] items-end">
+                <div
+                  className={`flex gap-[10px] items-center justify-center px-[8px] rounded-[10px] h-[24px] ${
+                    staff.status?.toUpperCase() === "ACTIVE"
+                      ? "bg-[#b2ffb4]"
+                      : "bg-[#ffe0df]"
+                  }`}
+                >
+                  <span
+                    className={`font-semibold text-[13px] leading-[1.4] ${
+                      staff.status?.toUpperCase() === "ACTIVE"
+                        ? "text-[#04910c]"
+                        : "text-[#c53030]"
+                    }`}
+                  >
+                    {staff.status?.toUpperCase() === "ACTIVE"
+                      ? "Đang kích hoạt"
+                      : "Ngừng kích hoạt"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Section */}
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[8px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full">
+            {/* First Row: Full Name and Phone */}
+            <div className="flex gap-[50px] items-start w-full">
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Họ và tên
+                </label>
+                <FormInput
+                  type="text"
+                  value={staff.name || ""}
+                  readOnly
+                  className="text-[#272424] text-[14px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                />
+              </div>
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Số điện thoại
+                </label>
+                <FormInput
+                  type="tel"
+                  value={staff.phone || ""}
+                  readOnly
+                  className="text-[#272424] text-[14px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                />
+              </div>
+            </div>
+
+            {/* Second Row: Email and Date of Birth */}
+            <div className="flex gap-[50px] items-start w-full">
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Email
+                </label>
+                <FormInput
+                  type="email"
+                  value={staff.email || ""}
+                  readOnly
+                  className="text-[#272424] text-[14px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                />
+              </div>
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Ngày sinh
+                </label>
+                <FormInput
+                  type="text"
+                  value={formatDateForDisplay(staff.birthday)}
+                  readOnly
+                  className="text-[14px] font-medium text-[#737373]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                  right={
+                    <Calendar className="w-[24px] h-[24px] text-[#454545]" />
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Third Row: Password and Gender */}
+            <div className="flex gap-[55px] items-center w-full">
+              <div className="flex flex-col gap-[6px] h-[78px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Mật khẩu
+                </label>
+                <FormInput
+                  type="password"
+                  value="••••••••"
+                  readOnly
+                  className="text-[#888888] text-[14px]"
+                  containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                />
+              </div>
+              <div className="flex flex-col gap-[10px] h-[54px] items-start justify-center flex-1">
+                <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                  Giới tính
+                </label>
+                <div className="flex gap-[10px] items-center w-[209px]">
+                  <Radio.Group
+                    value={staff.gender?.toLowerCase()}
+                    disabled
+                    className="flex gap-[10px]"
+                  >
+                    <Radio value="female" className="font-semibold text-[14px]">
+                      Nữ
+                    </Radio>
+                    <Radio value="male" className="font-semibold text-[14px]">
+                      Nam
+                    </Radio>
+                  </Radio.Group>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Role Section */}
+          <div className="bg-white border border-[#d1d1d1] flex flex-col gap-[10px] items-start justify-center px-[40px] py-[20px] rounded-[24px] w-full">
+            <div className="flex gap-[50px] items-start w-full">
+              <div className="flex flex-col gap-[6px] items-start flex-1">
+                <label className="font-semibold text-[#272424] text-[16px] leading-[1.4]">
+                  Vai trò nhân viên
+                </label>
+                <div className="bg-white border border-[#d1d1d1] flex gap-[6px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-default">
+                  <span className="text-[#272424] text-[12px] font-semibold leading-[1.4]">
+                    {getRoleLabel(staff.type)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Edit Modal Overlay */}
+        {isEditing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop with blur and light dark overlay */}
+            <div
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+              onClick={handleCancel}
+            />
+            {/* Modal Content */}
+            <div
+              className="relative z-50 bg-white border-[#e04d30] border-2 rounded-[24px] w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center px-[8px] py-[16px]">
+                <h2 className="font-bold text-[#1a1a1b] text-[24px] leading-normal">
+                  Sửa thông tin tài khoản
+                </h2>
+              </div>
+
+              {/* Form Content */}
+              <div className="flex-1 overflow-y-auto px-[8px] py-0 flex flex-col gap-[6px]">
+                {/* Full Name and Phone Row */}
+                <div className="flex gap-[12px] items-start w-full">
+                  {/* Full Name */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Họ và tên
+                    </label>
+                    <FormInput
+                      type="text"
+                      value={editFormData.fullName}
+                      onChange={(e) =>
+                        handleInputChange("fullName", e.target.value)
+                      }
+                      placeholder="Nhập họ và tên"
+                      className="text-[#272424] text-[14px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                    />
+                    {formErrors.fullName && (
+                      <p className="text-sm text-red-500">{formErrors.fullName}</p>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Số điện thoại
+                    </label>
+                    <FormInput
+                      type="tel"
+                      value={editFormData.phone}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
+                      placeholder="Nhập số điện thoại"
+                      className="text-[#272424] text-[14px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                    />
+                    {formErrors.phone && (
+                      <p className="text-sm text-red-500">{formErrors.phone}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Username and Email Row */}
+                <div className="flex gap-[12px] items-start w-full">
+                  {/* Username */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Tên đăng nhập
+                    </label>
+                    <FormInput
+                      type="text"
+                      value={editFormData.username}
+                      onChange={(e) =>
+                        handleInputChange("username", e.target.value)
+                      }
+                      placeholder="Nhập tên đăng nhập"
+                      className="text-[#272424] text-[14px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                    />
+                    {formErrors.username && (
+                      <p className="text-sm text-red-500">{formErrors.username}</p>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Email
+                    </label>
+                    <FormInput
+                      type="email"
+                      value={editFormData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      placeholder="Nhập email"
+                      className="text-[#272424] text-[14px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                    />
+                    {formErrors.email && (
+                      <p className="text-sm text-red-500">{formErrors.email}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Password Row */}
+                <div className="flex gap-[12px] items-start w-full">
+                  {/* Password */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Mật khẩu
+                    </label>
+                    <FormInput
+                      type="password"
+                      value={editFormData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      placeholder="Nhập mật khẩu mới (để trống nếu không đổi)"
+                      className="text-[#888888] text-[14px]"
+                      containerClassName="bg-white border border-[#d1d1d1] flex items-center p-[8px] rounded-[12px] w-full h-[36px]"
+                    />
+                    {formErrors.password && (
+                      <p className="text-sm text-red-500">{formErrors.password}</p>
+                    )}
+                  </div>
+                  <div className="flex-1"></div>
+                </div>
+
+                {/* Date of Birth and Gender Row */}
+                <div className="flex gap-[12px] items-center w-full">
+                  {/* Date of Birth */}
+                  <div className="flex flex-col gap-[2px] items-start flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Ngày sinh
+                    </label>
+                    <DatePicker
+                      value={editFormData.dateOfBirth ? dayjs(editFormData.dateOfBirth) : null}
+                      onChange={(date) =>
+                        handleInputChange("dateOfBirth", date ? date.format("YYYY-MM-DD") : "")
+                      }
+                      format="DD/MM/YYYY"
+                      placeholder="DD/MM/YYYY"
+                      className="w-full h-[36px] border border-[#d1d1d1] rounded-[12px]"
+                    />
+                    {formErrors.dateOfBirth && (
+                      <p className="text-sm text-red-500">{formErrors.dateOfBirth}</p>
+                    )}
+                  </div>
+
+                  {/* Gender */}
+                  <div className="flex flex-col gap-[2px] items-start justify-center flex-1">
+                    <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                      Giới tính
+                    </label>
+                    <div className="flex gap-[10px] items-center w-[209px] h-[36px]">
+                      <Radio.Group
+                        value={editFormData.gender}
+                        onChange={(e) => handleInputChange("gender", e.target.value)}
+                        className="flex gap-[10px]"
+                      >
+                        <Radio value="female" className="font-semibold text-[14px]">
+                          Nữ
+                        </Radio>
+                        <Radio value="male" className="font-semibold text-[14px]">
+                          Nam
+                        </Radio>
+                      </Radio.Group>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Role */}
+                <div className="flex flex-col gap-[2px] items-start w-full">
+                  <label className="font-semibold text-[#272424] text-[14px] leading-[1.4]">
+                    Vai trò
+                  </label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="bg-white border border-[#d1d1d1] flex gap-[6px] h-[50px] items-center px-[24px] py-[12px] rounded-[12px] w-full cursor-pointer">
+                        <span className={`text-[14px] font-semibold leading-[1.4] flex-1 text-left ${editFormData.role ? "text-[#272424]" : "text-[#888888]"}`}>
+                          {editFormData.role || "Chọn vai trò"}
+                        </span>
+                        <CaretDown className="text-[#272424] opacity-60" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-full">
+                      {roleOptions.map((role) => (
+                        <DropdownMenuItem
+                          key={role}
+                          onClick={() => handleInputChange("role", role)}
+                          className="text-[14px]"
+                        >
+                          {role}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  {formErrors.role && (
+                    <p className="text-sm text-red-500">{formErrors.role}</p>
+                  )}
+                </div>
+              </div>
+
+              {apiError && (
+                <div className="px-[8px]">
+                  <div className="w-full rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                    {apiError}
+                  </div>
+                </div>
+              )}
+
+              {/* Footer Buttons */}
+              <div className="flex gap-[10px] items-center justify-end px-[8px] py-[8px]">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCancel}
+                  className="text-[14px]"
+                  disabled={updateMutation.isPending}
+                >
+                  Huỷ
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSave}
+                  className="text-[14px]"
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? "Đang lưu..." : "Xác nhận"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="h-[calc(100vh-100px)]"></div>
+    </div>
+  );
+};
+
+export default AdminStaffDetail;

@@ -1,3 +1,85 @@
+// src/types/index.ts - Export all types
+export * from "./common";
 export * from "./auth";
-export * from "./admin";
-export * from "./user";
+export * from "./products";
+export * from "./orders";
+export type { POSCustomerResponse as CustomerResponse } from "./shipping";
+export * from "./shipping";
+export * from "./warehouse";
+export type {
+  // Common responses
+  ApiResponse,
+  PageResponse,
+  TokenResponse,
+  UserResponse,
+  AddressResponse,
+
+  // Product responses
+  ProductResponse,
+  ProductCategoryInfo,
+  ProductBrandInfo,
+  ProductAttributeValueResponse,
+  ProductAttributeResponse,
+  ProductDetailsResponse,
+  VariantResponse,
+  VariantDetailIdResponse,
+
+  // Order responses
+  OrderResponse,
+  OrderDetailResponse,
+  OrderItemResponse,
+
+  // Cart responses
+  CartResponse,
+  CartItemResponse,
+  ProductDetailVariantResponse,
+  BackendCartResponse,
+  CartPageResponse,
+  SelectedCartWithShippingResponse,
+
+  // Other responses
+  ReviewResponse,
+  ReviewPageResponse,
+
+  OrderDetailCreateRequest,
+  OrderDetailUpdateRequest,
+  VariantDetailIdRequest,
+  CustomerSearchListResponse,
+  DraftOrderDetailResponse,
+  DraftOrderItemResponse,
+  CheckoutOrderItemResponse,
+  AddItemToOrderRequest,
+  UpdateItemQuantityRequest,
+  UpdateVariantQuantityRequest,
+  AssignCustomerToOrderRequest,
+  RemoveItemFromDraftOrderRequest,
+  GetStationsRequest,
+  StationsResponse,
+  GHNOrderDetailResponse,
+  OrderByClientCodeResponse,
+  GHNTrackingResponse,
+  GeneratePrintTokenResponse,
+  PrintOrderResponse,
+  SwitchStatusResponse,
+  DiscountPublicResponse,
+  VoucherHistoryResponse,
+  VoucherStatus,
+  DiscountTypeValue,
+  DiscountCategoryValue,
+  ClaimVoucherRequest,
+  CalculateDiscountRequest,
+  CartItemForDiscount,
+  DiscountCalculationResponse,
+  SimpleCategoryResponse,
+  CategoryPublicResponse,
+  AvailableServicesRequest,
+  AvailableServiceResponse,
+  BrandCreateRequest,
+  BrandPageResponse,
+  BrandResponse,
+  SellingQuantityRequest,
+  ProductCategoryItemResponse,
+  ProductCategoryPageResponse,
+  UpdateProductDisplayRequest,
+} from "./api";
+export type { ProductSearchResponse } from "./products";

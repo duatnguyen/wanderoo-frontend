@@ -1,32 +1,230 @@
-export interface User {
-  id: string;
+// src/types/auth.ts - Authentication and user management types
+import type { PageResponse } from './common';
+
+export interface UserResponse {
+  id: number;
+  username: string;
   email: string;
   name: string;
-  role: "admin" | "user";
-  avatar?: string;
-  createdAt: Date;
+  phone: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AddressResponse {
+  id: number;
+  name: string;
+  phone: string;
+  receiverName?: string | null;
+  receiverPhone?: string | null;
+  street?: string | null;
+  wardCode?: string | null;
+  wardName?: string | null;
+  districtId?: number | null;
+  districtName?: string | null;
+  provinceName?: string | null;
+  fullAddress?: string | null;
+  isDefault: string | boolean | null;
+  // Legacy fallback fields
+  province?: string | null;
+  district?: string | null;
+  ward?: string | null;
+  location?: string | null;
+}
+
+export interface AddressPageResponse {
+  addresses: AddressResponse[];
+}
+
+export interface AddressDetailResponse extends AddressResponse {
+  // Same as AddressResponse, includes receiverName and receiverPhone
+}
+
+export interface EmployeeResponse extends UserResponse {
+  department?: string;
+  position?: string;
+  type?: string;
+  image_url?: string | null;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null;
+}
+
+export interface EmployeePageResponse extends PageResponse<EmployeeResponse> {}
+
+export interface AdminProfileDetailResponse {
+  id: number;
+  image_url: string | null;
+  username: string;
+  name: string;
+  email: string;
+  phone: string;
+  gender: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday: string | null; // ISO date string
+}
+
+export interface CustomerResponse extends UserResponse {
+  address: string;
+  membershipLevel: string;
+}
+
+export interface CustomerPageResponse extends PageResponse<CustomerResponse> {}
+
+// Request types
+export interface SignInRequest {
+  username: string;
+  password: string;
+}
+
+export interface UserCreationRequest {
+  username: string;
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface UserUpdateRequest {
+  id: number;
+  name: string;
+  phone: string;
+  email?: string;
+  birthday?: string | null;
+  gender?: "MALE" | "FEMALE";
+  image_url?: string | null;
+}
+
+// Admin profile update request (matches backend UserUpdateRequest)
+export interface AdminProfileUpdateRequest {
+  id: number;
+  name: string;
+  image_url?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string; // ISO date string
+  email?: string;
+  phone: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+// Admin password update request (matches backend UpdatePasswordRequest)
+export interface AdminPasswordUpdateRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export interface AddressCreationRequest {
+  street: string;
+  wardCode: string;
+  wardName: string;
+  districtId: number;
+  districtName: string;
+  provinceName: string;
+  fullAddress?: string;
+  name: string;
+  phone: string;
+}
+
+export interface AddressUpdateRequest extends AddressCreationRequest {
+  id: number;
+}
+
+export interface EmployeeCreationRequest {
+  name: string;
+  username: string;
+  phone: string;
+  password: string;
+  email?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER";
+  birthday?: string;
+  image_url?: string;
+}
+
+export interface EmployeeUpdateRequest extends EmployeeCreationRequest {
+  id: number;
+}
+
+export interface CustomerCreationRequest {
+  username?: string;
+  email?: string;
+  password?: string;
+  name: string;
+  phone: string;
+  address?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday?: string | null;
+}
+
+export interface CustomerUpdateRequest extends CustomerCreationRequest {
+  id: number;
+}
+
+export interface SelectAllRequest {
+  getAll: number[];
+}
+
+// Context and state types
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  name: string;
+  phone: string;
+  role: string;
+  status: string;
+  avatar?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
 }
 
 export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface RegisterData {
+  username: string;
   email: string;
   password: string;
+  name: string;
+  phone: string;
+  gender?: string | null;
+  birthday?: string | null;
 }
 
 export interface AuthState {
   user: User | null;
+  token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
 
 export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-  register: (userData: RegisterData) => Promise<void>;
-}
-
-export interface RegisterData {
-  email: string;
-  password: string;
-  name: string;
-  phone: string;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => void;
 }

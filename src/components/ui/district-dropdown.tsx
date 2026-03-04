@@ -2,11 +2,25 @@ import React, { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 const districtOptions = [
-  "Quận 1", "Quận 2", "Quận 3", "Quận 4", "Quận 5",
-  "Quận 6", "Quận 7", "Quận 8", "Quận 9", "Quận 10",
-  "Quận 11", "Quận 12", "Quận Bình Thạnh", "Quận Tân Bình",
-  "Quận Tân Phú", "Quận Phú Nhuận", "Quận Gò Vấp", "Hoàn Kiếm",
-  "Quận Hai Bà Trưng"
+  "Quận 1",
+  "Quận 2",
+  "Quận 3",
+  "Quận 4",
+  "Quận 5",
+  "Quận 6",
+  "Quận 7",
+  "Quận 8",
+  "Quận 9",
+  "Quận 10",
+  "Quận 11",
+  "Quận 12",
+  "Quận Bình Thạnh",
+  "Quận Tân Bình",
+  "Quận Tân Phú",
+  "Quận Phú Nhuận",
+  "Quận Gò Vấp",
+  "Hoàn Kiếm",
+  "Quận Hai Bà Trưng",
 ];
 
 interface DistrictDropdownProps {
@@ -22,21 +36,24 @@ const DistrictDropdown: React.FC<DistrictDropdownProps> = ({
   onValueChange,
   placeholder = "Chọn quận/huyện",
   className = "",
-  error = false
+  error = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -49,12 +66,17 @@ const DistrictDropdown: React.FC<DistrictDropdownProps> = ({
     <div ref={dropdownRef} className={cn("relative w-full", className)}>
       <div
         className={cn(
-          "bg-white border-2 border-[#e04d30] h-[52px] px-[16px] rounded-[12px] w-full flex items-center justify-between cursor-pointer",
+          "bg-white border-2 border-[#e04d30] h-[36px] px-[12px] rounded-[12px] w-full flex items-center justify-between cursor-pointer",
           error && "border-red-500"
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="border-0 outline-none bg-transparent text-[12px] font-semibold placeholder:text-[#888888] text-[#888888] flex-1">
+        <span
+          className={cn(
+            "border-0 outline-none bg-transparent text-[14px] font-semibold flex-1",
+            value ? "text-[#272424]" : "text-[#888888]"
+          )}
+        >
           {value || placeholder}
         </span>
         <svg
@@ -66,16 +88,21 @@ const DistrictDropdown: React.FC<DistrictDropdownProps> = ({
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </div>
-      
+
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e04d30] rounded-[12px] shadow-lg z-50 max-h-60 overflow-y-auto">
           {districtOptions.map((option) => (
             <div
               key={option}
-              className="px-[16px] py-[12px] text-[10px] font-medium text-[#272424] hover:bg-[#f5f5f5] cursor-pointer first:rounded-t-[12px] last:rounded-b-[12px]"
+              className="px-[16px] py-[12px] text-[14px] font-medium text-[#272424] hover:bg-[#f5f5f5] cursor-pointer first:rounded-t-[12px] last:rounded-b-[12px]"
               onClick={() => handleOptionClick(option)}
             >
               {option}

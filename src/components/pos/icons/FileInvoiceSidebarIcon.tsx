@@ -1,0 +1,39 @@
+import React from "react";
+import { cn } from "@/lib/utils";
+
+interface FileInvoiceSidebarIconProps {
+  className?: string;
+  isActive?: boolean;
+}
+
+export const FileInvoiceSidebarIcon: React.FC<FileInvoiceSidebarIconProps> = ({
+  className,
+  isActive = false,
+}) => {
+  const fillColor = isActive ? "#FFFFFF" : "#454545";
+
+  return (
+    <svg
+      width="29"
+      height="29"
+      viewBox="0 0 29 29"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn("size-[28.125px]", className)}
+    >
+      <g clipPath="url(#clip0_415_647)">
+        <path
+          d="M16.8914 0H5.85938C3.92109 0 2.34375 1.57734 2.34375 3.51562V28.125H25.7813V8.88984L16.8914 0ZM17.5781 4.00078L21.7805 8.20312H17.5781V4.00078ZM23.4375 25.7812H4.6875V3.51562C4.6875 2.86992 5.21367 2.34375 5.85938 2.34375H15.2344V10.5469H23.4375V25.7812ZM7.03125 23.4375H21.0938V15.2344H7.03125V23.4375ZM9.375 17.5781H18.75V21.0938H9.375V17.5781ZM12.8906 12.8906H7.03125V10.5469H12.8906V12.8906ZM12.8906 8.20312H7.03125V5.85938H12.8906V8.20312Z"
+          fill={fillColor}
+        />
+      </g>
+      <defs>
+        <clipPath id="clip0_415_647">
+          <rect width="28.125" height="28.125" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+};
+
+export default FileInvoiceSidebarIcon;

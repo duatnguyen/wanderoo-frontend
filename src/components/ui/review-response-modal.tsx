@@ -43,12 +43,12 @@ const ReviewResponseModal: React.FC<ReviewResponseModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-[16px]">
+        <div className="px-[16px] pt-[16px] pb-[10px]">
           <div className="border-2 border-[#e04d30] rounded-[12px] p-[16px]">
             <textarea
               value={response}
               onChange={(e) => setResponse(e.target.value)}
-              className="w-full outline-none resize-none text-[12px] font-semibold placeholder:text-[#888888] bg-transparent min-h-[100px]"
+              className="w-full outline-none resize-none text-[12px] font-semibold placeholder:text-[#888888] bg-transparent h-[70px]"
               placeholder="Nhập phản hồi đánh giá"
               rows={4}
             />
@@ -56,11 +56,13 @@ const ReviewResponseModal: React.FC<ReviewResponseModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex gap-[10px] items-center justify-end px-[16px] py-[12px]">
-          <Button variant="secondary" onClick={onClose}>
+        <div className="flex gap-[10px] items-center justify-end px-[16px] pt-[8px] pb-[12px]">
+          <Button variant="secondary" onClick={onClose} className="text-[14px]">
             Huỷ
           </Button>
-          <Button onClick={handleSubmit}>Xác nhận</Button>
+          <Button onClick={handleSubmit} className="text-[14px]">
+            Xác nhận
+          </Button>
         </div>
       </div>
     </div>

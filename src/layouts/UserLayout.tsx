@@ -1,20 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { useAuthCtx } from "../app/providers/AuthProvider";
-import Header from "../features/shop/components/Header";
-import Footer from "../features/shop/components/Footer";
+import { CartProvider, useCart } from "../context/CartContext";
+import Header from "../components/shop/Header";
+import Footer from "../components/shop/Footer";
+import { useAuth } from "../context/AuthContext";
 
-const UserLayout: React.FC = () => {
-  const { state } = useAuthCtx();
-  const { user } = state;
+const UserLayoutContent: React.FC = () => {
+  const { getCartCount } = useCart();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <Header
-        userName={user?.name || "User"}
-        avatarUrl={user?.avatar}
-        cartCount={0}
-        onMenuClick={() => {}}
+        cartCount={getCartCount()}
+        onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        userName={user?.name || user?.username || "Thanh"}
+        avatarUrl={user?.avatar || undefined}
       />
 
       <main className="flex-1">
@@ -23,6 +25,14 @@ const UserLayout: React.FC = () => {
 
       <Footer />
     </div>
+  );
+};
+
+const UserLayout: React.FC = () => {
+  return (
+    <CartProvider>
+      <UserLayoutContent />
+    </CartProvider>
   );
 };
 

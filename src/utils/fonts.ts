@@ -1,22 +1,23 @@
 /**
  * Font utilities for consistent typography across the application
- * 
+ *
  * This file provides utility functions and constants for managing fonts
  * in a professional and maintainable way.
  */
 
 // Font family constants - Self-hosted Montserrat
 export const FONT_FAMILIES = {
-  primary: 'Montserrat',
-  fallback: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  primary: "Montserrat",
+  fallback:
+    'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   mono: '"Fira Code", "JetBrains Mono", "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace',
 } as const;
 
 // Font loading status for self-hosted fonts
 export const FONT_LOADING_STATUS = {
-  LOADING: 'loading',
-  LOADED: 'loaded',
-  FAILED: 'failed',
+  LOADING: "loading",
+  LOADED: "loaded",
+  FAILED: "failed",
 } as const;
 
 // Font weight constants
@@ -34,16 +35,16 @@ export const FONT_WEIGHTS = {
 
 // Font size constants (in rem)
 export const FONT_SIZES = {
-  xs: '0.75rem',     // 12px
-  sm: '0.875rem',    // 14px
-  base: '1rem',      // 16px
-  lg: '1.125rem',    // 18px
-  xl: '1.25rem',     // 20px
-  '2xl': '1.5rem',   // 24px
-  '3xl': '1.875rem', // 30px
-  '4xl': '2.25rem',  // 36px
-  '5xl': '3rem',     // 48px
-  '6xl': '3.75rem',  // 60px
+  xs: "0.75rem", // 12px
+  sm: "0.875rem", // 14px
+  base: "1rem", // 16px
+  lg: "1.125rem", // 18px
+  xl: "1.25rem", // 20px
+  "2xl": "1.5rem", // 24px
+  "3xl": "1.875rem", // 30px
+  "4xl": "2.25rem", // 36px
+  "5xl": "3rem", // 48px
+  "6xl": "3.75rem", // 60px
 } as const;
 
 // Line height constants
@@ -61,19 +62,19 @@ export const TYPOGRAPHY_PRESETS = {
   // Headings
   h1: {
     fontFamily: FONT_FAMILIES.primary,
-    fontSize: FONT_SIZES['4xl'],
+    fontSize: FONT_SIZES["4xl"],
     fontWeight: FONT_WEIGHTS.bold,
     lineHeight: LINE_HEIGHTS.tight,
   },
   h2: {
     fontFamily: FONT_FAMILIES.primary,
-    fontSize: FONT_SIZES['3xl'],
+    fontSize: FONT_SIZES["3xl"],
     fontWeight: FONT_WEIGHTS.bold,
     lineHeight: LINE_HEIGHTS.tight,
   },
   h3: {
     fontFamily: FONT_FAMILIES.primary,
-    fontSize: FONT_SIZES['2xl'],
+    fontSize: FONT_SIZES["2xl"],
     fontWeight: FONT_WEIGHTS.semibold,
     lineHeight: LINE_HEIGHTS.snug,
   },
@@ -95,7 +96,7 @@ export const TYPOGRAPHY_PRESETS = {
     fontWeight: FONT_WEIGHTS.medium,
     lineHeight: LINE_HEIGHTS.normal,
   },
-  
+
   // Body text
   body: {
     fontFamily: FONT_FAMILIES.primary,
@@ -109,7 +110,7 @@ export const TYPOGRAPHY_PRESETS = {
     fontWeight: FONT_WEIGHTS.normal,
     lineHeight: LINE_HEIGHTS.normal,
   },
-  
+
   // UI elements
   button: {
     fontFamily: FONT_FAMILIES.primary,
@@ -132,15 +133,17 @@ export const TYPOGRAPHY_PRESETS = {
 } as const;
 
 // Utility function to get font family string
-export const getFontFamily = (family: keyof typeof FONT_FAMILIES = 'primary'): string => {
+export const getFontFamily = (
+  family: keyof typeof FONT_FAMILIES = "primary"
+): string => {
   return `${FONT_FAMILIES[family]}, ${FONT_FAMILIES.fallback}`;
 };
 
 // Utility function to get complete font style object
 export const getFontStyle = (
-  size: keyof typeof FONT_SIZES = 'base',
-  weight: keyof typeof FONT_WEIGHTS = 'normal',
-  lineHeight: keyof typeof LINE_HEIGHTS = 'normal'
+  size: keyof typeof FONT_SIZES = "base",
+  weight: keyof typeof FONT_WEIGHTS = "normal",
+  lineHeight: keyof typeof LINE_HEIGHTS = "normal"
 ) => ({
   fontFamily: getFontFamily(),
   fontSize: FONT_SIZES[size],

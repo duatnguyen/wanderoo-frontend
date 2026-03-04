@@ -5,10 +5,14 @@ import { Suspense } from "react";
 // Layouts
 import AdminLayout from "../../layouts/AdminLayout";
 import POSLayout from "../../layouts/POSLayout";
+import ShopLayout from "../../layouts/ShopLayout";
 
 // Pages
 import Login from "../../pages/auth/Login";
 import Register from "../../pages/auth/Register";
+import VerifyEmail from "../../pages/auth/VerifyEmail";
+import ForgotPassword from "../../pages/auth/ForgotPassword";
+import ResetPassword from "../../pages/auth/ResetPassword";
 
 // Guards
 import AuthGuard from "./guards/AuthGuard";
@@ -49,16 +53,48 @@ export const router = createBrowserRouter([
       </Suspense>
     ),
   },
+  {
+    path: "/verify-email",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <VerifyEmail />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <ForgotPassword />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <ResetPassword />
+      </Suspense>
+    ),
+  },
 
-  // Admin routes (temporarily public for UI development)
+  // Admin routes (protected - requires ADMIN role)
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <RoleGuard allow={["ADMIN"]}>
+        <AdminLayout />
+      </RoleGuard>
+    ),
     children: adminRoutes,
   },
 
   // Shop routes (public - landing page)
-  ...shopRoutes,
+  {
+    path: "/shop",
+    element: <ShopLayout />,
+    children: shopRoutes,
+  },
 
   // User routes (temporarily public for UI development)
   {
@@ -73,10 +109,16 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // POS routes
+  // POS routes - require authentication and ADMIN or EMPLOYEE role
   {
     path: "/pos",
-    element: <POSLayout />,
+    element: (
+      <AuthGuard>
+        <RoleGuard allow={["ADMIN", "EMPLOYEE"]}>
+          <POSLayout />
+        </RoleGuard>
+      </AuthGuard>
+    ),
     children: posRoutes,
   },
 

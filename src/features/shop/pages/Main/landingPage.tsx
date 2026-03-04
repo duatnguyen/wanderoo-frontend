@@ -1,375 +1,340 @@
 import React, { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
-import ProductCard from "../../components/ProductCard";
-import CategoryTabMenu from "../../components/CategoryTabMenu";
-import Button from "../../components/Button";
-import mainBanner from "../../../../assets/images/banner/main-page-banner.png";
-import subBanner from "../../../../assets/images/banner/sub-banner.png";
+import Header from "../../../../components/shop/Header";
+import Footer from "../../../../components/shop/Footer";
+import Button from "../../../../components/shop/Button";
+import { useCart } from "../../../../context/CartContext";
+import { useAuth } from "../../../../context/AuthContext";
+import BannerSection from "../../../../components/shop/Main/BannerSection";
+import FlashSaleSection from "../../../../components/shop/Main/FlashSaleSection";
+import FeaturedProductsSection from "../../../../components/shop/Main/FeaturedProductsSection";
+import SubBannerSection from "../../../../components/shop/Main/SubBannerSection";
+import NewProductsSection from "../../../../components/shop/Main/NewProductsSection";
+import GroupBannerSection from "../../../../components/shop/Main/GroupBannerSection";
+import TodaySuggestionsSection from "../../../../components/shop/Main/TodaySuggestionsSection";
+import {
+  getTopDiscountProducts,
+  getBestSellerProducts,
+  getNewestProducts,
+  getSuggestionProducts,
+  type HomepageProductResponse,
+} from "../../../../api/endpoints/homepageApi";
+import { getImageUrl } from "../../../../utils/imageUtils";
+
+// Define Product interface for shop components
+interface Product {
+  id: string;
+  name: string;
+  imageUrl: string;
+  price: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  discountValue?: string;
+  rating: number;
+  stock: number;
+  category: string;
+  brand: string;
+  reviews: number;
+}
+
 
 const LandingPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { getCartCount } = useCart();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const displayName = user?.name?.trim() || user?.username || "Thanh";
+  const avatarUrl = user?.avatar || undefined;
+  const queryClient = useQueryClient();
 
-  // Sample categories data
-  const categories = [
-    {
-      id: "all",
-      label: "Tất cả",
-      subcategories: [],
-    },
-    {
-      id: "camping",
-      label: "Đồ cắm trại",
-      subcategories: [
-        { id: "tents", label: "Lều trại" },
-        { id: "sleeping", label: "Đồ ngủ" },
-        { id: "cooking", label: "Đồ nấu ăn" },
-      ],
-    },
-    {
-      id: "outdoor",
-      label: "Thể thao ngoài trời",
-      subcategories: [
-        { id: "hiking", label: "Đồ leo núi" },
-        { id: "water", label: "Đồ dùng dưới nước" },
-      ],
-    },
-    {
-      id: "accessories",
-      label: "Phụ kiện",
-      subcategories: [
-        { id: "backpacks", label: "Ba lô" },
-        { id: "tools", label: "Dụng cụ" },
-      ],
-    },
-  ];
+  // Clear old cache for newest products
+  React.useEffect(() => {
+    queryClient.removeQueries({ queryKey: ["homepageNewest"] });
+  }, [queryClient]);
 
-  // Flash sale products data
-  const flashSaleProducts = [
-    {
-      id: 101,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+1",
-      name: "Lều trại 4 người siêu giảm giá",
-      price: 1890000,
-      originalPrice: 3200000,
-      rating: 4.9,
-      discountPercent: 41,
-    },
-    {
-      id: 102,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+2",
-      name: "Bếp nướng BBQ đa năng",
-      price: 650000,
-      originalPrice: 1200000,
-      rating: 4.7,
-      discountPercent: 46,
-    },
-    {
-      id: 103,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+3",
-      name: "Túi ngủ 3 mùa cao cấp",
-      price: 990000,
-      originalPrice: 1800000,
-      rating: 4.8,
-      discountPercent: 45,
-    },
-    {
-      id: 104,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+4",
-      name: "Ba lô du lịch 50L chống thấm",
-      price: 1290000,
-      originalPrice: 2200000,
-      rating: 4.6,
-      discountPercent: 41,
-    },
-    {
-      id: 105,
-      imageUrl: "https://via.placeholder.com/300x245?text=Flash+Sale+5",
-      name: "Bộ đồ nấu ăn du lịch 8 món",
-      price: 450000,
-      originalPrice: 850000,
-      rating: 4.5,
-      discountPercent: 47,
-    },
-  ];
 
-  // Sample products data
-  const featuredProducts = [
-    {
-      id: 1,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+1",
-      name: "Lều trại 2 người chống thấm nước",
-      price: 1290000,
-      originalPrice: 1590000,
-      rating: 4.5,
-      discountPercent: 19,
+  // Fetch homepage products from API
+  const { data: topDiscountProducts = [] } = useQuery({
+    queryKey: ["homepageTopDiscount"],
+    queryFn: () => getTopDiscountProducts(12),
+  });
+
+  const currentYear = new Date().getFullYear();
+  const { data: bestSellerProducts = [] } = useQuery({
+    queryKey: ["homepageBestSeller", currentYear, "limit-6"],
+    queryFn: async () => {
+      const limitValue = 6; // Explicitly set limit to 6
+      console.log("=== FETCHING BEST SELLER PRODUCTS ===");
+      console.log("Calling getBestSellerProducts with limit:", limitValue);
+      const result = await getBestSellerProducts(currentYear, limitValue);
+      console.log("=== FETCHED BEST SELLER RESULT ===", result.length, "products");
+      if (result.length !== limitValue) {
+        console.warn("⚠️ WARNING: Expected 6 products but got", result.length);
+      }
+      return result;
     },
-    {
-      id: 2,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+2",
-      name: "Túi ngủ mùa đông giữ nhiệt",
-      price: 890000,
-      originalPrice: 1200000,
-      rating: 4.8,
-      discountPercent: 26,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: newestProducts = [] } = useQuery<HomepageProductResponse[]>({
+    queryKey: ["homepageNewest", "limit-6"],
+    queryFn: async () => {
+      const limitValue = 6; // Explicitly set limit
+      const result = await getNewestProducts(limitValue);
+      return result;
     },
-    {
-      id: 3,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+3",
-      name: "Bếp gas du lịch mini",
-      price: 450000,
-      originalPrice: 650000,
-      rating: 4.3,
-      discountPercent: 31,
-    },
-    {
-      id: 4,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+4",
-      name: "Ba lô trekking 30L",
-      price: 950000,
-      originalPrice: 1150000,
-      rating: 4.6,
-      discountPercent: 17,
-    },
-    {
-      id: 5,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+5",
-      name: "Áo khoác gió chống nước",
-      price: 750000,
-      originalPrice: 950000,
-      rating: 4.7,
-      discountPercent: 21,
-    },
-    {
-      id: 6,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+6",
-      name: "Ghế xếp du lịch nhẹ",
-      price: 320000,
-      originalPrice: 450000,
-      rating: 4.4,
-      discountPercent: 29,
-    },
-    {
-      id: 7,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+7",
-      name: "Đèn pin siêu sáng LED",
-      price: 280000,
-      originalPrice: 380000,
-      rating: 4.2,
-      discountPercent: 26,
-    },
-    {
-      id: 8,
-      imageUrl: "https://via.placeholder.com/300x245?text=Product+8",
-      name: "Bộ dụng cụ đa năng",
-      price: 180000,
-      originalPrice: 250000,
-      rating: 4.5,
-      discountPercent: 28,
-    },
-  ];
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+  });
+
+  // Debug log - Always log để kiểm tra
+  React.useEffect(() => {
+    console.log("=== DEBUG Newest Products ===");
+    console.log("Newest products count from API:", newestProducts.length);
+    console.log("Newest products data:", newestProducts);
+  }, [newestProducts]);
+
+  const { data: suggestionProducts = [] } = useQuery({
+    queryKey: ["homepageSuggestions"],
+    queryFn: () => getSuggestionProducts(12),
+  });
+
+  // Helper function to format discount value for display (shared with ProductCard)
+  // API returns: "-35%" or "-1000đ" or "35%" or "1000đ"
+  // Display format: "-35%" or "-1.000đ" (with thousand separator for VND)
+  const formatDiscountValue = (discountValue: string | null | undefined): string | undefined => {
+    if (!discountValue) return undefined;
+    const discountStr = discountValue.toString().trim();
+
+    // Check if it's a percentage (contains "%")
+    if (discountStr.includes("%")) {
+      // For percentage, just ensure it starts with "-"
+      if (discountStr.startsWith("-")) {
+        return discountStr;
+      }
+      return `-${discountStr}`;
+    }
+
+    // For VND amount (contains "đ" or "Đ")
+    if (discountStr.includes("đ") || discountStr.includes("Đ")) {
+      // Extract ALL digits (remove all non-digit characters except minus sign)
+      const cleaned = discountStr.replace(/[^\d-]/g, "");
+      const numberMatch = cleaned.match(/(-?\d+)/);
+      if (numberMatch) {
+        const numberStr = numberMatch[1];
+        const number = Math.abs(parseInt(numberStr, 10)); // Get absolute value
+        // Format number with thousand separator (.)
+        const formattedNumber = number.toLocaleString("vi-VN");
+        // Determine if original had "-" prefix
+        const hasMinus = discountStr.startsWith("-") || numberStr.startsWith("-");
+        // Get the currency symbol (đ or Đ) - preserve original case
+        const currencySymbol = discountStr.includes("Đ") ? "Đ" : "đ";
+        return hasMinus ? `-${formattedNumber}${currencySymbol}` : `-${formattedNumber}${currencySymbol}`;
+      }
+    }
+
+    // If it's just a number without currency, assume it's percentage
+    const numberMatch = discountStr.match(/(-?\d+)/);
+    if (numberMatch) {
+      const hasMinus = discountStr.startsWith("-");
+      return hasMinus ? `${discountStr}%` : `-${discountStr}%`;
+    }
+
+    // Fallback: ensure it starts with "-"
+    if (discountStr.startsWith("-")) {
+      return discountStr;
+    }
+    return `-${discountStr}`;
+  };
+
+  // Convert HomepageProductResponse to Product format for components
+  // Logic giống ProductCategoryListing: tính display price và discount
+  // Sử dụng minSellingPrice, discountSellingPrice, discountValue (giống ProductCategoryItemResponse)
+  const convertToProduct = (item: HomepageProductResponse): Product => {
+    // Sử dụng logic giống ProductCategoryListing nếu có đầy đủ thông tin
+    if (item.minSellingPrice !== null && item.minSellingPrice !== undefined) {
+      // Logic giống ProductCategoryListing
+      const hasDiscount =
+        item.discountSellingPrice !== null &&
+        item.discountSellingPrice !== undefined &&
+        item.discountSellingPrice > 0 &&
+        item.discountSellingPrice < item.minSellingPrice;
+
+      const displayPrice = hasDiscount
+        ? item.discountSellingPrice || item.minSellingPrice
+        : item.minSellingPrice;
+
+      const originalPrice = hasDiscount ? item.minSellingPrice : undefined;
+
+      // Parse discountPercent từ discountValue string (giống ProductCategoryListing)
+      let discountPercent: number | undefined = undefined;
+      if (hasDiscount && item.discountValue) {
+        const match = item.discountValue.match(/(\d+(?:\.\d+)?)/);
+        if (match) {
+          discountPercent = Math.round(Number(match[1]));
+        }
+      }
+
+      // Process image URL - convert relative paths to full URLs
+      const processedImageUrl = item.image
+        ? (getImageUrl(item.image) || item.image)
+        : "";
+
+      return {
+        id: item.productId?.toString?.() || `${Math.random()}`,
+        name: item.name,
+        imageUrl: processedImageUrl,
+        price: displayPrice,
+        originalPrice: originalPrice,
+        discountPercent, // Keep for backward compatibility
+        discountValue: item.discountValue ? formatDiscountValue(item.discountValue) : undefined, // New field for formatted display
+        rating: item.rating ?? 0,
+        stock: 0,
+        category: "",
+        brand: "",
+        reviews: 0,
+      };
+    }
+
+    // Fallback cho các API khác (backward compatibility)
+    const salePrice = item.salePrice ?? 0;
+    const originalPrice = item.originalPrice ?? salePrice;
+
+    const hasDiscount =
+      item.discountPercent !== null &&
+      item.discountPercent !== undefined &&
+      item.discountPercent > 0 &&
+      salePrice > 0 &&
+      originalPrice > 0 &&
+      salePrice < originalPrice;
+
+    const displayPrice = hasDiscount ? salePrice : (salePrice > 0 ? salePrice : originalPrice);
+    const displayOriginalPrice = hasDiscount ? originalPrice : undefined;
+    const discountPercent = hasDiscount && typeof item.discountPercent === "number"
+      ? Math.round(item.discountPercent)
+      : undefined;
+
+    // Process image URL - convert relative paths to full URLs
+    const processedImageUrl = item.image
+      ? (getImageUrl(item.image) || item.image)
+      : "";
+
+    return {
+      id: item.productId?.toString?.() || `${Math.random()}`,
+      name: item.name,
+      imageUrl: processedImageUrl,
+      price: displayPrice,
+      originalPrice: displayOriginalPrice,
+      discountPercent, // Keep for backward compatibility
+      discountValue: item.discountValue ? formatDiscountValue(item.discountValue) : undefined, // New field for formatted display
+      rating: item.rating ?? 0,
+      stock: 0,
+      category: "",
+      brand: "",
+      reviews: 0,
+    };
+  };
+
+  const flashSaleProducts = topDiscountProducts.map(convertToProduct).filter(Boolean);
+  const featuredProducts = bestSellerProducts
+    .map(convertToProduct)
+    .filter((p): p is Product => !!p && !!p.id && !!p.name)
+    .slice(0, 6); // Ensure exactly 6 products
+  const newProducts = newestProducts
+    .map(convertToProduct)
+    .filter((p): p is Product => !!p && !!p.id && !!p.name)
+    .slice(0, 6); // Ensure exactly 6 products
+  const todaySuggestions = suggestionProducts.map(convertToProduct).filter(Boolean);
+
+  // Debug log for products - Always log
+  React.useEffect(() => {
+    console.log("=== DEBUG Converted Products ===");
+    console.log("bestSellerProducts from API:", bestSellerProducts.length, bestSellerProducts);
+    console.log("featuredProducts after convert and filter:", featuredProducts.length, featuredProducts);
+    console.log("newestProducts from API:", newestProducts.length, newestProducts);
+    console.log("newProducts after convert and filter:", newProducts.length, newProducts);
+
+    // Debug image URLs
+    console.log("=== DEBUG Image URLs ===");
+    console.log("Featured products images:", featuredProducts.map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      imageUrl: p.imageUrl,
+      originalImage: bestSellerProducts[idx]?.image
+    })));
+    console.log("New products images:", newProducts.map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      imageUrl: p.imageUrl,
+      originalImage: newestProducts[idx]?.image
+    })));
+    console.log("Flash sale products images:", flashSaleProducts.slice(0, 3).map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      imageUrl: p.imageUrl,
+      originalImage: topDiscountProducts[idx]?.image
+    })));
+
+    console.log("featuredProducts details:", featuredProducts.map((p, idx) => ({
+      index: idx,
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      isValid: !!p && !!p.id && !!p.name
+    })));
+    console.log("newProducts details:", newProducts.map((p, idx) => ({
+      index: idx,
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      isValid: !!p && !!p.id && !!p.name
+    })));
+    if (newProducts.length !== 6) {
+      console.warn("⚠️ WARNING: newProducts should have 6 items but has", newProducts.length);
+    }
+  }, [newestProducts, newProducts, bestSellerProducts, featuredProducts, topDiscountProducts, flashSaleProducts]);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white justify-center flex flex-col">
       <Header
-        cartCount={0}
+        cartCount={getCartCount()}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        userName={displayName}
+        avatarUrl={avatarUrl}
       />
 
-      {/* Main Banner Section */}
-      <section className="w-full relative">
-        <img
-          src={mainBanner}
-          alt="Wanderoo Banner"
-          className="w-full h-auto object-cover"
-        />
-      </section>
+      <BannerSection />
 
-      {/* Category Filter Section */}
-      <section className="w-full bg-white py-6 border-b border-gray-200">
-        <div className="max-w-[1200px] mx-auto px-4">
-          <CategoryTabMenu categories={categories} className="justify-center" />
-        </div>
-      </section>
+      <FlashSaleSection products={flashSaleProducts} />
 
-      {/* Flash Sale Section */}
-      <section className="w-full bg-gray-100 py-10">
-        <div className="max-w-[1200px] mx-auto px-4">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="mb-6">
-              <h2 className="text-[32px] font-bold text-red-600 uppercase flex items-center gap-1">
-                F
-                <svg
-                  width="28"
-                  height="32"
-                  viewBox="0 0 24 32"
-                  fill="none"
-                  className="text-red-600"
-                >
-                  <path
-                    d="M13.5 2L3.5 14h7l-1 16 10-12h-7l1-16z"
-                    fill="currentColor"
-                  />
-                </svg>
-                ASH SALE
-              </h2>
-            </div>
+      <FeaturedProductsSection products={featuredProducts} />
 
-            <div className="relative">
-              {/* Product Cards Carousel */}
-              <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-                {flashSaleProducts.map((product) => (
-                  <div key={product.id} className="flex-shrink-0 w-[240px]">
-                    <ProductCard
-                      id={product.id}
-                      imageUrl={product.imageUrl}
-                      name={product.name}
-                      price={product.price}
-                      originalPrice={product.originalPrice}
-                      rating={product.rating}
-                      discountPercent={product.discountPercent}
-                      onClick={() => navigate(`/shop/products/${product.id}`)}
-                    />
-                  </div>
-                ))}
-              </div>
+      <SubBannerSection />
 
-              {/* Navigation Arrow Button */}
-              <Button
-                variant="icon"
-                size="md"
-                shape="pill"
-                className="absolute right-0 top-1/2 -translate-y-1/2 -translate-x-4 shadow-lg z-10 bg-white hover:bg-gray-50"
-                aria-label="Xem thêm sản phẩm flash sale"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="text-gray-700"
-                >
-                  <path
-                    d="M9 18L15 12L9 6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <NewProductsSection products={newProducts} />
 
-      {/* Featured Products Section */}
-      <section className="w-full bg-gray-50 py-10">
-        <div className="max-w-[1200px] mx-auto px-4">
-          <div className="mb-8 flex items-center justify-between">
-            <div className="flex-1">
-              <div className="inline-block">
-                <h2 className="text-[32px] font-bold text-gray-900">
-                  Sản phẩm nổi bật
-                </h2>
-              </div>
-            </div>
-            <a
-              href="#"
-              className="text-blue-600 text-[16px] font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
-              onClick={(e) => {
-                e.preventDefault();
-                console.log("See all featured products");
-              }}
-            >
-              Xem tất cả &gt;&gt;
-            </a>
-          </div>
+      <GroupBannerSection />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                imageUrl={product.imageUrl}
-                name={product.name}
-                price={product.price}
-                originalPrice={product.originalPrice}
-                rating={product.rating}
-                discountPercent={product.discountPercent}
-                onClick={() => navigate(`/shop/products/${product.id}`)}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Sub Banner Section */}
-      <section className="w-full bg-white py-8">
-        <div className="max-w-[1200px] mx-auto px-4">
-          <img
-            src={subBanner}
-            alt="Wanderoo Sub Banner"
-            className="w-full h-auto object-cover rounded-lg"
-          />
-        </div>
-      </section>
-
-      {/* Additional Products Section */}
-      <section className="w-full bg-white py-10">
-        <div className="max-w-[1200px] mx-auto px-4">
-          <div className="mb-8 flex items-center justify-between">
-            <div className="flex-1">
-              <div className="inline-block">
-                <h2 className="text-[32px] font-bold text-gray-900">
-                  Sản phẩm mới nhất
-                </h2>
-              </div>
-            </div>
-            <a
-              href="#"
-              className="text-blue-600 text-[16px] font-medium hover:text-blue-700 transition-colors whitespace-nowrap"
-              onClick={(e) => {
-                e.preventDefault();
-                console.log("See all new products");
-              }}
-            >
-              Xem tất cả &gt;&gt;
-            </a>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.slice(0, 4).map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                imageUrl={product.imageUrl}
-                name={product.name}
-                price={product.price}
-                originalPrice={product.originalPrice}
-                rating={product.rating}
-                discountPercent={product.discountPercent}
-                onClick={() => navigate(`/shop/products/${product.id}`)}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
+      <TodaySuggestionsSection products={todaySuggestions} />
 
       {/* See More Button Section */}
-      <section className="w-full bg-white py-8">
-        <div className="max-w-[1200px] mx-auto px-4">
+      <section className="w-full bg-white pt-2 pb-6">
+        <div className="max-w-[1000px] mx-auto px-4">
           <div className="flex justify-center">
             <Button
               variant="secondary"
-              size="lg"
+              size="md"
               shape="rounded"
-              className="px-8"
-              onClick={() => console.log("See more all products")}
+              className="px-6 py-3"
+              onClick={() => navigate("/shop/products/all")}
             >
-              Xem thêm sản phẩm
+              Xem thêm
             </Button>
           </div>
         </div>

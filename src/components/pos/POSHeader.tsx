@@ -1,0 +1,527 @@
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import ShopLogo from "@/assets/icons/ShopLogo.svg";
+import { Loader2, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { POSOrderTabs, type OrderTab } from "./POSOrderTabs";
+import { searchProducts } from "@/api/endpoints/saleApi";
+import { usePOSContext } from "@/context/POSContext";
+import type { SaleProductResponse } from "@/types/api";
+import { getImageUrl } from "../../utils/imageUtils";
+
+export type { OrderTab };
+
+export type POSHeaderProps = {
+  searchValue?: string;
+  onSearchChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  searchPlaceholder?: string;
+  currentOrderId?: string;
+  orders?: OrderTab[];
+  onOrderSelect?: (orderId: string) => void;
+  onOrderClose?: (orderId: string) => void;
+  onOrderAdd?: () => void;
+  pageTitle?: string;
+  pageSubtitle?: string;
+  onProductSelect?: (product: {
+    id: string;
+    name: string;
+    price: number;
+    available?: number | null;
+    attributes?: string | null;
+    imageUrl?: string;
+  }) => void;
+  user?: {
+    name: string;
+    role: string;
+    avatar?: string | null;
+  };
+  className?: string;
+};
+
+export const POSHeader: React.FC<POSHeaderProps> = ({
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = "Nhập tên sản phẩm hoặc mã barcode",
+  currentOrderId,
+  orders = [],
+  onOrderSelect,
+  onOrderClose,
+  onOrderAdd,
+  onProductSelect,
+  pageTitle,
+  user = { name: "Admin", role: "Admin", avatar: null },
+  className,
+}) => {
+  const isSalesPage = searchValue !== undefined && orders !== undefined;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [productResults, setProductResults] = useState<SaleProductResponse[]>([]);
+  const [isSearchingProducts, setIsSearchingProducts] = useState(false);
+  const [productSearchError, setProductSearchError] = useState<string | null>(null);
+  const [showAllProducts, setShowAllProducts] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const productSearchCacheRef = useRef<Map<string, SaleProductResponse[]>>(new Map());
+  const latestSearchIdRef = useRef(0);
+  const preloadOnHoverDoneRef = useRef(false);
+  const { productSelectHandler } = usePOSContext();
+  
+  // Giới hạn hiển thị 50 sản phẩm đầu tiên khi không có keyword để render nhanh hơn
+  const MAX_INITIAL_PRODUCTS = 50;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!searchContainerRef.current) return;
+
+      const target = event.target as Node;
+      const isInsideContainer = searchContainerRef.current.contains(target);
+
+      // Chỉ đóng dropdown nếu:
+      // 1. Click bên ngoài container VÀ
+      // 2. Input không đang được focus (tránh đóng khi click vào input)
+      if (!isInsideContainer) {
+        // Kiểm tra xem input có đang focus không
+        const isInputFocused = document.activeElement === inputRef.current;
+        if (!isInputFocused) {
+          setIsDropdownOpen(false);
+        }
+      }
+    };
+
+    // Luôn lắng nghe click outside để tránh vấn đề khi state bị reset sau re-render
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Preload danh sách sản phẩm ngay khi component mount để tải nhanh hơn
+  useEffect(() => {
+    if (!isSalesPage) return;
+
+    // Kiểm tra cache trước, nếu đã có thì không cần preload
+    const cachedAll = productSearchCacheRef.current.get("__all__");
+    if (cachedAll) return;
+
+    // Preload ngay lập tức trong background (dùng requestIdleCallback nếu có để không block UI)
+    // Chỉ tải 50 sản phẩm đầu tiên để tải nhanh hơn
+    const preloadProducts = async () => {
+      try {
+        const results = await searchProducts(undefined, 50);
+        // Lưu vào cache để sử dụng sau
+        productSearchCacheRef.current.set("__all__", results);
+      } catch (error) {
+        // Silent fail - không hiển thị error khi preload
+        console.debug("Preload products failed:", error);
+      }
+    };
+
+    // Sử dụng requestIdleCallback nếu có để không block UI, nếu không thì chạy ngay
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(() => {
+        void preloadProducts();
+      }, { timeout: 100 });
+    } else {
+      // Fallback: chạy ngay nhưng không block
+      setTimeout(() => {
+        void preloadProducts();
+      }, 0);
+    }
+  }, [isSalesPage]);
+
+  // Giữ dropdown mở khi có searchValue hoặc khi input đang focus
+  useEffect(() => {
+    if (isSalesPage && searchValue && inputRef.current === document.activeElement) {
+      setIsDropdownOpen(true);
+    }
+  }, [isSalesPage, searchValue]);
+
+  // Reset showAllProducts khi keyword thay đổi
+  useEffect(() => {
+    setShowAllProducts(false);
+  }, [searchValue]);
+
+  useEffect(() => {
+    if (!isSalesPage) {
+      setProductResults([]);
+      setProductSearchError(null);
+      setIsSearchingProducts(false);
+      return;
+    }
+
+    // Chỉ search khi dropdown đang mở
+    if (!isDropdownOpen) {
+      return;
+    }
+
+    const keyword = searchValue?.trim() ?? "";
+    
+    // Nếu keyword rỗng và dropdown đang mở, fetch tất cả sản phẩm
+    // Nếu có keyword, search như bình thường
+    const cacheKey = keyword.length > 0 ? keyword.toLowerCase() : "__all__";
+
+    // Kiểm tra cache trước
+    const cachedResults = productSearchCacheRef.current.get(cacheKey);
+    if (cachedResults) {
+      setProductResults(cachedResults);
+      setProductSearchError(null);
+      setIsSearchingProducts(false);
+      return;
+    }
+
+    // Tăng timeout lên 400ms để giảm số lần gọi API khi user gõ nhanh
+    // Nhưng nếu không có keyword (click vào search), gọi ngay lập tức
+    const SEARCH_DEBOUNCE_MS = keyword.length > 0 ? 400 : 0;
+    
+    const currentSearchId = ++latestSearchIdRef.current;
+    setIsSearchingProducts(true);
+    setProductSearchError(null);
+
+    const handler = window.setTimeout(async () => {
+      try {
+        // Kiểm tra lại keyword sau timeout (có thể đã thay đổi)
+        const currentKeyword = searchValue?.trim() ?? "";
+
+        // Gọi API với keyword (có thể rỗng để lấy tất cả sản phẩm)
+        // Nếu không có keyword, chỉ tải 50 sản phẩm đầu tiên để tải nhanh hơn
+        // Nếu có keyword, tải tất cả kết quả tìm kiếm
+        const results = await searchProducts(
+          currentKeyword || undefined,
+          currentKeyword.length === 0 ? 50 : undefined
+        );
+
+        // Kiểm tra xem search này có còn hợp lệ không
+        if (currentSearchId !== latestSearchIdRef.current) {
+          return;
+        }
+
+        // Lưu vào cache
+        const finalCacheKey = currentKeyword.length > 0 ? currentKeyword.toLowerCase() : "__all__";
+        productSearchCacheRef.current.set(finalCacheKey, results);
+        setProductResults(results);
+        setProductSearchError(null);
+      } catch (error) {
+        console.error("Không thể tìm sản phẩm:", error);
+        if (currentSearchId === latestSearchIdRef.current) {
+          setProductResults([]);
+          setProductSearchError("Không thể tải danh sách sản phẩm");
+        }
+      } finally {
+        if (currentSearchId === latestSearchIdRef.current) {
+          setIsSearchingProducts(false);
+        }
+      }
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [isSalesPage, searchValue, isDropdownOpen]);
+
+  const formatCurrency = (amount?: number | null) => {
+    if (amount == null) {
+      return "—";
+    }
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
+  };
+
+  const effectiveProductSelect = onProductSelect ?? productSelectHandler ?? null;
+
+  const renderProductDropdown = () => {
+    if (!isDropdownOpen || !isSalesPage) {
+      return null;
+    }
+
+    const keyword = searchValue?.trim() ?? "";
+    const hasKeyword = keyword.length > 0;
+    
+    // Chỉ hiển thị 50 sản phẩm đầu tiên khi không có keyword để render nhanh hơn
+    // Nếu có keyword, hiển thị tất cả kết quả tìm kiếm
+    const displayProducts = hasKeyword || showAllProducts 
+      ? productResults 
+      : productResults.slice(0, MAX_INITIAL_PRODUCTS);
+    const hasMoreProducts = !hasKeyword && productResults.length > MAX_INITIAL_PRODUCTS && !showAllProducts;
+
+    return (
+      <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-40 overflow-hidden">
+        <div className="max-h-80 overflow-y-auto divide-y divide-[#f0f0f0]">
+          {!isSearchingProducts &&
+            !productSearchError &&
+            productResults.length === 0 && (
+              <p className="px-4 py-3 text-sm text-[#6F6F6F]">
+                {hasKeyword 
+                  ? "Không tìm thấy sản phẩm phù hợp"
+                  : "Nhập tên hoặc mã barcode để tìm sản phẩm"
+                }
+              </p>
+            )}
+
+          {isSearchingProducts && (
+            <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#6F6F6F]">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {hasKeyword ? "Đang tìm kiếm sản phẩm..." : "Đang tải danh sách sản phẩm..."}
+            </div>
+          )}
+
+          {!isSearchingProducts && productSearchError && (
+            <p className="px-4 py-3 text-xs text-[#E04D30]">{productSearchError}</p>
+          )}
+
+          {!isSearchingProducts &&
+            !productSearchError &&
+            displayProducts.map((product) => {
+              const isOutOfStock = (product.posSoldQuantity ?? 0) <= 0;
+              return (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => {
+                    if (isOutOfStock) return;
+                    effectiveProductSelect?.({
+                      id: product.id?.toString() ?? "",
+                      name: product.productName,
+                      price: product.sellingPrice ?? 0,
+                      available: product.posSoldQuantity ?? undefined,
+                      attributes: product.attributes,
+                      imageUrl: product.imageUrl,
+                    });
+                    setIsDropdownOpen(false);
+                  }}
+                  disabled={isOutOfStock}
+                  className={`w-full text-left px-4 py-3 transition-colors ${isOutOfStock
+                    ? "opacity-50 cursor-not-allowed bg-gray-100"
+                    : "hover:bg-[#f8f9ff]"
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 border border-[#e7e7e7] flex items-center justify-center text-xs text-[#6F6F6F] overflow-hidden">
+                      {product.imageUrl ? (
+                        <img
+                          src={getImageUrl(product.imageUrl) || product.imageUrl}
+                          alt={product.productName}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback nếu ảnh không load được
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className={`w-full h-full flex items-center justify-center ${product.imageUrl ? 'hidden' : ''}`}
+                      >
+                        <span className="text-[#6F6F6F] text-xs">
+                          {product.productName?.charAt(0)?.toUpperCase() || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-[#272424] line-clamp-1">
+                          {product.productName}
+                        </p>
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          {product.discountedPrice != null &&
+                           product.sellingPrice != null &&
+                           product.discountedPrice < product.sellingPrice &&
+                           Math.abs(product.discountedPrice - product.sellingPrice) > 0.01 ? (
+                            <>
+                              <span className="text-sm text-gray-400 line-through">
+                                {formatCurrency(product.sellingPrice)}
+                              </span>
+                              <p className="text-sm font-bold text-[#e04d30]">
+                                {formatCurrency(product.discountedPrice)}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-sm font-bold text-[#272424]">
+                              {formatCurrency(product.sellingPrice)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs mt-1">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          {product.barcode && (
+                            <span className={`font-medium ${isOutOfStock ? "text-gray-400" : "text-[#6F6F6F]"}`}>
+                              Barcode: {product.barcode}
+                            </span>
+                          )}
+                          {product.attributes && (
+                            <span className={`line-clamp-1 ${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
+                              {product.attributes}
+                            </span>
+                          )}
+                          {!product.barcode && !product.attributes && (
+                            <span className={`${isOutOfStock ? "text-gray-400" : "text-[#737373]"}`}>
+                              —
+                            </span>
+                          )}
+                        </div>
+                        <span className={`font-medium whitespace-nowrap ${isOutOfStock ? "text-red-500" : "text-[#737373]"
+                          }`}>
+                          {isOutOfStock
+                            ? "Hết hàng"
+                            : `Có thể bán: ${product.posSoldQuantity != null
+                              ? product.posSoldQuantity.toLocaleString("vi-VN")
+                              : "—"
+                            }`
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          
+          {hasMoreProducts && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowAllProducts(true);
+              }}
+              className="w-full px-4 py-3 text-sm text-[#18345C] font-medium hover:bg-[#f8f9ff] transition-colors border-t border-[#f0f0f0]"
+            >
+              Xem thêm {productResults.length - MAX_INITIAL_PRODUCTS} sản phẩm
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const displayAvatar = user?.avatar ? getImageUrl(user.avatar) || user.avatar : undefined;
+
+  return (
+    <header
+      className={cn(
+        "bg-[#18345C] flex items-center gap-3 sm:gap-4 px-3 sm:px-4 lg:px-2 py-2 sm:py-4 h-16",
+        className
+      )}
+    >
+      {/* Logo and Title - Always visible */}
+      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+        <Link to="/admin/dashboard" className="cursor-pointer">
+          <img
+            src={ShopLogo}
+            alt="Wanderoo Logo"
+            className="h-150  w-auto object-contain max-h-full"
+          />
+        </Link>
+        <h1 className="text-white text-lg sm:text-xl font-bold whitespace-nowrap">
+          {pageTitle || "Bán hàng"}
+        </h1>
+      </div>
+
+      {isSalesPage && (
+        <>
+          {/* Search Bar - Only on sales page */}
+          <div className="flex items-center min-w-0 flex-shrink-0">
+            <div
+              className="w-[300px] sm:w-[400px] lg:w-[500px] relative"
+              ref={searchContainerRef}
+              onMouseEnter={() => {
+                // Preload khi hover vào search box để tải nhanh hơn
+                if (!preloadOnHoverDoneRef.current && isSalesPage) {
+                  const cachedAll = productSearchCacheRef.current.get("__all__");
+                  if (!cachedAll) {
+                    preloadOnHoverDoneRef.current = true;
+                    // Preload ngay lập tức khi hover - không delay, chỉ tải 50 sản phẩm đầu tiên
+                    void searchProducts(undefined, 50).then((results) => {
+                      productSearchCacheRef.current.set("__all__", results);
+                    }).catch((error) => {
+                      console.debug("Preload on hover failed:", error);
+                      preloadOnHoverDoneRef.current = false; // Retry next time
+                    });
+                  }
+                }
+              }}
+            >
+              <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="w-4 h-4 text-[#737373]"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.3-4.3" />
+                </svg>
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={searchValue}
+                onChange={onSearchChange}
+                placeholder={searchPlaceholder}
+                className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm text-[#272424] placeholder:text-[#737373] focus:outline-none focus:bg-white focus:border-[#e04d30]"
+                onFocus={() => {
+                  // Đảm bảo dropdown mở khi focus vào input
+                  setIsDropdownOpen(true);
+                  // Kiểm tra cache và hiển thị ngay nếu có
+                  const cachedAll = productSearchCacheRef.current.get("__all__");
+                  if (cachedAll && cachedAll.length > 0) {
+                    setProductResults(cachedAll);
+                    setIsSearchingProducts(false);
+                    setProductSearchError(null);
+                  }
+                }}
+                onClick={(e) => {
+                  // Đảm bảo dropdown mở khi click vào input và ngăn event bubble
+                  e.stopPropagation();
+                  setIsDropdownOpen(true);
+                  // Kiểm tra cache và hiển thị ngay nếu có
+                  const cachedAll = productSearchCacheRef.current.get("__all__");
+                  if (cachedAll && cachedAll.length > 0) {
+                    setProductResults(cachedAll);
+                    setIsSearchingProducts(false);
+                    setProductSearchError(null);
+                  }
+                }}
+              />
+              {renderProductDropdown()}
+            </div>
+          </div>
+
+          {/* Order Tabs - Only on sales page */}
+          <div className="min-w-0 max-w-full w-auto">
+            <POSOrderTabs
+              orders={orders}
+              currentOrderId={currentOrderId || "1"}
+              onOrderSelect={onOrderSelect}
+              onOrderClose={onOrderClose}
+              onOrderAdd={onOrderAdd}
+            />
+          </div>
+        </>
+      )}
+
+      {/* User Info - On the right */}
+      <div className="flex items-center gap-2 sm:gap-3 ml-auto flex-shrink-0">
+        <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border border-white/20">
+          {displayAvatar ? (
+            <AvatarImage src={displayAvatar} alt={user?.name || "User"} className="object-cover" />
+          ) : null}
+          <AvatarFallback className="bg-white text-[#18345C] text-sm font-semibold">
+            {user?.name?.charAt(0)?.toUpperCase() || <User className="w-4 h-4" />}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col leading-tight">
+          <span className="text-white text-sm sm:text-base font-semibold">
+            {user?.name || "Admin"}
+          </span>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default POSHeader;

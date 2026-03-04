@@ -1,0 +1,624 @@
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import type { DateRange } from "react-day-picker";
+import {
+  PageContainer,
+  ContentCard,
+  PageHeader,
+  TabMenuWithBadge,
+  TabMenu,
+  OrderTable,
+  type OrderTableColumn,
+  type TabItemWithBadge,
+  type TabItem,
+} from "@/components/common";
+import { Pagination } from "@/components/ui/pagination";
+import { SearchBar } from "@/components/ui/search-bar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import CaretDown from "@/components/ui/caret-down";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, XCircle } from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import type { ChipStatusKey } from "@/components/ui/chip-status";
+import { returnOrderService, type ReturnOrderListItem, type ReturnOrderStatus, type GetReturnOrdersParams } from "@/api/returnOrderService";
+
+type ReturnStatusFilter = ReturnOrderStatus | "DELIVERED";
+type SourceFilter = "ALL" | "WEBSITE" | "POS";
+
+const primaryTabs: TabItemWithBadge[] = [
+  { id: "ALL", label: "Tất cả" },
+  { id: "UNDER_REVIEW", label: "Đang chờ xét duyệt" },
+  { id: "RETURNING", label: "Đang trả hàng" },
+  { id: "DELIVERED", label: "Giao thành công" },
+  { id: "COMPLETED", label: "Đã hoàn tiền cho người mua" },
+  { id: "INVALID", label: "Yêu cầu bị huỷ/không hợp lệ" },
+];
+
+const statusTabs: TabItem[] = [
+  { id: "ALL", label: "Tất cả" },
+  { id: "UNDER_REVIEW", label: "Đang chờ xét duyệt" },
+  { id: "RETURNING", label: "Đang trả hàng" },
+  { id: "DELIVERED", label: "Giao thành công" },
+  { id: "COMPLETED", label: "Đã hoàn tiền cho người mua" },
+  { id: "INVALID", label: "Yêu cầu bị huỷ/không hợp lệ" },
+];
+
+const PAGE_SIZE = 5;
+
+interface OtherStatusNavigationState {
+  pathname?: string;
+  activePrimaryTab?: ReturnStatusFilter | "ALL";
+  activeStatusTab?: "ALL" | ReturnStatusFilter;
+  searchTerm?: string;
+}
+
+const AdminOrderOtherStatus = () => {
+  document.title = "Đơn hàng trả hàng/hoàn tiền | Wanderoo";
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [returnOrders, setReturnOrders] = useState<ReturnOrderListItem[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [activePrimaryTab, setActivePrimaryTab] = useState<ReturnStatusFilter | "ALL">("ALL");
+  const [activeStatusTab, setActiveStatusTab] = useState<"ALL" | ReturnStatusFilter>("ALL");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Filter states
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("ALL");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  const mapStatusKeyToPrimaryTab = (statusKey?: string): ReturnStatusFilter | "ALL" => {
+    if (!statusKey) return "ALL";
+    switch (statusKey.toUpperCase()) {
+      case "PENDING":
+      case "APPROVED":
+        return "UNDER_REVIEW";
+      case "RECEIVING":
+        return "RETURNING";
+      case "RECEIVED":
+        return "DELIVERED";
+      case "COMPLETED":
+      case "REFUNDING":
+        return "COMPLETED";
+      case "REJECTED":
+      case "CANCELLED":
+        return "INVALID";
+      default:
+        return "ALL";
+    }
+  };
+
+  const mapPrimaryTabToBackendStatus = (tab: ReturnStatusFilter | "ALL"): string | undefined => {
+    switch (tab) {
+      case "UNDER_REVIEW":
+        return "PENDING"; // backend will include APPROVED
+      case "RETURNING":
+        return "RECEIVING"; // backend uses RECEIVING status
+      case "DELIVERED":
+        return "RECEIVED";
+      case "COMPLETED":
+        return "COMPLETED"; // backend may include REFUNDING
+      case "INVALID":
+        return "REJECTED"; // backend may include CANCELLED
+      default:
+        return undefined;
+    }
+  };
+
+  useEffect(() => {
+    const preservedState = (location.state as { returnTo?: OtherStatusNavigationState } | null)
+      ?.returnTo;
+    if (preservedState) {
+      if (preservedState.activePrimaryTab) {
+        setActivePrimaryTab(preservedState.activePrimaryTab);
+      }
+      if (preservedState.activeStatusTab) {
+        setActiveStatusTab(preservedState.activeStatusTab);
+      }
+      if (typeof preservedState.searchTerm === "string") {
+        setSearchTerm(preservedState.searchTerm);
+      }
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
+
+  const tabCounts = useMemo(() => {
+    const initialCounts: Record<ReturnStatusFilter | "ALL", number> = {
+      ALL: 0,
+      UNDER_REVIEW: 0,
+      RETURNING: 0,
+      DELIVERED: 0,
+      COMPLETED: 0,
+      INVALID: 0,
+    };
+
+    return returnOrders.reduce((acc, order) => {
+      acc.ALL += 1;
+      const tabKey = mapStatusKeyToPrimaryTab(order.statusKey);
+      if (acc[tabKey] !== undefined) {
+        acc[tabKey] += 1;
+      }
+      return acc;
+    }, initialCounts);
+  }, [returnOrders]);
+
+  const decoratedPrimaryTabs = useMemo(
+    () =>
+      primaryTabs.map((tab) => ({
+        ...tab,
+        count: tabCounts[tab.id as keyof typeof tabCounts],
+      })),
+    [tabCounts]
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    activePrimaryTab,
+    activeStatusTab,
+    sourceFilter,
+    searchTerm,
+  ]);
+
+  useEffect(() => {
+    if (activePrimaryTab !== "ALL" && activeStatusTab !== "ALL") {
+      // When a primary status tab is selected, rely on it as the filter
+      setActiveStatusTab("ALL");
+    }
+  }, [activePrimaryTab, activeStatusTab]);
+
+  const paginatedOrders = useMemo(() => {
+    return returnOrders;
+  }, [returnOrders]);
+
+
+  const sourceOptions: { value: SourceFilter; label: string }[] = [
+    { value: "ALL", label: "Tất cả nguồn" },
+    { value: "WEBSITE", label: "Website" },
+    { value: "POS", label: "POS" },
+  ];
+
+  const getSourceFilterLabel = (value: SourceFilter) => {
+    return sourceOptions.find((opt) => opt.value === value)?.label || "Tất cả nguồn";
+  };
+
+  // Fetch return orders from API
+  const fetchReturnOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params: GetReturnOrdersParams = {
+        page: currentPage - 1, // Backend uses 0-based indexing
+        size: PAGE_SIZE,
+        sortBy: "createdAt",
+        sortDir: "desc"
+      };
+
+      // Add filters
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim();
+      }
+
+      const primaryStatus = mapPrimaryTabToBackendStatus(activePrimaryTab);
+      const secondaryStatus =
+        activePrimaryTab === "ALL" ? mapPrimaryTabToBackendStatus(activeStatusTab) : undefined;
+
+      const statusFilter = primaryStatus || secondaryStatus;
+      if (statusFilter) {
+        params.status = statusFilter;
+      }
+
+      if (sourceFilter !== "ALL") {
+        params.source = sourceFilter;
+      }
+
+      if (paymentMethodFilter !== "ALL") {
+        // Map UI filter to backend parameter if needed
+        // params.paymentMethod = paymentMethodFilter;
+      }
+
+      if (dateRange?.from) {
+        params.fromDate = format(dateRange.from, "yyyy-MM-dd");
+      }
+
+      if (dateRange?.to) {
+        params.toDate = format(dateRange.to, "yyyy-MM-dd");
+      }
+
+      const response = await returnOrderService.getReturnOrders(params);
+
+      setReturnOrders(response.content);
+      setTotalPages(Math.max(1, response.totalPages));
+      setLoading(false);
+    } catch (err: any) {
+      console.error("Error fetching return orders:", err);
+      const errorMessage = err.message || "Không thể tải danh sách đơn trả hàng. Vui lòng thử lại.";
+      setError(errorMessage);
+      toast.error("Không thể tải danh sách đơn trả hàng");
+      setLoading(false);
+    }
+  }, [currentPage, activePrimaryTab, activeStatusTab, paymentMethodFilter, dateRange, searchTerm, sourceFilter]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchReturnOrders();
+    }, searchTerm ? 500 : 0); // 500ms delay for search, immediate for other changes
+
+    return () => clearTimeout(timeoutId);
+  }, [fetchReturnOrders]);
+
+  const handleViewDetail = (order: ReturnOrderListItem) => {
+    navigate(`/admin/orders/otherstatus/${order.returnOrderCode}`, {
+      state: {
+        returnOrderId: order.id.toString(),
+        returnTo: {
+          pathname: "/admin/orders/otherstatus",
+          activePrimaryTab,
+          activeStatusTab,
+          searchTerm,
+        },
+      },
+    });
+  };
+
+  // Helper functions for OrderTable
+  const getPaymentTypeStatus = (paymentType: string): ChipStatusKey => {
+    if (paymentType === "Tiền mặt") return "cash";
+    if (paymentType === "Chuyển khoản") return "transfer";
+    return "default";
+  };
+
+  const getProcessingStatus = (status: string): ChipStatusKey => {
+    if (status === "Đã hoàn thành") return "completed";
+    if (status === "Đang trả hàng") return "shipping";
+    if (status === "Đang chờ xét duyệt") return "pending";
+    if (status === "Yêu cầu không hợp lệ") return "cancelled";
+    return "default";
+  };
+
+  const getPaymentStatus = (paymentStatus: string): ChipStatusKey => {
+    if (paymentStatus === "Đã hoàn tiền đủ") return "paid";
+    if (paymentStatus === "Chưa hoàn tiền") return "unpaid";
+    if (paymentStatus === "Đã hoàn tiền 1 phần") return "transfer";
+    return "default";
+  };
+
+  // Transform ReturnOrderListItem data to match OrderTable interface
+  const transformedOrders = useMemo(() => {
+    return paginatedOrders.map((order) => {
+      // Helper function to parse variant attributes from JSON string
+      const parseVariantAttributes = (variantAttributesStr?: string): Array<{ groupName: string; value: string; groupLevel: number }> => {
+        if (!variantAttributesStr) return [];
+
+        try {
+          const attrs = typeof variantAttributesStr === 'string'
+            ? JSON.parse(variantAttributesStr)
+            : variantAttributesStr;
+
+          if (Array.isArray(attrs)) {
+            return attrs.map((attr: any, index: number) => ({
+              groupName: attr?.name || "Phân loại",
+              value: attr?.value || attr?.name || "",
+              groupLevel: index + 1,
+            })).filter((attr: any) => attr.value);
+          }
+        } catch (e) {
+          console.error("Error parsing variant attributes:", e);
+        }
+
+        return [];
+      };
+
+      // Use returnOrderDetails - required field with snapshot data
+      const products = order.returnOrderDetails && order.returnOrderDetails.length > 0
+        ? order.returnOrderDetails.map((detail) => {
+          const variantAttrs = parseVariantAttributes(detail.snapshotVariantAttributes);
+
+          return {
+            id: detail.id,
+            name: detail.snapshotProductName || "Sản phẩm không tên",
+            price: `${Number(detail.totalReturnPrice || detail.returnPrice || 0).toLocaleString("vi-VN")}₫`,
+            unitPrice: detail.returnPrice || 0,
+            quantity: detail.returnQuantity,
+            image: detail.snapshotProductImageUrl || "",
+            sku: detail.snapshotProductSku || "",
+            variantAttributes: variantAttrs,
+          };
+        })
+        : [{
+          id: 1,
+          name: "Sản phẩm không tên",
+          price: `${Number(order.totalAmount).toLocaleString("vi-VN")}₫`,
+          unitPrice: order.totalAmount,
+          quantity: 1,
+          image: "",
+          sku: "",
+          variantAttributes: [],
+        }];
+
+      const totalQuantity = products.reduce((sum, p) => sum + p.quantity, 0);
+
+      return {
+        id: order.returnOrderCode,
+        returnOrderCode: order.returnOrderCode,
+        customer: {
+          name: order.userInfo?.name || "Khách hàng",
+          username: order.userInfo?.username || "",
+          image: order.userInfo?.image || "",
+          orderCode: "", // orderCode removed from response
+        },
+        products,
+        paymentType: order.paymentMethod,
+        status: order.statusLabel,
+        paymentStatus: order.refundStatusLabel,
+        category: order.source || "Website",
+        date: order.createdAt,
+        tabStatus: order.statusKey,
+        totalAmount: order.totalAmount,
+        shippingFee: 0,
+        itemsCount: totalQuantity,
+        returnReason: order.returnReason,
+        returnReasonNote: order.returnReasonNote,
+      };
+    });
+  }, [paginatedOrders]);
+
+  // Order table columns definition
+  const orderTableColumns: OrderTableColumn[] = [
+    {
+      title: "Đơn hàng",
+      width: "flex-1",
+      minWidth: "min-w-[300px]",
+      className: "justify-start",
+    },
+    {
+      title: "Nguồn",
+      width: "w-[90px]",
+      minWidth: "min-w-[80px]",
+      className: "justify-start",
+    },
+    {
+      title: "Thanh toán",
+      width: "w-[120px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
+    },
+    {
+      title: "TT Đơn hàng",
+      width: "w-[140px]",
+      minWidth: "min-w-[140px]",
+      className: "justify-start",
+    },
+    {
+      title: "TT Hoàn tiền",
+      width: "w-[135px]",
+      minWidth: "min-w-[130px]",
+      className: "justify-start",
+    },
+    {
+      title: "Tổng tiền",
+      width: "w-[150px]",
+      minWidth: "min-w-[120px]",
+      className: "justify-start",
+    },
+    {
+      title: "Thao tác",
+      width: "w-[125px]",
+      minWidth: "min-w-[100px]",
+      className: "justify-start",
+    },
+  ];
+
+  // Handle view detail for OrderTable
+  const handleOrderTableViewDetail = (
+    orderId: string,
+    _orderStatus: string,
+    _orderSource: string
+  ) => {
+    const order = paginatedOrders.find(o =>
+      o.returnOrderCode === orderId
+    );
+    if (order) {
+      handleViewDetail(order);
+    }
+  };
+
+  return (
+    <PageContainer className="flex flex-col gap-3 w-full max-w-full">
+      <div className="flex flex-col gap-0 w-full">
+        <PageHeader title="Danh sách đơn hàng trả hàng/hoàn tiền" />
+
+        <TabMenuWithBadge
+          tabs={decoratedPrimaryTabs}
+          activeTab={activePrimaryTab}
+          onTabChange={(tabId) => setActivePrimaryTab(tabId as ReturnStatusFilter | "ALL")}
+          className="min-w-[700px]"
+        />
+
+        <ContentCard>
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center min-h-[400px] w-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#e04d30] mx-auto mb-4"></div>
+                <p className="text-gray-600">Đang tải danh sách đơn trả hàng...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+              <div className="text-red-600 mb-4">
+                <svg
+                  className="w-12 h-12 mx-auto mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">
+                Không thể tải dữ liệu
+              </h3>
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={fetchReturnOrders}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Thử lại
+              </button>
+            </div>
+          )}
+
+          {/* Content when loaded successfully */}
+          {!loading && !error && (
+            <div className="flex flex-col gap-4 w-full">
+              {/* Filters Section */}
+              <div className="flex gap-[8px] items-center w-full flex-wrap">
+                {/* Search Bar */}
+                <SearchBar
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Tìm mã đơn, ID khách hoặc tên sản phẩm..."
+                  className="flex-1 min-w-0 max-w-[400px]"
+                />
+
+                {/* Source Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
+                      <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
+                        {getSourceFilterLabel(sourceFilter)}
+                      </span>
+                      <CaretDown className="text-[#e04d30]" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {sourceOptions.map((option) => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        onClick={() => setSourceFilter(option.value)}
+                      >
+                        {option.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Date Range Filter */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="bg-white border-2 border-[#e04d30] flex gap-[4px] items-center justify-center px-[16px] py-[8px] rounded-[8px] cursor-pointer h-[40px]">
+                      <CalendarIcon className="h-4 w-4 text-[#e04d30]" />
+                      <span className="text-[#e04d30] text-[12px] font-semibold leading-[1.4] whitespace-nowrap">
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "dd/MM/yyyy")} - {format(dateRange.to, "dd/MM/yyyy")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "dd/MM/yyyy")
+                          )
+                        ) : (
+                          "Chọn ngày"
+                        )}
+                      </span>
+                      {dateRange?.from && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDateRange(undefined);
+                          }}
+                          className="ml-1 text-[#e04d30] hover:text-[#d63924]"
+                        >
+                          <XCircle className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      className="rounded-md border"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {returnOrders.length > 0 && (
+                <div className="text-sm text-gray-600 mb-2">
+                  Hiển thị {returnOrders.length} kết quả trên trang {currentPage}/{totalPages}
+                </div>
+              )}
+
+              {/* Empty state */}
+              {returnOrders.length === 0 && !loading && !error && (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 002-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                    Không tìm thấy đơn trả hàng nào
+                  </h3>
+                  <p className="text-gray-500">
+                    {searchTerm ? "Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc" : "Chưa có đơn trả hàng nào trong hệ thống"}
+                  </p>
+                </div>
+              )}
+
+              {/* Order Table */}
+              {returnOrders.length > 0 && (
+                <OrderTable
+                  columns={orderTableColumns}
+                  orders={transformedOrders}
+                  onViewDetail={handleOrderTableViewDetail}
+                  getPaymentTypeStatus={getPaymentTypeStatus}
+                  getProcessingStatus={getProcessingStatus}
+                  getPaymentStatus={getPaymentStatus}
+                />
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination
+                  current={currentPage}
+                  total={totalPages}
+                  onChange={setCurrentPage}
+                />
+              )}
+            </div>
+          )}
+        </ContentCard>
+      </div>
+    </PageContainer>
+  );
+};
+
+export default AdminOrderOtherStatus;

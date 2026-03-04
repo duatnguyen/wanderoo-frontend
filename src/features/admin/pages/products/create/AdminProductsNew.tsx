@@ -1,0 +1,3345 @@
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import type { AxiosError } from "axios";
+import { Select, Spin, Pagination } from "antd";
+import { Button } from "@/components/ui/button";
+import FormInput from "@/components/ui/form-input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  PageContainer,
+  ContentCard,
+} from "@/components/common";
+import CustomCheckbox from "@/components/ui/custom-checkbox";
+import FormField from "@/components/ui/FormField";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import ProgressIndicator from "@/components/ui/ProgressIndicator";
+import { ChevronDown } from "lucide-react";
+import { Icon } from "@/components/icons";
+import ImageUpload from "@/components/ui/image-upload";
+import type {
+  ProductFormData,
+  ProductAttribute,
+  ProductVersion,
+  EditingVersion,
+  ProductImage,
+  FormErrors,
+} from "@/types/product";
+import type { ProductCreateRequest } from "@/types/api";
+import { validateForm, validateField } from "@/utils/productValidation";
+import {
+  createProductPrivate,
+  getCategoryChildOptions,
+  getProductVariantsPrivate,
+  updateVariantPrivate,
+  updateProductPrivate,
+  updateSellingQuantityPrivate,
+  updateVariantQuantityPrivate,
+} from "@/api/endpoints/productApi";
+import { uploadProductImages, uploadFile } from "@/api/endpoints/fileApi";
+import {
+  getBrandList,
+  createBrand as createBrandApi,
+  deleteBrand as deleteBrandApi,
+} from "@/api/endpoints/attributeApi";
+import { BASE_URL } from "@/api/apiClient";
+import { toast } from "sonner";
+import "@/styles/animations.css";
+
+const formatCurrencyDisplay = (value?: string | number | null): string => {
+  if (value === null || value === undefined || value === "") {
+    return "0đ";
+  }
+  const numeric =
+    typeof value === "number"
+      ? value
+      : Number(value.toString().replace(/[^\d.-]/g, ""));
+  if (!Number.isFinite(numeric)) {
+    return "0đ";
+  }
+  // Format với dấu chấm ngăn cách hàng nghìn và thêm "đ" ở cuối (không có khoảng trắng)
+  return new Intl.NumberFormat("vi-VN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(numeric) + "đ";
+};
+
+const resolveImageUrl = (url?: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  if (url.startsWith("/")) {
+    return `${BASE_URL}${url}`;
+  }
+  return `${BASE_URL}/${url}`;
+};
+
+const CATEGORY_PAGE_SIZE = 1000; // Load tất cả categories trong một lần
+const BRAND_PAGE_SIZE = 20;
+const MAX_ATTRIBUTES = 5;
+const VARIANT_PAGE_SIZE = 20;
+
+const hasValue = (value?: string | number | null) =>
+  value !== undefined &&
+  value !== null &&
+  value !== "" &&
+  (typeof value === "string" ? value.trim().length > 0 : true);
+
+const INITIAL_FORM_DATA: ProductFormData = {
+  productName: "",
+  barcode: "",
+  category: "",
+  categoryId: null,
+  brand: "",
+  brandId: null,
+  description: "",
+  costPrice: "",
+  sellingPrice: "",
+  inventory: "",
+  available: "",
+  weight: "",
+  length: "",
+  width: "",
+  height: "",
+};
+
+type VariantPaginationState = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+interface AdminProductsNewProps {
+  mode?: "create" | "edit" | "view";
+  initialFormData?: Partial<ProductFormData>;
+  initialImages?: ProductImage[];
+  initialAttributes?: ProductAttribute[];
+  initialVersions?: ProductVersion[];
+  initialVariantPagination?: VariantPaginationState;
+  productId?: number | null;
+  onBack?: () => void;
+  title?: string;
+}
+
+const AdminProductsNew: React.FC<AdminProductsNewProps> = ({
+  mode = "create",
+  initialFormData,
+  initialImages,
+  initialAttributes,
+  initialVersions,
+  initialVariantPagination,
+  productId = null,
+  onBack,
+  title,
+}) => {
+  const [formData, setFormData] = useState<ProductFormData>({
+    ...INITIAL_FORM_DATA,
+    ...(initialFormData ?? {}),
+  });
+
+  const [showAttributes, setShowAttributes] = useState(false);
+  const [attributes, setAttributes] = useState<ProductAttribute[]>(
+    initialAttributes ?? []
+  );
+  const [newAttributeName, setNewAttributeName] = useState("");
+  const [newAttributeValueInput, setNewAttributeValueInput] = useState("");
+  const [newAttributeValues, setNewAttributeValues] = useState<string[]>([]);
+  const [attributeError, setAttributeError] = useState("");
+  const [editingAttributeIndex, setEditingAttributeIndex] = useState<number | null>(null);
+  const [isAttributeFormVisible, setIsAttributeFormVisible] = useState(true);
+  const [images, setImages] = useState<ProductImage[]>(initialImages ?? []);
+  const [versions, setVersions] = useState<ProductVersion[]>(
+    initialVersions ?? []
+  );
+  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(new Set());
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [barcodeValues, setBarcodeValues] = useState<Record<string, string>>({});
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [priceValues, setPriceValues] = useState<Record<string, string>>({});
+  const [applyAllPrice, setApplyAllPrice] = useState("");
+  const [showEditVersionModal, setShowEditVersionModal] = useState(false);
+  const [editingVersion, setEditingVersion] = useState<EditingVersion | null>(null);
+  const [editVersionError, setEditVersionError] = useState("");
+  const [editVersionFieldErrors, setEditVersionFieldErrors] = useState<Record<string, string>>({});
+  const [isSubmittingEditVersion, setIsSubmittingEditVersion] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const editVersionFileInputRef = useRef<HTMLInputElement>(null);
+  const [editingVersionImageFile, setEditingVersionImageFile] = useState<File | null>(null);
+  const [brandOptions, setBrandOptions] = useState<{ id: number; name: string }[]>([]);
+  const [showBrandModal, setShowBrandModal] = useState(false);
+  const [newBrandName, setNewBrandName] = useState("");
+  const [brandPage, setBrandPage] = useState(0);
+  const [brandHasMore, setBrandHasMore] = useState(true);
+  const [brandLoading, setBrandLoading] = useState(false);
+  const [isBrandSubmitting, setIsBrandSubmitting] = useState(false);
+  const [brandModalError, setBrandModalError] = useState("");
+  const [brandToDelete, setBrandToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeletingBrand, setIsDeletingBrand] = useState(false);
+  const [categoryOptions, setCategoryOptions] = useState<{ value: number; label: string }[]>([]);
+  const [categoryPage, setCategoryPage] = useState(0);
+  const [categoryHasMore, setCategoryHasMore] = useState(true);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<number | null>(productId);
+  const [isVariantSectionVisible, setIsVariantSectionVisible] = useState(
+    (initialVersions?.length ?? 0) > 0
+  );
+  const [variantStatusMessage, setVariantStatusMessage] = useState<string | null>(null);
+  const [inventoryErrors, setInventoryErrors] = useState<Record<string, string>>({});
+  const [updatingInventoryIds, setUpdatingInventoryIds] = useState<Set<string>>(new Set());
+  const [editingInventoryId, setEditingInventoryId] = useState<string | null>(null);
+  const [variantError, setVariantError] = useState<string | null>(null);
+  const [isVariantLoading, setIsVariantLoading] = useState(false);
+  const [variantPagination, setVariantPagination] = useState<VariantPaginationState>(
+    initialVariantPagination ?? {
+      page: 0,
+      pageSize: VARIANT_PAGE_SIZE,
+      total: 0,
+      totalPages: 0,
+    }
+  );
+  const isViewMode = mode === "view";
+  const isEditMode = mode === "edit";
+  const headingTitle =
+    title ??
+    (isViewMode
+      ? "Chi tiết sản phẩm"
+      : isEditMode
+        ? "Chỉnh sửa sản phẩm"
+        : "Thêm sản phẩm mới");
+
+  const getFieldBorderClass = (error?: string, hasValue?: boolean) => {
+    if (error) return "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]";
+    if (hasValue) return "border-[#05a660]";
+    return "border-[#d1d1d1]";
+  };
+
+  useEffect(() => {
+    if (initialFormData) {
+      setFormData((prev) => ({
+        ...prev,
+        ...initialFormData,
+      }));
+    }
+  }, [initialFormData]);
+
+  useEffect(() => {
+    if (initialImages) {
+      setImages(initialImages);
+    }
+  }, [initialImages]);
+
+  useEffect(() => {
+    if (initialAttributes) {
+      setAttributes(initialAttributes);
+      setShowAttributes(initialAttributes.length > 0);
+    }
+  }, [initialAttributes]);
+
+  useEffect(() => {
+    if (initialVersions) {
+      setVersions(initialVersions);
+      if (initialVersions.length > 0) {
+        setIsVariantSectionVisible(true);
+      }
+    }
+  }, [initialVersions]);
+
+  useEffect(() => {
+    if (initialVariantPagination) {
+      setVariantPagination(initialVariantPagination);
+    }
+  }, [initialVariantPagination]);
+
+  useEffect(() => {
+    if (typeof productId === "number" && !Number.isNaN(productId)) {
+      setCreatedProductId(productId);
+    }
+  }, [productId]);
+
+  // Form steps for progress indicator
+  const formSteps = [
+    "Thông tin cơ bản",
+    "Thuộc tính & Phiên bản",
+    "Thông tin vận chuyển",
+    "Hoàn thành"
+  ];
+
+  const handleInputChange = useCallback(
+    (field: string, value: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+
+      // Clear error when user starts typing
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: "",
+        }));
+      }
+
+      // Real-time validation cho một số field (nếu có rule)
+      const fieldError = validateField(field, value);
+      if (fieldError) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: fieldError,
+        }));
+      }
+    },
+    [errors]
+  );
+
+  // Helpers: chỉ cho phép nhập số (option: cho phép số thập phân)
+  const sanitizeNumeric = (value: string, allowDecimal = false): string => {
+    if (!value) return "";
+
+    if (allowDecimal) {
+      // Giữ lại số và dấu chấm, giới hạn 1 dấu chấm
+      const cleaned = value.replace(/[^0-9.]/g, "");
+      const parts = cleaned.split(".");
+      if (parts.length <= 1) return cleaned;
+      return parts[0] + "." + parts.slice(1).join("");
+    }
+
+    // Chỉ giữ lại chữ số
+    return value.replace(/\D/g, "");
+  };
+
+  // Helper: Format số với dấu chấm ngăn cách hàng nghìn (200000 -> 200.000)
+  const formatNumberWithDots = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined || value === "") return "";
+    const numStr = typeof value === "number" ? value.toString() : value.toString().replace(/\./g, "");
+    if (!numStr) return "";
+    const num = parseInt(numStr, 10);
+    if (isNaN(num)) return "";
+    // Format với dấu chấm theo định dạng Việt Nam (mỗi 3 chữ số một dấu chấm)
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  // Helper: Parse số từ formatted string (200.000 -> 200000)
+  const parseFormattedNumber = (value: string): string => {
+    if (!value) return "";
+    return value.replace(/\./g, "");
+  };
+
+  const handleNumericInputChange = (
+    field: keyof ProductFormData,
+    rawValue: string,
+    allowDecimal = false
+  ) => {
+    const sanitized = sanitizeNumeric(rawValue, allowDecimal);
+
+    // Format với dấu chấm cho giá vốn và giá bán (định dạng Việt Nam)
+    if (field === "costPrice" || field === "sellingPrice") {
+      const formatted = formatNumberWithDots(sanitized);
+      handleInputChange(field as string, formatted);
+    } else {
+      handleInputChange(field as string, sanitized);
+    }
+  };
+
+  const fetchProductVariants = useCallback(
+    async (productId: number, page = 0, size = VARIANT_PAGE_SIZE) => {
+      setIsVariantLoading(true);
+      setVariantError(null);
+      try {
+        const response = await getProductVariantsPrivate(productId, {
+          page,
+          size,
+          sort: "asc",
+        });
+
+        const mappedVersions: ProductVersion[] =
+          response.variants?.map((variant) => ({
+            id: String(variant.id),
+            combination: [], // Add required combination property
+            name: variant.nameDetail || variant.skuDetail || `Phiên bản #${variant.id}`,
+            price:
+              variant.sellingPrice !== undefined && variant.sellingPrice !== null
+                ? String(variant.sellingPrice)
+                : "",
+            // inventory mapping với totalQuantity (tồn kho)
+            inventory:
+              variant.totalQuantity !== undefined && variant.totalQuantity !== null
+                ? String(variant.totalQuantity)
+                : "",
+            webQuantity:
+              variant.websiteSoldQuantity !== undefined && variant.websiteSoldQuantity !== null
+                ? String(variant.websiteSoldQuantity)
+                : "",
+            posQuantity:
+              variant.posSoldQuantity !== undefined && variant.posSoldQuantity !== null
+                ? String(variant.posSoldQuantity)
+                : "",
+            // Thêm các trường còn thiếu
+            costPrice:
+              variant.importPrice !== undefined && variant.importPrice !== null
+                ? String(variant.importPrice)
+                : "",
+            barcode: variant.barcode || "",
+            sku: variant.skuDetail || "",
+            image: resolveImageUrl(variant.imageUrl),
+          })) ?? [];
+
+        setVersions(mappedVersions);
+        setSelectedVersions(new Set());
+        setVariantPagination({
+          page: response.pageNumber ?? page,
+          pageSize: response.pageSize ?? size,
+          total: response.totalElements ?? mappedVersions.length,
+          totalPages: response.totalPages ?? 1,
+        });
+      } catch (error) {
+        console.error("Không thể tải phiên bản sản phẩm", error);
+        setVariantError("Không thể tải phiên bản. Vui lòng thử lại.");
+      } finally {
+        setIsVariantLoading(false);
+      }
+    },
+    []
+  );
+
+  const handleVersionInventoryChange = (versionId: string, rawValue: string) => {
+    if (isViewMode) return;
+    const sanitized = sanitizeNumeric(rawValue, false);
+    setVersions((prev) =>
+      prev.map((v) =>
+        v.id === versionId
+          ? {
+            ...v,
+            inventory: sanitized,
+          }
+          : v
+      )
+    );
+    setInventoryErrors((prev) => {
+      if (!prev[versionId]) return prev;
+      const next = { ...prev };
+      delete next[versionId];
+      return next;
+    });
+  };
+
+  const handleInventorySubmit = async (versionId: string) => {
+    if (!createdProductId || isViewMode) return;
+
+    const version = versions.find((v) => v.id === versionId);
+    if (!version) return;
+
+    const quantity = version.inventory ? parseInt(version.inventory, 10) : 0;
+    if (isNaN(quantity) || quantity < 0) {
+      toast.error("Tồn kho phải là số không âm");
+      return;
+    }
+
+    const variantId = parseInt(versionId, 10);
+    if (isNaN(variantId)) {
+      toast.error("ID phiên bản không hợp lệ");
+      return;
+    }
+
+    setUpdatingInventoryIds((prev) => {
+      const next = new Set(prev);
+      next.add(versionId);
+      return next;
+    });
+
+    try {
+      await updateVariantQuantityPrivate({
+        id: variantId,
+        totalQuantity: quantity,
+      });
+      toast.success("Đã cập nhật tồn kho phiên bản");
+      setInventoryErrors((prev) => {
+        if (!prev[versionId]) return prev;
+        const next = { ...prev };
+        delete next[versionId];
+        return next;
+      });
+      setEditingInventoryId(null);
+      
+      // Refresh variants data from server to get updated image URLs
+      if (createdProductId) {
+        await fetchProductVariants(
+          createdProductId,
+          variantPagination.page,
+          variantPagination.pageSize
+        );
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const message =
+        axiosError.response?.data?.message ??
+        "Không thể cập nhật tồn kho phiên bản. Vui lòng thử lại.";
+      console.error("Không thể cập nhật tồn kho phiên bản:", message);
+      setInventoryErrors((prev) => ({
+        ...prev,
+        [versionId]: message,
+      }));
+      toast.error(message);
+    } finally {
+      setUpdatingInventoryIds((prev) => {
+        const next = new Set(prev);
+        next.delete(versionId);
+        return next;
+      });
+    }
+  };
+
+  // Load variants when in edit mode
+  useEffect(() => {
+    if (isEditMode && productId && !initialVersions?.length) {
+      fetchProductVariants(productId, 0, VARIANT_PAGE_SIZE);
+    }
+  }, [isEditMode, productId, initialVersions?.length, fetchProductVariants]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isViewMode) {
+      return;
+    }
+
+    // Validate form
+    const formErrors = validateForm(formData);
+
+    // Custom validation cho category và brand (bắt buộc)
+    if (!formData.categoryId) {
+      formErrors.category = "Vui lòng chọn danh mục";
+    }
+
+    if (!formData.brandId || !formData.brand) {
+      formErrors.brand = "Vui lòng chọn thương hiệu";
+    }
+
+    setErrors(formErrors);
+
+    if (Object.keys(formErrors).length > 0) {
+      console.log("Form has errors:", formErrors);
+      toast.error("Vui lòng kiểm tra lại thông tin form");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setVariantStatusMessage(
+      isEditMode
+        ? "Đang cập nhật sản phẩm..."
+        : "Đang tạo sản phẩm và tải phiên bản..."
+    );
+    setVariantError(null);
+    setIsVariantSectionVisible(true);
+
+    try {
+      const toFloat = (value: string): number => parseFloat(value) || 0;
+
+      // Upload images first if they are base64 (new uploads)
+      let imageUrls: string[] = [];
+      if (images.length > 0) {
+        const base64Images = images.filter(img => img.url.startsWith('data:image'));
+        const existingUrls = images.filter(img => !img.url.startsWith('data:image')).map(img => img.url);
+
+        if (base64Images.length > 0) {
+          setVariantStatusMessage("Đang tải ảnh lên server...");
+          const filesToUpload = base64Images
+            .filter(img => img.file)
+            .map(img => img.file!);
+
+          if (filesToUpload.length > 0) {
+            const uploadedUrls = await uploadProductImages(filesToUpload);
+            imageUrls = [...existingUrls, ...uploadedUrls];
+          } else {
+            imageUrls = existingUrls;
+          }
+        } else {
+          imageUrls = existingUrls;
+        }
+      }
+
+      if (isEditMode && productId) {
+        // Update existing product
+        const updatePayload: any = {
+          id: productId,
+          name: formData.productName.trim(),
+          description: formData.description.trim(),
+          categoryId: formData.categoryId!,
+          brandId: formData.brandId!,
+          packagedWeight: formData.weight ? toFloat(formData.weight) : 1.0,
+          length: formData.length ? toFloat(formData.length) : 1.0,
+          width: formData.width ? toFloat(formData.width) : 1.0,
+          height: formData.height ? toFloat(formData.height) : 1.0,
+        };
+
+        // Add images if uploaded
+        if (imageUrls.length > 0) {
+          updatePayload.images = imageUrls;
+        }
+
+        await updateProductPrivate(updatePayload);
+        setVariantStatusMessage(null);
+        toast.success("Đã cập nhật sản phẩm thành công!");
+
+        // Refresh variants
+        await fetchProductVariants(productId, 0, VARIANT_PAGE_SIZE);
+
+        // Call onBack to refresh product list if provided
+        if (onBack) {
+          onBack();
+        }
+      } else {
+        // Create new product
+        const payload: ProductCreateRequest = {
+          name: formData.productName.trim(),
+          description: formData.description.trim(),
+          categoryId: formData.categoryId!,
+          brandId: formData.brandId!,
+          attributes: attributes.length > 0 ? attributes.map(attr => ({
+            name: attr.name,
+            values: attr.values
+          })) : [],
+          // Required fields with default values to satisfy backend validation
+          packagedWeight: formData.weight ? toFloat(formData.weight) : 1.0,
+          length: formData.length ? toFloat(formData.length) : 1.0,
+          width: formData.width ? toFloat(formData.width) : 1.0,
+          height: formData.height ? toFloat(formData.height) : 1.0,
+          // Optional fields
+          ...(formData.costPrice && { importPrice: toFloat(parseFormattedNumber(formData.costPrice)) }),
+          ...(formData.sellingPrice && { sellingPrice: toFloat(parseFormattedNumber(formData.sellingPrice)) }),
+          ...(imageUrls.length > 0 && { images: imageUrls }),
+          ...(formData.inventory && { totalQuantity: parseInt(formData.inventory) || 0 }),
+          ...(formData.available && { availableQuantity: parseInt(formData.available) || 0 }),
+        };
+
+        console.log("Creating product with payload:", payload);
+        const creationResponse = await createProductPrivate(payload);
+        console.log("Creation response:", creationResponse);
+        const newProductId = creationResponse?.data;
+
+        if (typeof newProductId === "number") {
+          setCreatedProductId(newProductId);
+          await fetchProductVariants(newProductId, 0, VARIANT_PAGE_SIZE);
+          setVariantStatusMessage(null);
+          toast.success("Thêm sản phẩm thành công!");
+        } else {
+          console.warn("Unexpected response format:", creationResponse);
+          setVariantStatusMessage(null);
+          toast.success("Thêm sản phẩm thành công nhưng không lấy được dữ liệu phiên bản.");
+        }
+      }
+    } catch (error: any) {
+      console.error("Error submitting form:", error);
+      console.error("Error response:", error?.response);
+
+      const errorMessage = error?.response?.data?.message || error?.message ||
+        (isEditMode ? "Không thể cập nhật sản phẩm. Vui lòng thử lại." : "Không thể thêm sản phẩm. Vui lòng thử lại.");
+
+      setVariantStatusMessage(null);
+      toast.error(errorMessage);
+
+      // Hiển thị lỗi cụ thể nếu có
+      if (error?.response?.data?.errors) {
+        const backendErrors = error.response.data.errors;
+        const mappedErrors: Record<string, string> = {};
+
+        Object.keys(backendErrors).forEach(field => {
+          mappedErrors[field] = backendErrors[field];
+        });
+
+        setErrors(mappedErrors);
+      } else {
+        setErrors({
+          submit: isEditMode
+            ? "Có lỗi xảy ra khi cập nhật sản phẩm. Vui lòng thử lại."
+            : "Có lỗi xảy ra khi lưu sản phẩm. Vui lòng thử lại.",
+        });
+      }
+    } finally {
+      setVariantStatusMessage(null);
+      setIsSubmitting(false);
+    }
+  }, [attributes, fetchProductVariants, formData, images, isViewMode, isEditMode, productId, createdProductId]);
+
+  const handleCancel = () => {
+    if (isViewMode) {
+      onBack?.();
+      return;
+    }
+
+    if (isEditMode) {
+      // Edit mode: khôi phục lại dữ liệu ban đầu khi mở form chỉnh sửa
+      setFormData({
+        ...INITIAL_FORM_DATA,
+        ...(initialFormData ?? {}),
+      });
+      setImages(initialImages ?? []);
+      setAttributes(initialAttributes ?? []);
+      setNewAttributeName("");
+      setNewAttributeValueInput("");
+      setNewAttributeValues([]);
+      setAttributeError("");
+      setEditingAttributeIndex(null);
+      setIsAttributeFormVisible(true);
+      setErrors({});
+      setSelectedVersions(new Set());
+      setVersions(initialVersions ?? []);
+      setCreatedProductId(null);
+      setVariantStatusMessage(null);
+      setVariantError(null);
+      toast.success("Đã khôi phục dữ liệu ban đầu của sản phẩm.");
+      return;
+    }
+
+    // Create mode: reset về form rỗng
+    setFormData(INITIAL_FORM_DATA);
+    setImages([]);
+    setAttributes([]);
+    setNewAttributeName("");
+    setNewAttributeValueInput("");
+    setNewAttributeValues([]);
+    setAttributeError("");
+    setEditingAttributeIndex(null);
+    setIsAttributeFormVisible(true);
+    setErrors({});
+    setSelectedVersions(new Set());
+    setVersions([]);
+    setCreatedProductId(null);
+    setIsVariantSectionVisible(false);
+    setVariantStatusMessage(null);
+    setVariantError(null);
+    toast.success("Đã làm mới form. Bạn có thể nhập sản phẩm mới.");
+  };
+
+  const handleBrandModalClose = () => {
+    if (isBrandSubmitting) return;
+    setShowBrandModal(false);
+    setNewBrandName("");
+    setBrandModalError("");
+  };
+
+  const loadBrands = useCallback(async (page = 0, append = false) => {
+    setBrandLoading(true);
+    try {
+      const response = await getBrandList({ page, size: BRAND_PAGE_SIZE });
+      const mappedBrands =
+        response.content?.map((brand) => ({
+          id: brand.id,
+          name: brand.name,
+        })) ?? [];
+
+      setBrandOptions((prev) => {
+        const combined = append ? [...prev, ...mappedBrands] : mappedBrands;
+        const unique = new Map<number, { id: number; name: string }>();
+        combined.forEach((brand) => {
+          unique.set(brand.id, brand);
+        });
+        return Array.from(unique.values());
+      });
+
+      const currentPage = response.pageNumber ?? page;
+      const totalPages = response.totalPages ?? 1;
+      const last = response.last ?? currentPage + 1 >= totalPages;
+      setBrandPage(currentPage);
+      setBrandHasMore(!last);
+    } catch (error) {
+      console.error("Không thể tải danh sách thương hiệu", error);
+    } finally {
+      setBrandLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (isViewMode) return;
+    loadBrands(0, false);
+  }, [isViewMode, loadBrands]);
+
+  const handleBrandLoadMore = useCallback(() => {
+    if (brandLoading || !brandHasMore) return;
+    loadBrands(brandPage + 1, true);
+  }, [brandLoading, brandHasMore, brandPage, loadBrands]);
+
+  const handleBrandSelect = useCallback((brand?: { id: number; name: string }) => {
+    setFormData((prev) => ({
+      ...prev,
+      brand: brand?.name ?? "",
+      brandId: brand?.id ?? null,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      brand: brand ? "" : "Vui lòng chọn thương hiệu",
+    }));
+  }, []);
+
+  const handleBrandSubmit = async () => {
+    const trimmed = newBrandName.trim();
+    if (!trimmed) {
+      setBrandModalError("Vui lòng nhập tên thương hiệu");
+      return;
+    }
+
+    setIsBrandSubmitting(true);
+    setBrandModalError("");
+    try {
+      const response = await createBrandApi({ name: trimmed });
+      const newBrandId = response.data ?? Date.now();
+      const newBrand = { id: newBrandId, name: trimmed };
+      setBrandOptions((prev) => {
+        const filtered = prev.filter((brand) => brand.id !== newBrandId);
+        return [newBrand, ...filtered];
+      });
+      handleBrandSelect(newBrand);
+      toast.success("Thêm thương hiệu thành công");
+      handleBrandModalClose();
+    } catch (error) {
+      console.error("Không thể thêm thương hiệu", error);
+      setBrandModalError("Không thể thêm thương hiệu. Vui lòng thử lại.");
+    } finally {
+      setIsBrandSubmitting(false);
+    }
+  };
+
+  const handleConfirmDeleteBrand = async () => {
+    if (!brandToDelete) return;
+    setIsDeletingBrand(true);
+    try {
+      await deleteBrandApi(brandToDelete.id);
+      setBrandOptions((prev) =>
+        prev.filter((brand) => brand.id !== brandToDelete.id)
+      );
+      if (formData.brandId === brandToDelete.id) {
+        setFormData((prev) => ({
+          ...prev,
+          brandId: null,
+          brand: "",
+        }));
+        setErrors((prev) => ({
+          ...prev,
+          brand: "Vui lòng chọn thương hiệu",
+        }));
+      }
+      toast.success("Xóa thương hiệu thành công");
+      setBrandToDelete(null);
+    } catch (error) {
+      console.error("Không thể xóa thương hiệu", error);
+      toast.error("Xóa thương hiệu thất bại. Vui lòng thử lại.");
+    } finally {
+      setIsDeletingBrand(false);
+    }
+  };
+
+  const loadCategories = useCallback(async (page = 0, append = false) => {
+    setCategoryLoading(true);
+    try {
+      const response = await getCategoryChildOptions({
+        page,
+        size: CATEGORY_PAGE_SIZE,
+      });
+
+      const mappedOptions =
+        response.categoryChildResponseList?.map((item: any) => ({
+          value: item.id,
+          label: item.name,
+        })) ?? [];
+
+      setCategoryOptions((prev) => {
+        const combined = append ? [...prev, ...mappedOptions] : mappedOptions;
+        const unique = new Map<number, { value: number; label: string }>();
+        combined.forEach((option) => {
+          unique.set(option.value, option);
+        });
+        return Array.from(unique.values());
+      });
+
+      const currentPage = response.pageNumber ?? page;
+      const totalPages = response.totalPages ?? 1;
+      setCategoryPage(currentPage);
+      setCategoryHasMore(currentPage + 1 < totalPages);
+    } catch (error) {
+      console.error("Không thể tải danh mục con", error);
+    } finally {
+      setCategoryLoading(false);
+    }
+  }, []);
+
+  const handleVariantPageChange = useCallback(
+    (page: number, pageSize?: number) => {
+      if (!createdProductId) return;
+      fetchProductVariants(createdProductId, page - 1, pageSize ?? variantPagination.pageSize);
+    },
+    [createdProductId, fetchProductVariants, variantPagination.pageSize]
+  );
+
+  React.useEffect(() => {
+    if (isViewMode) return;
+    loadCategories(0, false);
+  }, [isViewMode, loadCategories]);
+
+  const handleCategoryLoadMore = useCallback(() => {
+    if (categoryLoading || !categoryHasMore) return;
+    loadCategories(categoryPage + 1, true);
+  }, [categoryLoading, categoryHasMore, categoryPage, loadCategories]);
+
+  const handleCategorySelect = useCallback(
+    (value?: number) => {
+      const selectedOption = categoryOptions.find(
+        (option) => option.value === value
+      );
+      const label = selectedOption?.label ?? "";
+
+      setFormData((prev) => ({
+        ...prev,
+        categoryId: typeof value === "number" ? value : null,
+        category: label,
+      }));
+
+      const fieldError = validateField("category", label);
+      setErrors((prev) => ({
+        ...prev,
+        category: fieldError,
+      }));
+    },
+    [categoryOptions]
+  );
+
+  const normalizeAttributeName = (value: string) => value.trim().toLowerCase();
+
+  const resetAttributeDraft = useCallback(() => {
+    setNewAttributeName("");
+    setNewAttributeValueInput("");
+    setNewAttributeValues([]);
+    setAttributeError("");
+    setEditingAttributeIndex(null);
+  }, []);
+
+  const attributeNameExists = useCallback(
+    (name: string, ignoreIndex: number | null = null) =>
+      attributes.some(
+        (attr, index) =>
+          index !== ignoreIndex &&
+          normalizeAttributeName(attr.name) === normalizeAttributeName(name)
+      ),
+    [attributes]
+  );
+
+  const handleAddAttribute = () => {
+    if (isViewMode) return;
+    setShowAttributes(true);
+    setIsAttributeFormVisible(true);
+    resetAttributeDraft();
+  };
+
+  // Quay lại chế độ nhập thông tin bán hàng (không dùng thuộc tính)
+  const handleCancelAttributes = () => {
+    if (isViewMode) return;
+    setShowAttributes(false);
+    setIsAttributeFormVisible(false);
+    setEditingAttributeIndex(null);
+    setAttributes([]);
+    resetAttributeDraft();
+    setAttributeError("");
+  };
+
+  const handleRemoveExistingAttributeValue = (
+    attrIndex: number,
+    valueIndex: number
+  ) => {
+    if (isViewMode) return;
+    setAttributes((prev) => {
+      const updated = [...prev];
+      const newValues = updated[attrIndex].values.filter((_, i) => i !== valueIndex);
+
+      if (newValues.length === 0) {
+        const filtered = updated.filter((_, i) => i !== attrIndex);
+        if (filtered.length === 0) {
+          setShowAttributes(false);
+          setIsAttributeFormVisible(true);
+        }
+
+        if (editingAttributeIndex === attrIndex) {
+          resetAttributeDraft();
+        } else if (editingAttributeIndex !== null && editingAttributeIndex > attrIndex) {
+          setEditingAttributeIndex((prev) => (prev !== null ? prev - 1 : prev));
+        }
+
+        return filtered;
+      }
+
+      updated[attrIndex] = {
+        ...updated[attrIndex],
+        values: newValues,
+      };
+      return updated;
+    });
+  };
+
+  const handleDeleteAttribute = (index: number) => {
+    if (isViewMode) return;
+    const isEditingDeletedAttribute = editingAttributeIndex === index;
+
+    setAttributes((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      if (updated.length === 0) {
+        setShowAttributes(false);
+        setIsAttributeFormVisible(true);
+      }
+      return updated;
+    });
+
+    if (isEditingDeletedAttribute) {
+      resetAttributeDraft();
+    } else if (editingAttributeIndex !== null && editingAttributeIndex > index) {
+      setEditingAttributeIndex((prev) => (prev !== null ? prev - 1 : prev));
+    }
+  };
+
+  const handleRemoveNewAttributeValue = (index: number) => {
+    if (isViewMode) return;
+    setNewAttributeValues((prev) => prev.filter((_, i) => i !== index));
+    setAttributeError("");
+  };
+
+  const handleEditAttribute = (index: number) => {
+    if (isViewMode) return;
+    const targetAttribute = attributes[index];
+    if (!targetAttribute) return;
+
+    setShowAttributes(true);
+    setIsAttributeFormVisible(true);
+    setEditingAttributeIndex(index);
+    setNewAttributeName(targetAttribute.name);
+    setNewAttributeValues(targetAttribute.values);
+    setNewAttributeValueInput("");
+    setAttributeError("");
+  };
+
+  const handleCancelEditingAttribute = () => {
+    if (isViewMode) return;
+    resetAttributeDraft();
+    setIsAttributeFormVisible(false);
+  };
+
+  const handleSubmitNewAttribute = useCallback(() => {
+    if (isViewMode) return;
+    const trimmedName = newAttributeName.trim();
+    if (!trimmedName) {
+      setAttributeError("Tên thuộc tính không được để trống.");
+      return;
+    }
+
+    const isEditing = editingAttributeIndex !== null;
+    if (attributeNameExists(trimmedName, isEditing ? editingAttributeIndex : null)) {
+      setAttributeError("Tên thuộc tính đã tồn tại.");
+      return;
+    }
+
+    if (newAttributeValues.length === 0) {
+      setAttributeError("Phải có ít nhất một giá trị cho thuộc tính.");
+      return;
+    }
+
+    if (!isEditing && attributes.length >= MAX_ATTRIBUTES) {
+      setAttributeError(`Chỉ được thêm tối đa ${MAX_ATTRIBUTES} thuộc tính.`);
+      return;
+    }
+
+    if (isEditing) {
+      setAttributes((prev) =>
+        prev.map((attr, index) =>
+          index === editingAttributeIndex ? { name: trimmedName, values: newAttributeValues } : attr
+        )
+      );
+    } else {
+      setAttributes((prev) => [...prev, { name: trimmedName, values: newAttributeValues }]);
+      setShowAttributes(true);
+    }
+
+    resetAttributeDraft();
+    setIsAttributeFormVisible(false);
+  }, [attributeNameExists, attributes.length, editingAttributeIndex, isViewMode, newAttributeName, newAttributeValues, resetAttributeDraft]);
+
+  const handleNewAttributeValueKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (isViewMode) return;
+    if (e.key !== "Enter") return;
+
+    if (e.nativeEvent.isComposing) {
+      return;
+    }
+
+    e.preventDefault();
+    const trimmedValue = newAttributeValueInput.trim();
+
+    if (!trimmedValue) {
+      if (newAttributeValues.length > 0) {
+        handleSubmitNewAttribute();
+      }
+      return;
+    }
+
+    const exists = newAttributeValues.some(
+      (value) => normalizeAttributeName(value) === normalizeAttributeName(trimmedValue)
+    );
+
+    if (exists) {
+      setAttributeError("Giá trị thuộc tính đã tồn tại.");
+      return;
+    }
+
+    setNewAttributeValues((prev) => [...prev, trimmedValue]);
+    setNewAttributeValueInput("");
+    setAttributeError("");
+  };
+
+  const canAddMoreAttributes = attributes.length < MAX_ATTRIBUTES;
+  const shouldShowAttributeForm =
+    !isViewMode &&
+    (editingAttributeIndex !== null || (isAttributeFormVisible && canAddMoreAttributes));
+  const canSubmitAttribute =
+    !isViewMode &&
+    newAttributeName.trim() !== "" &&
+    newAttributeValues.length > 0 &&
+    !attributeNameExists(newAttributeName, editingAttributeIndex) &&
+    (editingAttributeIndex !== null || canAddMoreAttributes);
+
+  useEffect(() => {
+    if (attributes.length === 0) {
+      setIsAttributeFormVisible(true);
+    }
+  }, [attributes.length]);
+
+  useEffect(() => {
+    if (isViewMode) {
+      setCurrentStep(formSteps.length - 1);
+    }
+  }, [isViewMode]);
+
+  // Memoized version calculation
+  const handleVersionToggle = (versionId: string) => {
+    if (isViewMode) return;
+    setSelectedVersions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(versionId)) {
+        newSet.delete(versionId);
+      } else {
+        newSet.add(versionId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (isViewMode) return;
+    if (checked) {
+      setSelectedVersions(new Set(versions.map((v) => v.id)));
+    } else {
+      setSelectedVersions(new Set());
+    }
+  };
+
+  const handleEditBarcode = () => {
+    if (isViewMode) return;
+    // Initialize barcode values for selected versions
+    const initialValues: Record<string, string> = {};
+    selectedVersions.forEach((versionId) => {
+      const version = versions.find((v) => v.id === versionId);
+      if (version) {
+        initialValues[versionId] = ""; // You can set existing barcode here if available
+      }
+    });
+    setBarcodeValues(initialValues);
+    setShowBarcodeModal(true);
+  };
+
+  const handleBarcodeChange = (versionId: string, value: string) => {
+    if (isViewMode) return;
+    setBarcodeValues((prev) => ({
+      ...prev,
+      [versionId]: value,
+    }));
+  };
+
+  const handleBarcodeCancel = () => {
+    setShowBarcodeModal(false);
+    setBarcodeValues({});
+  };
+
+  const handleBarcodeConfirm = () => {
+    // TODO: Save barcode values
+    console.log("Barcode values:", barcodeValues);
+    setShowBarcodeModal(false);
+    setBarcodeValues({});
+  };
+
+  const handleEditPrice = () => {
+    if (isViewMode) return;
+    // Initialize price values for selected versions
+    const initialValues: Record<string, string> = {};
+    selectedVersions.forEach((versionId) => {
+      const version = versions.find((v) => v.id === versionId);
+      if (version && version.price) {
+        // Format giá trị với dấu chấm
+        initialValues[versionId] = formatNumberWithDots(version.price);
+      } else {
+        initialValues[versionId] = "";
+      }
+    });
+    setPriceValues(initialValues);
+    setApplyAllPrice("");
+    setShowPriceModal(true);
+  };
+
+  const handlePriceChange = (versionId: string, value: string) => {
+    if (isViewMode) return;
+    // Chỉ cho phép số và format với dấu chấm
+    const sanitized = sanitizeNumeric(value, false);
+    const formatted = formatNumberWithDots(sanitized);
+    setPriceValues((prev) => ({
+      ...prev,
+      [versionId]: formatted,
+    }));
+  };
+
+  const handleApplyAllPrice = () => {
+    if (isViewMode) return;
+    if (applyAllPrice) {
+      // Format giá trị với dấu chấm
+      const sanitized = sanitizeNumeric(applyAllPrice, false);
+      const formatted = formatNumberWithDots(sanitized);
+      const updatedValues: Record<string, string> = {};
+      selectedVersions.forEach((versionId) => {
+        updatedValues[versionId] = formatted;
+      });
+      setPriceValues(updatedValues);
+    }
+  };
+
+  const handlePriceCancel = () => {
+    setShowPriceModal(false);
+    setPriceValues({});
+    setApplyAllPrice("");
+  };
+
+  const handlePriceConfirm = async () => {
+    if (isViewMode || !createdProductId) return;
+
+    // Validate và collect price updates
+    const updates: Array<{ variantId: number; sellingPrice: number }> = [];
+
+    for (const [versionId, priceValue] of Object.entries(priceValues)) {
+      if (!priceValue || !priceValue.trim()) continue;
+
+      // Parse giá trị (có thể có dấu chấm hoặc không)
+      const parsedValue = parseFormattedNumber(priceValue);
+      const sellingPrice = parseFloat(parsedValue);
+
+      if (isNaN(sellingPrice) || sellingPrice < 0) {
+        toast.error(`Giá không hợp lệ cho phiên bản ${versionId}`);
+        return;
+      }
+
+      const variantId = parseInt(versionId, 10);
+      if (isNaN(variantId)) {
+        toast.error(`ID phiên bản không hợp lệ: ${versionId}`);
+        return;
+      }
+
+      updates.push({ variantId, sellingPrice });
+    }
+
+    if (updates.length === 0) {
+      toast.error("Vui lòng nhập ít nhất một giá");
+      return;
+    }
+
+    try {
+      // Update tất cả các biến thể được chọn
+      await Promise.all(
+        updates.map(({ variantId, sellingPrice }) =>
+          updateVariantPrivate({
+            id: variantId,
+            sellingPrice: sellingPrice,
+          } as any)
+        )
+      );
+
+      toast.success(`Đã cập nhật giá cho ${updates.length} phiên bản thành công`);
+
+      // Refresh danh sách biến thể
+      await fetchProductVariants(
+        createdProductId,
+        variantPagination.page,
+        variantPagination.pageSize
+      );
+
+      setShowPriceModal(false);
+      setPriceValues({});
+      setApplyAllPrice("");
+    } catch (error) {
+      console.error("Error updating prices:", error);
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage =
+        axiosError?.response?.data?.message || axiosError?.message;
+      const finalMessage =
+        backendMessage || "Không thể cập nhật giá. Vui lòng thử lại.";
+      toast.error(finalMessage);
+    }
+  };
+
+  const handleVersionRowClick = (versionId: string) => {
+    if (isViewMode) return;
+    const version = versions.find((v) => v.id === versionId);
+    if (version) {
+      // Format giá vốn và giá bán với dấu chấm khi khởi tạo
+      const formattedCostPrice = version.costPrice
+        ? formatNumberWithDots(version.costPrice)
+        : "";
+      const formattedSellingPrice = version.price
+        ? formatNumberWithDots(version.price)
+        : "";
+
+      setEditingVersion({
+        id: version.id,
+        name: version.name,
+        barcode: version.barcode || "",
+        costPrice: formattedCostPrice,
+        sellingPrice: formattedSellingPrice,
+        inventory: version.inventory || "",
+        webQuantity: version.webQuantity || "",
+        posQuantity: version.posQuantity || "",
+        image: version.image || "",
+        sku: version.sku || "",
+      });
+      setEditVersionError("");
+      setShowEditVersionModal(true);
+    } else {
+      console.warn("Version not found:", versionId);
+      toast.error("Không tìm thấy phiên bản sản phẩm");
+    }
+  };
+
+  const handleEditVersionChange = (field: string, value: string) => {
+    if (editingVersion) {
+      setEditVersionError("");
+
+      // Validate và format cho các trường số (trừ barcode)
+      if (field !== "barcode" && field !== "name" && field !== "image" && field !== "sku") {
+        // Chỉ cho phép số
+        const sanitized = sanitizeNumeric(value, false);
+
+        // Format với dấu chấm chỉ cho giá vốn và giá bán (định dạng Việt Nam)
+        let formatted = sanitized;
+        if (field === "costPrice" || field === "sellingPrice") {
+          formatted = formatNumberWithDots(sanitized);
+        }
+
+        // Clear error khi có giá trị
+        if (sanitized && editVersionFieldErrors[field]) {
+          setEditVersionFieldErrors((prev) => {
+            const next = { ...prev };
+            delete next[field];
+            return next;
+          });
+        }
+
+        // Set error nếu required và empty
+        if ((field === "costPrice" || field === "sellingPrice" || field === "webQuantity" || field === "posQuantity") && !sanitized) {
+          setEditVersionFieldErrors((prev) => ({
+            ...prev,
+            [field]: "Trường này là bắt buộc",
+          }));
+        }
+
+        setEditingVersion({
+          ...editingVersion,
+          [field]: formatted, // Lưu formatted value để hiển thị
+        });
+      } else {
+        // Barcode và các trường khác không format
+        setEditingVersion({
+          ...editingVersion,
+          [field]: value,
+        });
+      }
+    }
+  };
+
+  const handleEditVersionImageClick = () => {
+    editVersionFileInputRef.current?.click();
+  };
+
+  const handleEditVersionImageUpload = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !editingVersion) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(`${file.name} vượt quá dung lượng 2MB`);
+      event.target.value = "";
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error(`${file.name} không phải là file hình ảnh`);
+      event.target.value = "";
+      return;
+    }
+
+    // Lưu file để upload sau
+    setEditingVersionImageFile(file);
+
+    // Preview với base64
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (result && typeof result === "string" && editingVersion) {
+        setEditingVersion({
+          ...editingVersion,
+          image: result,
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const handleEditVersionCancel = () => {
+    setShowEditVersionModal(false);
+    setEditingVersion(null);
+    setEditVersionError("");
+    setEditVersionFieldErrors({});
+    setIsSubmittingEditVersion(false);
+    setEditingVersionImageFile(null);
+  };
+
+  const handleEditVersionConfirm = async () => {
+    if (!editingVersion) return;
+
+    setEditVersionError("");
+
+    // Validate required fields
+    const fieldErrors: Record<string, string> = {};
+    if (!editingVersion.costPrice || !parseFormattedNumber(editingVersion.costPrice)) {
+      fieldErrors.costPrice = "Trường này là bắt buộc";
+    }
+    if (!editingVersion.sellingPrice || !parseFormattedNumber(editingVersion.sellingPrice)) {
+      fieldErrors.sellingPrice = "Trường này là bắt buộc";
+    }
+    if (!editingVersion.webQuantity || !parseFormattedNumber(editingVersion.webQuantity)) {
+      fieldErrors.webQuantity = "Trường này là bắt buộc";
+    }
+    if (!editingVersion.posQuantity || !parseFormattedNumber(editingVersion.posQuantity)) {
+      fieldErrors.posQuantity = "Trường này là bắt buộc";
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      setEditVersionFieldErrors(fieldErrors);
+      toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
+      setIsSubmittingEditVersion(false);
+      return;
+    }
+
+    setIsSubmittingEditVersion(true);
+
+    try {
+      const variantId = parseInt(editingVersion.id, 10);
+      if (isNaN(variantId)) {
+        toast.error("ID phiên bản không hợp lệ");
+        setIsSubmittingEditVersion(false);
+        return;
+      }
+
+      const updateData: any = {
+        id: variantId,
+      };
+
+      // Only include fields that have values
+      if (editingVersion.barcode && editingVersion.barcode.trim()) {
+        updateData.barcode = editingVersion.barcode.trim();
+      }
+
+      if (editingVersion.sellingPrice && editingVersion.sellingPrice.trim()) {
+        // Parse từ formatted string (200.000 -> 200000)
+        const parsedValue = parseFormattedNumber(editingVersion.sellingPrice);
+        const sellingPrice = parseFloat(parsedValue);
+        if (!isNaN(sellingPrice)) {
+          updateData.sellingPrice = sellingPrice;
+        }
+      }
+
+      if (editingVersion.costPrice && editingVersion.costPrice.trim()) {
+        // Parse từ formatted string (200.000 -> 200000)
+        const parsedValue = parseFormattedNumber(editingVersion.costPrice);
+        const importPrice = parseFloat(parsedValue);
+        if (!isNaN(importPrice)) {
+          updateData.importPrice = importPrice;
+        }
+      }
+
+      // Upload image if it's a new file, otherwise use existing URL
+      if (editingVersion.image && editingVersion.image.trim()) {
+        if (editingVersionImageFile) {
+          // Upload new image file
+          try {
+            const uploadedUrl = await uploadFile(editingVersionImageFile, 'products');
+            updateData.imageUrl = [uploadedUrl];
+          } catch (error) {
+            toast.error("Không thể tải ảnh lên server");
+            setIsSubmittingEditVersion(false);
+            return;
+          }
+        } else if (!editingVersion.image.startsWith('data:image')) {
+          // Already a URL (not base64), use it directly
+          updateData.imageUrl = [editingVersion.image];
+        }
+        // If base64 but no file, skip (shouldn't happen but safe fallback)
+      }
+
+      // Parse từ formatted string (300 -> 300)
+      const webQty = parseInt(parseFormattedNumber(editingVersion.webQuantity || "0"), 10);
+      const posQty = parseInt(parseFormattedNumber(editingVersion.posQuantity || "0"), 10);
+
+      await Promise.all([
+        updateVariantPrivate(updateData),
+        updateSellingQuantityPrivate({
+          id: variantId,
+          sellingQuantityWeb: webQty,
+          sellingQuantityPos: posQty,
+        }),
+      ]);
+
+      toast.success("Đã cập nhật phiên bản thành công");
+      setShowEditVersionModal(false);
+      setEditingVersion(null);
+      setEditVersionError("");
+      setEditVersionFieldErrors({});
+      setEditingVersionImageFile(null);
+
+      if (createdProductId) {
+        fetchProductVariants(
+          createdProductId,
+          variantPagination.page,
+          variantPagination.pageSize
+        ).catch((error) => {
+          console.error(
+            "Không thể tải lại danh sách phiên bản sau khi cập nhật:",
+            error
+          );
+        });
+      }
+    } catch (error) {
+      console.error("Error updating variant:", error);
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage =
+        axiosError?.response?.data?.message || axiosError?.message;
+      const finalMessage =
+        backendMessage || "Không thể cập nhật phiên bản. Vui lòng thử lại.";
+      setEditVersionError(finalMessage);
+      toast.error(finalMessage);
+    } finally {
+      setIsSubmittingEditVersion(false);
+    }
+  };
+
+  const selectedCount = selectedVersions.size;
+
+  // Update current step based on form progress
+  React.useEffect(() => {
+    if (formData.productName && formData.brand && formData.description) {
+      setCurrentStep(1);
+      if (showAttributes && attributes.length > 0) {
+        setCurrentStep(2);
+      }
+      if (formData.weight) {
+        setCurrentStep(3);
+      }
+    } else {
+      setCurrentStep(0);
+    }
+  }, [formData, showAttributes, attributes]);
+
+  return (
+
+    <PageContainer>
+      {/* Header */}
+      <div className="flex flex-col gap-4 mb-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-[28px] font-bold text-[#272424] font-montserrat leading-[120%]">
+            {headingTitle}
+          </h1>
+          {isViewMode && onBack && (
+            <Button variant="secondary" onClick={onBack}>
+              Quay lại
+            </Button>
+          )}
+        </div>
+
+        {/* Progress Indicator */}
+        <ProgressIndicator
+          currentStep={currentStep}
+          steps={formSteps}
+          className="animate-fadeIn"
+        />
+      </div>
+
+      <ContentCard>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[22px] w-full">
+          {/* Image Upload Section */}
+          <ImageUpload
+            images={images}
+            onImagesChange={setImages}
+            maxImages={9}
+            maxSizeInMB={2}
+            readOnly={isViewMode}
+          />
+
+          {/* Basic Information Section */}
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-6 card-hover animate-slideIn">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[18px] font-bold text-[#272424] font-montserrat">
+                Thông tin cơ bản
+              </h2>
+            </div>
+
+            <div className="flex flex-col gap-6">
+              {/* Product Name */}
+              <div className="flex flex-col gap-4">
+                <FormField
+                  label="Tên sản phẩm"
+                  required
+                  error={errors.productName}
+                  success={!errors.productName && formData.productName.length > 2}
+                  hint="Tên sản phẩm nên ngắn gọn và dễ hiểu"
+                  className="flex-1"
+                >
+                  <FormInput
+                    placeholder="Nhập tên sản phẩm"
+                    value={formData.productName}
+                    onChange={(e) =>
+                      handleInputChange("productName", e.target.value)
+                    }
+                    containerClassName={`h-[40px] px-4 transition-all duration-200 hover-lift input-focus-ring ${errors.productName ? 'error-border' :
+                      !errors.productName && formData.productName.length > 2 ? 'success-border' : ''
+                      }`}
+                    readOnly={isViewMode}
+                    disabled={isViewMode}
+                  />
+                </FormField>
+              </div>
+
+              {/* Category and Brand */}
+              <div className="flex flex-col md:flex-row gap-4">
+                <FormField
+                  label="Danh mục"
+                  error={errors.category}
+                  success={!errors.category && !!formData.categoryId}
+                  className="flex-1"
+                >
+                  <div
+                    className={`bg-white rounded-[12px] border-2 ${getFieldBorderClass(
+                      errors.category,
+                      !!formData.categoryId
+                    )} flex items-center px-2 h-[40px] transition-colors`}
+                  >
+                    <Select<number>
+                      bordered={false}
+                      placeholder="Chọn danh mục"
+                      value={formData.categoryId ?? undefined}
+                      onChange={(value) =>
+                        handleCategorySelect(value as number | undefined)
+                      }
+                      onClear={() => handleCategorySelect(undefined)}
+                      allowClear={!isViewMode}
+                      disabled={isViewMode}
+                      suffixIcon={
+                        <ChevronDown className="w-4 h-4 text-[#322f30]" />
+                      }
+                      style={{ width: "100%" }}
+                      loading={categoryLoading && categoryOptions.length === 0}
+                      notFoundContent={
+                        categoryLoading ? (
+                          <div className="py-2 text-center">
+                            <Spin size="small" />
+                          </div>
+                        ) : (
+                          "Không có danh mục"
+                        )
+                      }
+                      dropdownRender={
+                        isViewMode
+                          ? undefined
+                          : (menu) => (
+                            <>
+                              {menu}
+                              <div className="px-3 py-2 border-t border-gray-100">
+                                {categoryHasMore ? (
+                                  <button
+                                    type="button"
+                                    onClick={handleCategoryLoadMore}
+                                    disabled={categoryLoading}
+                                    className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
+                                  >
+                                    {categoryLoading ? (
+                                      <Spin size="small" />
+                                    ) : (
+                                      "Tải thêm danh mục..."
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-400">
+                                    Đã tải tất cả danh mục
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )
+                      }
+                      options={categoryOptions}
+                      popupClassName="category-select-dropdown"
+                    />
+                  </div>
+                </FormField>
+
+                <FormField
+                  label="Thương hiệu"
+                  required
+                  error={errors.brand}
+                  success={!errors.brand && !!formData.brandId}
+                  className="flex-1"
+                >
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className={`bg-white border-2 ${getFieldBorderClass(
+                          errors.brand,
+                          !!formData.brandId
+                        )} flex items-center justify-between px-4 rounded-[12px] w-full h-[40px] transition-colors`}
+                        disabled={isViewMode}
+                      >
+                        <span
+                          className={`text-[14px] font-semibold ${formData.brand ? "text-[#272424]" : "text-[#888888]"
+                            }`}
+                        >
+                          {formData.brand || "Chọn thương hiệu"}
+                        </span>
+                        <ChevronDown className="w-5 h-5 text-[#322f30]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    {!isViewMode && (
+                      <DropdownMenuContent
+                        align="start"
+                        className="min-w-[240px]"
+                      >
+                        <div className="max-h-64 overflow-y-auto">
+                          {brandOptions.length === 0 && (
+                            <div className="px-4 py-2 text-sm text-gray-500">
+                              {brandLoading ? "Đang tải thương hiệu..." : "Chưa có thương hiệu"}
+                            </div>
+                          )}
+                          {brandOptions.map((brand) => (
+                            <DropdownMenuItem
+                              key={brand.id}
+                              className="flex items-center justify-between gap-3 text-[14px] font-semibold text-[#272424]"
+                              onClick={() => handleBrandSelect(brand)}
+                            >
+                              <span>{brand.name}</span>
+                              <button
+                                type="button"
+                                className="text-[#f44336] hover:text-[#d32f2f]"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setBrandToDelete(brand);
+                                }}
+                                title={`Xóa ${brand.name}`}
+                              >
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M3 6H5H21"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <div className="px-4 py-2">
+                          {brandHasMore ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleBrandLoadMore();
+                              }}
+                              disabled={brandLoading}
+                              className="text-[#1a71f6] text-sm font-semibold flex items-center gap-2"
+                            >
+                              {brandLoading ? <Spin size="small" /> : "Tải thêm thương hiệu..."}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Đã tải tất cả thương hiệu
+                            </span>
+                          )}
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setShowBrandModal(true)}
+                          className="text-[#E04D30] font-semibold flex items-center gap-2"
+                        >
+                          <Icon name="plus" size={16} color="#E04D30" />
+                          Thêm thương hiệu mới
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    )}
+                  </DropdownMenu>
+                </FormField>
+              </div>
+
+              {/* Description */}
+              <FormField
+                label="Mô tả sản phẩm"
+                required
+                error={errors.description}
+                success={!errors.description && formData.description.length >= 10}
+              >
+                <textarea
+                  className={`bg-white border-2 ${getFieldBorderClass(
+                    errors.description,
+                    formData.description.length >= 10
+                  )} p-4 rounded-[12px] w-full h-[141px] resize-none outline-none text-[14px] font-semibold placeholder:text-[#888888] text-[#444] transition-colors`}
+                  placeholder="Nhập mô tả sản phẩm"
+                  value={formData.description}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
+                  readOnly={isViewMode}
+                  disabled={isViewMode}
+                />
+              </FormField>
+            </div>
+          </div>
+
+          {/* Sales Information Section - Conditionally render based on showAttributes */}
+          {!showAttributes && !isEditMode ? (
+            <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
+              <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+                Thông tin bán hàng
+              </h2>
+
+              <div className="flex flex-col gap-4">
+                {/* Attributes Section */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1">
+                    <h3 className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                      Thuộc tính
+                    </h3>
+                  </div>
+                  {!isViewMode && (
+                    <Button
+                      variant="secondary"
+                      className="w-fit flex items-center gap-2 text-[14px]"
+                      type="button"
+                      onClick={handleAddAttribute}
+                    >
+                      <Icon name="plus" size={16} color="#e04d30" />
+                      Thêm thuộc tính
+                    </Button>
+                  )}
+                </div>
+
+                {/* Cost Price and Selling Price */}
+                <div className="flex gap-4">
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                      Giá vốn
+                    </label>
+                    <FormInput
+                      placeholder="Nhập giá vốn"
+                      value={formData.costPrice}
+                      onChange={(e) =>
+                        handleNumericInputChange("costPrice", e.target.value)
+                      }
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.costPrice,
+                        hasValue(formData.costPrice)
+                      )}`}
+                      readOnly={isViewMode}
+                      disabled={isViewMode}
+                    />
+                  </div>
+
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                      Giá bán
+                    </label>
+                    <FormInput
+                      placeholder="Nhập giá bán"
+                      value={formData.sellingPrice}
+                      onChange={(e) =>
+                        handleNumericInputChange("sellingPrice", e.target.value)
+                      }
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.sellingPrice,
+                        hasValue(formData.sellingPrice)
+                      )}`}
+                      readOnly={isViewMode}
+                      disabled={isViewMode}
+                    />
+                  </div>
+                </div>
+
+                {/* Inventory */}
+                <div className="flex gap-4">
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                      Tồn kho
+                    </label>
+                    <FormInput
+                      placeholder="Nhập số lượng tồn kho"
+                      value={formData.inventory}
+                      onChange={(e) =>
+                        handleNumericInputChange("inventory", e.target.value)
+                      }
+                      containerClassName={`h-[36px] px-4 ${getFieldBorderClass(
+                        errors.inventory,
+                        hasValue(formData.inventory)
+                      )}`}
+                      readOnly={isViewMode}
+                      disabled={isViewMode}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+                    Thuộc tính
+                  </h2>
+                  <span className="text-sm text-gray-500">
+                    {attributes.length}/{MAX_ATTRIBUTES}
+                  </span>
+                </div>
+
+                {!isViewMode && !isEditMode && (
+                  <button
+                    type="button"
+                    onClick={handleCancelAttributes}
+                    className="text-[13px] font-semibold text-[#1a71f6] hover:text-[#0f5ad8] underline-offset-2 hover:underline transition-colors"
+                  >
+                    Quay lại
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {attributes.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    Chưa có thuộc tính nào. Hãy thêm thuộc tính đầu tiên bên dưới.
+                  </p>
+                ) : (
+                  attributes.map((attribute, index) => {
+                    const isEditingAttribute = editingAttributeIndex === index;
+                    return (
+                      <div
+                        key={`${attribute.name}-${index}`}
+                        className={`border rounded-[12px] px-4 py-3 flex flex-col gap-2 transition-all ${isEditingAttribute ? "border-[#1a71f6] bg-[#f5f9ff]" : "border-[#e7e7e7]"
+                          }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="w-[28%] min-w-[200px]">
+                            <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                              {attribute.name}
+                              {isEditingAttribute && (
+                                <span className="ml-2 text-xs text-[#1a71f6] font-medium">
+                                  (Đang chỉnh sửa)
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex-1 flex flex-wrap gap-2">
+                            {attribute.values.map((value, valueIndex) => (
+                              <div
+                                key={`${value}-${valueIndex}`}
+                                className="bg-[#eef3ff] rounded-[16px] px-3 py-1 flex items-center gap-2 border border-[#d1dbff]"
+                              >
+                                <span className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                                  {value}
+                                </span>
+                                {!isViewMode && !isEditMode && (
+                                  <button
+                                    type="button"
+                                    className="text-[#737373] hover:text-[#1a71f6]"
+                                    onClick={() =>
+                                      handleRemoveExistingAttributeValue(index, valueIndex)
+                                    }
+                                  >
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                      <path
+                                        d="M9 3L3 9M3 3L9 9"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </button>
+                                )}
+                                {isEditMode && (
+                                  <button
+                                    type="button"
+                                    className="text-[#1a71f6] hover:text-[#0f5ad8] p-0.5"
+                                    title="Chỉnh sửa tên giá trị"
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                      <path
+                                        d="M12 20h9"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                      <path
+                                        d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {!isViewMode && !isEditMode && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                className="text-[#1a71f6] hover:text-[#0f5ad8]"
+                                onClick={() => handleEditAttribute(index)}
+                                title="Chỉnh sửa thuộc tính này"
+                              >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                  <path
+                                    d="M12 20h9"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                className="text-[#f44336] hover:text-[#d32f2f]"
+                                onClick={() => handleDeleteAttribute(index)}
+                                title="Xóa thuộc tính này"
+                              >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                  <path
+                                    d="M3 6H5H21"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {shouldShowAttributeForm && !isEditMode ? (
+                <div className="border-t border-[#e7e7e7] pt-4 mt-2">
+                  <div className="flex gap-3 items-start">
+                    <div className="w-[28%] min-w-[180px]">
+                      <FormInput
+                        placeholder="Nhập tên thuộc tính"
+                        value={newAttributeName}
+                        onChange={(e) => {
+                          setNewAttributeName(e.target.value);
+                          setAttributeError("");
+                        }}
+                        containerClassName="h-[40px] px-3"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (newAttributeName.trim() && newAttributeValues.length > 0) {
+                              handleSubmitNewAttribute();
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="bg-white border border-[#e7e7e7] rounded-[8px] px-3 py-2 flex flex-wrap items-center gap-2 min-h-[40px] focus-within:border-[#1a71f6] transition-colors">
+                        {newAttributeValues.map((value, index) => (
+                          <div
+                            key={`${value}-${index}`}
+                            className="bg-[#eef3ff] rounded-[8px] px-2.5 py-1 flex items-center gap-1.5 border border-[#d1dbff]"
+                          >
+                            <span className="text-[13px] font-medium text-[#272424]">
+                              {value}
+                            </span>
+                            <button
+                              type="button"
+                              className="text-[#737373] hover:text-[#f44336] transition-colors"
+                              onClick={() => handleRemoveNewAttributeValue(index)}
+                              title="Xóa"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                                <path
+                                  d="M9 3L3 9M3 3L9 9"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                        <input
+                          type="text"
+                          placeholder="Nhập giá trị và ấn Enter"
+                          value={newAttributeValueInput}
+                          onChange={(e) => {
+                            setNewAttributeValueInput(e.target.value);
+                            setAttributeError("");
+                          }}
+                          onKeyDown={handleNewAttributeValueKeyDown}
+                          className="flex-1 border-0 outline-none bg-transparent text-[13px] text-[#272424] min-w-[150px] placeholder:text-gray-400"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSubmitNewAttribute}
+                        disabled={!canSubmitAttribute}
+                        className={`px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${canSubmitAttribute
+                          ? "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
+                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                          }`}
+                      >
+                        {editingAttributeIndex !== null ? "Cập nhật" : "Thêm"}
+                      </button>
+                      {editingAttributeIndex !== null && (
+                        <button
+                          type="button"
+                          onClick={handleCancelEditingAttribute}
+                          className="px-4 py-2 rounded-[8px] text-[13px] font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+                        >
+                          Hủy
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {attributeError && (
+                    <p className="text-xs text-red-500 mt-2 ml-1">{attributeError}</p>
+                  )}
+                </div>
+              ) : canAddMoreAttributes ? (
+                !isViewMode && !isEditMode ? (
+                  <button
+                    type="button"
+                    onClick={handleAddAttribute}
+                    className="mt-2 flex items-center gap-2 text-[13px] font-semibold text-[#1a71f6] hover:text-[#0f5ad8] transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M12 5V19M5 12H19"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Thêm thuộc tính
+                  </button>
+                ) : null
+              ) : (
+                <p className="text-xs text-gray-500 mt-2">
+                  Đã đạt tối đa {MAX_ATTRIBUTES} thuộc tính.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Version Section */}
+          {isVariantSectionVisible && (
+            <div className="bg-white border border-[#e7e7e7] rounded-[24px] py-6 flex flex-col gap-4">
+              <div className="px-6">
+                <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+                  Phiên bản
+                </h2>
+              </div>
+
+              {(variantStatusMessage || variantError) && (
+                <div className="px-6 flex flex-col gap-3">
+                  {variantStatusMessage && (
+                    <div className="bg-[#f0f7ff] border border-[#d0e3ff] text-[#1a56db] px-4 py-2 rounded-[12px] text-sm font-medium">
+                      {variantStatusMessage}
+                    </div>
+                  )}
+                  {variantError && (
+                    <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-[12px] text-sm flex items-center gap-3 flex-wrap">
+                      <span>{variantError}</span>
+                      <button
+                        type="button"
+                        className="text-[#e04d30] font-semibold hover:underline"
+                        onClick={() => {
+                          if (createdProductId) {
+                            fetchProductVariants(
+                              createdProductId,
+                              variantPagination.page,
+                              variantPagination.pageSize
+                            );
+                          }
+                        }}
+                      >
+                        Thử lại
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="bg-white rounded-[16px] flex flex-col px-6">
+                <div className="flex items-start border-b border-[#e7e7e7]">
+                  <div className="w-[420px] flex gap-3 items-center px-3 py-[14px]">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <CustomCheckbox
+                        checked={
+                          versions.length > 0 &&
+                          selectedVersions.size === versions.length
+                        }
+                        onChange={handleSelectAll}
+                        disabled={isViewMode}
+                      />
+                    </div>
+                    <p className="text-[14px] font-bold text-[#272424] font-montserrat">
+                      {selectedCount > 0
+                        ? `Đã chọn ${selectedCount} phiên bản`
+                        : "Chọn"}
+                    </p>
+                  </div>
+                  {!isViewMode && selectedCount > 0 && (
+                    <div className="flex-1 flex flex-col gap-2 items-end justify-center px-3 py-[14px]">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="border-2 border-[#e04d30] flex items-center gap-[4px] px-[24px] py-[12px] rounded-[12px] cursor-pointer hover:opacity-70 transition-opacity">
+                            <span className="text-[14px] font-semibold text-[#e04d30] font-montserrat leading-[140%]">
+                              Chỉnh sửa
+                            </span>
+                            <ChevronDown className="w-6 h-6 text-[#e04d30]" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={handleEditBarcode}>
+                            Chỉnh sửa mã vạch/barcode
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleEditPrice}>
+                            Chỉnh sửa giá
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
+                </div>
+
+                {isVariantLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Spin />
+                  </div>
+                ) : versions.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-500 font-montserrat">
+                    Chưa có phiên bản nào. Hãy kiểm tra lại cấu hình thuộc tính hoặc tải lại dữ liệu.
+                  </div>
+                ) : (
+                  versions.map((version, index) => (
+                    <div
+                      key={version.id}
+                      className={`flex items-center cursor-pointer hover:bg-gray-50 transition-colors ${index < versions.length - 1 ? "border-b border-[#e7e7e7]" : ""
+                        }`}
+                      onClick={() => handleVersionRowClick(version.id)}
+                    >
+                      <div className="w-[420px] flex gap-3 items-center px-3 py-[14px]">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <CustomCheckbox
+                            checked={selectedVersions.has(version.id)}
+                            onChange={() => handleVersionToggle(version.id)}
+                            disabled={isViewMode}
+                          />
+                        </div>
+                        <div className="w-[44px] h-[44px] rounded-[12px] bg-[#f5f5f5] overflow-hidden flex items-center justify-center">
+                          {version.image ? (
+                            <img
+                              key={`${version.id}-${version.image}`}
+                              src={version.image}
+                              alt={version.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback nếu ảnh không load được
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <Icon name="image" size={20} color="#a1a1aa" />
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.name}
+                          </p>
+                          {(version.sku || version.barcode) && (
+                            <p className="text-xs text-gray-500 font-montserrat">
+                              {version.sku && `SKU: ${version.sku}`}
+                              {version.sku && version.barcode ? " • " : ""}
+                              {version.barcode && `Barcode: ${version.barcode}`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 grid grid-cols-[repeat(5,minmax(0,1fr))] gap-4 items-center px-3 py-[14px]">
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {formatCurrencyDisplay(version.price)}
+                          </p>
+                          <p className="text-xs text-gray-500">Giá bán</p>
+                        </div>
+                        <div className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex flex-col items-end gap-1">
+                            {editingInventoryId === version.id ? (
+                              <div className="bg-white border border-[#e5e7eb] rounded-[12px] shadow-sm px-3 py-2 min-w-[220px]">
+                                <p className="text-[11px] text-gray-500 text-left mb-1">
+                                  Chỉnh sửa tồn kho
+                                </p>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className={`flex-1 text-right text-[14px] font-semibold font-montserrat bg-transparent border-b outline-none transition-colors ${inventoryErrors[version.id]
+                                      ? "border-red-500 text-red-600"
+                                      : "border-[#d4d4d8] text-[#272424] focus:border-[#1a71f6]"
+                                      }`}
+                                    value={version.inventory || ""}
+                                    placeholder="0"
+                                    onChange={(e) =>
+                                      handleVersionInventoryChange(version.id, e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleInventorySubmit(version.id);
+                                      }
+                                      if (e.key === "Escape") {
+                                        e.preventDefault();
+                                        setEditingInventoryId(null);
+                                        setInventoryErrors((prev) => {
+                                          if (!prev[version.id]) return prev;
+                                          const next = { ...prev };
+                                          delete next[version.id];
+                                          return next;
+                                        });
+                                      }
+                                    }}
+                                    autoFocus
+                                    disabled={isViewMode}
+                                  />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    className="px-3 h-[28px] rounded-[999px] text-[12px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingInventoryId(null);
+                                      setInventoryErrors((prev) => {
+                                        if (!prev[version.id]) return prev;
+                                        const next = { ...prev };
+                                        delete next[version.id];
+                                        return next;
+                                      });
+                                    }}
+                                  >
+                                    Hủy
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`px-3 h-[28px] rounded-[999px] text-[12px] font-semibold transition-colors flex items-center justify-center ${updatingInventoryIds.has(version.id) || !createdProductId
+                                      ? "bg-[#e5edff] text-[#1a71f6] cursor-not-allowed"
+                                      : "bg-[#1a71f6] text-white hover:bg-[#0f5ad8]"
+                                      } ${isViewMode ? "cursor-not-allowed opacity-60" : ""}`}
+                                    disabled={
+                                      isViewMode ||
+                                      updatingInventoryIds.has(version.id) ||
+                                      !createdProductId
+                                    }
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleInventorySubmit(version.id);
+                                    }}
+                                  >
+                                    {updatingInventoryIds.has(version.id) ? (
+                                      <svg
+                                        className="w-4 h-4 animate-spin"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                      >
+                                        <circle
+                                          className="opacity-25"
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="currentColor"
+                                          strokeWidth="4"
+                                        />
+                                        <path
+                                          className="opacity-75"
+                                          fill="currentColor"
+                                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                        />
+                                      </svg>
+                                    ) : (
+                                      "Lưu"
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="inline-flex items-center justify-end gap-1 text-[14px] font-semibold font-montserrat text-[#272424] hover:text-[#1a71f6]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isViewMode) return;
+                                  setEditingInventoryId(version.id);
+                                }}
+                              >
+                                <span>{version.inventory || "0"}</span>
+                              </button>
+                            )}
+                            {inventoryErrors[version.id] ? (
+                              <p className="text-xs text-red-500">
+                                {inventoryErrors[version.id]}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-gray-500">Tồn kho</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.webQuantity || "0"}
+                          </p>
+                          <p className="text-xs text-gray-500">SL bán website</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-semibold text-[#272424] font-montserrat">
+                            {version.posQuantity || "0"}
+                          </p>
+                          <p className="text-xs text-gray-500">SL bán pos</p>
+                        </div>
+                        <div className="flex items-center justify-end gap-3">
+                          {!isViewMode && (
+                            <button
+                              type="button"
+                              className="text-[#1a71f6] hover:text-[#0f5ad8]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVersionRowClick(version.id);
+                              }}
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path
+                                  d="M12 20h9"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {variantPagination.total > variantPagination.pageSize && (
+                <div className="flex items-center justify-between px-6">
+                  <span className="text-sm text-gray-500">
+                    Trang {variantPagination.page + 1}/{Math.max(variantPagination.totalPages, 1)} • Tổng{" "}
+                    {variantPagination.total.toLocaleString("vi-VN")} phiên bản
+                  </span>
+                  <Pagination
+                    current={variantPagination.page + 1}
+                    pageSize={variantPagination.pageSize}
+                    total={variantPagination.total}
+                    showSizeChanger={false}
+                    onChange={handleVariantPageChange}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Shipping Section */}
+          <div className="bg-white border border-[#e7e7e7] rounded-[24px] p-6 flex flex-col gap-4">
+            <h2 className="text-[16px] font-bold text-[#272424] font-montserrat">
+              Vận chuyển
+            </h2>
+
+            <div className="flex flex-col gap-4">
+              {/* Weight */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-1">
+                  <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                    *
+                  </span>
+                  <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                    Cân nặng (Sau khi đóng gói)
+                  </label>
+                </div>
+                <div
+                  className={`bg-white border-2 rounded-[12px] h-[36px] flex items-center px-4 ${getFieldBorderClass(
+                    errors.weight,
+                    hasValue(formData.weight)
+                  )}`}
+                >
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Nhập vào"
+                    value={formData.weight}
+                    onChange={(e) =>
+                      handleNumericInputChange("weight", e.target.value, true)
+                    }
+                    className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat placeholder:text-[#b0b0b0]"
+                    readOnly={isViewMode}
+                    disabled={isViewMode}
+                  />
+                  <div className="flex items-center gap-2.5 ml-2">
+                    <div className="w-px h-6 bg-[#b0b0b0]"></div>
+                    <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat">
+                      gram
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Package Dimensions */}
+              <div className="flex flex-col gap-2">
+                <p className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                  Kích thước đóng gói (Phí vận chuyển thực tế sẽ thay đổi nếu bạn
+                  nhập sai kích thước)
+                </p>
+
+                <div className="flex gap-4">
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.width,
+                        hasValue(formData.width)
+                      )}`}
+                    >
+                      <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
+                        R
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={formData.width}
+                        onChange={(e) =>
+                          handleNumericInputChange("width", e.target.value, true)
+                        }
+                        className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                        readOnly={isViewMode}
+                        disabled={isViewMode}
+                      />
+                      <div className="flex items-center gap-2.5 ml-2">
+                        <div className="w-px h-6 bg-[#b0b0b0]"></div>
+                        <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat">
+                          cm
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.length,
+                        hasValue(formData.length)
+                      )}`}
+                    >
+                      <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
+                        D
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={formData.length}
+                        onChange={(e) =>
+                          handleNumericInputChange("length", e.target.value, true)
+                        }
+                        className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                        readOnly={isViewMode}
+                        disabled={isViewMode}
+                      />
+                      <div className="flex items-center gap-2.5 ml-2">
+                        <div className="w-px h-6 bg-[#b0b0b0]"></div>
+                        <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat">
+                          cm
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <div
+                      className={`bg-white border-2 flex items-center px-4 rounded-[12px] h-[36px] ${getFieldBorderClass(
+                        errors.height,
+                        hasValue(formData.height)
+                      )}`}
+                    >
+                      <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat mr-2">
+                        C
+                      </span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={formData.height}
+                        onChange={(e) =>
+                          handleNumericInputChange("height", e.target.value, true)
+                        }
+                        className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                        readOnly={isViewMode}
+                        disabled={isViewMode}
+                      />
+                      <div className="flex items-center gap-2.5 ml-2">
+                        <div className="w-px h-6 bg-[#b0b0b0]"></div>
+                        <span className="text-[14px] font-semibold text-[#b0b0b0] font-montserrat">
+                          cm
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* General Error Message */}
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-[12px] p-4">
+              <p className="text-red-600 text-[14px] font-medium">
+                {errors.submit}
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {!isViewMode && (
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <div className="text-sm text-gray-500">
+                {Object.keys(errors).length > 0 ? (
+                  <span className="text-red-500 animate-shake">
+                    ⚠️ Vui lòng kiểm tra lại thông tin
+                  </span>
+                ) : formData.productName && formData.brand && formData.description ? (
+                  <span className="text-green-600 animate-fadeIn">
+                    ✅ Thông tin cơ bản đã đầy đủ
+                  </span>
+                ) : (
+                  <span>Điền thông tin để tiếp tục</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  className="btn-secondary-enhanced"
+                >
+                  Huỷ
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-primary-enhanced px-8"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingSpinner size="sm" />
+                      {isEditMode ? "Đang cập nhật..." : "Đang lưu..."}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span>{isEditMode ? "Cập nhật sản phẩm" : "Thêm sản phẩm"}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M5 12h14m-7-7l7 7-7 7"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </form>
+      </ContentCard>
+
+      {isViewMode && (
+        <div className="flex items-center justify-end mt-4 gap-3">
+          <Button variant="secondary" onClick={onBack ?? (() => window.history.back())}>
+            Quay lại danh sách
+          </Button>
+        </div>
+      )}
+
+      {/* Add Brand Modal */}
+      {showBrandModal && !isViewMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={handleBrandModalClose}
+          />
+          <div
+            className="relative z-50 bg-white rounded-[24px] w-full max-w-[420px] overflow-hidden shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 pt-6 pb-4 border-b border-[#d1d1d1] flex items-center justify-between">
+              <h2 className="text-[20px] font-bold text-[#272424] font-montserrat">
+                Thêm thương hiệu mới
+              </h2>
+              <button
+                onClick={handleBrandModalClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="#322f30"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-6">
+              <FormInput
+                placeholder="Nhập tên thương hiệu"
+                value={newBrandName}
+                onChange={(e) => {
+                  setNewBrandName(e.target.value);
+                  setBrandModalError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleBrandSubmit();
+                  }
+                }}
+                containerClassName="h-[40px] px-4"
+              />
+              {brandModalError && (
+                <p className="text-sm text-red-500 mt-2">{brandModalError}</p>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-[#d1d1d1] flex items-center justify-end gap-3">
+              <Button
+                variant="secondary"
+                onClick={handleBrandModalClose}
+                disabled={isBrandSubmitting}
+              >
+                Hủy
+              </Button>
+              <Button onClick={handleBrandSubmit} disabled={isBrandSubmitting}>
+                {isBrandSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Đang thêm...
+                  </div>
+                ) : (
+                  "Thêm"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {brandToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => (!isDeletingBrand ? setBrandToDelete(null) : undefined)}
+          />
+          <div
+            className="relative z-50 bg-white rounded-[24px] w-full max-w-[420px] overflow-hidden shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 pt-6 pb-3 border-b border-[#d1d1d1]">
+              <h2 className="text-[20px] font-bold text-[#272424] font-montserrat">
+                Xóa thương hiệu
+              </h2>
+            </div>
+            <div className="px-6 py-6">
+              <p className="text-[14px] text-[#272424] leading-[150%]">
+                Bạn có chắc chắn muốn xóa thương hiệu{" "}
+                <span className="font-semibold">{brandToDelete.name}</span> không?
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Hành động này không thể hoàn tác.
+              </p>
+            </div>
+            <div className="px-6 py-4 border-t border-[#d1d1d1] flex items-center justify-end gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => (!isDeletingBrand ? setBrandToDelete(null) : undefined)}
+                disabled={isDeletingBrand}
+              >
+                Hủy
+              </Button>
+              <Button onClick={handleConfirmDeleteBrand} disabled={isDeletingBrand}>
+                {isDeletingBrand ? (
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    Đang xóa...
+                  </div>
+                ) : (
+                  "Xác nhận"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barcode Edit Modal */}
+      {showBarcodeModal && !isViewMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur and dark overlay */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={handleBarcodeCancel}
+          />
+          {/* Modal Content */}
+          <div
+            className="relative z-50 bg-white rounded-[24px] w-full max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-3">
+              <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
+                Chỉnh sửa mã vạch/barcode
+              </h2>
+              <button
+                onClick={handleBarcodeCancel}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="#322f30"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content - Scrollable list */}
+            <div className="flex-1 overflow-y-auto">
+              {Array.from(selectedVersions).map((versionId, index) => {
+                const version = versions.find((v) => v.id === versionId);
+                if (!version) return null;
+
+                return (
+                  <div
+                    key={versionId}
+                    className={`flex items-center justify-between px-6 py-6 ${index > 0 ? "border-t border-[#d1d1d1]" : ""
+                      }`}
+                  >
+                    <div className="flex items-center">
+                      <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                        {version.name}
+                      </p>
+                    </div>
+                    <div className="w-[315px]">
+                      <FormInput
+                        placeholder="Nhập mã vạch/barcode"
+                        value={barcodeValues[versionId] || ""}
+                        onChange={(e) =>
+                          handleBarcodeChange(versionId, e.target.value)
+                        }
+                        containerClassName="h-[36px] px-4"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-[10px] px-6 py-3 border-t border-[#d1d1d1]">
+              <Button variant="secondary" onClick={handleBarcodeCancel}>
+                Huỷ
+              </Button>
+              <Button onClick={handleBarcodeConfirm}>Xác nhận</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Price Edit Modal */}
+      {showPriceModal && !isViewMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur and dark overlay */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={handlePriceCancel}
+          />
+          {/* Modal Content */}
+          <div
+            className="relative z-50 bg-white rounded-[24px] w-full max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-3">
+              <h2 className="text-[24px] font-bold text-[#272424] font-montserrat">
+                Chỉnh sửa giá bán
+              </h2>
+              <button
+                onClick={handlePriceCancel}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M18 6L6 18M6 6L18 18"
+                    stroke="#322f30"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Apply to All Section */}
+            <div className="flex items-end justify-between px-6 py-3 border-t border-[#d1d1d1]">
+              <div className="flex flex-col gap-1 flex-1">
+                <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                  Áp dụng 1 giá cho tất cả phiên bản
+                </p>
+                <div className="w-full">
+                  <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                    <input
+                      type="text"
+                      placeholder="0"
+                      value={applyAllPrice}
+                      onChange={(e) => {
+                        const sanitized = sanitizeNumeric(e.target.value, false);
+                        const formatted = formatNumberWithDots(sanitized);
+                        setApplyAllPrice(formatted);
+                      }}
+                      className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                    />
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-px h-6 bg-[#888888]"></div>
+                      <span className="text-[14px] font-semibold text-[#888888] font-montserrat">
+                        đ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <Button onClick={handleApplyAllPrice} className="ml-4 h-[36px]">
+                Áp dụng cho tất cả
+              </Button>
+            </div>
+
+            {/* Content - Scrollable list */}
+            <div className="flex-1 overflow-y-auto">
+              {Array.from(selectedVersions).map((versionId, index) => {
+                const version = versions.find((v) => v.id === versionId);
+                if (!version) return null;
+
+                return (
+                  <div
+                    key={versionId}
+                    className={`flex items-center justify-between px-6 py-6 ${index > 0 ? "border-t border-[#d1d1d1]" : ""
+                      }`}
+                  >
+                    <div className="flex items-center">
+                      <p className="text-[16px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                        {version.name}
+                      </p>
+                    </div>
+                    <div className="w-[315px]">
+                      <div className="bg-white border-2 border-[#e04d30] flex items-center px-4 rounded-[12px] h-[36px]">
+                        <input
+                          type="text"
+                          placeholder="0"
+                          value={priceValues[versionId] || ""}
+                          onChange={(e) =>
+                            handlePriceChange(versionId, e.target.value)
+                          }
+                          className="flex-1 border-0 outline-none bg-transparent text-[14px] font-semibold text-[#272424] font-montserrat"
+                        />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-px h-6 bg-[#888888]"></div>
+                          <span className="text-[14px] font-semibold text-[#888888] font-montserrat">
+                            đ
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-[10px] px-6 py-3 border-t border-[#d1d1d1]">
+              <Button variant="secondary" onClick={handlePriceCancel}>
+                Huỷ
+              </Button>
+              <Button onClick={handlePriceConfirm}>Xác nhận</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Version Modal */}
+      {showEditVersionModal && editingVersion && !isViewMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop with blur and dark overlay */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={handleEditVersionCancel}
+          />
+          {/* Modal Content */}
+          <div
+            className="relative z-50 bg-[#f7f7f7] rounded-[24px] w-full max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-scaleIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center px-6 py-3 border-b border-[#e7e7e7]">
+              <h2 className="text-[24px] font-bold text-[#1a1a1b] font-montserrat leading-[150%]">
+                Chỉnh sửa {editingVersion.name}
+              </h2>
+            </div>
+
+            {editVersionError && (
+              <div className="px-6 py-3 text-sm font-semibold text-[#b42318] bg-[#fef3f2] border-b border-[#fbd0d0]">
+                {editVersionError}
+              </div>
+            )}
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-3">
+              <div className="flex gap-5 items-start">
+                {/* Left Column - Form Fields */}
+                <div className="flex-1 flex flex-col gap-4">
+                  {/* Barcode */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1">
+                      <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[150%]">
+                        Mã vạch/barcode
+                      </label>
+                    </div>
+                    <FormInput
+                      placeholder="Nhập mã vạch/barcode"
+                      value={editingVersion.barcode}
+                      onChange={(e) =>
+                        handleEditVersionChange("barcode", e.target.value)
+                      }
+                      containerClassName="h-[36px] px-4 border-gray-200"
+                    />
+                  </div>
+
+                  {/* Cost Price and Selling Price */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1">
+                        {!editingVersion.costPrice || !parseFormattedNumber(editingVersion.costPrice) ? (
+                          <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                            *
+                          </span>
+                        ) : null}
+                        <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                          Giá vốn
+                        </label>
+                      </div>
+                      <FormInput
+                        placeholder="Nhập giá vốn"
+                        value={editingVersion.costPrice}
+                        onChange={(e) =>
+                          handleEditVersionChange("costPrice", e.target.value)
+                        }
+                        containerClassName={`h-[36px] px-4 transition-all ${editVersionFieldErrors.costPrice
+                          ? "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]"
+                          : editingVersion.costPrice
+                            ? "border-[#52c41a]"
+                            : ""
+                          }`}
+                      />
+                      {editVersionFieldErrors.costPrice && (
+                        <p className="text-[12px] text-[#ff4d4f] mt-0.5">
+                          {editVersionFieldErrors.costPrice}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1">
+                        {!editingVersion.sellingPrice || !parseFormattedNumber(editingVersion.sellingPrice) ? (
+                          <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                            *
+                          </span>
+                        ) : null}
+                        <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                          Giá bán
+                        </label>
+                      </div>
+                      <FormInput
+                        placeholder="Nhập giá bán"
+                        value={editingVersion.sellingPrice}
+                        onChange={(e) =>
+                          handleEditVersionChange(
+                            "sellingPrice",
+                            e.target.value
+                          )
+                        }
+                        containerClassName={`h-[36px] px-4 transition-all ${editVersionFieldErrors.sellingPrice
+                          ? "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]"
+                          : editingVersion.sellingPrice
+                            ? "border-[#52c41a]"
+                            : ""
+                          }`}
+                      />
+                      {editVersionFieldErrors.sellingPrice && (
+                        <p className="text-[12px] text-[#ff4d4f] mt-0.5">
+                          {editVersionFieldErrors.sellingPrice}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Inventory and Channel Sold Quantities */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-4">
+                      <div className="flex-1 flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1">
+                          {!editingVersion.webQuantity || !parseFormattedNumber(editingVersion.webQuantity) ? (
+                            <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                              *
+                            </span>
+                          ) : null}
+                          <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                            SL bán trên WEBSITE
+                          </label>
+                        </div>
+                        <FormInput
+                          placeholder="Nhập SL bán trên website"
+                          value={editingVersion.webQuantity}
+                          onChange={(e) =>
+                            handleEditVersionChange("webQuantity", e.target.value)
+                          }
+                          containerClassName={`h-[36px] px-4 transition-all ${editVersionFieldErrors.webQuantity
+                            ? "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]"
+                            : editingVersion.webQuantity
+                              ? "border-[#52c41a]"
+                              : ""
+                            }`}
+                        />
+                        {editVersionFieldErrors.webQuantity && (
+                          <p className="text-[12px] text-[#ff4d4f] mt-0.5">
+                            {editVersionFieldErrors.webQuantity}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex-1 flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1">
+                          {!editingVersion.posQuantity || !parseFormattedNumber(editingVersion.posQuantity) ? (
+                            <span className="text-[16px] font-bold text-[#ff0000] font-montserrat">
+                              *
+                            </span>
+                          ) : null}
+                          <label className="text-[14px] font-semibold text-[#272424] font-montserrat leading-[140%]">
+                            SL bán trên POS
+                          </label>
+                        </div>
+                        <FormInput
+                          placeholder="Nhập SL bán trên POS"
+                          value={editingVersion.posQuantity}
+                          onChange={(e) =>
+                            handleEditVersionChange("posQuantity", e.target.value)
+                          }
+                          containerClassName={`h-[36px] px-4 transition-all ${editVersionFieldErrors.posQuantity
+                            ? "border-[#ff4d4f] shadow-[0_0_0_1px_rgba(255,77,79,0.15)]"
+                            : editingVersion.posQuantity
+                              ? "border-[#52c41a]"
+                              : ""
+                            }`}
+                        />
+                        {editVersionFieldErrors.posQuantity && (
+                          <p className="text-[12px] text-[#ff4d4f] mt-0.5">
+                            {editVersionFieldErrors.posQuantity}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Image Upload */}
+                <div className="flex flex-col gap-6 items-center px-4 py-6">
+                  <div className={`bg-[#ffeeea] border border-[#e04d30] border-dashed flex flex-col gap-2 items-center justify-center rounded-[8px] w-[120px] h-[120px] ${editingVersion.image ? '' : 'p-5'}`}>
+                    {editingVersion.image ? (
+                      <img
+                        src={editingVersion.image}
+                        alt="Version"
+                        className="w-full h-full object-cover rounded-[8px]"
+                      />
+                    ) : (
+                      <>
+                        <Icon name="image" size={32} color="#e04d30" />
+                        <p className="text-[10px] font-medium text-[#737373] font-montserrat leading-[140%] text-center">
+                          Thêm hình ảnh (0/9)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <Button onClick={handleEditVersionImageClick}>
+                    Chọn ảnh
+                  </Button>
+                  <input
+                    ref={editVersionFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditVersionImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-center gap-[10px] px-6 py-3 border-t border-[#e7e7e7]">
+              <Button
+                variant="secondary"
+                onClick={handleEditVersionCancel}
+                disabled={isSubmittingEditVersion}
+              >
+                Huỷ
+              </Button>
+              <Button
+                onClick={handleEditVersionConfirm}
+                disabled={isSubmittingEditVersion}
+              >
+                {isSubmittingEditVersion ? "Đang lưu..." : "Xác nhận"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </PageContainer>
+  );
+};
+
+export default AdminProductsNew;

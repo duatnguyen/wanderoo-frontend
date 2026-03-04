@@ -1,204 +1,804 @@
-import React, { useState } from "react";
-import Button from "../../components/Button";
-import { EditPencilIcon } from "../../components/ProfileIcons";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { format } from "date-fns";
+import { CalendarIcon, User, Mail, Phone, UserCircle, Edit2, Check, X, Venus, Mars, Camera, Upload } from "lucide-react";
+import { Radio } from "antd";
+import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
+import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import { Calendar } from "../../../../components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../../components/ui/popover";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../../../../components/ui/select";
+import { updateUserProfile } from "../../../../api/endpoints/userApi";
+import { useAuth } from "../../../../context/AuthContext";
+import type { UserUpdateRequest } from "../../../../types/auth";
+import { getImageUrl } from "../../../../utils/imageUtils";
+import api from "../../../../api/apiClient";
+
+type EditableField = "fullName" | "email" | "phone";
+
+const validatePhoneNumber = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return "Vui lòng nhập số điện thoại.";
+    }
+    const digitsOnly = /^\d+$/;
+    const digitCount = trimmed.replace(/\D/g, "");
+    if (!digitsOnly.test(trimmed)) {
+        return "Số điện thoại chỉ được chứa chữ số.";
+    }
+    if (digitCount.length < 10 || digitCount.length > 13) {
+        return "Số điện thoại phải có từ 10 đến 13 chữ số.";
+    }
+    return null;
+};
+
+const validateBirthdate = (date?: Date) => {
+    if (!date) return null; // optional
+
+    const inputDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (Number.isNaN(inputDate.getTime())) {
+        return "Ngày sinh không hợp lệ.";
+    }
+
+    if (inputDate > today) {
+        return "Ngày sinh không được lớn hơn hiện tại.";
+    }
+
+    const age = today.getFullYear() - inputDate.getFullYear();
+    const monthDiff = today.getMonth() - inputDate.getMonth();
+    const dayDiff = today.getDate() - inputDate.getDate();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+
+    if (actualAge < 16) {
+        return "Khách hàng phải từ 16 tuổi trở lên.";
+    }
+
+    return null;
+};
+
+const fieldConfig: Record<
+    EditableField,
+    {
+        label: string;
+        type: "text" | "email" | "tel";
+        accessor: (user: ReturnType<typeof useAuth>["user"]) => string;
+        payloadKey: keyof UserUpdateRequest;
+        icon: React.ReactNode;
+    }
+> = {
+    fullName: {
+        label: "Họ và tên",
+        type: "text",
+        accessor: (user) => user?.name || "",
+        payloadKey: "name",
+        icon: <User className="w-4 h-4" />,
+    },
+    email: {
+        label: "Email",
+        type: "email",
+        accessor: (user) => user?.email || "",
+        payloadKey: "email",
+        icon: <Mail className="w-4 h-4" />,
+    },
+    phone: {
+        label: "Số điện thoại",
+        type: "tel",
+        accessor: (user) => user?.phone || "",
+        payloadKey: "phone",
+        icon: <Phone className="w-4 h-4" />,
+    },
+};
 
 const ProfileTab: React.FC = () => {
-  const [userData, setUserData] = useState({
-    fullName: "Thanh",
-    email: "th***********@gmail.com",
-    phone: "08********",
-    gender: "male",
-    dateOfBirth: "**/**/2003",
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-  });
+    const { user, refreshProfile, isLoading } = useAuth();
+    const [editingField, setEditingField] = useState<EditableField | null>(null);
+    const [pendingValue, setPendingValue] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [isEditingGender, setIsEditingGender] = useState(false);
+    const [pendingGender, setPendingGender] = useState<"MALE" | "FEMALE">("MALE");
+    const [isEditingDateOfBirth, setIsEditingDateOfBirth] = useState(false);
+    const [pendingDateOfBirth, setPendingDateOfBirth] = useState<Date | undefined>(undefined);
+    const [month, setMonth] = useState<Date>(new Date());
+    const [calendarOpen, setCalendarOpen] = useState(false);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isEditing, setIsEditing] = useState(false);
+    const handleCalendarChange = (
+        value: string | number,
+        event: any
+    ) => {
+        const newEvent = {
+            target: {
+                value: String(value),
+            },
+        } as any;
+        event(newEvent);
+    };
 
-  const handleInputChange = (field: string, value: string) => {
-    setUserData((prev) => ({ ...prev, [field]: value }));
-  };
+    const buildProfilePayload = useCallback(
+        (override: Partial<UserUpdateRequest> = {}): UserUpdateRequest => {
+            return {
+                id: user?.id ?? 0,
+                name: override.name ?? user?.name ?? "",
+                phone: override.phone ?? user?.phone ?? "",
+                email: override.email ?? user?.email ?? "",
+                birthday: override.birthday ?? user?.dateOfBirth ?? undefined,
+                gender: override.gender ?? (user?.gender as "MALE" | "FEMALE" | undefined),
+                image_url: override.image_url ?? user?.avatar ?? null,
+            };
+        },
+        [user]
+    );
 
-  const handleSave = () => {
-    setIsEditing(false);
-    console.log("Saving user data:", userData);
-  };
+    const beginEditingField = (field: EditableField) => {
+        const currentValue = fieldConfig[field].accessor(user) || "";
+        setPendingValue(currentValue);
+        setEditingField(field);
+    };
 
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-      {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-          Hồ sơ của tôi
-        </h1>
-        <p className="text-sm sm:text-base text-gray-600">
-          Quản lý thông tin hồ sơ để bảo mật tài khoản
-        </p>
-      </div>
+    const cancelFieldEdit = () => {
+        setEditingField(null);
+        setPendingValue("");
+        setErrorMessage(null);
+        setSuccessMessage(null);
+    };
 
-      {/* User Summary */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-gray-200">
-        <img
-          src={userData.avatar}
-          alt="Avatar"
-          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
-        />
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
-            {userData.fullName}
-          </h3>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors text-sm"
-          >
-            <EditPencilIcon />
-            <span className="font-medium">Sửa hồ sơ</span>
-          </button>
-        </div>
-      </div>
+    const saveField = async () => {
+        if (!editingField) return;
+        const payloadKey = fieldConfig[editingField].payloadKey;
+        const overrides: Partial<UserUpdateRequest> = {};
 
-      {/* Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Form Fields */}
-        <div className="lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1">
-          {/* Full Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Họ và tên
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={userData.fullName}
-                onChange={(e) =>
-                  handleInputChange("fullName", e.target.value)
+        // Clear previous errors before validating
+        setErrorMessage(null);
+
+        if (payloadKey === "name") {
+            const trimmed = pendingValue.trim();
+
+            // Validate: name must not contain digits
+            if (/\d/.test(trimmed)) {
+                setErrorMessage("Tên không được chứa số.");
+                return;
+            }
+
+            overrides.name = trimmed;
+        } else if (payloadKey === "email") {
+            overrides.email = pendingValue;
+        } else if (payloadKey === "phone") {
+            const phoneError = validatePhoneNumber(pendingValue);
+            if (phoneError) {
+                setErrorMessage(phoneError);
+                return;
+            }
+            overrides.phone = pendingValue.trim();
+        }
+
+        const payload = buildProfilePayload(overrides);
+
+        setIsSaving(true);
+        setErrorMessage(null);
+        try {
+            await updateUserProfile(payload);
+            await refreshProfile();
+            setSuccessMessage("Thông tin đã được cập nhật thành công!");
+            setEditingField(null);
+            setPendingValue("");
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (error: any) {
+            console.error("Failed to update profile", error);
+
+            const backendMessage =
+                error?.response?.data?.message ||
+                (Array.isArray(error?.response?.data?.errors) && error.response.data.errors[0]) ||
+                error?.response?.data?.detail;
+
+            setErrorMessage(
+                backendMessage || "Không thể lưu thay đổi. Vui lòng thử lại."
+            );
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const displayValue = (value: unknown, placeholder = "Chưa có thông tin") => {
+        if (value === null || value === undefined) {
+            return placeholder;
+        }
+        const str = String(value).trim();
+        if (!str || str === "**/**/****") {
+            return placeholder;
+        }
+        return str;
+    };
+
+    // Reset avatar error when user changes
+    useEffect(() => {
+        setAvatarError(false);
+    }, [user?.avatar]);
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            setErrorMessage("Vui lòng chọn file ảnh hợp lệ.");
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setErrorMessage("Kích thước ảnh không được vượt quá 5MB.");
+            return;
+        }
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPreviewAvatar(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload avatar
+        setIsUploadingAvatar(true);
+        setErrorMessage(null);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await api.post<{ status: number; message: string; data: string }>(
+                "/files/avatar",
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
                 }
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none text-sm sm:text-base"
-              />
-            ) : (
-              <div className="px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base">
-                {userData.fullName}
-              </div>
-            )}
-          </div>
+            );
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              <div className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base break-all">
-                {userData.email}
-              </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">
-                Thay đổi
-              </button>
-            </div>
-          </div>
+            const imageUrl = response.data.data;
+            if (!imageUrl) {
+                throw new Error("Không nhận được URL ảnh từ server");
+            }
 
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Số điện thoại
-            </label>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              <div className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base">
-                {userData.phone}
-              </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">
-                Thay đổi
-              </button>
-            </div>
-          </div>
+            // Update profile with new avatar URL
+            const payload = buildProfilePayload({ image_url: imageUrl });
+            await updateUserProfile(payload);
+            await refreshProfile();
 
-          {/* Gender */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Giới tính
-            </label>
-            <div className="flex items-center gap-4 sm:gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="male"
-                  checked={userData.gender === "male"}
-                  onChange={(e) =>
-                    handleInputChange("gender", e.target.value)
-                  }
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm sm:text-base text-gray-700">Nam</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="gender"
-                  value="female"
-                  checked={userData.gender === "female"}
-                  onChange={(e) =>
-                    handleInputChange("gender", e.target.value)
-                  }
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm sm:text-base text-gray-700">NỮ</span>
-              </label>
-            </div>
-          </div>
+            setSuccessMessage("Ảnh đại diện đã được cập nhật thành công!");
+            setPreviewAvatar(null);
+            setAvatarError(false);
+            setTimeout(() => setSuccessMessage(null), 3000);
+        } catch (error: any) {
+            console.error("Failed to upload avatar", error);
+            setPreviewAvatar(null);
+            const backendMessage = error?.response?.data?.message || error?.message;
+            setErrorMessage(backendMessage || "Không thể tải ảnh lên. Vui lòng thử lại.");
+        } finally {
+            setIsUploadingAvatar(false);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
 
-          {/* Date of Birth */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ngày sinh
-            </label>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-              <div className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-gray-50 rounded-lg text-gray-900 text-sm sm:text-base">
-                {userData.dateOfBirth}
-              </div>
-              <button className="text-blue-600 hover:text-blue-700 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap">
-                Thay đổi
-              </button>
+    if (isLoading || !user) {
+        return (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+                <div className="flex items-center justify-center">
+                    <LoadingSpinner size="md" className="mr-3" />
+                    <span className="text-gray-600">Đang tải thông tin hồ sơ...</span>
+                </div>
             </div>
-          </div>
+        );
+    }
 
-          {/* Save Button */}
-          {isEditing && (
-            <div className="pt-2 sm:pt-4">
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={handleSave}
-                className="w-full sm:w-auto px-6 sm:px-8"
-              >
-                Lưu
-              </Button>
+    return (
+        <div className="bg-white rounded-lg border border-gray-200 min-h-[507px]">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-gray-50 to-white px-6 py-5 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#E04D30]/10 flex items-center justify-center">
+                        <UserCircle className="w-5 h-5 text-[#E04D30]" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">Thông tin tài khoản</h2>
+                        <p className="text-sm text-gray-600 mt-0.5">Cập nhật thông tin cá nhân và liên hệ của bạn</p>
+                    </div>
+                </div>
             </div>
-          )}
+
+            {/* Messages */}
+            <div className="px-6 pt-5">
+                {successMessage && (
+                    <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-lg flex items-start gap-3">
+                        <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm font-medium">{successMessage}</p>
+                    </div>
+                )}
+                {errorMessage && (
+                    <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg flex items-start gap-3">
+                        <X className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm font-medium">{errorMessage}</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Profile Fields */}
+            <div className="px-6 pb-6">
+                {/* Avatar Section */}
+                <div className="flex flex-col sm:flex-row gap-6 mb-6 pb-6 border-b border-gray-200">
+                    <div className="flex-shrink-0">
+                        <div className="relative w-32 h-32 mx-auto sm:mx-0">
+                            <div className="w-full h-full rounded-lg border-2 border-dashed border-[#E04D30] bg-gray-50 flex items-center justify-center overflow-hidden">
+                                {previewAvatar ? (
+                                    <img
+                                        src={previewAvatar}
+                                        alt="Preview"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : user?.avatar && !avatarError ? (
+                                    <img
+                                        src={getImageUrl(user.avatar) || user.avatar}
+                                        alt={user.name || "Avatar"}
+                                        className="w-full h-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                                        <UserCircle className="w-12 h-12 mb-2" />
+                                        <span className="text-xs font-medium">Profile</span>
+                                    </div>
+                                )}
+                            </div>
+                            {isUploadingAvatar && (
+                                <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-1">Ảnh đại diện</h3>
+                        <p className="text-xs text-gray-600 mb-4">
+                            JPG, PNG hoặc GIF. Kích thước tối đa 5MB.
+                        </p>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleAvatarChange}
+                            className="hidden"
+                        />
+                        <Button
+                            type="button"
+                            onClick={handleAvatarClick}
+                            disabled={isUploadingAvatar}
+                            className="w-full sm:w-auto bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                            size="sm"
+                        >
+                            {isUploadingAvatar ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                                    Đang tải...
+                                </>
+                            ) : (
+                                <>
+                                    <Camera className="w-4 h-4 mr-2" />
+                                    Chọn ảnh
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    {/* Username Field */}
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center">
+                                <UserCircle className="w-4 h-4 text-gray-600" />
+                            </div>
+                            <div className="flex-1">
+                                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tên tài khoản</dt>
+                                <dd className="text-sm text-gray-900 font-semibold">
+                                    @{displayValue(user.username, "Không xác định")}
+                                </dd>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Editable Fields */}
+                    {(Object.keys(fieldConfig) as EditableField[]).map((field) => {
+                        const config = fieldConfig[field];
+                        const currentValue = config.accessor(user);
+                        const isFieldEditing = editingField === field;
+
+                        return (
+                            <div
+                                key={field}
+                                className={`bg-white rounded-lg border transition-all ${isFieldEditing
+                                    ? 'border-[#E04D30] shadow-md'
+                                    : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                                    }`}
+                            >
+                                <div className="p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isFieldEditing
+                                                ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                                : 'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                {config.icon}
+                                            </div>
+                                            <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                                                {config.label}
+                                            </dt>
+                                        </div>
+                                        {!isFieldEditing && (
+                                            <button
+                                                onClick={() => beginEditingField(field)}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
+                                            >
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                                Chỉnh sửa
+                                            </button>
+                                        )}
+                                    </div>
+                                    <dd>
+                                        {isFieldEditing ? (
+                                            <div className="space-y-3">
+                                                <Input
+                                                    type={config.type}
+                                                    value={pendingValue}
+                                                    onChange={(e) => setPendingValue(e.target.value)}
+                                                    className="w-full border-gray-300 focus:border-[#E04D30] focus:ring-[#E04D30]"
+                                                    autoFocus
+                                                />
+                                                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={cancelFieldEdit}
+                                                        disabled={isSaving}
+                                                        className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
+                                                    >
+                                                        <X className="w-4 h-4 mr-1.5" />
+                                                        Hủy
+                                                    </Button>
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        onClick={() => void saveField()}
+                                                        disabled={isSaving || pendingValue === currentValue}
+                                                        className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                                                    >
+                                                        {isSaving ? (
+                                                            <>
+                                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
+                                                                Đang lưu...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Check className="w-4 h-4 mr-1.5" />
+                                                                Lưu
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-gray-900 font-medium ml-11">
+                                                {displayValue(currentValue)}
+                                            </p>
+                                        )}
+                                    </dd>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Gender Field */}
+                    <div className={`bg-white rounded-lg border transition-all ${isEditingGender
+                        ? 'border-[#E04D30] shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}>
+                        <div className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEditingGender
+                                        ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                        : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                        {user.gender?.toUpperCase() === "FEMALE" ? (
+                                            <Venus className="w-4 h-4" />
+                                        ) : (
+                                            <Mars className="w-4 h-4" />
+                                        )}
+                                    </div>
+                                    <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                                        Giới tính
+                                    </dt>
+                                </div>
+                                {!isEditingGender && (
+                                    <button
+                                        onClick={() => {
+                                            const currentGender = user?.gender || "MALE";
+                                            setPendingGender(currentGender as "MALE" | "FEMALE");
+                                            setIsEditingGender(true);
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                        Chỉnh sửa
+                                    </button>
+                                )}
+                            </div>
+                            <dd>
+                                {isEditingGender ? (
+                                    <div className="space-y-3">
+                                        <div className="space-y-2">
+                                            <Radio.Group
+                                                onChange={(e) => setPendingGender(e.target.value as "MALE" | "FEMALE")}
+                                                value={pendingGender}
+                                                className="flex flex-col space-y-2"
+                                            >
+                                                <Radio value="MALE" className="font-medium text-sm">
+                                                    Nam
+                                                </Radio>
+                                                <Radio value="FEMALE" className="font-medium text-sm">
+                                                    Nữ
+                                                </Radio>
+                                            </Radio.Group>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setIsEditingGender(false);
+                                                    setPendingGender("MALE");
+                                                    setErrorMessage(null);
+                                                    setSuccessMessage(null);
+                                                }}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
+                                            >
+                                                <X className="w-4 h-4 mr-1.5" />
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                onClick={async () => {
+                                                    setIsSaving(true);
+                                                    setErrorMessage(null);
+                                                    try {
+                                                        const payload = buildProfilePayload({ gender: pendingGender });
+                                                        await updateUserProfile(payload);
+                                                        await refreshProfile();
+                                                        setSuccessMessage("Thông tin đã được cập nhật thành công!");
+                                                        setIsEditingGender(false);
+                                                        setTimeout(() => setSuccessMessage(null), 3000);
+                                                    } catch (error) {
+                                                        console.error("Failed to update gender", error);
+                                                        setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
+                                                    } finally {
+                                                        setIsSaving(false);
+                                                    }
+                                                }}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                                            >
+                                                {isSaving ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
+                                                        Đang lưu...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Check className="w-4 h-4 mr-1.5" />
+                                                        Lưu
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-900 font-medium ml-11">
+                                        {user.gender?.toUpperCase() === "FEMALE" ? "Nữ" : "Nam"}
+                                    </p>
+                                )}
+                            </dd>
+                        </div>
+                    </div>
+
+                    {/* Date of Birth Field */}
+                    <div className={`bg-white rounded-lg border transition-all ${isEditingDateOfBirth
+                        ? 'border-[#E04D30] shadow-md'
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}>
+                        <div className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isEditingDateOfBirth
+                                        ? 'bg-[#E04D30]/10 text-[#E04D30]'
+                                        : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                        <CalendarIcon className="w-4 h-4" />
+                                    </div>
+                                    <dt className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                                        Ngày sinh
+                                    </dt>
+                                </div>
+                                {!isEditingDateOfBirth && (
+                                    <button
+                                        onClick={() => {
+                                            const currentDateOfBirth = user?.dateOfBirth || "";
+                                            setPendingDateOfBirth(currentDateOfBirth ? new Date(currentDateOfBirth) : undefined);
+                                            setIsEditingDateOfBirth(true);
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#E04D30] hover:text-[#c53b1d] hover:bg-[#E04D30]/5 rounded-lg transition-all"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                        Chỉnh sửa
+                                    </button>
+                                )}
+                            </div>
+                            <dd>
+                                {isEditingDateOfBirth ? (
+                                    <div className="space-y-3">
+                                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    className="w-full justify-start text-left font-normal border-gray-300 hover:bg-gray-50"
+                                                    variant="outline"
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {pendingDateOfBirth ? format(pendingDateOfBirth, "PPP") : <span className="text-gray-500">Chọn ngày sinh</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent align="start" className="w-auto p-0">
+                                                <Calendar
+                                                    captionLayout="dropdown"
+                                                    components={{
+                                                        DropdownNav: (props) => (
+                                                            <div className="flex w-full items-center gap-2">
+                                                                {props.children}
+                                                            </div>
+                                                        ),
+                                                        Dropdown: (props) => (
+                                                            <Select
+                                                                onValueChange={(value) => {
+                                                                    if (props.onChange) {
+                                                                        handleCalendarChange(value, props.onChange);
+                                                                    }
+                                                                }}
+                                                                value={String(props.value)}
+                                                            >
+                                                                <SelectTrigger className="first:flex-1 last:shrink-0">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {props.options?.map((option) => (
+                                                                        <SelectItem
+                                                                            disabled={option.disabled}
+                                                                            key={option.value}
+                                                                            value={String(option.value)}
+                                                                        >
+                                                                            {option.label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        ),
+                                                    }}
+                                                    hideNavigation
+                                                    mode="single"
+                                                    month={month}
+                                                    onMonthChange={setMonth}
+                                                    onSelect={(date) => {
+                                                        setPendingDateOfBirth(date);
+                                                        setCalendarOpen(false);
+                                                    }}
+                                                    selected={pendingDateOfBirth}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setIsEditingDateOfBirth(false);
+                                                    setPendingDateOfBirth(undefined);
+                                                    setErrorMessage(null);
+                                                    setSuccessMessage(null);
+                                                }}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none border-gray-300 hover:bg-gray-50"
+                                            >
+                                                <X className="w-4 h-4 mr-1.5" />
+                                                Hủy
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                onClick={async () => {
+                                                    setErrorMessage(null);
+
+                                                    const dobError = validateBirthdate(pendingDateOfBirth);
+                                                    if (dobError) {
+                                                        setErrorMessage(dobError);
+                                                        return;
+                                                    }
+
+                                                    setIsSaving(true);
+                                                    try {
+                                                        const dateString = pendingDateOfBirth
+                                                            ? pendingDateOfBirth.toISOString().split('T')[0]
+                                                            : null;
+                                                        const payload = buildProfilePayload({ birthday: dateString });
+                                                        await updateUserProfile(payload);
+                                                        await refreshProfile();
+                                                        setSuccessMessage("Thông tin đã được cập nhật thành công!");
+                                                        setIsEditingDateOfBirth(false);
+                                                        setTimeout(() => setSuccessMessage(null), 3000);
+                                                    } catch (error) {
+                                                        console.error("Failed to update birthday", error);
+                                                        setErrorMessage("Không thể lưu thay đổi. Vui lòng thử lại.");
+                                                    } finally {
+                                                        setIsSaving(false);
+                                                    }
+                                                }}
+                                                disabled={isSaving}
+                                                className="flex-1 sm:flex-none bg-[#E04D30] hover:bg-[#c53b1d] text-white"
+                                            >
+                                                {isSaving ? (
+                                                    <>
+                                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5"></div>
+                                                        Đang lưu...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Check className="w-4 h-4 mr-1.5" />
+                                                        Lưu
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-900 font-medium ml-11">
+                                        {displayValue(user.dateOfBirth)}
+                                    </p>
+                                )}
+                            </dd>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        {/* Right Column - Profile Picture Upload */}
-        <div className="lg:col-span-1 order-1 lg:order-2">
-          <div className="flex flex-col items-center lg:items-start">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48 mb-3 sm:mb-4 rounded-lg overflow-hidden border-2 border-gray-200">
-              <img
-                src={userData.avatar}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="md"
-              onClick={() => console.log("Choose photo")}
-              className="w-full sm:w-auto"
-            >
-              Chọn ảnh
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ProfileTab;

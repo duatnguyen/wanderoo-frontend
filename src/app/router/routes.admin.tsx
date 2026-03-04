@@ -5,104 +5,189 @@ import { LazyWrapper } from "../../components/common/LazyWrapper";
 
 // Lazy load admin pages
 const AdminDashboard = lazy(
-  () => import("../../features/admin/dashboard/pages/AdminDashboard")
+  () => import("../../features/admin/pages/dashboard/AdminDashboard")
 );
 const AdminProducts = lazy(
-  () => import("../../features/admin/products/pages/AdminProducts")
+  () => import("../../features/admin/pages/products/list/AdminProducts")
 );
 const AdminOrders = lazy(
-  () => import("../../features/admin/orders/pages/AdminOrders")
+  () => import("../../features/admin/pages/orders/list/AdminOrders")
 );
 const AdminOrderDetail = lazy(
-  () => import("../../features/admin/orders/pages/AdminOrderDetail")
+  () => import("../../features/admin/pages/orders/detail/AdminOrderDetail")
 );
 const AdminSettings = lazy(
-  () => import("../../features/admin/settings/pages/AdminSettings")
+  () => import("../../features/admin/pages/settings/AdminSettings")
 );
 const AdminShipping = lazy(
-  () => import("../../features/admin/shipping/pages/AdminShipping")
+  () => import("../../features/admin/pages/shipping/AdminShipping")
 );
-const AdminCustomers = lazy(
-  () => import("../../features/admin/customers/pages/AdminCustomers")
-);
-const AdminAccounting = lazy(
-  () => import("../../features/admin/accounting/pages/AdminAccounting")
+const AdminCustomers = lazy(() =>
+  import("../../features/admin/pages/customers/list").then((module) => ({
+    default: module.AdminCustomers,
+  }))
 );
 const AdminStaff = lazy(
-  () => import("../../features/admin/staff/pages/AdminStaff")
+  () => import("../../features/admin/pages/staff/list/AdminStaff")
 );
 const AdminReports = lazy(
-  () => import("../../features/admin/reports/pages/AdminReports")
+  () => import("../../features/admin/pages/reports/AdminReports")
 );
 const AdminDiscounts = lazy(
-  () => import("../../features/admin/discounts/pages/AdminDiscounts")
+  () => import("../../features/admin/pages/discounts/list/AdminDiscounts")
 );
 const AdminCreateVoucher = lazy(
-  () => import("../../features/admin/discounts/pages/AdminCreateVoucher")
+  () => import("../../features/admin/pages/discounts/create/AdminCreateVoucher")
 );
-const AdminPOS = lazy(
-  () => import("../../features/admin/channels/pages/AdminPOS")
+const AdminCreateVoucherShopWide = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/discounts/create/AdminCreateVoucherShopWide"
+    )
 );
+const AdminCreateVoucherProduct = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/discounts/create/AdminCreateVoucherProduct"
+    )
+);
+const AdminCreateVoucherNewCustomer = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/discounts/create/AdminCreateVoucherNewCustomer"
+    )
+);
+const AdminCreateVoucherReturningCustomer = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/discounts/create/AdminCreateVoucherReturningCustomer"
+    )
+);
+
+// POS Pages
+const POSSales = lazy(() => import("../../features/pos/pages/sales/POSSales"));
+const POSOrderManagement = lazy(
+  () => import("../../features/pos/pages/orders/OrderManagement")
+);
+const POSReturnOrderManagement = lazy(
+  () => import("../../features/pos/pages/returns/ReturnOrderManagement")
+);
+const POSCreateReturnOrder = lazy(
+  () => import("../../features/pos/pages/returns/CreateReturnOrder")
+);
+const POSInventoryLookup = lazy(
+  () => import("../../features/pos/pages/inventory/InventoryLookup")
+);
+
 const AdminWarehouseReturnsImport = lazy(
   () =>
-    import("../../features/admin/warehouse/pages/AdminWarehouseReturnsImport")
+    import(
+      "../../features/admin/pages/warehouse/returns/AdminWarehouseReturnsImport"
+    )
 );
 const AdminWarehouseImports = lazy(
-  () => import("../../features/admin/warehouse/pages/AdminWarehouseImports")
+  () =>
+    import("../../features/admin/pages/warehouse/imports/AdminWarehouseImports")
+);
+const AdminWarehouseExports = lazy(
+  () =>
+    import("../../features/admin/pages/warehouse/exports/AdminWarehouseExports")
+);
+const AdminWarehouseExportDetail = lazy(
+  () =>
+    import("../../features/admin/pages/warehouse/exports/AdminWarehouseExportDetail")
 );
 const AdminWarehouseCreateImport = lazy(
   () =>
-    import("../../features/admin/warehouse/pages/AdminWarehouseCreateImport")
+    import(
+      "../../features/admin/pages/warehouse/imports/AdminWarehouseCreateImport"
+    )
+);
+const AdminWarehouseCreateReturnImport = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/warehouse/returns/AdminWarehouseCreateReturnImport"
+    )
 );
 const AdminWarehouseImportDetail = lazy(
   () =>
-    import("../../features/admin/warehouse/pages/AdminWarehouseImportDetail")
+    import(
+      "../../features/admin/pages/warehouse/imports/AdminWarehouseImportDetail"
+    )
 );
 const AdminWarehouseDetailReturnImport = lazy(
   () =>
     import(
-      "../../features/admin/warehouse/pages/AdminWarehouseDetailReturnImport"
+      "../../features/admin/pages/warehouse/returns/AdminWarehouseDetailReturnImport"
     )
 );
 const AdminCustomerReviews = lazy(
-  () => import("../../features/admin/customers/pages/AdminCustomerReviews")
+  () =>
+    import("../../features/admin/pages/customers/reviews/AdminCustomerReviews")
 );
 const AdminWarehouseSupplier = lazy(
-  () => import("../../features/admin/warehouse/pages/AdminWarehouseSupplier")
+  () =>
+    import(
+      "../../features/admin/pages/warehouse/suppliers/AdminWarehouseSupplier"
+    )
 );
 const AdminOrderOtherStatus = lazy(
-  () => import("../../features/admin/orders/pages/AdminOrderOtherStatus")
+  () => import("../../features/admin/pages/orders/list/AdminOrderOtherStatus")
+);
+const AdminOrderOtherStatusDetail = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/orders/detail/AdminOrderOtherStatusDetail"
+    )
 );
 const AdminProductsCategories = lazy(
-  () => import("../../features/admin/products/pages/AdminProductsCategories")
+  () =>
+    import(
+      "../../features/admin/pages/products/categories/AdminProductsCategories"
+    )
 );
 const AdminProductsCategoryDetail = lazy(
   () =>
-    import("../../features/admin/products/pages/AdminProductsCategoryDetail")
+    import(
+      "../../features/admin/pages/products/categories/AdminProductsCategoryDetail"
+    )
+);
+const AdminProductsSubcategoryDetail = lazy(
+  () =>
+    import(
+      "../../features/admin/pages/products/categories/AdminProductsSubcategoryDetail"
+    )
 );
 const AdminProductsNew = lazy(
-  () => import("../../features/admin/products/pages/AdminProductsNew")
+  () => import("../../features/admin/pages/products/create/AdminProductsNew")
+);
+const AdminProductsEdit = lazy(
+  () => import("../../features/admin/pages/products/edit/AdminProductsEdit")
+);
+const AdminProductsView = lazy(
+  () => import("../../features/admin/pages/products/view/AdminProductsView")
 );
 const AdminStaffNew = lazy(
-  () => import("../../features/admin/staff/pages/AdminStaffNew")
+  () => import("../../features/admin/pages/staff/create/AdminStaffNew")
 );
 const AdminStaffDetail = lazy(
-  () => import("../../features/admin/staff/pages/AdminStaffDetail")
+  () => import("../../features/admin/pages/staff/detail/AdminStaffDetail")
 );
 const AdminSupplierNew = lazy(
-  () => import("../../features/admin/warehouse/pages/AdminSupplierNew")
+  () =>
+    import("../../features/admin/pages/warehouse/suppliers/AdminSupplierNew")
 );
 const AdminSupplierDetail = lazy(
-  () => import("../../features/admin/warehouse/pages/AdminSupplierDetail")
+  () =>
+    import("../../features/admin/pages/warehouse/suppliers/AdminSupplierDetail")
 );
-const AdminWebsite = lazy(
-  () => import("../../features/admin/channels/pages/AdminWebsite")
-);
+
 const AdminCustomerDetail = lazy(
-  () => import("../../features/admin/customers/pages/AdminCustomerDetail")
+  () =>
+    import("../../features/admin/pages/customers/detail/AdminCustomerDetail")
 );
 const AdminAddCustomer = lazy(
-  () => import("../../features/admin/customers/pages/AdminAddCustomer")
+  () => import("../../features/admin/pages/customers/list/AdminAddCustomer")
 );
 
 export const adminRoutes: RouteObject[] = [
@@ -123,7 +208,23 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
-    path: "orders/all",
+    path: "orders",
+    element: (
+      <LazyWrapper>
+        <AdminOrders />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "orders/pos",
+    element: (
+      <LazyWrapper>
+        <AdminOrders />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "orders/website",
     element: (
       <LazyWrapper>
         <AdminOrders />
@@ -143,6 +244,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminOrderOtherStatus />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "orders/otherstatus/:orderId",
+    element: (
+      <LazyWrapper>
+        <AdminOrderOtherStatusDetail />
       </LazyWrapper>
     ),
   },
@@ -203,10 +312,26 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
+    path: "products/categories/:categoryId/subcategories/:subcategoryId",
+    element: (
+      <LazyWrapper>
+        <AdminProductsSubcategoryDetail />
+      </LazyWrapper>
+    ),
+  },
+  {
     path: "products/:productId/edit",
     element: (
       <LazyWrapper>
-        <AdminProducts />
+        <AdminProductsEdit />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "products/:productId/view",
+    element: (
+      <LazyWrapper>
+        <AdminProductsView />
       </LazyWrapper>
     ),
   },
@@ -251,6 +376,38 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
+    path: "warehouse/exports",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseExports />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/exports/:exportId",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseExportDetail />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/exports/create",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseCreateImport />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "warehouse/returns/create",
+    element: (
+      <LazyWrapper>
+        <AdminWarehouseCreateReturnImport />
+      </LazyWrapper>
+    ),
+  },
+  {
     path: "warehouse/imports",
     element: (
       <LazyWrapper>
@@ -291,6 +448,14 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
+    path: "customers",
+    element: (
+      <LazyWrapper>
+        <AdminCustomers />
+      </LazyWrapper>
+    ),
+  },
+  {
     path: "customers/new",
     element: (
       <LazyWrapper>
@@ -311,30 +476,6 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <LazyWrapper>
         <AdminCustomerReviews />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "accounting",
-    element: (
-      <LazyWrapper>
-        <AdminAccounting />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "accounting/revenue",
-    element: (
-      <LazyWrapper>
-        <AdminAccounting />
-      </LazyWrapper>
-    ),
-  },
-  {
-    path: "accounting/expenses",
-    element: (
-      <LazyWrapper>
-        <AdminAccounting />
       </LazyWrapper>
     ),
   },
@@ -419,6 +560,38 @@ export const adminRoutes: RouteObject[] = [
     ),
   },
   {
+    path: "discounts/new/shop-wide",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherShopWide />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "discounts/new/product",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherProduct />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "discounts/new/new-customer",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherNewCustomer />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "discounts/new/returning-customer",
+    element: (
+      <LazyWrapper>
+        <AdminCreateVoucherReturningCustomer />
+      </LazyWrapper>
+    ),
+  },
+  {
     path: "discounts/:discountId/edit",
     element: (
       <LazyWrapper>
@@ -426,19 +599,52 @@ export const adminRoutes: RouteObject[] = [
       </LazyWrapper>
     ),
   },
-  {
-    path: "channels/website",
-    element: (
-      <LazyWrapper>
-        <AdminWebsite />
-      </LazyWrapper>
-    ),
-  },
+  // POS Routes - Point of Sale System
   {
     path: "channels/pos",
     element: (
       <LazyWrapper>
-        <AdminPOS />
+        <POSSales />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/sales",
+    element: (
+      <LazyWrapper>
+        <POSSales />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/orders",
+    element: (
+      <LazyWrapper>
+        <POSOrderManagement />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/returns",
+    element: (
+      <LazyWrapper>
+        <POSReturnOrderManagement />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/returns/create",
+    element: (
+      <LazyWrapper>
+        <POSCreateReturnOrder />
+      </LazyWrapper>
+    ),
+  },
+  {
+    path: "pos/inventory",
+    element: (
+      <LazyWrapper>
+        <POSInventoryLookup />
       </LazyWrapper>
     ),
   },

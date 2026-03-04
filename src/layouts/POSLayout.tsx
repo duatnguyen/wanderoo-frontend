@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { POSSidebar } from "../features/pos/components/POSSidebar";
-import { POSHeader, type OrderTab } from "../features/pos/components/POSHeader";
-import { POSProvider, usePOSContext } from "../features/pos/context/POSContext";
+﻿import React, { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { POSSidebar } from "../components/pos/POSSidebar";
+import { POSHeader, type OrderTab } from "../components/pos/POSHeader";
+import { POSProvider, usePOSContext } from "../context/POSContext";
+import { useAuth } from "../context/AuthContext";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { POSSidebarItemId } from "../features/pos/components/POSSidebar";
+import type { POSSidebarItemId } from "../components/pos/POSSidebar";
+import { Button } from "@/components/ui/button";
 
 const POSLayoutContent: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const isOrderManagementPage = location.pathname.includes("/orders");
   const isReturnOrderPage = location.pathname.includes("/returns");
   const isCreateReturnOrderPage = location.pathname.includes("/returns/create");
-  const isCashBookPage = location.pathname.includes("/cashbook");
 
+  const { user: authUser } = useAuth();
   const {
     activeSidebarItem,
     setActiveSidebarItem,
@@ -24,6 +25,7 @@ const POSLayoutContent: React.FC = () => {
     setOrders,
     currentOrderId,
     setCurrentOrderId,
+    orderHandlers,
     user,
   } = usePOSContext();
 
@@ -41,35 +43,58 @@ const POSLayoutContent: React.FC = () => {
       setActiveSidebarItem("products" as POSSidebarItemId);
     } else if (isReturnOrderPage) {
       setActiveSidebarItem("receipts" as POSSidebarItemId);
-    } else if (isCashBookPage) {
-      setActiveSidebarItem("payments" as POSSidebarItemId);
     }
   }, [
     location.pathname,
     isOrderManagementPage,
     isInventoryPage,
     isReturnOrderPage,
-    isCashBookPage,
     setActiveSidebarItem,
   ]);
 
   const handleAddOrder = () => {
-    const newOrderId = String(orders.length + 1);
-    const newOrder: OrderTab = { id: newOrderId, label: `Đơn ${newOrderId}` };
-    setOrders([...orders, newOrder]);
-    setCurrentOrderId(newOrderId);
+    if (orderHandlers.onOrderAdd) {
+      orderHandlers.onOrderAdd();
+    } else {
+      // Fallback: tạo order local (cho các page khác)
+      const newOrderId = String(orders.length + 1);
+      const newOrder: OrderTab = { id: newOrderId, label: `Đơn ${newOrderId}` };
+      setOrders([...orders, newOrder]);
+      setCurrentOrderId(newOrderId);
+    }
   };
 
   const handleCloseOrder = (orderId: string) => {
-    if (orders.length === 1) {
-      return;
-    }
-    const newOrders = orders.filter((o) => o.id !== orderId);
-    setOrders(newOrders);
-    if (currentOrderId === orderId) {
-      setCurrentOrderId(newOrders[0]?.id || "1");
+    if (orderHandlers.onOrderClose) {
+      orderHandlers.onOrderClose(orderId);
+    } else {
+      // Fallback: xóa order local (cho các page khác)
+      if (orders.length === 1) {
+        return;
+      }
+      const newOrders = orders.filter((o) => o.id !== orderId);
+      setOrders(newOrders);
+      if (currentOrderId === orderId) {
+        setCurrentOrderId(newOrders[0]?.id || "1");
+      }
     }
   };
+
+  const handleOrderSelect = (orderId: string) => {
+    if (orderHandlers.onOrderSelect) {
+      orderHandlers.onOrderSelect(orderId);
+    } else {
+      setCurrentOrderId(orderId);
+    }
+  };
+
+  const userForHeader = authUser
+    ? {
+        name: authUser.name || authUser.username,
+        role: authUser.role || "Admin",
+        avatar: authUser.avatar || null,
+      }
+    : user;
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50 justify-between">
@@ -79,14 +104,12 @@ const POSLayoutContent: React.FC = () => {
           isCreateReturnOrderPage
             ? "Tạo đơn trả hàng"
             : isOrderManagementPage
-            ? "Quản lý đơn hàng"
-            : isInventoryPage
-            ? "Tra cứu tồn kho"
-            : isReturnOrderPage
-            ? "Trả hàng"
-            : isCashBookPage
-            ? "Sổ Qũy"
-            : "Bán hàng"
+              ? "Quản lý đơn hàng"
+              : isInventoryPage
+                ? "Tra cứu tồn kho"
+                : isReturnOrderPage
+                  ? "Trả hàng"
+                  : "Bán hàng"
         }
         searchValue={
           location.pathname.includes("/sales") ? searchValue : undefined
@@ -101,7 +124,7 @@ const POSLayoutContent: React.FC = () => {
         }
         orders={location.pathname.includes("/sales") ? orders : undefined}
         onOrderSelect={
-          location.pathname.includes("/sales") ? setCurrentOrderId : undefined
+          location.pathname.includes("/sales") ? handleOrderSelect : undefined
         }
         onOrderClose={
           location.pathname.includes("/sales") ? handleCloseOrder : undefined
@@ -109,16 +132,18 @@ const POSLayoutContent: React.FC = () => {
         onOrderAdd={
           location.pathname.includes("/sales") ? handleAddOrder : undefined
         }
-        user={user}
+        user={userForHeader}
         className="flex-shrink-0"
       />
 
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Mobile Sidebar Toggle */}
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed top-[64px] sm:top-[80px] left-2 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200"
+          className="lg:hidden fixed top-[64px] sm:top-[80px] left-2 z-50 p-2 bg-white rounded-md shadow-md border border-gray-200 h-auto w-auto hover:bg-gray-100/50"
           aria-label="Toggle sidebar"
         >
           {sidebarOpen ? (
@@ -126,7 +151,7 @@ const POSLayoutContent: React.FC = () => {
           ) : (
             <Menu className="w-5 h-5 text-[#454545]" />
           )}
-        </button>
+        </Button>
 
         {/* Sidebar */}
         <div
@@ -145,20 +170,6 @@ const POSLayoutContent: React.FC = () => {
               onItemClick={(item) => {
                 setActiveSidebarItem(item);
                 setSidebarOpen(false); // Close on mobile after selection
-
-                // Navigate based on sidebar item
-                if (item === "invoices") {
-                  navigate("/pos/orders");
-                } else if (item === "cart") {
-                  navigate("/pos/sales");
-                } else if (item === "products") {
-                  navigate("/pos/inventory");
-                } else if (item === "receipts") {
-                  navigate("/pos/returns");
-                } else if (item === "payments") {
-                  navigate("/pos/cashbook");
-                }
-                // Add more navigation cases as needed
               }}
               className="h-full"
             />
